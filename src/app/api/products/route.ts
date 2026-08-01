@@ -5,8 +5,7 @@ import { db } from "@/db";
 import { products } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
 import { ApiError, handleApiError } from "@/lib/api/errors";
-
-const MAX_PRODUCTS = 5;
+import { MAX_PRODUCTS } from "@/lib/validation";
 
 const productSchema = z.object({
   name: z.string().min(1),

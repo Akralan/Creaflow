@@ -1,4 +1,5 @@
 import type { StyleProfile } from "./styleProfile";
+import type { CategoryLabels } from "./categoryLabels";
 
 export type Platform = "tiktok" | "instagram" | "linkedin";
 export type ContentCategory = "vente" | "coulisses" | "educatif";
@@ -39,6 +40,7 @@ export interface ScriptGenerationContext {
     weeklyTimeAvailable?: string | null;
   };
   styleProfile?: StyleProfile | null;
+  categoryLabels?: CategoryLabels | null;
   product?: {
     name: string;
     description?: string | null;
@@ -49,7 +51,7 @@ export interface ScriptGenerationContext {
 }
 
 export function buildScriptUserMessage(context: ScriptGenerationContext): string {
-  const { creatorProfile, styleProfile, product, platform, contentCategory } = context;
+  const { creatorProfile, styleProfile, categoryLabels, product, platform, contentCategory } = context;
 
   const lines: string[] = [
     `Marque : ${creatorProfile.brandName} (${creatorProfile.activityType})`,
@@ -81,9 +83,12 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
   }
 
   lines.push(`Plateforme cible : ${platform}. ${PLATFORM_RULES[platform]}`);
-  lines.push(
-    `Catégorie de contenu visée : ${contentCategory}. ${CONTENT_CATEGORY_GUIDANCE[contentCategory]}`
-  );
+
+  const customCategory = categoryLabels?.[contentCategory];
+  const categoryLabel = customCategory?.label ?? contentCategory;
+  const categoryGuidance = customCategory?.description ?? CONTENT_CATEGORY_GUIDANCE[contentCategory];
+  lines.push(`Catégorie de contenu visée : ${categoryLabel}. ${categoryGuidance}`);
+
   lines.push("Génère une fiche de tournage complète via l'outil generate_script.");
 
   return lines.join("\n");

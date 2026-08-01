@@ -4,6 +4,7 @@ import { creatorProfiles, products, scripts } from "@/db/schema";
 import type { GeneratedScript } from "@/lib/claude/scriptSchema";
 import type { ContentCategory, Platform, ScriptGenerationContext } from "@/lib/claude/prompts";
 import type { StyleProfile } from "@/lib/claude/styleProfile";
+import type { CategoryLabels } from "@/lib/claude/categoryLabels";
 import { ApiError } from "@/lib/api/errors";
 
 export async function buildGenerationContext(
@@ -39,6 +40,7 @@ export async function buildGenerationContext(
       weeklyTimeAvailable: profile.weeklyTimeAvailable,
     },
     styleProfile: (profile.styleProfile as StyleProfile | null) ?? null,
+    categoryLabels: (profile.categoryLabels as CategoryLabels | null) ?? null,
     product: product
       ? {
           name: product.name,

@@ -27,7 +27,9 @@ export async function GET(
 
     const cookieStore = await cookies();
     const expectedState = cookieStore.get(`oauth_state_${platform}`)?.value;
+    const returnTo = cookieStore.get(`oauth_return_${platform}`)?.value || "/";
     cookieStore.delete(`oauth_state_${platform}`);
+    cookieStore.delete(`oauth_return_${platform}`);
     if (!state || state !== expectedState) {
       throw new ApiError(400, "State OAuth invalide, réessaie la connexion.");
     }
@@ -80,7 +82,9 @@ export async function GET(
       console.error(`Récupération des posts ${platform} échouée (connexion tout de même enregistrée) :`, err);
     }
 
-    return NextResponse.redirect(new URL(`/?connected=${platform}`, request.url));
+    const redirectUrl = new URL(returnTo, request.url);
+    redirectUrl.searchParams.set("connected", platform);
+    return NextResponse.redirect(redirectUrl);
   } catch (error) {
     return handleApiError(error);
   }

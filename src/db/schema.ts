@@ -33,6 +33,7 @@ export const creatorProfiles = pgTable("creator_profiles", {
   weeklyTimeAvailable: text("weekly_time_available"),
   styleProfile: jsonb("style_profile"),
   styleProfileUpdatedAt: timestamp("style_profile_updated_at"),
+  categoryLabels: jsonb("category_labels"),
 });
 
 export const products = pgTable("products", {

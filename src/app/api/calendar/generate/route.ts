@@ -2,14 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { and, eq, gte, lt } from "drizzle-orm";
 import { db } from "@/db";
-import { calendarEntries, postingGoals } from "@/db/schema";
+import { calendarEntries, creatorProfiles, postingGoals } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
 import {
+  categoryWeightsFromLabels,
   distributeCategories,
   distributeDays,
   parseMonth,
   weeksInMonth,
 } from "@/lib/services/calendarService";
+import type { CategoryLabels } from "@/lib/claude/categoryLabels";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 
 const schema = z.object({
@@ -41,10 +43,16 @@ export async function POST(request: NextRequest) {
       throw new ApiError(400, "Définis d'abord tes objectifs hebdomadaires par plateforme (PostingGoal).");
     }
 
+    const profile = await db.query.creatorProfiles.findFirst({
+      where: eq(creatorProfiles.userId, userId),
+      columns: { categoryLabels: true },
+    });
+    const weights = categoryWeightsFromLabels(profile?.categoryLabels as CategoryLabels | null);
+
     const weeks = weeksInMonth(daysInMonth);
     const rowsToInsert = goals.flatMap((goal) => {
       const slotCount = Math.round(goal.targetCountPerWeek * weeks);
-      const categories = distributeCategories(slotCount);
+      const categories = distributeCategories(slotCount, weights);
       const days = distributeDays(slotCount, daysInMonth);
 
       return categories.map((contentCategory, i) => ({

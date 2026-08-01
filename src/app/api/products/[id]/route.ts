@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { and, eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { products } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
 import { ApiError, handleApiError } from "@/lib/api/errors";
+import { MIN_PRODUCTS } from "@/lib/validation";
 
 const updateProductSchema = z.object({
   name: z.string().min(1).optional(),
@@ -45,6 +46,20 @@ export async function DELETE(
   try {
     const userId = await requireUserId();
     const { id } = await params;
+
+    const [{ value: existingCount }] = await db
+      .select({ value: count() })
+      .from(products)
+      .where(eq(products.userId, userId));
+
+    // On ne bloque que la sortie du seuil (3 -> 2), pas la construction progressive
+    // du catalogue en dessous de 3 pendant l'onboarding.
+    if (existingCount === MIN_PRODUCTS) {
+      throw new ApiError(
+        400,
+        `Le catalogue doit contenir au moins ${MIN_PRODUCTS} produits.`
+      );
+    }
 
     const [deleted] = await db
       .delete(products)

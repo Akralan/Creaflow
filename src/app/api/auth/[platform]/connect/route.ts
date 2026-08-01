@@ -6,7 +6,7 @@ import { socialProviders, isSocialPlatform } from "@/lib/social";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ platform: string }> }
 ) {
   try {
@@ -19,6 +19,16 @@ export async function GET(
     const state = crypto.randomBytes(16).toString("hex");
     const cookieStore = await cookies();
     cookieStore.set(`oauth_state_${platform}`, state, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 600,
+    });
+
+    // Mémorise l'écran d'origine (onboarding, paramètres, ...) pour y revenir après le callback.
+    const returnTo = request.nextUrl.searchParams.get("returnTo") || "/";
+    cookieStore.set(`oauth_return_${platform}`, returnTo, {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
