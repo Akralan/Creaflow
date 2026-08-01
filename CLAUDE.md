@@ -9,8 +9,8 @@
 - `npm run db:migrate` — applique les migrations en attente sur la base pointée par `DATABASE_URL`.
 - `npm run db:push` — pousse le schéma directement sans passer par des fichiers de migration (pratique en dev rapide, à éviter une fois qu'on a des données à préserver).
 - `npm run db:studio` — ouvre Drizzle Studio pour inspecter la base.
-
-Pas de suite de tests configurée pour l'instant.
+- `npm run test` — lance la suite Vitest une fois (logique pure + appels Claude mockés, aucune base de données requise).
+- `npm run test:watch` — lance Vitest en mode watch.
 
 ## Configuration
 

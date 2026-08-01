@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { Tool } from "@anthropic-ai/sdk/resources/messages";
 import { getClaudeClient, CLAUDE_MODEL } from "./client";
 
-const styleProfileSchema = z.object({
+export const styleProfileSchema = z.object({
   tone: z.string().min(1),
   sentenceLength: z.string().min(1),
   emojiUsage: z.string().min(1),
