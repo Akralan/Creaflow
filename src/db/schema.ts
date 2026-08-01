@@ -8,6 +8,7 @@ import {
   integer,
   pgEnum,
 } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 
 export const platformEnum = pgEnum("platform", ["tiktok", "instagram", "linkedin"]);
 export const contentCategoryEnum = pgEnum("content_category", ["vente", "coulisses", "educatif"]);
@@ -98,3 +99,16 @@ export const calendarEntries = pgTable("calendar_entries", {
   status: calendarStatusEnum("status").notNull().default("planned"),
   reminderSent: boolean("reminder_sent").notNull().default(false),
 });
+
+export const productsRelations = relations(products, ({ many }) => ({
+  scripts: many(scripts),
+}));
+
+export const scriptsRelations = relations(scripts, ({ one, many }) => ({
+  product: one(products, { fields: [scripts.productId], references: [products.id] }),
+  calendarEntries: many(calendarEntries),
+}));
+
+export const calendarEntriesRelations = relations(calendarEntries, ({ one }) => ({
+  script: one(scripts, { fields: [calendarEntries.scriptId], references: [scripts.id] }),
+}));
