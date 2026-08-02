@@ -1,23 +1,37 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { db } from "@/db";
-import { creatorProfiles, products, scripts } from "@/db/schema";
-import type { GeneratedScript } from "@/lib/claude/scriptSchema";
-import type { ContentCategory, Platform, ScriptGenerationContext } from "@/lib/claude/prompts";
-import type { StyleProfile } from "@/lib/claude/styleProfile";
-import type { CategoryLabels } from "@/lib/claude/categoryLabels";
+import { creatorProfiles, products, contentCategories, contentSeries, scripts } from "@/db/schema";
+import type { GeneratedScript } from "@/lib/llm/scriptSchema";
+import type { ContentCategoryContext, ContentType, Platform, ScriptGenerationContext } from "@/lib/llm/prompts";
+import type { StyleProfile } from "@/lib/llm/styleProfile";
+import { buildPerformanceSummary } from "@/lib/services/performanceService";
+import { pickAngleForScript } from "@/lib/services/angleService";
 import { ApiError } from "@/lib/api/errors";
+
+const RECENT_TOPICS_LIMIT = 15;
+const SERIES_RECENT_TOPICS_LIMIT = 10;
 
 export async function buildGenerationContext(
   userId: string,
   platform: Platform,
-  contentCategory: ContentCategory,
-  productId?: string | null
+  contentCategoryId: string,
+  contentType: ContentType,
+  productId?: string | null,
+  excludeScriptId?: string | null,
+  seriesId?: string | null
 ): Promise<ScriptGenerationContext> {
   const profile = await db.query.creatorProfiles.findFirst({
     where: eq(creatorProfiles.userId, userId),
   });
   if (!profile) {
     throw new ApiError(400, "Configure d'abord ton profil créateur (Module A) avant de générer un script.");
+  }
+
+  const category = await db.query.contentCategories.findFirst({
+    where: and(eq(contentCategories.id, contentCategoryId), eq(contentCategories.userId, userId)),
+  });
+  if (!category) {
+    throw new ApiError(404, "Catégorie de contenu introuvable.");
   }
 
   let product = null;
@@ -30,6 +44,32 @@ export async function buildGenerationContext(
     }
   }
 
+  let series = null;
+  if (seriesId) {
+    const found = await db.query.contentSeries.findFirst({
+      where: and(eq(contentSeries.id, seriesId), eq(contentSeries.userId, userId)),
+    });
+    if (!found) {
+      throw new ApiError(404, "Série introuvable.");
+    }
+    series = { id: found.id, label: found.label, description: found.description };
+  }
+
+  const [recentScripts, performanceSummary, angle] = await Promise.all([
+    db.query.scripts.findMany({
+      where: and(
+        eq(scripts.userId, userId),
+        seriesId ? eq(scripts.seriesId, seriesId) : undefined,
+        excludeScriptId ? ne(scripts.id, excludeScriptId) : undefined
+      ),
+      orderBy: desc(scripts.createdAt),
+      limit: seriesId ? SERIES_RECENT_TOPICS_LIMIT : RECENT_TOPICS_LIMIT,
+      columns: { title: true },
+    }),
+    buildPerformanceSummary(userId, platform),
+    pickAngleForScript(userId, contentCategoryId, excludeScriptId),
+  ]);
+
   return {
     creatorProfile: {
       brandName: profile.brandName,
@@ -40,7 +80,6 @@ export async function buildGenerationContext(
       weeklyTimeAvailable: profile.weeklyTimeAvailable,
     },
     styleProfile: (profile.styleProfile as StyleProfile | null) ?? null,
-    categoryLabels: (profile.categoryLabels as CategoryLabels | null) ?? null,
     product: product
       ? {
           name: product.name,
@@ -49,16 +88,38 @@ export async function buildGenerationContext(
         }
       : null,
     platform,
-    contentCategory,
+    contentCategory: { id: category.id, label: category.label, description: category.description },
+    contentType,
+    recentTopics: recentScripts.map((s) => s.title),
+    performanceSummary,
+    angle: angle ? { id: angle.id, label: angle.label, description: angle.description } : null,
+    series,
+  };
+}
+
+/** Traduit le script généré (une des 3 formes selon contentType) en colonnes DB —
+ *  les champs non pertinents pour ce type sont explicitement mis à null. */
+function scriptColumnsFromGenerated(generated: GeneratedScript) {
+  return {
+    title: generated.title,
+    caption: generated.caption,
+    hashtags: generated.hashtags,
+    contentType: generated.contentType,
+    hookVisual: "hookVisual" in generated ? generated.hookVisual : null,
+    hookText: "hookText" in generated ? generated.hookText : null,
+    hookAudio: "hookAudio" in generated ? generated.hookAudio : null,
+    storyboard: "storyboard" in generated ? generated.storyboard : null,
+    soundRecommendation: "soundRecommendation" in generated ? generated.soundRecommendation : null,
   };
 }
 
 export async function createScriptRecord(
   userId: string,
   platform: Platform,
-  contentCategory: ContentCategory,
+  contentCategory: ContentCategoryContext,
   productId: string | null,
-  generated: GeneratedScript
+  generated: GeneratedScript,
+  extras?: { angleId?: string | null; seriesId?: string | null }
 ) {
   const [script] = await db
     .insert(scripts)
@@ -66,34 +127,28 @@ export async function createScriptRecord(
       userId,
       productId,
       platform,
-      title: generated.title,
-      hookVisual: generated.hookVisual,
-      hookText: generated.hookText,
-      hookAudio: generated.hookAudio,
-      storyboard: generated.storyboard,
-      caption: generated.caption,
-      hashtags: generated.hashtags,
-      soundRecommendation: generated.soundRecommendation,
-      contentCategory,
+      contentCategoryId: contentCategory.id,
+      angleId: extras?.angleId ?? null,
+      seriesId: extras?.seriesId ?? null,
+      ...scriptColumnsFromGenerated(generated),
     })
     .returning();
-  return script;
+  return { ...script, contentCategory };
 }
 
-export async function updateScriptRecord(scriptId: string, generated: GeneratedScript) {
+export async function updateScriptRecord(
+  scriptId: string,
+  contentCategory: ContentCategoryContext,
+  generated: GeneratedScript,
+  extras?: { angleId?: string | null }
+) {
   const [script] = await db
     .update(scripts)
     .set({
-      title: generated.title,
-      hookVisual: generated.hookVisual,
-      hookText: generated.hookText,
-      hookAudio: generated.hookAudio,
-      storyboard: generated.storyboard,
-      caption: generated.caption,
-      hashtags: generated.hashtags,
-      soundRecommendation: generated.soundRecommendation,
+      ...(extras?.angleId !== undefined && { angleId: extras.angleId }),
+      ...scriptColumnsFromGenerated(generated),
     })
     .where(eq(scripts.id, scriptId))
     .returning();
-  return script;
+  return { ...script, contentCategory };
 }

@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const createMock = vi.fn();
+const { callStructuredMock } = vi.hoisted(() => ({ callStructuredMock: vi.fn() }));
 
-vi.mock("./client", () => ({
-  getClaudeClient: () => ({ messages: { create: createMock } }),
-  CLAUDE_MODEL: "claude-test-model",
+vi.mock("./provider", () => ({
+  callStructured: callStructuredMock,
 }));
 
 import { analyzeStyle, styleProfileSchema } from "./styleProfile";
@@ -35,29 +34,23 @@ describe("styleProfileSchema", () => {
 
 describe("analyzeStyle", () => {
   beforeEach(() => {
-    createMock.mockReset();
+    callStructuredMock.mockReset();
   });
 
-  it("renvoie le profil de style structuré depuis le bloc tool_use", async () => {
-    createMock.mockResolvedValue({
-      content: [{ type: "tool_use", name: "analyze_style", input: validProfile }],
-    });
+  it("renvoie le profil de style structuré renvoyé par le provider", async () => {
+    callStructuredMock.mockResolvedValue(validProfile);
 
     const result = await analyzeStyle(["Légende 1", "Légende 2"]);
     expect(result).toEqual(validProfile);
   });
 
-  it("lève une erreur si Claude ne renvoie pas de bloc tool_use", async () => {
-    createMock.mockResolvedValue({ content: [{ type: "text", text: "oups" }] });
-    await expect(analyzeStyle(["Légende 1"])).rejects.toThrow(
-      "n'a pas renvoyé d'analyse de style structurée"
-    );
+  it("propage l'erreur si le provider ne renvoie pas de réponse structurée", async () => {
+    callStructuredMock.mockRejectedValue(new Error("Le modèle n'a pas renvoyé de réponse structurée."));
+    await expect(analyzeStyle(["Légende 1"])).rejects.toThrow("n'a pas renvoyé de réponse structurée");
   });
 
-  it("lève une erreur si le contenu ne respecte pas le schéma attendu", async () => {
-    createMock.mockResolvedValue({
-      content: [{ type: "tool_use", name: "analyze_style", input: { tone: "direct" } }],
-    });
+  it("lève une erreur si le contenu renvoyé ne respecte pas le schéma attendu", async () => {
+    callStructuredMock.mockResolvedValue({ tone: "direct" });
     await expect(analyzeStyle(["Légende 1"])).rejects.toThrow();
   });
 });

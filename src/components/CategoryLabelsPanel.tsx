@@ -2,17 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
-import { api, ApiClientError, type CategoryLabels } from "@/lib/apiClient";
-import { accentAlpha, color, type ContentCategory } from "@/lib/design/tokens";
+import { api, ApiClientError, type ContentCategory } from "@/lib/apiClient";
+import { accentAlpha, color } from "@/lib/design/tokens";
 
-const ROLES: Array<{ key: ContentCategory; hint: string }> = [
-  { key: "vente", hint: "Rôle promotionnel (offre, produit, annonce)" },
-  { key: "coulisses", hint: "Rôle coulisses (processus, humain)" },
-  { key: "educatif", hint: "Rôle valeur ajoutée (apprendre, divertir)" },
-];
+type Draft = { id?: string; label: string; description: string; weight: number };
+
+function toDrafts(categories: ContentCategory[]): Draft[] {
+  return categories.map((c) => ({ id: c.id, label: c.label, description: c.description, weight: c.weight }));
+}
 
 export default function CategoryLabelsPanel() {
-  const [labels, setLabels] = useState<CategoryLabels | null>(null);
+  const [drafts, setDrafts] = useState<Draft[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -22,8 +22,8 @@ export default function CategoryLabelsPanel() {
     setGenerating(true);
     setError(null);
     try {
-      const { categoryLabels } = await api.generateCategoryLabels();
-      setLabels(categoryLabels);
+      const { categories } = await api.generateContentCategories();
+      setDrafts(toDrafts(categories));
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Génération impossible.");
     } finally {
@@ -33,9 +33,9 @@ export default function CategoryLabelsPanel() {
 
   useEffect(() => {
     (async () => {
-      const { profile } = await api.getProfile();
-      if (profile?.categoryLabels) {
-        setLabels(profile.categoryLabels);
+      const { categories } = await api.getContentCategories();
+      if (categories.length > 0) {
+        setDrafts(toDrafts(categories));
         setLoaded(true);
       } else {
         setLoaded(true);
@@ -44,23 +44,30 @@ export default function CategoryLabelsPanel() {
     })();
   }, []);
 
-  function updateField(role: ContentCategory, field: "label" | "weight", value: string) {
-    setLabels((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        [role]: { ...prev[role], [field]: field === "weight" ? Number(value) : value },
-      };
-    });
+  function updateField(index: number, field: "label" | "description" | "weight", value: string) {
+    setDrafts((prev) =>
+      prev.map((d, i) => (i === index ? { ...d, [field]: field === "weight" ? Number(value) : value } : d))
+    );
+  }
+
+  function addCategory() {
+    setDrafts((prev) => [...prev, { label: "Nouvelle catégorie", description: "", weight: 10 }]);
+  }
+
+  function removeCategory(index: number) {
+    setDrafts((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function save() {
-    if (!labels) return;
+    if (drafts.length < 2) {
+      setError("Il faut au moins 2 catégories.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
-      const { categoryLabels } = await api.saveCategoryLabels(labels);
-      setLabels(categoryLabels);
+      const { categories } = await api.saveContentCategories(drafts);
+      setDrafts(toDrafts(categories));
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement.");
     } finally {
@@ -93,54 +100,100 @@ export default function CategoryLabelsPanel() {
         </button>
       </div>
       <p style={{ margin: "0 0 14px", fontSize: 12, color: color.textMuted }}>
-        Ces 3 catégories structurent le mix de contenu du calendrier. Modifie le libellé et le poids (%) si besoin.
+        Ces catégories structurent le mix de contenu du calendrier. Modifie le libellé et le poids (%), ajoute ou retire une catégorie si besoin.
       </p>
 
       {error && <p style={{ margin: "0 0 10px", fontSize: 12, color: color.danger }}>{error}</p>}
 
-      {labels && (
-        <div style={{ display: "grid", gap: 10, marginBottom: 14 }}>
-          {ROLES.map(({ key, hint }) => (
-            <div key={key} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <input
-                value={labels[key].label}
-                onChange={(e) => updateField(key, "label", e.target.value)}
-                style={{
-                  flex: 1,
-                  border: `1px solid ${color.inputBorder}`,
-                  borderRadius: 8,
-                  padding: "8px 10px",
-                  fontSize: 13,
-                  fontFamily: "inherit",
-                  background: color.cardBg,
-                }}
-                title={hint}
-              />
-              <input
-                type="number"
-                min={5}
-                max={90}
-                value={labels[key].weight}
-                onChange={(e) => updateField(key, "weight", e.target.value)}
-                style={{
-                  width: 64,
-                  border: `1px solid ${color.inputBorder}`,
-                  borderRadius: 8,
-                  padding: "8px 10px",
-                  fontSize: 13,
-                  fontFamily: "inherit",
-                  background: color.cardBg,
-                }}
-              />
-              <span style={{ fontSize: 12, color: color.textFaint }}>%</span>
-            </div>
-          ))}
-        </div>
-      )}
+      <div style={{ display: "grid", gap: 10, marginBottom: 14 }}>
+        {drafts.map((d, i) => (
+          <div key={d.id ?? `new-${i}`} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              value={d.label}
+              onChange={(e) => updateField(i, "label", e.target.value)}
+              placeholder="Libellé"
+              style={{
+                flex: 1,
+                border: `1px solid ${color.inputBorder}`,
+                borderRadius: 8,
+                padding: "8px 10px",
+                fontSize: 13,
+                fontFamily: "inherit",
+                background: color.cardBg,
+              }}
+            />
+            <input
+              value={d.description}
+              onChange={(e) => updateField(i, "description", e.target.value)}
+              placeholder="Consigne pour l'IA"
+              style={{
+                flex: 2,
+                border: `1px solid ${color.inputBorder}`,
+                borderRadius: 8,
+                padding: "8px 10px",
+                fontSize: 13,
+                fontFamily: "inherit",
+                background: color.cardBg,
+              }}
+            />
+            <input
+              type="number"
+              min={5}
+              max={90}
+              value={d.weight}
+              onChange={(e) => updateField(i, "weight", e.target.value)}
+              style={{
+                width: 64,
+                border: `1px solid ${color.inputBorder}`,
+                borderRadius: 8,
+                padding: "8px 10px",
+                fontSize: 13,
+                fontFamily: "inherit",
+                background: color.cardBg,
+              }}
+            />
+            <span style={{ fontSize: 12, color: color.textFaint }}>%</span>
+            <button
+              onClick={() => removeCategory(i)}
+              disabled={drafts.length <= 2}
+              title="Retirer"
+              style={{
+                border: "none",
+                background: "none",
+                color: drafts.length <= 2 ? color.textFainter : color.danger,
+                cursor: drafts.length <= 2 ? "default" : "pointer",
+                fontSize: 16,
+                lineHeight: 1,
+                padding: "4px 6px",
+              }}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
 
-      <Button onClick={save} disabled={saving || !labels} style={{ padding: "8px 16px", fontSize: 13 }}>
-        {saving ? "..." : "Enregistrer"}
-      </Button>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          onClick={addCategory}
+          disabled={drafts.length >= 6}
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: drafts.length >= 6 ? color.textFainter : color.textSecondary,
+            background: "none",
+            border: `1px dashed ${color.dashedBorder}`,
+            borderRadius: 8,
+            padding: "8px 12px",
+            cursor: drafts.length >= 6 ? "default" : "pointer",
+          }}
+        >
+          + Ajouter une catégorie
+        </button>
+        <Button onClick={save} disabled={saving} style={{ padding: "8px 16px", fontSize: 13, marginLeft: "auto" }}>
+          {saving ? "..." : "Enregistrer"}
+        </Button>
+      </div>
     </div>
   );
 }

@@ -1,11 +1,10 @@
 "use client";
 
-import { fontHeading, platformMeta, type Platform, type ContentCategory } from "@/lib/design/tokens";
+import { fontHeading, genericPlatformMeta, platformMeta, type Platform } from "@/lib/design/tokens";
 import { resolveCategoryMeta } from "@/lib/design/categoryDisplay";
-import { useCategoryLabels } from "@/contexts/CategoryLabelsContext";
 
 export function PlatformBadge({ platform, size = 20 }: { platform: Platform; size?: number }) {
-  const meta = platformMeta[platform];
+  const meta = platformMeta[platform] ?? { ...genericPlatformMeta, badge: platform.slice(0, 2).toUpperCase() };
   return (
     <span
       style={{
@@ -27,9 +26,8 @@ export function PlatformBadge({ platform, size = 20 }: { platform: Platform; siz
   );
 }
 
-export function CategoryPill({ category }: { category: ContentCategory }) {
-  const customLabels = useCategoryLabels();
-  const meta = resolveCategoryMeta(category, customLabels);
+export function CategoryPill({ category }: { category?: { id: string; label: string } | null }) {
+  const meta = resolveCategoryMeta(category);
   return (
     <span
       style={{

@@ -2,16 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { and, eq, gte, lt } from "drizzle-orm";
 import { db } from "@/db";
-import { calendarEntries, creatorProfiles, postingGoals } from "@/db/schema";
+import { calendarEntries, postingGoals } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
 import {
-  categoryWeightsFromLabels,
+  categoryWeightsFromCategories,
   distributeCategories,
   distributeDays,
+  distributeSeriesOverrides,
   parseMonth,
+  seriesWeightsFromSeries,
   weeksInMonth,
 } from "@/lib/services/calendarService";
-import type { CategoryLabels } from "@/lib/claude/categoryLabels";
+import { listActiveCategoriesForUser } from "@/lib/services/categoryLabelsService";
+import { listActiveSeriesForUser } from "@/lib/services/seriesService";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 
 const schema = z.object({
@@ -43,24 +46,34 @@ export async function POST(request: NextRequest) {
       throw new ApiError(400, "Définis d'abord tes objectifs hebdomadaires par plateforme (PostingGoal).");
     }
 
-    const profile = await db.query.creatorProfiles.findFirst({
-      where: eq(creatorProfiles.userId, userId),
-      columns: { categoryLabels: true },
-    });
-    const weights = categoryWeightsFromLabels(profile?.categoryLabels as CategoryLabels | null);
+    const activeCategories = await listActiveCategoriesForUser(userId);
+    if (activeCategories.length === 0) {
+      throw new ApiError(400, "Configure d'abord tes catégories de contenu avant de générer le calendrier.");
+    }
+    const weights = categoryWeightsFromCategories(activeCategories);
+
+    const activeSeries = await listActiveSeriesForUser(userId);
+    const seriesWeights = seriesWeightsFromSeries(
+      activeSeries.map((s) => ({ id: s.id, weight: s.weight, categoryIds: s.categories.map((c) => c.id) }))
+    );
 
     const weeks = weeksInMonth(daysInMonth);
     const rowsToInsert = goals.flatMap((goal) => {
       const slotCount = Math.round(goal.targetCountPerWeek * weeks);
-      const categories = distributeCategories(slotCount, weights);
+      const categoryIds = distributeCategories(slotCount, weights);
       const days = distributeDays(slotCount, daysInMonth);
+      const seriesOverrides = distributeSeriesOverrides(slotCount, seriesWeights);
 
-      return categories.map((contentCategory, i) => ({
-        userId,
-        platform: goal.platform,
-        scheduledDate: new Date(Date.UTC(year, monthIndex, days[i])),
-        contentCategory,
-      }));
+      return categoryIds.map((contentCategoryId, i) => {
+        const override = seriesOverrides.get(i);
+        return {
+          userId,
+          platform: goal.platform,
+          scheduledDate: new Date(Date.UTC(year, monthIndex, days[i])),
+          contentCategoryId: override ? override.categoryId : contentCategoryId,
+          seriesId: override ? override.seriesId : null,
+        };
+      });
     });
 
     const entries = rowsToInsert.length > 0 ? await db.insert(calendarEntries).values(rowsToInsert).returning() : [];

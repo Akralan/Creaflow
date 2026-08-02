@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { socialConnections, inspirationVideos } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
-import { socialProviders, isSocialPlatform } from "@/lib/social";
+import { socialProviders, hasOAuthProvider } from "@/lib/social";
 import { updateStyleProfileForUser } from "@/lib/services/styleProfileService";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 
@@ -15,8 +15,8 @@ export async function GET(
   try {
     const userId = await requireUserId();
     const { platform } = await params;
-    if (!isSocialPlatform(platform)) {
-      throw new ApiError(404, "Plateforme inconnue.");
+    if (!hasOAuthProvider(platform)) {
+      throw new ApiError(404, "Cette plateforme ne propose pas de connexion OAuth.");
     }
 
     const code = request.nextUrl.searchParams.get("code");
@@ -34,7 +34,7 @@ export async function GET(
       throw new ApiError(400, "State OAuth invalide, réessaie la connexion.");
     }
 
-    const provider = socialProviders[platform];
+    const provider = socialProviders[platform]!;
     const tokens = await provider.exchangeCode(code);
 
     const existing = await db.query.socialConnections.findFirst({

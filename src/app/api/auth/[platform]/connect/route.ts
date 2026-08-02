@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import crypto from "crypto";
 import { requireUserId } from "@/lib/auth/session";
-import { socialProviders, isSocialPlatform } from "@/lib/social";
+import { socialProviders, hasOAuthProvider } from "@/lib/social";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 
 export async function GET(
@@ -12,8 +12,8 @@ export async function GET(
   try {
     await requireUserId();
     const { platform } = await params;
-    if (!isSocialPlatform(platform)) {
-      throw new ApiError(404, "Plateforme inconnue.");
+    if (!hasOAuthProvider(platform)) {
+      throw new ApiError(404, "Cette plateforme ne propose pas de connexion OAuth.");
     }
 
     const state = crypto.randomBytes(16).toString("hex");
@@ -36,7 +36,7 @@ export async function GET(
       maxAge: 600,
     });
 
-    return NextResponse.redirect(socialProviders[platform].getAuthUrl(state));
+    return NextResponse.redirect(socialProviders[platform]!.getAuthUrl(state));
   } catch (error) {
     return handleApiError(error);
   }

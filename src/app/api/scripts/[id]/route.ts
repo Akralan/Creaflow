@@ -20,7 +20,7 @@ export async function GET(
 
     const script = await db.query.scripts.findFirst({
       where: and(eq(scripts.id, id), eq(scripts.userId, userId)),
-      with: { product: true },
+      with: { product: true, contentCategory: true, series: { columns: { id: true, label: true } }, metrics: true },
     });
 
     if (!script) {

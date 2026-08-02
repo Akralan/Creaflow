@@ -2,23 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Check, Trash2, X } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import { PlatformBadge } from "@/components/ui/Badge";
 import { TextField, heading1Style } from "@/components/ui/TextField";
-import { api, ApiClientError, type CalendarEntry, type PostingGoal } from "@/lib/apiClient";
-import {
-  accent,
-  color,
-  platformMeta,
-  platformOptions,
-  statusMeta,
-  type Platform,
-} from "@/lib/design/tokens";
+import { api, ApiClientError, type CalendarEntry, type ContentType, type PostingGoal } from "@/lib/apiClient";
+import { accent, color, platformMeta, statusMeta } from "@/lib/design/tokens";
 import { resolveCategoryMeta } from "@/lib/design/categoryDisplay";
-import { useCategoryLabels } from "@/contexts/CategoryLabelsContext";
+import { useContentCategories } from "@/contexts/CategoryLabelsContext";
+import { useContentSeries } from "@/contexts/SeriesContext";
+import { KNOWN_PLATFORMS } from "@/lib/social/types";
 
 const WEEKDAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+const CONTENT_TYPE_SHORT: Record<ContentType, string> = { video: "Vidéo", visual: "Visuel", text: "Texte" };
 
 function monthKey(year: number, monthIndex: number) {
   return `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
@@ -38,9 +35,58 @@ function startOfWeek(d: Date) {
   return date;
 }
 
+function dayDateStr(year: number, monthIndex: number, day: number) {
+  return `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function IconActionButton({
+  icon: Icon,
+  onClick,
+  disabled,
+  variant,
+  title,
+}: {
+  icon: typeof Trash2;
+  onClick: () => void;
+  disabled?: boolean;
+  variant: "danger" | "neutral" | "primary";
+  title: string;
+}) {
+  const variantStyle: React.CSSProperties =
+    variant === "danger"
+      ? { background: "oklch(0.62 0.15 25 / 0.1)", color: color.danger }
+      : variant === "primary"
+        ? { background: disabled ? color.textFaint : accent, color: "#fff" }
+        : { background: color.inputBg, color: color.textMuted, border: `1px solid ${color.inputBorder}` };
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      aria-label={title}
+      style={{
+        width: 40,
+        height: 40,
+        borderRadius: 11,
+        border: "none",
+        display: "grid",
+        placeItems: "center",
+        cursor: disabled ? "default" : "pointer",
+        opacity: disabled ? 0.5 : 1,
+        flexShrink: 0,
+        ...variantStyle,
+      }}
+    >
+      <Icon size={18} strokeWidth={2} />
+    </button>
+  );
+}
+
 export default function CalendarPage() {
   const router = useRouter();
-  const customLabels = useCategoryLabels();
+  const categories = useContentCategories();
+  const series = useContentSeries();
   const today = useMemo(() => new Date(), []);
   const [year, setYear] = useState(today.getFullYear());
   const [monthIndex, setMonthIndex] = useState(today.getMonth());
@@ -52,7 +98,13 @@ export default function CalendarPage() {
   const [generatingSlotId, setGeneratingSlotId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editingGoals, setEditingGoals] = useState(false);
-  const [goalDrafts, setGoalDrafts] = useState<Record<Platform, number>>({ tiktok: 0, instagram: 0, linkedin: 0 });
+  const [goalDrafts, setGoalDrafts] = useState<Record<string, number>>(
+    Object.fromEntries(KNOWN_PLATFORMS.map((p) => [p.key, 0]))
+  );
+  const [editingEntry, setEditingEntry] = useState<CalendarEntry | null>(null);
+  const [editCategoryId, setEditCategoryId] = useState<string>("");
+  const [editSeriesId, setEditSeriesId] = useState<string>("");
+  const [savingEntry, setSavingEntry] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -61,11 +113,11 @@ export default function CalendarPage() {
       const { entries, goals } = await api.getCalendar(monthKey(year, monthIndex));
       setEntries(entries);
       setGoals(goals);
-      setGoalDrafts({
-        tiktok: goals.find((g) => g.platform === "tiktok")?.targetCountPerWeek ?? 0,
-        instagram: goals.find((g) => g.platform === "instagram")?.targetCountPerWeek ?? 0,
-        linkedin: goals.find((g) => g.platform === "linkedin")?.targetCountPerWeek ?? 0,
-      });
+      setGoalDrafts(
+        Object.fromEntries(
+          KNOWN_PLATFORMS.map((p) => [p.key, goals.find((g) => g.platform === p.key)?.targetCountPerWeek ?? 0])
+        )
+      );
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Erreur de chargement du calendrier.");
     } finally {
@@ -101,11 +153,11 @@ export default function CalendarPage() {
     }
   }
 
-  async function handleGenerateSlot(entryId: string) {
+  async function handleGenerateSlot(entryId: string, contentType: ContentType) {
     setGeneratingSlotId(entryId);
     setError(null);
     try {
-      const { script } = await api.generateScriptForEntry(entryId);
+      const { script } = await api.generateScriptForEntry(entryId, contentType);
       router.push(`/scripts/${script.id}`);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Erreur lors de la génération du script.");
@@ -116,11 +168,47 @@ export default function CalendarPage() {
   async function saveGoals() {
     setError(null);
     try {
-      await Promise.all(platformOptions.map((p) => api.savePostingGoal(p, goalDrafts[p])));
+      await Promise.all(KNOWN_PLATFORMS.map((p) => api.savePostingGoal(p.key, goalDrafts[p.key])));
       setEditingGoals(false);
       await load();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement des objectifs.");
+    }
+  }
+
+  function openEntryEditor(entry: CalendarEntry) {
+    setEditingEntry(entry);
+    setEditCategoryId(entry.contentCategory.id);
+    setEditSeriesId(entry.series?.id ?? "");
+  }
+
+  async function saveEntryCategory() {
+    if (!editingEntry) return;
+    setSavingEntry(true);
+    setError(null);
+    try {
+      await api.updateCalendarEntry(editingEntry.id, { contentCategoryId: editCategoryId, seriesId: editSeriesId || null });
+      setEditingEntry(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Erreur lors de la modification du créneau.");
+    } finally {
+      setSavingEntry(false);
+    }
+  }
+
+  async function deleteEntry() {
+    if (!editingEntry) return;
+    setSavingEntry(true);
+    setError(null);
+    try {
+      await api.deleteCalendarEntry(editingEntry.id);
+      setEditingEntry(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Erreur lors de la suppression du créneau.");
+    } finally {
+      setSavingEntry(false);
     }
   }
 
@@ -162,6 +250,8 @@ export default function CalendarPage() {
     return doneByPlatform;
   }, [entries, today]);
 
+  const visibleGoals = useMemo(() => goals.filter((g) => g.targetCountPerWeek > 0), [goals]);
+
   if (loading) return null;
 
   return (
@@ -194,9 +284,15 @@ export default function CalendarPage() {
             ))}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
-            {cells.map((c, i) => (
+            {cells.map((c, i) => {
+              const clickableEmpty = c.day !== null && c.entries.length === 0;
+              return (
               <div
                 key={i}
+                onClick={() => {
+                  if (clickableEmpty) router.push(`/generate?date=${dayDateStr(year, monthIndex, c.day as number)}`);
+                }}
+                title={clickableEmpty ? "Générer un script libre à cette date" : undefined}
                 style={{
                   minHeight: 92,
                   borderRadius: 11,
@@ -206,6 +302,7 @@ export default function CalendarPage() {
                   display: "flex",
                   flexDirection: "column",
                   gap: 5,
+                  cursor: clickableEmpty ? "pointer" : "default",
                 }}
               >
                 {c.day && (
@@ -221,7 +318,7 @@ export default function CalendarPage() {
                       )}
                     </div>
                     {c.entries.map((entry) => {
-                      const cat = resolveCategoryMeta(entry.contentCategory, customLabels);
+                      const cat = resolveCategoryMeta(entry.contentCategory);
                       const status = entry.script ? statusMeta[entry.script.status] : null;
                       const busy = generatingSlotId === entry.id;
                       return (
@@ -229,7 +326,7 @@ export default function CalendarPage() {
                           key={entry.id}
                           onClick={() => {
                             if (entry.script) router.push(`/scripts/${entry.script.id}`);
-                            else if (!busy) handleGenerateSlot(entry.id);
+                            else if (!busy) openEntryEditor(entry);
                           }}
                           style={{
                             borderRadius: 8,
@@ -248,6 +345,11 @@ export default function CalendarPage() {
                               {cat.label}
                             </span>
                           </div>
+                          {entry.series && (
+                            <span style={{ fontSize: 9, fontWeight: 700, color: "oklch(0.47 0.2 292)", background: "oklch(0.55 0.2 292 / 0.12)", borderRadius: 20, padding: "2px 7px", alignSelf: "flex-start" }}>
+                              ◈ {entry.series.label}
+                            </span>
+                          )}
                           {entry.script ? (
                             <>
                               <div style={{ fontSize: 11, lineHeight: 1.2, color: "#2a2521", fontWeight: 500 }}>{entry.script.title}</div>
@@ -257,9 +359,35 @@ export default function CalendarPage() {
                                 </span>
                               )}
                             </>
-                          ) : (
+                          ) : busy ? (
                             <div style={{ marginTop: "auto", fontSize: 10, fontWeight: 600, color: "oklch(0.5 0.2 292)", border: "1px dashed oklch(0.6 0.15 292)", borderRadius: 6, padding: "3px 6px", textAlign: "center" }}>
-                              {busy ? "..." : "Générer le script"}
+                              ...
+                            </div>
+                          ) : (
+                            <div style={{ marginTop: "auto", display: "flex", gap: 3 }}>
+                              {(Object.keys(CONTENT_TYPE_SHORT) as ContentType[]).map((ct) => (
+                                <button
+                                  key={ct}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleGenerateSlot(entry.id, ct);
+                                  }}
+                                  title={`Générer un script ${CONTENT_TYPE_SHORT[ct].toLowerCase()}`}
+                                  style={{
+                                    flex: 1,
+                                    fontSize: 9,
+                                    fontWeight: 700,
+                                    color: "oklch(0.5 0.2 292)",
+                                    background: "none",
+                                    border: "1px dashed oklch(0.6 0.15 292)",
+                                    borderRadius: 6,
+                                    padding: "3px 2px",
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  {CONTENT_TYPE_SHORT[ct]}
+                                </button>
+                              ))}
                             </div>
                           )}
                         </div>
@@ -268,7 +396,8 @@ export default function CalendarPage() {
                   </>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
 
@@ -286,10 +415,10 @@ export default function CalendarPage() {
 
             {editingGoals ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {platformOptions.map((p) => (
+                {KNOWN_PLATFORMS.map(({ key: p, label }) => (
                   <TextField
                     key={p}
-                    label={platformMeta[p].label}
+                    label={label}
                     type="number"
                     min={0}
                     max={30}
@@ -306,7 +435,7 @@ export default function CalendarPage() {
                   </Button>
                 </div>
               </div>
-            ) : goals.length === 0 ? (
+            ) : visibleGoals.length === 0 ? (
               <p style={{ fontSize: 13, color: color.textMuted }}>
                 Aucun objectif défini.{" "}
                 <a href="#" onClick={(e) => { e.preventDefault(); setEditingGoals(true); }}>
@@ -316,7 +445,7 @@ export default function CalendarPage() {
               </p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-                {goals.map((g) => {
+                {visibleGoals.map((g) => {
                   const done = weekGoalProgress[g.platform] || 0;
                   const pct = g.targetCountPerWeek > 0 ? Math.min(100, Math.round((done / g.targetCountPerWeek) * 100)) : 0;
                   return (
@@ -380,6 +509,150 @@ export default function CalendarPage() {
           </button>
         </div>
       </div>
+
+      {editingEntry && (
+        <div
+          onClick={() => !savingEntry && setEditingEntry(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(28,25,23,0.4)",
+            display: "grid",
+            placeItems: "center",
+            zIndex: 50,
+          }}
+        >
+          <Card
+            onClick={(e) => e.stopPropagation()}
+            style={{ padding: 26, width: 380, maxWidth: "90vw" }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <PlatformBadge platform={editingEntry.platform} />
+              <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 17 }}>
+                Créneau du {new Date(editingEntry.scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}
+              </span>
+            </div>
+            <p style={{ margin: "0 0 18px", fontSize: 13, color: color.textMuted }}>
+              Ce créneau n&apos;a pas encore de script généré.
+            </p>
+
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 8 }}>
+              Catégorie de contenu
+            </label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
+              {categories.map((c) => {
+                const meta = resolveCategoryMeta(c);
+                const active = c.id === editCategoryId;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => {
+                      setEditCategoryId(c.id);
+                      setEditSeriesId((current) => {
+                        const stillValid = series.some((s) => s.id === current && s.categories.some((cat) => cat.id === c.id));
+                        return stillValid ? current : "";
+                      });
+                    }}
+                    style={{
+                      border: `1.5px solid ${active ? meta.base : color.border}`,
+                      background: active ? meta.bg : color.inputBg,
+                      borderRadius: 20,
+                      padding: "7px 13px",
+                      fontSize: 13,
+                      fontWeight: active ? 600 : 500,
+                      color: active ? meta.fg : color.textMuted,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {meta.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {(() => {
+              const availableEditSeries = series.filter((s) => s.categories.some((c) => c.id === editCategoryId));
+              if (availableEditSeries.length === 0) return null;
+              const effectiveEditSeriesId = availableEditSeries.some((s) => s.id === editSeriesId) ? editSeriesId : "";
+              return (
+                <>
+                  <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 8 }}>
+                    Série <span style={{ color: color.textFaint, fontWeight: 400 }}>— optionnel</span>
+                  </label>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 22 }}>
+                    <button
+                      onClick={() => setEditSeriesId("")}
+                      style={{
+                        border: `1.5px solid ${effectiveEditSeriesId === "" ? accent : color.border}`,
+                        background: effectiveEditSeriesId === "" ? "oklch(0.55 0.2 292 / 0.08)" : color.inputBg,
+                        borderRadius: 20,
+                        padding: "7px 13px",
+                        fontSize: 13,
+                        fontWeight: effectiveEditSeriesId === "" ? 600 : 500,
+                        color: effectiveEditSeriesId === "" ? "oklch(0.45 0.2 292)" : color.textMuted,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Aucune série
+                    </button>
+                    {availableEditSeries.map((s) => {
+                      const active = s.id === effectiveEditSeriesId;
+                      return (
+                        <button
+                          key={s.id}
+                          onClick={() => setEditSeriesId(s.id)}
+                          style={{
+                            border: `1.5px solid ${active ? accent : color.border}`,
+                            background: active ? "oklch(0.55 0.2 292 / 0.08)" : color.inputBg,
+                            borderRadius: 20,
+                            padding: "7px 13px",
+                            fontSize: 13,
+                            fontWeight: active ? 600 : 500,
+                            color: active ? "oklch(0.45 0.2 292)" : color.textMuted,
+                            cursor: "pointer",
+                          }}
+                        >
+                          {s.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              );
+            })()}
+
+            {error && <p style={{ color: color.danger, fontSize: 13, marginBottom: 14 }}>{error}</p>}
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <IconActionButton
+                icon={Trash2}
+                variant="danger"
+                title="Supprimer le créneau"
+                onClick={deleteEntry}
+                disabled={savingEntry}
+              />
+              <div style={{ flex: 1 }} />
+              <IconActionButton
+                icon={X}
+                variant="neutral"
+                title="Annuler"
+                onClick={() => setEditingEntry(null)}
+                disabled={savingEntry}
+              />
+              <IconActionButton
+                icon={Check}
+                variant="primary"
+                title="Enregistrer"
+                onClick={saveEntryCategory}
+                disabled={
+                  savingEntry ||
+                  (editCategoryId === editingEntry.contentCategory.id && editSeriesId === (editingEntry.series?.id ?? ""))
+                }
+              />
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

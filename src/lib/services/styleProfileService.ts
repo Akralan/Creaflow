@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { creatorProfiles, inspirationVideos } from "@/db/schema";
-import { analyzeStyle } from "@/lib/claude/styleProfile";
+import { analyzeStyle } from "@/lib/llm/styleProfile";
 import { ApiError } from "@/lib/api/errors";
 
 export async function updateStyleProfileForUser(userId: string): Promise<void> {

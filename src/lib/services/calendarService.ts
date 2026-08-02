@@ -1,37 +1,26 @@
-import type { ContentCategory } from "@/lib/claude/prompts";
-import type { CategoryLabels } from "@/lib/claude/categoryLabels";
-
-const DEFAULT_CATEGORY_WEIGHTS: Array<[ContentCategory, number]> = [
-  ["coulisses", 0.5],
-  ["vente", 0.3],
-  ["educatif", 0.2],
-];
-
-/** Convertit les poids (0-100) éventuellement personnalisés du profil en fractions utilisables par distributeCategories. */
-export function categoryWeightsFromLabels(
-  categoryLabels?: CategoryLabels | null
-): Array<[ContentCategory, number]> {
-  if (!categoryLabels) return DEFAULT_CATEGORY_WEIGHTS;
-  return [
-    ["coulisses", categoryLabels.coulisses.weight / 100],
-    ["vente", categoryLabels.vente.weight / 100],
-    ["educatif", categoryLabels.educatif.weight / 100],
-  ];
+export interface CategoryWeight {
+  id: string;
+  weight: number; // fraction 0-1
 }
 
-/** Répartit n créneaux entre catégories selon le mix fourni (30/50/20 par défaut), en évitant les regroupements. */
-export function distributeCategories(
-  n: number,
-  weights: Array<[ContentCategory, number]> = DEFAULT_CATEGORY_WEIGHTS
-): ContentCategory[] {
-  if (n <= 0) return [];
+/** Convertit les catégories de contenu (poids 0-100) du profil en fractions utilisables par distributeCategories. */
+export function categoryWeightsFromCategories(
+  categories: Array<{ id: string; weight: number }>
+): CategoryWeight[] {
+  return categories.map((c) => ({ id: c.id, weight: c.weight / 100 }));
+}
 
-  const counts = weights.map(([category, weight]) => [category, Math.round(weight * n)] as [ContentCategory, number]);
-  const diff = n - counts.reduce((sum, [, count]) => sum + count, 0);
-  counts[0][1] += diff; // ajuste l'arrondi sur "coulisses", la catégorie majoritaire
+/** Répartit n créneaux entre catégories selon le mix fourni, en évitant les regroupements. Renvoie les id de catégorie. */
+export function distributeCategories(n: number, weights: CategoryWeight[]): string[] {
+  if (n <= 0 || weights.length === 0) return [];
 
-  const result: (ContentCategory | null)[] = new Array(n).fill(null);
-  for (const [category, count] of counts) {
+  const counts = weights.map((w) => ({ id: w.id, count: Math.round(w.weight * n) }));
+  const diff = n - counts.reduce((sum, c) => sum + c.count, 0);
+  const maxIndex = counts.reduce((best, c, i) => (c.count > counts[best].count ? i : best), 0);
+  counts[maxIndex] = { ...counts[maxIndex], count: counts[maxIndex].count + diff };
+
+  const result: (string | null)[] = new Array(n).fill(null);
+  for (const { id, count } of counts) {
     if (count <= 0) continue;
     const step = n / count;
     for (let i = 0; i < count; i++) {
@@ -39,11 +28,12 @@ export function distributeCategories(
       pos = Math.min(pos, n - 1);
       while (pos < n && result[pos] !== null) pos++;
       if (pos >= n) pos = result.findIndex((r) => r === null);
-      result[pos] = category;
+      result[pos] = id;
     }
   }
 
-  return result.map((category) => category ?? "coulisses");
+  const fallbackId = weights[0].id;
+  return result.map((id) => id ?? fallbackId);
 }
 
 /** Répartit n créneaux sur les jours d'un mois de façon régulière, sans doublon. */
@@ -72,4 +62,61 @@ export function parseMonth(month: string): { year: number; monthIndex: number; d
 
 export function weeksInMonth(daysInMonth: number): number {
   return daysInMonth / 7;
+}
+
+export interface SeriesWeight {
+  id: string;
+  weight: number; // fraction 0-1, PAS renormalisée pour sommer à 1 (contrairement à CategoryWeight)
+  categoryIds: string[];
+}
+
+/** Convertit les séries (poids % absolu, pas de normalisation à 100 comme pour les catégories). */
+export function seriesWeightsFromSeries(
+  series: Array<{ id: string; weight: number; categoryIds: string[] }>
+): SeriesWeight[] {
+  return series
+    .filter((s) => s.categoryIds.length > 0)
+    .map((s) => ({ id: s.id, weight: s.weight / 100, categoryIds: s.categoryIds }));
+}
+
+export interface SeriesSlotAssignment {
+  seriesId: string;
+  categoryId: string;
+}
+
+/**
+ * Décide, parmi n créneaux (indices 0..n-1), lesquels sont promus dans une série active.
+ * Contrairement à distributeCategories :
+ *  - ne force JAMAIS 100% de couverture (les indices non retenus sont simplement absents de la Map,
+ *    l'appelant garde alors la catégorie "plate" calculée par distributeCategories) ;
+ *  - ne redistribue jamais les poids à la hausse si leur somme est < 1 ;
+ *  - plafonne défensivement à la baisse (scale) si leur somme dépasse 1, pour ne jamais tenter
+ *    d'assigner plus de créneaux qu'il n'y en a — sans jamais forcer à combler le reste.
+ */
+export function distributeSeriesOverrides(n: number, seriesWeights: SeriesWeight[]): Map<number, SeriesSlotAssignment> {
+  const result = new Map<number, SeriesSlotAssignment>();
+  if (n <= 0 || seriesWeights.length === 0) return result;
+
+  const totalWeight = seriesWeights.reduce((sum, s) => sum + s.weight, 0);
+  const scale = totalWeight > 1 ? 1 / totalWeight : 1;
+
+  for (const { id, weight, categoryIds } of seriesWeights) {
+    const count = Math.min(Math.round(weight * scale * n), n);
+    if (count <= 0) continue;
+
+    const step = n / count;
+    let categoryCursor = 0;
+    for (let i = 0; i < count; i++) {
+      let pos = Math.min(Math.round(i * step), n - 1);
+      let attempts = 0;
+      while (result.has(pos) && attempts < n) {
+        pos = (pos + 1) % n;
+        attempts++;
+      }
+      if (result.has(pos)) continue; // plus de créneau libre : on abandonne cette occurrence plutôt que d'écraser une autre série
+      result.set(pos, { seriesId: id, categoryId: categoryIds[categoryCursor % categoryIds.length] });
+      categoryCursor++;
+    }
+  }
+  return result;
 }

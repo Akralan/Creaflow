@@ -27,6 +27,8 @@ export async function GET(request: NextRequest) {
         ),
         with: {
           script: { columns: { id: true, title: true, status: true } },
+          contentCategory: { columns: { id: true, label: true } },
+          series: { columns: { id: true, label: true } },
         },
       }),
       db.query.postingGoals.findMany({ where: eq(postingGoals.userId, userId) }),

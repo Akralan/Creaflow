@@ -1,4 +1,4 @@
-import type { ContentCategory, Platform, ScriptStatus, CalendarStatus } from "@/lib/design/tokens";
+import type { Platform, ScriptStatus, CalendarStatus } from "@/lib/design/tokens";
 
 export class ApiClientError extends Error {}
 
@@ -27,16 +27,21 @@ export interface User {
   email: string;
 }
 
-export interface CategoryLabelEntry {
+export interface ContentCategory {
+  id: string;
+  userId: string;
   label: string;
   description: string;
   weight: number;
+  archived: boolean;
+  createdAt: string;
 }
 
-export interface CategoryLabels {
-  vente: CategoryLabelEntry;
-  coulisses: CategoryLabelEntry;
-  educatif: CategoryLabelEntry;
+/** Forme légère d'une catégorie telle qu'embarquée (jointure) dans un Script ou une CalendarEntry. */
+export interface ContentCategorySummary {
+  id: string;
+  label: string;
+  description?: string;
 }
 
 export interface CreatorProfile {
@@ -56,7 +61,6 @@ export interface CreatorProfile {
     summary: string;
   } | null;
   styleProfileUpdatedAt: string | null;
-  categoryLabels: CategoryLabels | null;
 }
 
 export interface Product {
@@ -81,9 +85,32 @@ export interface PostingGoal {
   targetCountPerWeek: number;
 }
 
+export interface ContentSeries {
+  id: string;
+  userId: string;
+  label: string;
+  description: string;
+  weight: number;
+  archived: boolean;
+  createdAt: string;
+  categories: ContentCategorySummary[];
+}
+
 export interface StoryboardStep {
   planNumber: number;
   description: string;
+}
+
+export type ContentType = "video" | "visual" | "text";
+
+export interface PostMetrics {
+  id: string;
+  scriptId: string;
+  views: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  updatedAt: string;
 }
 
 export interface Script {
@@ -92,17 +119,21 @@ export interface Script {
   productId: string | null;
   platform: Platform;
   title: string;
-  hookVisual: string;
-  hookText: string;
-  hookAudio: string;
-  storyboard: StoryboardStep[];
+  contentType: ContentType;
+  /** Présents seulement pour contentType "video" (et hookVisual/storyboard aussi pour "visual"). */
+  hookVisual: string | null;
+  hookText: string | null;
+  hookAudio: string | null;
+  storyboard: StoryboardStep[] | null;
   caption: string;
   hashtags: string[];
-  soundRecommendation: string;
-  contentCategory: ContentCategory;
+  soundRecommendation: string | null;
+  contentCategory: ContentCategorySummary;
+  series: ContentCategorySummary | null;
   status: ScriptStatus;
   createdAt: string;
   product?: Product | null;
+  metrics?: PostMetrics | null;
 }
 
 export interface CalendarEntry {
@@ -111,10 +142,16 @@ export interface CalendarEntry {
   scriptId: string | null;
   platform: Platform;
   scheduledDate: string;
-  contentCategory: ContentCategory;
+  contentCategory: ContentCategorySummary;
+  series: ContentCategorySummary | null;
   status: CalendarStatus;
   reminderSent: boolean;
   script: { id: string; title: string; status: ScriptStatus } | null;
+}
+
+export interface OnboardingMessage {
+  role: "user" | "assistant";
+  content: string;
 }
 
 export const api = {
@@ -134,9 +171,16 @@ export const api = {
   }) => post<{ profile: CreatorProfile }>("/api/profile", data),
   triggerStyleAnalysis: () => post<{ profile: CreatorProfile }>("/api/profile/style-analysis"),
 
-  generateCategoryLabels: () => post<{ categoryLabels: CategoryLabels }>("/api/profile/category-labels"),
-  saveCategoryLabels: (labels: CategoryLabels) =>
-    post<{ categoryLabels: CategoryLabels }>("/api/profile/category-labels", labels),
+  getContentCategories: () => apiFetch<{ categories: ContentCategory[] }>("/api/profile/content-categories"),
+  generateContentCategories: () => post<{ categories: ContentCategory[] }>("/api/profile/content-categories"),
+  saveContentCategories: (categories: Array<{ id?: string; label: string; description: string; weight: number }>) =>
+    post<{ categories: ContentCategory[] }>("/api/profile/content-categories", { categories }),
+
+  getContentSeries: () => apiFetch<{ series: ContentSeries[] }>("/api/series"),
+  generateContentSeries: () => post<{ series: ContentSeries[] }>("/api/series"),
+  saveContentSeries: (
+    series: Array<{ id?: string; label: string; description: string; weight: number; categoryIds: string[] }>
+  ) => post<{ series: ContentSeries[] }>("/api/series", { series }),
 
   getProducts: () => apiFetch<{ products: Product[] }>("/api/products"),
   createProducts: (
@@ -159,13 +203,32 @@ export const api = {
   generateCalendar: (month: string) => post<{ entries: CalendarEntry[] }>("/api/calendar/generate", { month }),
   updateCalendarEntryStatus: (id: string, status: CalendarStatus) =>
     patch<{ entry: CalendarEntry }>(`/api/calendar/${id}`, { status }),
+  updateCalendarEntry: (id: string, data: { contentCategoryId?: string; seriesId?: string | null }) =>
+    patch<{ entry: CalendarEntry }>(`/api/calendar/${id}`, data),
+  deleteCalendarEntry: (id: string) => del<{ ok: true }>(`/api/calendar/${id}`),
 
-  generateScriptForEntry: (calendarEntryId: string) =>
-    post<{ script: Script }>("/api/scripts/generate", { calendarEntryId }),
-  generateFreeformScript: (data: { platform: Platform; contentCategory: ContentCategory; productId?: string }) =>
-    post<{ script: Script }>("/api/scripts", data),
+  generateScriptForEntry: (calendarEntryId: string, contentType?: ContentType) =>
+    post<{ script: Script }>("/api/scripts/generate", { calendarEntryId, contentType }),
+  generateFreeformScript: (data: {
+    platform: Platform;
+    contentCategoryId: string;
+    contentType: ContentType;
+    productId?: string;
+    scheduledDate?: string;
+    seriesId?: string;
+  }) => post<{ script: Script }>("/api/scripts", data),
+  getScripts: (params?: { seriesId?: string }) =>
+    apiFetch<{ scripts: Script[] }>(`/api/scripts${params?.seriesId ? `?seriesId=${params.seriesId}` : ""}`),
   getScript: (id: string) => apiFetch<{ script: Script }>(`/api/scripts/${id}`),
   regenerateScript: (id: string) => post<{ script: Script }>(`/api/scripts/${id}/regenerate`),
   updateScriptStatus: (id: string, status: ScriptStatus) =>
     patch<{ script: Script }>(`/api/scripts/${id}`, { status }),
+  saveScriptMetrics: (
+    id: string,
+    data: Partial<{ views: number; likes: number; comments: number; shares: number }>
+  ) => put<{ metrics: PostMetrics }>(`/api/scripts/${id}/metrics`, data),
+
+  getOnboardingChat: () => apiFetch<{ messages: OnboardingMessage[]; complete: boolean }>("/api/onboarding/chat"),
+  sendOnboardingMessage: (message: string) =>
+    post<{ reply: string; complete: boolean }>("/api/onboarding/chat", { message }),
 };

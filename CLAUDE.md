@@ -14,7 +14,11 @@
 
 ## Configuration
 
-Copier `.env.example` vers `.env` et renseigner au minimum `DATABASE_URL` (PostgreSQL local) et `ANTHROPIC_API_KEY` pour que l'app démarre. Les credentials OAuth (TikTok/Instagram/LinkedIn) ne sont nécessaires que pour tester la connexion des comptes sociaux (Module A).
+Copier `.env.example` vers `.env` et renseigner au minimum `DATABASE_URL` (PostgreSQL local) pour que l'app démarre.
+
+Le provider LLM utilisé pour la génération de contenu est sélectionné via `LLM_PROVIDER` (`gemini` par défaut, ou `anthropic`) — voir `src/lib/llm/`. Renseigner la clé correspondante : `GEMINI_API_KEY` (clé Google AI Studio, quota gratuit) ou `ANTHROPIC_API_KEY`.
+
+Les credentials OAuth (TikTok/Instagram/LinkedIn) ne sont nécessaires que pour tester la connexion des comptes sociaux (Module A).
 
 ## Documentation projet
 

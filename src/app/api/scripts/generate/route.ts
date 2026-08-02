@@ -4,16 +4,18 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { calendarEntries } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
-import { generateScript } from "@/lib/claude/generateScript";
+import { generateScript } from "@/lib/llm/generateScript";
+import { defaultContentTypeForPlatform } from "@/lib/llm/prompts";
 import { buildGenerationContext, createScriptRecord } from "@/lib/services/scriptService";
+import { contentTypeSchema } from "@/lib/validation";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 
-const schema = z.object({ calendarEntryId: z.uuid() });
+const schema = z.object({ calendarEntryId: z.uuid(), contentType: contentTypeSchema.optional() });
 
 export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId();
-    const { calendarEntryId } = schema.parse(await request.json());
+    const { calendarEntryId, contentType } = schema.parse(await request.json());
 
     const entry = await db.query.calendarEntries.findFirst({
       where: and(eq(calendarEntries.id, calendarEntryId), eq(calendarEntries.userId, userId)),
@@ -25,9 +27,21 @@ export async function POST(request: NextRequest) {
       throw new ApiError(409, "Ce créneau a déjà un script associé.");
     }
 
-    const context = await buildGenerationContext(userId, entry.platform, entry.contentCategory);
+    const resolvedContentType = contentType ?? defaultContentTypeForPlatform(entry.platform);
+    const context = await buildGenerationContext(
+      userId,
+      entry.platform,
+      entry.contentCategoryId,
+      resolvedContentType,
+      undefined,
+      undefined,
+      entry.seriesId
+    );
     const generated = await generateScript(context);
-    const script = await createScriptRecord(userId, entry.platform, entry.contentCategory, null, generated);
+    const script = await createScriptRecord(userId, entry.platform, context.contentCategory, null, generated, {
+      angleId: context.angle?.id ?? null,
+      seriesId: context.series?.id ?? null,
+    });
 
     await db.update(calendarEntries).set({ scriptId: script.id }).where(eq(calendarEntries.id, entry.id));
 

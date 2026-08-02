@@ -3,13 +3,15 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, type CreatorProfile, type User } from "@/lib/apiClient";
+import { api, type ContentCategory, type ContentSeries, type CreatorProfile, type User } from "@/lib/apiClient";
 import { accent, accentAlpha, color, fontHeading } from "@/lib/design/tokens";
 import { CategoryLabelsContext } from "@/contexts/CategoryLabelsContext";
+import { SeriesContext } from "@/contexts/SeriesContext";
 
 const navItems = [
   { href: "/calendar", label: "Calendrier", icon: "▦", match: (p: string) => p.startsWith("/calendar") || p.startsWith("/scripts") },
   { href: "/generate", label: "Génération libre", icon: "✎", match: (p: string) => p.startsWith("/generate") },
+  { href: "/direction", label: "Direction", icon: "◈", match: (p: string) => p.startsWith("/direction") },
   { href: "/settings", label: "Paramètres", icon: "⚙", match: (p: string) => p.startsWith("/settings") },
 ];
 
@@ -18,6 +20,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
+  const [categories, setCategories] = useState<ContentCategory[]>([]);
+  const [series, setSeries] = useState<ContentSeries[]>([]);
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
@@ -28,8 +32,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         return;
       }
       setUser(user);
-      const { profile } = await api.getProfile();
+      const [{ profile }, { categories }, { series }] = await Promise.all([
+        api.getProfile(),
+        api.getContentCategories(),
+        api.getContentSeries(),
+      ]);
       setProfile(profile);
+      setCategories(categories);
+      setSeries(series);
       setChecked(true);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -45,7 +55,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <CategoryLabelsContext.Provider value={profile?.categoryLabels ?? null}>
+    <CategoryLabelsContext.Provider value={categories}>
+    <SeriesContext.Provider value={series}>
     <div style={{ height: "100vh", width: "100%", overflow: "hidden", display: "flex" }}>
       <div
         style={{
@@ -146,6 +157,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       <div style={{ flex: 1, overflow: "auto" }}>{children}</div>
     </div>
+    </SeriesContext.Provider>
     </CategoryLabelsContext.Provider>
   );
 }

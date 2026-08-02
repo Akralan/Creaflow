@@ -1,30 +1,54 @@
 import { describe, expect, it } from "vitest";
 import {
+  categoryWeightsFromCategories,
   distributeCategories,
   distributeDays,
+  distributeSeriesOverrides,
   parseMonth,
+  seriesWeightsFromSeries,
   weeksInMonth,
+  type CategoryWeight,
+  type SeriesWeight,
 } from "./calendarService";
+
+const SAMPLE_WEIGHTS: CategoryWeight[] = [
+  { id: "coulisses", weight: 0.5 },
+  { id: "vente", weight: 0.3 },
+  { id: "educatif", weight: 0.2 },
+];
+
+describe("categoryWeightsFromCategories", () => {
+  it("convertit des poids 0-100 en fractions", () => {
+    expect(categoryWeightsFromCategories([{ id: "a", weight: 40 }, { id: "b", weight: 60 }])).toEqual([
+      { id: "a", weight: 0.4 },
+      { id: "b", weight: 0.6 },
+    ]);
+  });
+});
 
 describe("distributeCategories", () => {
   it("renvoie un tableau vide pour n <= 0", () => {
-    expect(distributeCategories(0)).toEqual([]);
-    expect(distributeCategories(-3)).toEqual([]);
+    expect(distributeCategories(0, SAMPLE_WEIGHTS)).toEqual([]);
+    expect(distributeCategories(-3, SAMPLE_WEIGHTS)).toEqual([]);
+  });
+
+  it("renvoie un tableau vide si aucune catégorie n'est fournie", () => {
+    expect(distributeCategories(5, [])).toEqual([]);
   });
 
   it("renvoie exactement n catégories, jamais null", () => {
     for (const n of [1, 2, 3, 5, 7, 10, 13, 20]) {
-      const result = distributeCategories(n);
+      const result = distributeCategories(n, SAMPLE_WEIGHTS);
       expect(result).toHaveLength(n);
       expect(result.every((c) => c !== null && c !== undefined)).toBe(true);
     }
   });
 
-  it("respecte approximativement le mix 30% vente / 50% coulisses / 20% éducatif sur un grand échantillon", () => {
+  it("respecte approximativement le mix de poids fourni sur un grand échantillon", () => {
     const n = 100;
-    const result = distributeCategories(n);
-    const counts = { vente: 0, coulisses: 0, educatif: 0 };
-    for (const c of result) counts[c]++;
+    const result = distributeCategories(n, SAMPLE_WEIGHTS);
+    const counts: Record<string, number> = { vente: 0, coulisses: 0, educatif: 0 };
+    for (const id of result) counts[id]++;
 
     expect(counts.coulisses).toBeGreaterThanOrEqual(45);
     expect(counts.coulisses).toBeLessThanOrEqual(55);
@@ -34,10 +58,20 @@ describe("distributeCategories", () => {
     expect(counts.educatif).toBeLessThanOrEqual(25);
   });
 
+  it("fonctionne avec un nombre de catégories différent de 3 (généralisation)", () => {
+    const weights: CategoryWeight[] = [
+      { id: "a", weight: 0.4 },
+      { id: "b", weight: 0.4 },
+      { id: "c", weight: 0.1 },
+      { id: "d", weight: 0.1 },
+    ];
+    const result = distributeCategories(20, weights);
+    expect(result).toHaveLength(20);
+    expect(new Set(result).size).toBeGreaterThan(1);
+  });
+
   it("ne regroupe pas systématiquement une catégorie au début (répartition étalée)", () => {
-    const result = distributeCategories(10);
-    // Toutes les mêmes catégories d'affilée sur l'ensemble des 10 slots serait un signe
-    // que l'étalement ne fonctionne pas (ex: 5x "coulisses" puis 3x "vente" puis 2x "educatif").
+    const result = distributeCategories(10, SAMPLE_WEIGHTS);
     const firstHalf = result.slice(0, 5);
     const uniqueInFirstHalf = new Set(firstHalf);
     expect(uniqueInFirstHalf.size).toBeGreaterThan(1);
@@ -84,5 +118,65 @@ describe("weeksInMonth", () => {
   it("renvoie une valeur fractionnaire cohérente", () => {
     expect(weeksInMonth(28)).toBe(4);
     expect(weeksInMonth(31)).toBeCloseTo(31 / 7, 5);
+  });
+});
+
+describe("seriesWeightsFromSeries", () => {
+  it("convertit des poids 0-100 en fractions", () => {
+    expect(seriesWeightsFromSeries([{ id: "a", weight: 20, categoryIds: ["cat1"] }])).toEqual([
+      { id: "a", weight: 0.2, categoryIds: ["cat1"] },
+    ]);
+  });
+
+  it("écarte les séries sans catégorie liée", () => {
+    expect(seriesWeightsFromSeries([{ id: "a", weight: 20, categoryIds: [] }])).toEqual([]);
+  });
+});
+
+describe("distributeSeriesOverrides", () => {
+  const ONE_SERIES: SeriesWeight[] = [{ id: "serie-a", weight: 0.3, categoryIds: ["cat1"] }];
+
+  it("renvoie une Map vide pour n <= 0", () => {
+    expect(distributeSeriesOverrides(0, ONE_SERIES).size).toBe(0);
+    expect(distributeSeriesOverrides(-3, ONE_SERIES).size).toBe(0);
+  });
+
+  it("renvoie une Map vide si aucune série n'est fournie", () => {
+    expect(distributeSeriesOverrides(10, []).size).toBe(0);
+  });
+
+  it("ne force jamais 100% de couverture : des poids sommant à moins de 1 laissent des créneaux non couverts", () => {
+    const result = distributeSeriesOverrides(20, ONE_SERIES); // 30% de 20 = 6
+    expect(result.size).toBeLessThan(20);
+    expect(result.size).toBeCloseTo(6, 0);
+  });
+
+  it("plafonne à la baisse (jamais à la hausse) quand la somme des poids dépasse 1", () => {
+    const overSubscribed: SeriesWeight[] = [
+      { id: "a", weight: 0.7, categoryIds: ["cat1"] },
+      { id: "b", weight: 0.6, categoryIds: ["cat2"] },
+    ];
+    const result = distributeSeriesOverrides(10, overSubscribed);
+    expect(result.size).toBeLessThanOrEqual(10);
+  });
+
+  it("alterne entre les catégories liées d'une série qui en couvre plusieurs", () => {
+    const multiCategorySeries: SeriesWeight[] = [{ id: "serie-a", weight: 1, categoryIds: ["cat1", "cat2"] }];
+    const result = distributeSeriesOverrides(10, multiCategorySeries);
+    const categoriesUsed = new Set([...result.values()].map((v) => v.categoryId));
+    expect(categoriesUsed.has("cat1")).toBe(true);
+    expect(categoriesUsed.has("cat2")).toBe(true);
+  });
+
+  it("n'assigne jamais deux séries au même index", () => {
+    const twoSeries: SeriesWeight[] = [
+      { id: "a", weight: 0.5, categoryIds: ["cat1"] },
+      { id: "b", weight: 0.5, categoryIds: ["cat2"] },
+    ];
+    const result = distributeSeriesOverrides(10, twoSeries);
+    expect(result.size).toBeLessThanOrEqual(10);
+    for (const [, assignment] of result) {
+      expect(["a", "b"]).toContain(assignment.seriesId);
+    }
   });
 });

@@ -35,43 +35,35 @@ export const color = {
 export const fontHeading = "'Bricolage Grotesque', system-ui, sans-serif";
 export const fontBody = "'Instrument Sans', system-ui, sans-serif";
 
-export type ContentCategory = "vente" | "coulisses" | "educatif";
-export type Platform = "tiktok" | "instagram" | "linkedin";
+export type Platform = string;
 export type ScriptStatus = "draft" | "planned" | "shot" | "published";
 export type CalendarStatus = "planned" | "shot" | "published";
 
-export const categoryMeta: Record<
-  ContentCategory,
-  { label: string; base: string; bg: string; border: string; fg: string }
-> = {
-  vente: {
-    label: "Vente",
-    base: "oklch(0.62 0.15 25)",
-    bg: "oklch(0.62 0.15 25 / 0.12)",
-    border: "oklch(0.62 0.15 25 / 0.28)",
-    fg: "oklch(0.5 0.16 25)",
-  },
-  coulisses: {
-    label: "Coulisses",
-    base: "oklch(0.62 0.12 250)",
-    bg: "oklch(0.62 0.12 250 / 0.12)",
-    border: "oklch(0.62 0.12 250 / 0.28)",
-    fg: "oklch(0.45 0.14 250)",
-  },
-  educatif: {
-    label: "Éducatif",
-    base: "oklch(0.62 0.13 150)",
-    bg: "oklch(0.62 0.13 150 / 0.12)",
-    border: "oklch(0.62 0.13 150 / 0.28)",
-    fg: "oklch(0.42 0.14 150)",
-  },
-};
+/** Palette assignée par position (hash de l'id) aux catégories de contenu dynamiques —
+ *  il n'y a plus de clé stable (vente/coulisses/educatif) à mapper vers une couleur fixe. */
+export const categoryPalette: Array<{ base: string; bg: string; border: string; fg: string }> = [
+  { base: "oklch(0.62 0.15 25)", bg: "oklch(0.62 0.15 25 / 0.12)", border: "oklch(0.62 0.15 25 / 0.28)", fg: "oklch(0.5 0.16 25)" },
+  { base: "oklch(0.62 0.12 250)", bg: "oklch(0.62 0.12 250 / 0.12)", border: "oklch(0.62 0.12 250 / 0.28)", fg: "oklch(0.45 0.14 250)" },
+  { base: "oklch(0.62 0.13 150)", bg: "oklch(0.62 0.13 150 / 0.12)", border: "oklch(0.62 0.13 150 / 0.28)", fg: "oklch(0.42 0.14 150)" },
+  { base: "oklch(0.62 0.13 60)", bg: "oklch(0.62 0.13 60 / 0.12)", border: "oklch(0.62 0.13 60 / 0.28)", fg: "oklch(0.5 0.13 60)" },
+  { base: "oklch(0.55 0.2 292)", bg: "oklch(0.55 0.2 292 / 0.1)", border: "oklch(0.55 0.2 292 / 0.25)", fg: "oklch(0.47 0.2 292)" },
+  { base: "oklch(0.6 0.14 340)", bg: "oklch(0.6 0.14 340 / 0.12)", border: "oklch(0.6 0.14 340 / 0.28)", fg: "oklch(0.5 0.15 340)" },
+];
 
-export const platformMeta: Record<Platform, { label: string; badge: string; badgeBg: string }> = {
+/** Couvre toutes les clés de KNOWN_PLATFORMS (src/lib/social/types.ts) — PlatformBadge
+ *  applique un repli générique si une plateforme inconnue devait malgré tout apparaître. */
+export const platformMeta: Record<string, { label: string; badge: string; badgeBg: string }> = {
   tiktok: { label: "TikTok", badge: "TT", badgeBg: "#111" },
   instagram: { label: "Instagram", badge: "IG", badgeBg: "oklch(0.6 0.2 15)" },
   linkedin: { label: "LinkedIn", badge: "IN", badgeBg: "oklch(0.5 0.14 250)" },
+  x: { label: "X (Twitter)", badge: "X", badgeBg: "#000" },
+  youtube: { label: "YouTube", badge: "YT", badgeBg: "oklch(0.55 0.2 25)" },
+  newsletter: { label: "Newsletter", badge: "NL", badgeBg: "oklch(0.55 0.12 250)" },
+  blog: { label: "Blog / site perso", badge: "BL", badgeBg: "oklch(0.5 0.1 150)" },
+  other: { label: "Autre", badge: "?", badgeBg: "#6b6259" },
 };
+
+export const genericPlatformMeta = { badge: "?", badgeBg: "#6b6259" };
 
 export const statusMeta: Record<ScriptStatus, { label: string; bg: string; fg: string }> = {
   draft: { label: "Brouillon", bg: color.trackBg, fg: "#8a8078" },
@@ -86,6 +78,4 @@ export const calendarStatusMeta: Record<CalendarStatus, { label: string; bg: str
   published: statusMeta.published,
 };
 
-export const contentCategoryOptions: ContentCategory[] = ["vente", "coulisses", "educatif"];
-export const platformOptions: Platform[] = ["tiktok", "instagram", "linkedin"];
 export const scriptStatusOptions: ScriptStatus[] = ["draft", "planned", "shot", "published"];

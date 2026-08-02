@@ -3,8 +3,8 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { scripts } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
-import { generateScript } from "@/lib/claude/generateScript";
-import type { Platform, ContentCategory } from "@/lib/claude/prompts";
+import { generateScript } from "@/lib/llm/generateScript";
+import type { Platform } from "@/lib/llm/prompts";
 import { buildGenerationContext, updateScriptRecord } from "@/lib/services/scriptService";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 
@@ -26,11 +26,16 @@ export async function POST(
     const context = await buildGenerationContext(
       userId,
       existing.platform as Platform,
-      existing.contentCategory as ContentCategory,
-      existing.productId
+      existing.contentCategoryId,
+      existing.contentType,
+      existing.productId,
+      existing.id,
+      existing.seriesId
     );
     const generated = await generateScript(context);
-    const script = await updateScriptRecord(existing.id, generated);
+    const script = await updateScriptRecord(existing.id, context.contentCategory, generated, {
+      angleId: context.angle?.id ?? null,
+    });
 
     return NextResponse.json({ script });
   } catch (error) {

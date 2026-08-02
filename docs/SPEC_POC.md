@@ -15,7 +15,7 @@ Ce document cadre le **scope technique** du POC (stack, architecture, modèle de
 
 ## 2. Stack & Infrastructure
 
-- **Moteur IA :** API Claude.
+- **Moteur IA :** API LLM (Claude ou Gemini selon configuration, voir `src/lib/llm/`).
 - **Frontend :** React / Next.js, interface web desktop (pas de responsive mobile pour le POC).
 - **Backend :** API routes Next.js (co-localisées avec le frontend, pas de backend séparé pour le POC).
 - **Principe de conception API :** les routes sont pensées **par vue UI**, pas par entité pure — chaque écran doit pouvoir se charger avec le moins d'appels possible (endpoints agrégés plutôt qu'un appel par entité liée, pas de pattern N+1).
@@ -98,7 +98,7 @@ Conçus en parallèle du modèle de données pour que chaque vue se charge en un
 ### Calendrier mensuel (Module D) — vue principale
 - `GET /api/calendar?month=YYYY-MM` — endpoint agrégé unique : renvoie les `CalendarEntry` du mois **avec** le script lié déjà joint (`{ id, title, status }` ou `null`) et les `PostingGoal` par plateforme pour afficher la progression. Évite un appel par créneau.
 - `POST /api/calendar/generate` `{ month }` — génère les créneaux du mois selon les objectifs et le mix 30/50/20.
-- `POST /api/scripts/generate` `{ calendar_entry_id }` — génère le script via l'API Claude, crée la ligne `Script`, met à jour `CalendarEntry.script_id`, et renvoie le script complet en un seul aller-retour (pas de create puis fetch séparé).
+- `POST /api/scripts/generate` `{ calendar_entry_id }` — génère le script via l'API LLM configurée, crée la ligne `Script`, met à jour `CalendarEntry.script_id`, et renvoie le script complet en un seul aller-retour (pas de create puis fetch séparé).
 
 ### Fiche Script (Module B) — vue détail
 - `GET /api/scripts/:id` — script complet, produit lié inclus par jointure (pas d'appel séparé vers `/api/products/:id`).
@@ -118,14 +118,14 @@ Conçus en parallèle du modèle de données pour que chaque vue se charge en un
 ### Couches du prompt de génération de script
 1. **Prompt système statique** — rôle ("Directeur Marketing Virtuel"), règles de structure du script (hook 3 premières secondes, storyboard en plans numérotés), règles spécifiques par plateforme (TikTok/Instagram orientés vidéo courte vs LinkedIn orienté texte/carrousel B2B).
 2. **Contexte dynamique injecté par appel** — profil créateur (nom, ton, valeurs), `style_profile` (résumé, pas le brut), produit concerné si applicable, contraintes de production, `content_category` visée, plateforme cible.
-3. **Sortie forcée en JSON strict** — via le mécanisme de *tool use* de l'API Claude, avec un schéma JSON correspondant exactement aux colonnes de `Script`. Évite le parsing de texte libre.
+3. **Sortie forcée en JSON strict** — via le mécanisme de *function/tool calling* de l'API LLM configurée (Claude ou Gemini), avec un schéma JSON correspondant exactement aux colonnes de `Script`. Évite le parsing de texte libre.
 
 ### Analyse de style (`style_profile`) — Option B retenue
-Plutôt que de réinjecter les légendes brutes des `InspirationVideo` à chaque génération, un appel Claude dédié analyse ces légendes et produit un résumé structuré du style (ton, longueur de phrase, usage d'emojis, etc.), stocké sur `CreatorProfile.style_profile`.
+Plutôt que de réinjecter les légendes brutes des `InspirationVideo` à chaque génération, un appel LLM dédié analyse ces légendes et produit un résumé structuré du style (ton, longueur de phrase, usage d'emojis, etc.), stocké sur `CreatorProfile.style_profile`.
 
 - **Déclenchement :** automatique après connexion OAuth d'une plateforme (callback qui récupère les `InspirationVideo`, cf. section 4), et manuellement via `POST /api/profile/style-analysis` si l'utilisateur veut forcer un recalcul (ex: après avoir ajouté de nouvelles vidéos).
 - **Avantage :** cohérence de ton stable d'une génération de script à l'autre, coût réduit par génération (résumé court injecté plutôt que le texte brut de plusieurs vidéos).
-- **Coût additionnel :** un appel Claude asynchrone supplémentaire à chaque connexion/rafraîchissement de compte social (peu fréquent, acceptable pour le POC).
+- **Coût additionnel :** un appel LLM asynchrone supplémentaire à chaque connexion/rafraîchissement de compte social (peu fréquent, acceptable pour le POC).
 
 ---
 
