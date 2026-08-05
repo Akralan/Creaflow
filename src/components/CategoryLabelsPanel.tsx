@@ -4,11 +4,18 @@ import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import { api, ApiClientError, type ContentCategory } from "@/lib/apiClient";
 import { accentAlpha, color } from "@/lib/design/tokens";
+import { KNOWN_PLATFORMS } from "@/lib/social/types";
 
-type Draft = { id?: string; label: string; description: string; weight: number };
+type Draft = { id?: string; label: string; description: string; weight: number; platforms: string[] };
 
 function toDrafts(categories: ContentCategory[]): Draft[] {
-  return categories.map((c) => ({ id: c.id, label: c.label, description: c.description, weight: c.weight }));
+  return categories.map((c) => ({
+    id: c.id,
+    label: c.label,
+    description: c.description,
+    weight: c.weight,
+    platforms: c.platforms,
+  }));
 }
 
 export default function CategoryLabelsPanel() {
@@ -50,8 +57,23 @@ export default function CategoryLabelsPanel() {
     );
   }
 
+  function togglePlatform(index: number, platform: string) {
+    setDrafts((prev) =>
+      prev.map((d, i) =>
+        i === index
+          ? {
+              ...d,
+              platforms: d.platforms.includes(platform)
+                ? d.platforms.filter((p) => p !== platform)
+                : [...d.platforms, platform],
+            }
+          : d
+      )
+    );
+  }
+
   function addCategory() {
-    setDrafts((prev) => [...prev, { label: "Nouvelle catégorie", description: "", weight: 10 }]);
+    setDrafts((prev) => [...prev, { label: "Nouvelle catégorie", description: "", weight: 10, platforms: [] }]);
   }
 
   function removeCategory(index: number) {
@@ -105,9 +127,10 @@ export default function CategoryLabelsPanel() {
 
       {error && <p style={{ margin: "0 0 10px", fontSize: 12, color: color.danger }}>{error}</p>}
 
-      <div style={{ display: "grid", gap: 10, marginBottom: 14 }}>
+      <div style={{ display: "grid", gap: 14, marginBottom: 14 }}>
         {drafts.map((d, i) => (
-          <div key={d.id ?? `new-${i}`} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div key={d.id ?? `new-${i}`} style={{ display: "grid", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <input
               value={d.label}
               onChange={(e) => updateField(i, "label", e.target.value)}
@@ -169,6 +192,33 @@ export default function CategoryLabelsPanel() {
             >
               ×
             </button>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+            <span style={{ fontSize: 11, color: color.textFaint, marginRight: 2 }}>
+              {d.platforms.length === 0 ? "Tous les réseaux" : "Réseaux :"}
+            </span>
+            {KNOWN_PLATFORMS.map((p) => {
+              const active = d.platforms.includes(p.key);
+              return (
+                <button
+                  key={p.key}
+                  onClick={() => togglePlatform(i, p.key)}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: active ? 600 : 500,
+                    color: active ? "oklch(0.48 0.2 292)" : color.textMuted,
+                    background: active ? accentAlpha(0.12) : color.inputBg,
+                    border: `1px solid ${active ? "oklch(0.6 0.15 292)" : color.inputBorder}`,
+                    borderRadius: 20,
+                    padding: "3px 9px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
           </div>
         ))}
       </div>

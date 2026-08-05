@@ -1,9 +1,11 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { contentSeries, contentSeriesCategories, creatorProfiles, products } from "@/db/schema";
+import { contentSeries, contentSeriesCategories, contentSeriesPlatforms, creatorProfiles, products } from "@/db/schema";
 import { suggestContentSeries } from "@/lib/llm/seriesLabels";
-import { listActiveCategoriesForUser } from "@/lib/services/categoryLabelsService";
+import { listActiveCategoriesForUser, resolveCategoryLabelsToIds } from "@/lib/services/categoryLabelsService";
 import { ApiError } from "@/lib/api/errors";
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function listActiveSeriesForUser(userId: string) {
   const rows = await db.query.contentSeries.findMany({
@@ -11,11 +13,13 @@ export async function listActiveSeriesForUser(userId: string) {
     orderBy: (s, { desc }) => [desc(s.weight)],
     with: {
       contentSeriesCategories: { with: { category: { columns: { id: true, label: true } } } },
+      contentSeriesPlatforms: { columns: { platform: true } },
     },
   });
-  return rows.map(({ contentSeriesCategories: joins, ...s }) => ({
+  return rows.map(({ contentSeriesCategories: joins, contentSeriesPlatforms: platformJoins, ...s }) => ({
     ...s,
     categories: joins.map((j) => j.category),
+    platforms: platformJoins.map((j) => j.platform),
   }));
 }
 
@@ -42,15 +46,13 @@ export async function generateSeriesForUser(userId: string) {
     categories: activeCategories.map((c) => ({ label: c.label, description: c.description })),
   });
 
-  // Résout categoryLabels -> categoryId par correspondance exacte (insensible à la casse) ;
-  // ignore une série suggérée dont aucune catégorie ne matche.
-  const byLabel = new Map(activeCategories.map((c) => [c.label.trim().toLowerCase(), c.id]));
+  console.log("[seriesService] réponse brute LLM:", JSON.stringify(suggested, null, 2));
+
+  // Résout categoryLabels -> categoryId ; ignore une série suggérée dont aucune catégorie ne matche.
   const resolved = suggested
     .map((s) => ({
       ...s,
-      categoryIds: s.categoryLabels
-        .map((l) => byLabel.get(l.trim().toLowerCase()))
-        .filter((id): id is string => !!id),
+      categoryIds: resolveCategoryLabelsToIds(s.categoryLabels, activeCategories),
     }))
     .filter((s) => s.categoryIds.length > 0);
 
@@ -90,6 +92,38 @@ interface SeriesInput {
   description: string;
   weight: number;
   categoryIds: string[];
+  platforms: string[];
+}
+
+/** Insère ou met à jour UNE série et resynchronise ses liens catégories/plateformes, dans la transaction fournie.
+ *  Ne touche aucune autre ligne — contrairement à saveSeriesForUser, n'archive rien.
+ *  Retourne null si un id est fourni mais ne correspond à aucune série de cet utilisateur. */
+export async function upsertSeriesItem(tx: Tx, userId: string, item: SeriesInput): Promise<string | null> {
+  let seriesId: string;
+  if (item.id) {
+    const [updated] = await tx
+      .update(contentSeries)
+      .set({ label: item.label, description: item.description, weight: item.weight })
+      .where(and(eq(contentSeries.id, item.id), eq(contentSeries.userId, userId)))
+      .returning();
+    if (!updated) return null;
+    seriesId = updated.id;
+    await tx.delete(contentSeriesCategories).where(eq(contentSeriesCategories.seriesId, seriesId));
+    await tx.delete(contentSeriesPlatforms).where(eq(contentSeriesPlatforms.seriesId, seriesId));
+  } else {
+    const [inserted] = await tx
+      .insert(contentSeries)
+      .values({ userId, label: item.label, description: item.description, weight: item.weight })
+      .returning();
+    seriesId = inserted.id;
+  }
+  if (item.categoryIds.length > 0) {
+    await tx.insert(contentSeriesCategories).values(item.categoryIds.map((categoryId) => ({ seriesId, categoryId })));
+  }
+  if (item.platforms.length > 0) {
+    await tx.insert(contentSeriesPlatforms).values(item.platforms.map((platform) => ({ seriesId, platform })));
+  }
+  return seriesId;
 }
 
 /** Enregistrement manuel : diffe contre le jeu actif (même logique que saveCategoriesForUser),
@@ -105,26 +139,7 @@ export async function saveSeriesForUser(userId: string, items: SeriesInput[]) {
     }
 
     for (const item of items) {
-      let seriesId: string;
-      if (item.id) {
-        const [updated] = await tx
-          .update(contentSeries)
-          .set({ label: item.label, description: item.description, weight: item.weight })
-          .where(and(eq(contentSeries.id, item.id), eq(contentSeries.userId, userId)))
-          .returning();
-        if (!updated) continue;
-        seriesId = updated.id;
-        await tx.delete(contentSeriesCategories).where(eq(contentSeriesCategories.seriesId, seriesId));
-      } else {
-        const [inserted] = await tx
-          .insert(contentSeries)
-          .values({ userId, label: item.label, description: item.description, weight: item.weight })
-          .returning();
-        seriesId = inserted.id;
-      }
-      if (item.categoryIds.length > 0) {
-        await tx.insert(contentSeriesCategories).values(item.categoryIds.map((categoryId) => ({ seriesId, categoryId })));
-      }
+      await upsertSeriesItem(tx, userId, item);
     }
   });
 

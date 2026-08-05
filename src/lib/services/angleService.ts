@@ -14,6 +14,24 @@ export function listActiveAnglesForUser(userId: string) {
   });
 }
 
+/** Insère ou met à jour UN angle. Pas de logique d'archivage des autres angles (contrairement aux
+ *  catégories, il n'y a pas d'invariant de somme à préserver entre angles actifs). */
+export async function upsertAngleItem(userId: string, item: { id?: string; label: string; description: string }) {
+  if (item.id) {
+    const [updated] = await db
+      .update(contentAngles)
+      .set({ label: item.label, description: item.description })
+      .where(and(eq(contentAngles.id, item.id), eq(contentAngles.userId, userId)))
+      .returning();
+    return updated ?? null;
+  }
+  const [inserted] = await db
+    .insert(contentAngles)
+    .values({ userId, label: item.label, description: item.description })
+    .returning();
+  return inserted;
+}
+
 /** Même pattern que generateCategoriesForUser : archive l'ancien jeu actif, insère le nouveau. */
 export async function generateAnglesForUser(userId: string) {
   const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });

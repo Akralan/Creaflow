@@ -3,16 +3,17 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { CalendarDays, Compass, Settings, Sparkles } from "lucide-react";
 import { api, type ContentCategory, type ContentSeries, type CreatorProfile, type User } from "@/lib/apiClient";
 import { accent, accentAlpha, color, fontHeading } from "@/lib/design/tokens";
 import { CategoryLabelsContext } from "@/contexts/CategoryLabelsContext";
 import { SeriesContext } from "@/contexts/SeriesContext";
 
 const navItems = [
-  { href: "/calendar", label: "Calendrier", icon: "▦", match: (p: string) => p.startsWith("/calendar") || p.startsWith("/scripts") },
-  { href: "/generate", label: "Génération libre", icon: "✎", match: (p: string) => p.startsWith("/generate") },
-  { href: "/direction", label: "Direction", icon: "◈", match: (p: string) => p.startsWith("/direction") },
-  { href: "/settings", label: "Paramètres", icon: "⚙", match: (p: string) => p.startsWith("/settings") },
+  { href: "/calendar", label: "Calendrier", icon: CalendarDays, match: (p: string) => p.startsWith("/calendar") || p.startsWith("/scripts") },
+  { href: "/direction", label: "Direction", icon: Compass, match: (p: string) => p.startsWith("/direction") },
+  { href: "/assistant", label: "Assistant", icon: Sparkles, match: (p: string) => p.startsWith("/assistant") },
+  { href: "/settings", label: "Paramètres", icon: Settings, match: (p: string) => p.startsWith("/settings") },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -115,7 +116,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   fontWeight: active ? 600 : 500,
                 }}
               >
-                <span style={{ fontSize: 17, width: 22, textAlign: "center" }}>{item.icon}</span>
+                <span style={{ width: 22, display: "flex", justifyContent: "center" }}>
+                  <item.icon size={18} strokeWidth={2} />
+                </span>
                 {item.label}
               </Link>
             );

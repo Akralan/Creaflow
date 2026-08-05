@@ -60,6 +60,7 @@ export const platformMeta: Record<string, { label: string; badge: string; badgeB
   youtube: { label: "YouTube", badge: "YT", badgeBg: "oklch(0.55 0.2 25)" },
   newsletter: { label: "Newsletter", badge: "NL", badgeBg: "oklch(0.55 0.12 250)" },
   blog: { label: "Blog / site perso", badge: "BL", badgeBg: "oklch(0.5 0.1 150)" },
+  slack: { label: "Slack", badge: "SL", badgeBg: "oklch(0.5 0.13 320)" },
   other: { label: "Autre", badge: "?", badgeBg: "#6b6259" },
 };
 

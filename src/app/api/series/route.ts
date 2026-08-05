@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUserId } from "@/lib/auth/session";
 import { generateSeriesForUser, listActiveSeriesForUser, saveSeriesForUser } from "@/lib/services/seriesService";
+import { platformSchema } from "@/lib/validation";
 import { handleApiError } from "@/lib/api/errors";
 
 const saveSchema = z.object({
@@ -12,6 +13,7 @@ const saveSchema = z.object({
       description: z.string().min(1),
       weight: z.number().int().min(0).max(100),
       categoryIds: z.array(z.uuid()).min(1),
+      platforms: z.array(platformSchema).default([]),
     })
   ),
 });

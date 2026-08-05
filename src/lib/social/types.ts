@@ -16,6 +16,7 @@ export const KNOWN_PLATFORMS: PlatformDefinition[] = [
   { key: "youtube", label: "YouTube", hasOAuth: false },
   { key: "newsletter", label: "Newsletter", hasOAuth: false },
   { key: "blog", label: "Blog / site perso", hasOAuth: false },
+  { key: "slack", label: "Slack", hasOAuth: false },
   { key: "other", label: "Autre", hasOAuth: false },
 ];
 

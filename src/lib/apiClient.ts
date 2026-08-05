@@ -35,6 +35,8 @@ export interface ContentCategory {
   weight: number;
   archived: boolean;
   createdAt: string;
+  /** Réseaux auxquels cette catégorie est restreinte ; vide = visible sur tous les réseaux. */
+  platforms: Platform[];
 }
 
 /** Forme légère d'une catégorie telle qu'embarquée (jointure) dans un Script ou une CalendarEntry. */
@@ -94,6 +96,8 @@ export interface ContentSeries {
   archived: boolean;
   createdAt: string;
   categories: ContentCategorySummary[];
+  /** Réseaux auxquels cette série est restreinte ; vide = visible sur tous les réseaux. */
+  platforms: Platform[];
 }
 
 export interface StoryboardStep {
@@ -154,6 +158,31 @@ export interface OnboardingMessage {
   content: string;
 }
 
+export interface SourceFetchError {
+  url: string;
+  reason: string;
+}
+
+export interface AssistantProposal {
+  id: string;
+  userId: string;
+  kind:
+    | "product_create"
+    | "product_update"
+    | "series_create"
+    | "series_update"
+    | "category_create"
+    | "category_update"
+    | "angle_create"
+    | "angle_update"
+    | "posting_goal_update";
+  targetId: string | null;
+  payload: Record<string, unknown>;
+  status: "pending" | "accepted" | "rejected";
+  createdAt: string;
+  resolvedAt: string | null;
+}
+
 export const api = {
   signup: (email: string, password: string) => post<{ user: User }>("/api/auth/signup", { email, password }),
   login: (email: string, password: string) => post<{ user: User }>("/api/auth/login", { email, password }),
@@ -173,13 +202,21 @@ export const api = {
 
   getContentCategories: () => apiFetch<{ categories: ContentCategory[] }>("/api/profile/content-categories"),
   generateContentCategories: () => post<{ categories: ContentCategory[] }>("/api/profile/content-categories"),
-  saveContentCategories: (categories: Array<{ id?: string; label: string; description: string; weight: number }>) =>
-    post<{ categories: ContentCategory[] }>("/api/profile/content-categories", { categories }),
+  saveContentCategories: (
+    categories: Array<{ id?: string; label: string; description: string; weight: number; platforms: string[] }>
+  ) => post<{ categories: ContentCategory[] }>("/api/profile/content-categories", { categories }),
 
   getContentSeries: () => apiFetch<{ series: ContentSeries[] }>("/api/series"),
   generateContentSeries: () => post<{ series: ContentSeries[] }>("/api/series"),
   saveContentSeries: (
-    series: Array<{ id?: string; label: string; description: string; weight: number; categoryIds: string[] }>
+    series: Array<{
+      id?: string;
+      label: string;
+      description: string;
+      weight: number;
+      categoryIds: string[];
+      platforms: string[];
+    }>
   ) => post<{ series: ContentSeries[] }>("/api/series", { series }),
 
   getProducts: () => apiFetch<{ products: Product[] }>("/api/products"),
@@ -201,6 +238,8 @@ export const api = {
   getCalendar: (month: string) =>
     apiFetch<{ entries: CalendarEntry[]; goals: PostingGoal[] }>(`/api/calendar?month=${month}`),
   generateCalendar: (month: string) => post<{ entries: CalendarEntry[] }>("/api/calendar/generate", { month }),
+  placeScript: (scriptId: string, scheduledDate: string) =>
+    post<{ entry: CalendarEntry }>("/api/calendar", { scriptId, scheduledDate }),
   updateCalendarEntryStatus: (id: string, status: CalendarStatus) =>
     patch<{ entry: CalendarEntry }>(`/api/calendar/${id}`, { status }),
   updateCalendarEntry: (id: string, data: { contentCategoryId?: string; seriesId?: string | null }) =>
@@ -231,4 +270,14 @@ export const api = {
   getOnboardingChat: () => apiFetch<{ messages: OnboardingMessage[]; complete: boolean }>("/api/onboarding/chat"),
   sendOnboardingMessage: (message: string) =>
     post<{ reply: string; complete: boolean }>("/api/onboarding/chat", { message }),
+
+  getAssistantChat: () =>
+    apiFetch<{ messages: OnboardingMessage[]; proposals: AssistantProposal[] }>("/api/assistant/chat"),
+  sendAssistantMessage: (message: string, urls?: string[]) =>
+    post<{ reply: string; proposals: AssistantProposal[]; sourceErrors?: SourceFetchError[] }>(
+      "/api/assistant/chat",
+      urls && urls.length > 0 ? { message, urls } : { message }
+    ),
+  resolveAssistantProposal: (id: string, action: "accept" | "reject", fields?: Record<string, unknown>) =>
+    post<{ proposals: AssistantProposal[] }>(`/api/assistant/proposals/${id}/resolve`, { action, fields }),
 };

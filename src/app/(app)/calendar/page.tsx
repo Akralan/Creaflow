@@ -7,7 +7,10 @@ import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import { PlatformBadge } from "@/components/ui/Badge";
 import { TextField, heading1Style } from "@/components/ui/TextField";
-import { api, ApiClientError, type CalendarEntry, type ContentType, type PostingGoal } from "@/lib/apiClient";
+import IconActionButton from "@/components/ui/IconActionButton";
+import EntryCard from "@/components/EntryCard";
+import GenerateScriptModal from "@/components/GenerateScriptModal";
+import { api, ApiClientError, type CalendarEntry, type ContentType, type PostingGoal, type Script } from "@/lib/apiClient";
 import { accent, color, platformMeta, statusMeta } from "@/lib/design/tokens";
 import { resolveCategoryMeta } from "@/lib/design/categoryDisplay";
 import { useContentCategories } from "@/contexts/CategoryLabelsContext";
@@ -39,50 +42,6 @@ function dayDateStr(year: number, monthIndex: number, day: number) {
   return `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-function IconActionButton({
-  icon: Icon,
-  onClick,
-  disabled,
-  variant,
-  title,
-}: {
-  icon: typeof Trash2;
-  onClick: () => void;
-  disabled?: boolean;
-  variant: "danger" | "neutral" | "primary";
-  title: string;
-}) {
-  const variantStyle: React.CSSProperties =
-    variant === "danger"
-      ? { background: "oklch(0.62 0.15 25 / 0.1)", color: color.danger }
-      : variant === "primary"
-        ? { background: disabled ? color.textFaint : accent, color: "#fff" }
-        : { background: color.inputBg, color: color.textMuted, border: `1px solid ${color.inputBorder}` };
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      aria-label={title}
-      style={{
-        width: 40,
-        height: 40,
-        borderRadius: 11,
-        border: "none",
-        display: "grid",
-        placeItems: "center",
-        cursor: disabled ? "default" : "pointer",
-        opacity: disabled ? 0.5 : 1,
-        flexShrink: 0,
-        ...variantStyle,
-      }}
-    >
-      <Icon size={18} strokeWidth={2} />
-    </button>
-  );
-}
-
 export default function CalendarPage() {
   const router = useRouter();
   const categories = useContentCategories();
@@ -105,6 +64,51 @@ export default function CalendarPage() {
   const [editCategoryId, setEditCategoryId] = useState<string>("");
   const [editSeriesId, setEditSeriesId] = useState<string>("");
   const [savingEntry, setSavingEntry] = useState(false);
+
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [modalScheduledDate, setModalScheduledDate] = useState<string | undefined>(undefined);
+  const [placingScript, setPlacingScript] = useState<Script | null>(null);
+  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (!placingScript) return;
+    function handleMouseMove(e: MouseEvent) {
+      setCursorPos({ x: e.clientX, y: e.clientY });
+    }
+    function handleWindowClick() {
+      // Un onClick React (délégué à la racine) s'exécute avant un listener natif attaché
+      // via addEventListener sur window (phase de bubbling, window est atteint en dernier).
+      // Si une cellule/entrée a déjà consommé ce clic (placeAt a déjà appelé
+      // setPlacingScript(null) de façon synchrone), l'updater fonctionnel voit déjà `null`
+      // et ne fait rien. Sinon (clic hors cellule), on annule le placement.
+      setPlacingScript((current) => (current === null ? current : null));
+    }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setPlacingScript(null);
+    }
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("click", handleWindowClick);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("click", handleWindowClick);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [placingScript]);
+
+  async function placeAt(dateStr: string) {
+    const script = placingScript;
+    if (!script) return;
+    setPlacingScript(null);
+    setCursorPos(null);
+    setError(null);
+    try {
+      await api.placeScript(script.id, dateStr);
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Erreur lors du placement du script.");
+    }
+  }
 
   async function load() {
     setLoading(true);
@@ -290,7 +294,14 @@ export default function CalendarPage() {
               <div
                 key={i}
                 onClick={() => {
-                  if (clickableEmpty) router.push(`/generate?date=${dayDateStr(year, monthIndex, c.day as number)}`);
+                  if (placingScript) {
+                    if (c.day !== null) placeAt(dayDateStr(year, monthIndex, c.day));
+                    return;
+                  }
+                  if (clickableEmpty) {
+                    setModalScheduledDate(dayDateStr(year, monthIndex, c.day as number));
+                    setShowGenerateModal(true);
+                  }
                 }}
                 title={clickableEmpty ? "Générer un script libre à cette date" : undefined}
                 style={{
@@ -302,7 +313,7 @@ export default function CalendarPage() {
                   display: "flex",
                   flexDirection: "column",
                   gap: 5,
-                  cursor: clickableEmpty ? "pointer" : "default",
+                  cursor: clickableEmpty || (placingScript && c.day !== null) ? "pointer" : "default",
                 }}
               >
                 {c.day && (
@@ -318,47 +329,25 @@ export default function CalendarPage() {
                       )}
                     </div>
                     {c.entries.map((entry) => {
-                      const cat = resolveCategoryMeta(entry.contentCategory);
                       const status = entry.script ? statusMeta[entry.script.status] : null;
                       const busy = generatingSlotId === entry.id;
                       return (
-                        <div
+                        <EntryCard
                           key={entry.id}
+                          data={{ platform: entry.platform, contentCategory: entry.contentCategory, series: entry.series, title: entry.script?.title }}
                           onClick={() => {
+                            if (placingScript) return; // remonte à la cellule parente, qui gère la pose
                             if (entry.script) router.push(`/scripts/${entry.script.id}`);
                             else if (!busy) openEntryEditor(entry);
                           }}
-                          style={{
-                            borderRadius: 8,
-                            background: cat.bg,
-                            border: `1px solid ${cat.border}`,
-                            padding: 6,
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 4,
-                            cursor: "pointer",
-                          }}
+                          style={{ cursor: "pointer" }}
                         >
-                          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                            <PlatformBadge platform={entry.platform} size={17} />
-                            <span style={{ fontSize: 10, fontWeight: 700, color: cat.fg, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-                              {cat.label}
-                            </span>
-                          </div>
-                          {entry.series && (
-                            <span style={{ fontSize: 9, fontWeight: 700, color: "oklch(0.47 0.2 292)", background: "oklch(0.55 0.2 292 / 0.12)", borderRadius: 20, padding: "2px 7px", alignSelf: "flex-start" }}>
-                              ◈ {entry.series.label}
-                            </span>
-                          )}
                           {entry.script ? (
-                            <>
-                              <div style={{ fontSize: 11, lineHeight: 1.2, color: "#2a2521", fontWeight: 500 }}>{entry.script.title}</div>
-                              {status && (
-                                <span style={{ marginTop: "auto", fontSize: 9, fontWeight: 700, color: status.fg, background: status.bg, borderRadius: 20, padding: "2px 7px", alignSelf: "flex-start" }}>
-                                  {status.label}
-                                </span>
-                              )}
-                            </>
+                            status && (
+                              <span style={{ marginTop: "auto", fontSize: 9, fontWeight: 700, color: status.fg, background: status.bg, borderRadius: 20, padding: "2px 7px", alignSelf: "flex-start" }}>
+                                {status.label}
+                              </span>
+                            )
                           ) : busy ? (
                             <div style={{ marginTop: "auto", fontSize: 10, fontWeight: 600, color: "oklch(0.5 0.2 292)", border: "1px dashed oklch(0.6 0.15 292)", borderRadius: 6, padding: "3px 6px", textAlign: "center" }}>
                               ...
@@ -370,6 +359,10 @@ export default function CalendarPage() {
                                   key={ct}
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    if (placingScript) {
+                                      if (c.day !== null) placeAt(dayDateStr(year, monthIndex, c.day));
+                                      return;
+                                    }
                                     handleGenerateSlot(entry.id, ct);
                                   }}
                                   title={`Générer un script ${CONTENT_TYPE_SHORT[ct].toLowerCase()}`}
@@ -390,7 +383,7 @@ export default function CalendarPage() {
                               ))}
                             </div>
                           )}
-                        </div>
+                        </EntryCard>
                       );
                     })}
                   </>
@@ -422,6 +415,8 @@ export default function CalendarPage() {
                     type="number"
                     min={0}
                     max={30}
+                    step={0.5}
+                    helper="0.5 = 1 publication toutes les 2 semaines"
                     value={goalDrafts[p]}
                     onChange={(e) => setGoalDrafts((d) => ({ ...d, [p]: Number(e.target.value) }))}
                   />
@@ -485,7 +480,10 @@ export default function CalendarPage() {
           </Card>
 
           <button
-            onClick={() => router.push("/generate")}
+            onClick={() => {
+              setModalScheduledDate(undefined);
+              setShowGenerateModal(true);
+            }}
             style={{
               background: color.cardBg,
               border: `1px solid ${color.border}`,
@@ -509,6 +507,29 @@ export default function CalendarPage() {
           </button>
         </div>
       </div>
+
+      <GenerateScriptModal
+        open={showGenerateModal}
+        onClose={() => setShowGenerateModal(false)}
+        scheduledDate={modalScheduledDate}
+        onGenerated={(script) => {
+          setShowGenerateModal(false);
+          if (modalScheduledDate) {
+            load();
+          } else {
+            setPlacingScript(script);
+          }
+        }}
+      />
+
+      {placingScript && cursorPos && (
+        <div style={{ position: "fixed", left: cursorPos.x + 18, top: cursorPos.y + 18, width: 176, pointerEvents: "none", zIndex: 60 }}>
+          <EntryCard
+            data={{ platform: placingScript.platform, contentCategory: placingScript.contentCategory, series: placingScript.series, title: placingScript.title }}
+            style={{ boxShadow: "0 10px 26px rgba(28,25,23,0.22)" }}
+          />
+        </div>
+      )}
 
       {editingEntry && (
         <div

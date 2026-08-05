@@ -6,6 +6,7 @@ import { products } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 import { MIN_PRODUCTS } from "@/lib/validation";
+import { updateProductForUser } from "@/lib/services/productsService";
 
 const updateProductSchema = z.object({
   name: z.string().min(1).optional(),
@@ -23,15 +24,7 @@ export async function PUT(
     const { id } = await params;
     const body = updateProductSchema.parse(await request.json());
 
-    const [updated] = await db
-      .update(products)
-      .set(body)
-      .where(and(eq(products.id, id), eq(products.userId, userId)))
-      .returning();
-
-    if (!updated) {
-      throw new ApiError(404, "Produit introuvable.");
-    }
+    const updated = await updateProductForUser(userId, id, body);
 
     return NextResponse.json({ product: updated });
   } catch (error) {

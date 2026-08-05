@@ -9,12 +9,15 @@ import {
   distributeCategories,
   distributeDays,
   distributeSeriesOverrides,
+  filterByPlatform,
   parseMonth,
+  renormalizeCategoryWeights,
   seriesWeightsFromSeries,
   weeksInMonth,
 } from "@/lib/services/calendarService";
 import { listActiveCategoriesForUser } from "@/lib/services/categoryLabelsService";
 import { listActiveSeriesForUser } from "@/lib/services/seriesService";
+import { platformLabel } from "@/lib/social/types";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 
 const schema = z.object({
@@ -50,15 +53,25 @@ export async function POST(request: NextRequest) {
     if (activeCategories.length === 0) {
       throw new ApiError(400, "Configure d'abord tes catégories de contenu avant de générer le calendrier.");
     }
-    const weights = categoryWeightsFromCategories(activeCategories);
 
     const activeSeries = await listActiveSeriesForUser(userId);
-    const seriesWeights = seriesWeightsFromSeries(
-      activeSeries.map((s) => ({ id: s.id, weight: s.weight, categoryIds: s.categories.map((c) => c.id) }))
-    );
 
     const weeks = weeksInMonth(daysInMonth);
     const rowsToInsert = goals.flatMap((goal) => {
+      const categoriesForPlatform = filterByPlatform(activeCategories, goal.platform);
+      if (categoriesForPlatform.length === 0) {
+        throw new ApiError(
+          400,
+          `Aucune catégorie de contenu n'est configurée pour ${platformLabel(goal.platform)}.`
+        );
+      }
+      const weights = renormalizeCategoryWeights(categoryWeightsFromCategories(categoriesForPlatform));
+
+      const seriesForPlatform = filterByPlatform(activeSeries, goal.platform);
+      const seriesWeights = seriesWeightsFromSeries(
+        seriesForPlatform.map((s) => ({ id: s.id, weight: s.weight, categoryIds: s.categories.map((c) => c.id) }))
+      );
+
       const slotCount = Math.round(goal.targetCountPerWeek * weeks);
       const categoryIds = distributeCategories(slotCount, weights);
       const days = distributeDays(slotCount, daysInMonth);

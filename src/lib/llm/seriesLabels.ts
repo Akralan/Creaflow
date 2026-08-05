@@ -17,44 +17,48 @@ export const suggestedSeriesSchema = z.object({
 
 const SUGGEST_CONTENT_SERIES_TOOL_NAME = "suggest_content_series";
 
-const suggestContentSeriesTool: LlmToolDefinition = {
-  name: SUGGEST_CONTENT_SERIES_TOOL_NAME,
-  description:
-    "Propose entre 0 et 5 séries de contenu récurrentes (formats nommés, reconnaissables) adaptées au métier du créateur, chacune rattachée à une ou plusieurs de ses catégories de contenu actives.",
-  input_schema: {
-    type: "object",
-    properties: {
-      series: {
-        type: "array",
-        description:
-          "Liste de 0 à 5 séries récurrentes (ex: \"Le mythe du mercredi\", \"Behind the scenes du vendredi\", \"Témoignage client\"). Si le métier ne s'y prête vraiment pas, renvoie une liste vide plutôt que d'inventer une série artificielle.",
-        minItems: 0,
-        maxItems: 5,
-        items: {
-          type: "object",
-          properties: {
-            label: { type: "string", description: "Nom court et mémorable de la série (3-5 mots max)." },
-            description: {
-              type: "string",
-              description: "Identité de la série en une ou deux phrases : angle, ton, structure à respecter à chaque script de cette série.",
+/** L'enum sur categoryLabels force le modèle à choisir parmi les libellés existants tels
+ *  quels, au lieu de recopier le bloc "Label — Description" fourni en contexte. */
+function buildSuggestContentSeriesTool(categoryLabels: string[]): LlmToolDefinition {
+  return {
+    name: SUGGEST_CONTENT_SERIES_TOOL_NAME,
+    description:
+      "Propose entre 0 et 5 séries de contenu récurrentes (formats nommés, reconnaissables) adaptées au métier du créateur, chacune rattachée à une ou plusieurs de ses catégories de contenu actives.",
+    input_schema: {
+      type: "object",
+      properties: {
+        series: {
+          type: "array",
+          description:
+            "Liste de 0 à 5 séries récurrentes (ex: \"Le mythe du mercredi\", \"Behind the scenes du vendredi\", \"Témoignage client\"). Si le métier ne s'y prête vraiment pas, renvoie une liste vide plutôt que d'inventer une série artificielle.",
+          minItems: 0,
+          maxItems: 5,
+          items: {
+            type: "object",
+            properties: {
+              label: { type: "string", description: "Nom court et mémorable de la série (3-5 mots max)." },
+              description: {
+                type: "string",
+                description: "Identité de la série en une ou deux phrases : angle, ton, structure à respecter à chaque script de cette série.",
+              },
+              weight: {
+                type: "integer",
+                description: "Pourcentage approximatif des créneaux mensuels que cette série devrait occuper (0 à 60, pas besoin de sommer à 100 avec les autres séries).",
+              },
+              categoryLabels: {
+                type: "array",
+                description: "Une ou plusieurs catégories de contenu actives auxquelles cette série appartient.",
+                items: { type: "string", enum: categoryLabels },
+              },
             },
-            weight: {
-              type: "integer",
-              description: "Pourcentage approximatif des créneaux mensuels que cette série devrait occuper (0 à 60, pas besoin de sommer à 100 avec les autres séries).",
-            },
-            categoryLabels: {
-              type: "array",
-              description: "Libellés EXACTS d'une ou plusieurs catégories de contenu actives (fournies dans le contexte) auxquelles cette série appartient.",
-              items: { type: "string" },
-            },
+            required: ["label", "description", "weight", "categoryLabels"],
           },
-          required: ["label", "description", "weight", "categoryLabels"],
         },
       },
+      required: ["series"],
     },
-    required: ["series"],
-  },
-};
+  };
+}
 
 const SYSTEM_PROMPT = `Tu conçois la direction éditoriale d'un créateur ou d'une entreprise, adaptée précisément à son activité.
 
@@ -83,7 +87,7 @@ export async function suggestContentSeries(context: SeriesLabelsContext): Promis
   const args = await callStructured({
     system: SYSTEM_PROMPT,
     userMessage: lines.join("\n"),
-    tool: suggestContentSeriesTool,
+    tool: buildSuggestContentSeriesTool(context.categories.map((c) => c.label)),
     maxTokens: 1536,
   });
 

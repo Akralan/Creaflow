@@ -4,7 +4,9 @@ import {
   distributeCategories,
   distributeDays,
   distributeSeriesOverrides,
+  filterByPlatform,
   parseMonth,
+  renormalizeCategoryWeights,
   seriesWeightsFromSeries,
   weeksInMonth,
   type CategoryWeight,
@@ -118,6 +120,45 @@ describe("weeksInMonth", () => {
   it("renvoie une valeur fractionnaire cohérente", () => {
     expect(weeksInMonth(28)).toBe(4);
     expect(weeksInMonth(31)).toBeCloseTo(31 / 7, 5);
+  });
+});
+
+describe("filterByPlatform", () => {
+  it("inclut un élément sans plateforme assignée, quelle que soit la plateforme demandée", () => {
+    const items = [{ id: "a", platforms: [] }];
+    expect(filterByPlatform(items, "tiktok")).toEqual(items);
+    expect(filterByPlatform(items, "slack")).toEqual(items);
+  });
+
+  it("inclut un élément seulement si ses plateformes contiennent la plateforme demandée", () => {
+    const items = [
+      { id: "a", platforms: ["linkedin"] },
+      { id: "b", platforms: ["slack"] },
+    ];
+    expect(filterByPlatform(items, "linkedin")).toEqual([items[0]]);
+    expect(filterByPlatform(items, "slack")).toEqual([items[1]]);
+    expect(filterByPlatform(items, "tiktok")).toEqual([]);
+  });
+});
+
+describe("renormalizeCategoryWeights", () => {
+  it("met à l'échelle un sous-ensemble pour qu'il somme à 1", () => {
+    const result = renormalizeCategoryWeights([
+      { id: "a", weight: 0.2 },
+      { id: "b", weight: 0.15 },
+    ]);
+    const total = result.reduce((sum, w) => sum + w.weight, 0);
+    expect(total).toBeCloseTo(1, 5);
+    expect(result[0].weight).toBeCloseTo(0.2 / 0.35, 5);
+    expect(result[1].weight).toBeCloseTo(0.15 / 0.35, 5);
+  });
+
+  it("ne change rien si l'ensemble somme déjà à 1", () => {
+    expect(renormalizeCategoryWeights(SAMPLE_WEIGHTS)).toEqual(SAMPLE_WEIGHTS);
+  });
+
+  it("renvoie l'entrée telle quelle sans diviser par zéro si elle est vide", () => {
+    expect(renormalizeCategoryWeights([])).toEqual([]);
   });
 });
 

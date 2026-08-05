@@ -6,6 +6,7 @@ import {
   boolean,
   jsonb,
   integer,
+  real,
   pgEnum,
   unique,
 } from "drizzle-orm/pg-core";
@@ -15,6 +16,18 @@ export const scriptStatusEnum = pgEnum("script_status", ["draft", "planned", "sh
 export const contentTypeEnum = pgEnum("content_type", ["video", "visual", "text"]);
 export const calendarStatusEnum = pgEnum("calendar_status", ["planned", "shot", "published"]);
 export const onboardingStatusEnum = pgEnum("onboarding_status", ["in_progress", "complete"]);
+export const assistantProposalKindEnum = pgEnum("assistant_proposal_kind", [
+  "product_create",
+  "product_update",
+  "series_create",
+  "series_update",
+  "category_create",
+  "category_update",
+  "angle_create",
+  "angle_update",
+  "posting_goal_update",
+]);
+export const assistantProposalStatusEnum = pgEnum("assistant_proposal_status", ["pending", "accepted", "rejected"]);
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -31,6 +44,28 @@ export const onboardingSessions = pgTable("onboarding_sessions", {
   status: onboardingStatusEnum("status").notNull().default("in_progress"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const assistantSessions = pgTable("assistant_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+  messages: jsonb("messages").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const assistantProposals = pgTable("assistant_proposals", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  kind: assistantProposalKindEnum("kind").notNull(),
+  // Pas de FK : référence conditionnellement products.id / contentSeries.id / contentCategories.id /
+  // contentAngles.id selon `kind`. Toujours null pour category_create, angle_create et posting_goal_update
+  // (la fréquence par plateforme n'a pas de notion de ligne cible : le payload contient le platform).
+  targetId: uuid("target_id"),
+  payload: jsonb("payload").notNull(),
+  status: assistantProposalStatusEnum("status").notNull().default("pending"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
 });
 
 export const creatorProfiles = pgTable("creator_profiles", {
@@ -85,6 +120,30 @@ export const contentSeriesCategories = pgTable(
     categoryId: uuid("category_id").notNull().references(() => contentCategories.id, { onDelete: "cascade" }),
   },
   (t) => [unique().on(t.seriesId, t.categoryId)]
+);
+
+// Aucune ligne pour une catégorie = visible sur tous les réseaux (comportement historique,
+// rétrocompatible sans backfill).
+export const contentCategoriesPlatforms = pgTable(
+  "content_categories_platforms",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    categoryId: uuid("category_id").notNull().references(() => contentCategories.id, { onDelete: "cascade" }),
+    platform: text("platform").notNull(),
+  },
+  (t) => [unique().on(t.categoryId, t.platform)]
+);
+
+// Aucune ligne pour une série = visible sur tous les réseaux (comportement historique,
+// rétrocompatible sans backfill).
+export const contentSeriesPlatforms = pgTable(
+  "content_series_platforms",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    seriesId: uuid("series_id").notNull().references(() => contentSeries.id, { onDelete: "cascade" }),
+    platform: text("platform").notNull(),
+  },
+  (t) => [unique().on(t.seriesId, t.platform)]
 );
 
 export const products = pgTable("products", {
@@ -151,7 +210,7 @@ export const postingGoals = pgTable("posting_goals", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   platform: text("platform").notNull(),
-  targetCountPerWeek: integer("target_count_per_week").notNull(),
+  targetCountPerWeek: real("target_count_per_week").notNull(),
 });
 
 export const calendarEntries = pgTable("calendar_entries", {
@@ -174,6 +233,7 @@ export const contentCategoriesRelations = relations(contentCategories, ({ many }
   scripts: many(scripts),
   calendarEntries: many(calendarEntries),
   contentSeriesCategories: many(contentSeriesCategories),
+  contentCategoriesPlatforms: many(contentCategoriesPlatforms),
 }));
 
 export const contentAnglesRelations = relations(contentAngles, ({ many }) => ({
@@ -184,11 +244,23 @@ export const contentSeriesRelations = relations(contentSeries, ({ many }) => ({
   scripts: many(scripts),
   calendarEntries: many(calendarEntries),
   contentSeriesCategories: many(contentSeriesCategories),
+  contentSeriesPlatforms: many(contentSeriesPlatforms),
 }));
 
 export const contentSeriesCategoriesRelations = relations(contentSeriesCategories, ({ one }) => ({
   series: one(contentSeries, { fields: [contentSeriesCategories.seriesId], references: [contentSeries.id] }),
   category: one(contentCategories, { fields: [contentSeriesCategories.categoryId], references: [contentCategories.id] }),
+}));
+
+export const contentCategoriesPlatformsRelations = relations(contentCategoriesPlatforms, ({ one }) => ({
+  category: one(contentCategories, {
+    fields: [contentCategoriesPlatforms.categoryId],
+    references: [contentCategories.id],
+  }),
+}));
+
+export const contentSeriesPlatformsRelations = relations(contentSeriesPlatforms, ({ one }) => ({
+  series: one(contentSeries, { fields: [contentSeriesPlatforms.seriesId], references: [contentSeries.id] }),
 }));
 
 export const scriptsRelations = relations(scripts, ({ one, many }) => ({

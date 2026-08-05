@@ -29,6 +29,27 @@
       "when": 1785666762885,
       "tag": "0003_marvelous_payback",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785715343944,
+      "tag": "0004_flashy_stephen_strange",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785769476064,
+      "tag": "0005_noisy_giant_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785795111605,
+      "tag": "0006_needy_blizzard",
+      "breakpoints": true
     }
   ]
 }

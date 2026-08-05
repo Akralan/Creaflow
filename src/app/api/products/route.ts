@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { eq, count } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { products } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
-import { ApiError, handleApiError } from "@/lib/api/errors";
-import { MAX_PRODUCTS } from "@/lib/validation";
+import { handleApiError } from "@/lib/api/errors";
+import { createProductsForUser } from "@/lib/services/productsService";
 
 const productSchema = z.object({
   name: z.string().min(1),
@@ -32,22 +32,7 @@ export async function POST(request: NextRequest) {
     const parsed = createProductsSchema.parse(await request.json());
     const items = Array.isArray(parsed) ? parsed : [parsed];
 
-    const [{ value: existingCount }] = await db
-      .select({ value: count() })
-      .from(products)
-      .where(eq(products.userId, userId));
-
-    if (existingCount + items.length > MAX_PRODUCTS) {
-      throw new ApiError(
-        400,
-        `Maximum ${MAX_PRODUCTS} produits par catalogue (${existingCount} déjà enregistrés).`
-      );
-    }
-
-    const created = await db
-      .insert(products)
-      .values(items.map((item) => ({ userId, ...item })))
-      .returning();
+    const created = await createProductsForUser(userId, items);
 
     return NextResponse.json({ products: created }, { status: 201 });
   } catch (error) {

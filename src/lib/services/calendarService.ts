@@ -3,6 +3,21 @@ export interface CategoryWeight {
   weight: number; // fraction 0-1
 }
 
+/** Filtre une liste de catégories/séries selon la plateforme ciblée. Un élément dont `platforms`
+ *  est vide est visible sur tous les réseaux (comportement historique, rétrocompatible). */
+export function filterByPlatform<T extends { platforms: string[] }>(items: T[], platform: string): T[] {
+  return items.filter((item) => item.platforms.length === 0 || item.platforms.includes(platform));
+}
+
+/** Renormalise un sous-ensemble de poids de catégorie pour qu'ils somment à 1 — nécessaire quand
+ *  categoryWeightsFromCategories est appliqué après un filtrage par plateforme (les poids globaux
+ *  ne somment plus à 100% sur un sous-ensemble). Sans effet si le sous-ensemble est déjà complet. */
+export function renormalizeCategoryWeights(weights: CategoryWeight[]): CategoryWeight[] {
+  const total = weights.reduce((sum, w) => sum + w.weight, 0);
+  if (total <= 0) return weights;
+  return weights.map((w) => ({ ...w, weight: w.weight / total }));
+}
+
 /** Convertit les catégories de contenu (poids 0-100) du profil en fractions utilisables par distributeCategories. */
 export function categoryWeightsFromCategories(
   categories: Array<{ id: string; weight: number }>
