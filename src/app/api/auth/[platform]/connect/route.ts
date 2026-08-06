@@ -16,7 +16,10 @@ export async function GET(
       throw new ApiError(404, "Cette plateforme ne propose pas de connexion OAuth.");
     }
 
-    const state = crypto.randomBytes(16).toString("hex");
+    // 32 octets (64 caractères hex) plutôt que 16 : satisfait aussi bien le rôle de nonce CSRF
+    // que les contraintes RFC 7636 du code_verifier PKCE requis par X (43-128 caractères parmi
+    // [A-Za-z0-9-._~], dont l'hexadécimal est un sous-ensemble strict) — cf. src/lib/social/x.ts.
+    const state = crypto.randomBytes(32).toString("hex");
     const cookieStore = await cookies();
     cookieStore.set(`oauth_state_${platform}`, state, {
       httpOnly: true,

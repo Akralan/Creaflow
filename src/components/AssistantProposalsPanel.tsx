@@ -19,6 +19,7 @@ const KIND_LABEL: Record<AssistantProposal["kind"], string> = {
   angle_create: "Nouvel angle",
   angle_update: "Modifier l'angle",
   posting_goal_update: "Objectif de fréquence",
+  category_reweight: "Rééquilibrage des catégories",
 };
 
 const inputStyle: React.CSSProperties = {
@@ -44,7 +45,7 @@ function pillStyle(active: boolean): React.CSSProperties {
   };
 }
 
-type ProposalGroup = "product" | "series" | "category" | "angle" | "postingGoal";
+type ProposalGroup = "product" | "series" | "category" | "angle" | "postingGoal" | "categoryReweight";
 
 function proposalGroup(kind: AssistantProposal["kind"]): ProposalGroup {
   switch (kind) {
@@ -62,6 +63,8 @@ function proposalGroup(kind: AssistantProposal["kind"]): ProposalGroup {
       return "angle";
     case "posting_goal_update":
       return "postingGoal";
+    case "category_reweight":
+      return "categoryReweight";
   }
 }
 
@@ -94,6 +97,18 @@ interface AngleDraft {
 interface PostingGoalDraft {
   platform: string;
   targetCountPerWeek: number;
+}
+
+interface CategoryReweightItemDraft {
+  targetId: string;
+  label: string;
+  previousWeight: number;
+  proposedWeight: number;
+}
+
+interface CategoryReweightDraft {
+  items: CategoryReweightItemDraft[];
+  reasonSummary: string;
 }
 
 function toProductDraft(payload: Record<string, unknown>): ProductDraft {
@@ -137,6 +152,19 @@ function toPostingGoalDraft(payload: Record<string, unknown>): PostingGoalDraft 
   };
 }
 
+function toCategoryReweightDraft(payload: Record<string, unknown>): CategoryReweightDraft {
+  const rawItems = Array.isArray(payload.items) ? (payload.items as Record<string, unknown>[]) : [];
+  return {
+    items: rawItems.map((item) => ({
+      targetId: typeof item.targetId === "string" ? item.targetId : "",
+      label: typeof item.label === "string" ? item.label : "",
+      previousWeight: typeof item.previousWeight === "number" ? item.previousWeight : 0,
+      proposedWeight: typeof item.proposedWeight === "number" ? item.proposedWeight : 0,
+    })),
+    reasonSummary: typeof payload.reasonSummary === "string" ? payload.reasonSummary : "",
+  };
+}
+
 function ProposalCard({
   proposal,
   onResolved,
@@ -152,6 +180,9 @@ function ProposalCard({
   const [categoryDraft, setCategoryDraft] = useState<CategoryDraft>(() => toCategoryDraft(proposal.payload));
   const [angleDraft, setAngleDraft] = useState<AngleDraft>(() => toAngleDraft(proposal.payload));
   const [postingGoalDraft, setPostingGoalDraft] = useState<PostingGoalDraft>(() => toPostingGoalDraft(proposal.payload));
+  const [categoryReweightDraft, setCategoryReweightDraft] = useState<CategoryReweightDraft>(() =>
+    toCategoryReweightDraft(proposal.payload)
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -168,7 +199,9 @@ function ProposalCard({
               ? angleDraft
               : group === "postingGoal"
                 ? postingGoalDraft
-                : productDraft;
+                : group === "categoryReweight"
+                  ? { items: categoryReweightDraft.items }
+                  : productDraft;
       const fields: Record<string, unknown> | undefined = action === "accept" && editing ? { ...draft } : undefined;
       const { proposals } = await api.resolveAssistantProposal(proposal.id, action, fields);
       onResolved(proposals);
@@ -211,7 +244,9 @@ function ProposalCard({
           ? angleDraft.label
           : group === "postingGoal"
             ? platformLabel(postingGoalDraft.platform)
-            : productDraft.name;
+            : group === "categoryReweight"
+              ? "Rééquilibrage des catégories"
+              : productDraft.name;
 
   const description =
     group === "series"
@@ -222,7 +257,9 @@ function ProposalCard({
           ? angleDraft.description
           : group === "postingGoal"
             ? `${postingGoalDraft.targetCountPerWeek}/semaine`
-            : productDraft.description;
+            : group === "categoryReweight"
+              ? categoryReweightDraft.reasonSummary
+              : productDraft.description;
 
   return (
     <Card style={{ padding: 16 }}>
@@ -322,6 +359,32 @@ function ProposalCard({
               onChange={(e) => setPostingGoalDraft((d) => ({ ...d, targetCountPerWeek: Number(e.target.value) }))}
             />
           </div>
+        ) : group === "categoryReweight" ? (
+          <div style={{ display: "grid", gap: 8 }}>
+            {categoryReweightDraft.reasonSummary && (
+              <p style={{ margin: 0, fontSize: 12, color: color.textMuted }}>{categoryReweightDraft.reasonSummary}</p>
+            )}
+            {categoryReweightDraft.items.map((item, i) => (
+              <div key={item.targetId} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 13, flex: 1 }}>{item.label}</span>
+                <span style={{ fontSize: 12, color: color.textFaint }}>{item.previousWeight}% →</span>
+                <input
+                  style={{ ...inputStyle, width: 64 }}
+                  type="number"
+                  min={5}
+                  max={90}
+                  value={item.proposedWeight}
+                  onChange={(e) =>
+                    setCategoryReweightDraft((d) => ({
+                      ...d,
+                      items: d.items.map((it, j) => (j === i ? { ...it, proposedWeight: Number(e.target.value) } : it)),
+                    }))
+                  }
+                />
+                <span style={{ fontSize: 12, color: color.textFaint }}>%</span>
+              </div>
+            ))}
+          </div>
         ) : (
           <div style={{ display: "grid", gap: 8 }}>
             <input style={inputStyle} value={productDraft.name} onChange={(e) => setProductDraft((d) => ({ ...d, name: e.target.value }))} placeholder="Nom du produit" />
@@ -334,6 +397,20 @@ function ProposalCard({
             />
           </div>
         )
+      ) : group === "categoryReweight" ? (
+        <div>
+          {description && <p style={{ margin: "0 0 6px", fontSize: 13, color: color.textMuted }}>{description}</p>}
+          <div style={{ display: "grid", gap: 4 }}>
+            {categoryReweightDraft.items.map((item) => (
+              <div key={item.targetId} style={{ fontSize: 12, color: color.textMuted, display: "flex", justifyContent: "space-between" }}>
+                <span>{item.label}</span>
+                <span>
+                  {item.previousWeight}% → {item.proposedWeight}%
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       ) : (
         description && <p style={{ margin: 0, fontSize: 13, color: color.textMuted }}>{description}</p>
       )}

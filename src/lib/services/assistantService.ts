@@ -163,6 +163,26 @@ const anglePayloadSchema = z.object({
   description: z.string().min(1),
 });
 
+// Payload de category_reweight, produit par un calcul déterministe (categoryReweightService.ts),
+// jamais par le LLM — cf. commentaire dans ce même service. `fields` permet à l'utilisateur
+// d'éditer `items` avant validation (ex. ajuster l'ampleur d'un delta) : c'est le point d'entrée
+// pour "je suis d'accord sur le sens mais pas l'ampleur" (docs/SPEC_METRIQUES_AUTO.md §6).
+const categoryReweightPayloadSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        targetId: z.string(),
+        label: z.string(),
+        previousWeight: z.number().int(),
+        proposedWeight: z.number().int().min(5).max(90),
+        sampleCount: z.number().int().optional(),
+        categoryScore: z.number().optional(),
+      })
+    )
+    .min(1),
+  reasonSummary: z.string(),
+});
+
 export async function resolveProposal(
   userId: string,
   proposalId: string,
@@ -262,6 +282,26 @@ export async function resolveProposal(
     if (!result) {
       throw new ApiError(404, "Angle introuvable.");
     }
+  } else if (proposal.kind === "category_reweight") {
+    const data = categoryReweightPayloadSchema.parse(merged);
+    const active = await listActiveCategoriesForUser(userId);
+    const proposedById = new Map(data.items.map((i) => [i.targetId, i.proposedWeight]));
+
+    // Toutes les catégories actives sont renvoyées (requis par saveCategoriesForUser), celles
+    // absentes du payload gardent leur poids actuel — seules les catégories avec un signal
+    // suffisant (cf. categoryReweightService.ts) apparaissent dans `items`.
+    const nextItems = active.map((c) => ({
+      id: c.id,
+      label: c.label,
+      description: c.description,
+      weight: proposedById.get(c.id) ?? c.weight,
+      platforms: c.platforms,
+    }));
+
+    if (nextItems.length < 2 || nextItems.length > 6) {
+      throw new ApiError(400, "Le nombre de catégories actives doit rester entre 2 et 6.");
+    }
+    await saveCategoriesForUser(userId, nextItems);
   } else {
     // posting_goal_update
     const data = postingGoalPayloadSchema.parse(merged);

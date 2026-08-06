@@ -22,5 +22,8 @@ Les credentials OAuth (TikTok/Instagram/LinkedIn) ne sont nécessaires que pour 
 
 ## Documentation projet
 
-- `docs/BRIEF.md` — vision produit et fonctionnalités.
-- `docs/SPEC_POC.md` — scope technique : stack, modèle de données, endpoints, architecture des prompts.
+- `docs/PRODUCT.md` — vision produit et fonctionnalités, à jour.
+- `docs/TECH.md` — scope technique à jour : stack, modèle de données, endpoints, architecture des prompts.
+- `docs/BRIEF.md` / `docs/SPEC_POC.md` — cadrage initial de la phase POC, conservés comme archive historique (ne plus mettre à jour).
+- `docs/SPEC_RESSOURCES_VISUELLES.md` — cadrage de la bibliothèque de ressources visuelles / génération d'images, implémentée côté code, pas encore vérifiée en environnement réel.
+- `docs/SETUP_RESSOURCES_VISUELLES.md` — comptes/clés externes à créer (Cloudflare R2, Google Cloud) pour que cette feature fonctionne.

@@ -35,7 +35,9 @@ export async function GET(
     }
 
     const provider = socialProviders[platform]!;
-    const tokens = await provider.exchangeCode(code);
+    // `state` sert aussi de code_verifier PKCE pour X (cf. src/lib/social/x.ts) — les autres
+    // providers ignorent simplement ce second paramètre.
+    const tokens = await provider.exchangeCode(code, state);
 
     const existing = await db.query.socialConnections.findFirst({
       where: and(eq(socialConnections.userId, userId), eq(socialConnections.platform, platform)),
@@ -47,6 +49,8 @@ export async function GET(
         .set({
           accessToken: tokens.accessToken,
           refreshToken: tokens.refreshToken,
+          accessTokenExpiresAt: tokens.expiresAt ?? null,
+          status: "ok",
           platformUserId: tokens.platformUserId,
           connectedAt: new Date(),
         })
@@ -57,6 +61,7 @@ export async function GET(
         platform,
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
+        accessTokenExpiresAt: tokens.expiresAt ?? null,
         platformUserId: tokens.platformUserId,
       });
     }

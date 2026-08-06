@@ -9,6 +9,8 @@ import {
   real,
   pgEnum,
   unique,
+  vector,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -26,8 +28,20 @@ export const assistantProposalKindEnum = pgEnum("assistant_proposal_kind", [
   "angle_create",
   "angle_update",
   "posting_goal_update",
+  // Rééquilibrage batch de ContentCategory.weight à partir des métriques auto (docs/SPEC_METRIQUES_AUTO.md
+  // §6/§7.4) — généré par un calcul déterministe (categoryReweightService.ts), pas par le LLM. targetId
+  // reste null comme posting_goal_update : le payload porte la liste des catégories touchées.
+  "category_reweight",
 ]);
 export const assistantProposalStatusEnum = pgEnum("assistant_proposal_status", ["pending", "accepted", "rejected"]);
+export const brandAssetSourceEnum = pgEnum("brand_asset_source", ["upload", "google_drive"]);
+export const brandAssetStatusEnum = pgEnum("brand_asset_status", ["pending", "ready", "unreachable"]);
+export const brandAssetOrientationEnum = pgEnum("brand_asset_orientation", ["portrait", "landscape", "square"]);
+export const googleDriveConnectionStatusEnum = pgEnum("google_drive_connection_status", ["ok", "needs_reconnect"]);
+export const generatedImageStatusEnum = pgEnum("generated_image_status", ["ready", "failed"]);
+export const socialConnectionStatusEnum = pgEnum("social_connection_status", ["ok", "needs_reconnect"]);
+export const postMetricsSourceEnum = pgEnum("post_metrics_source", ["manual", "api"]);
+export const postMatchCandidateStatusEnum = pgEnum("post_match_candidate_status", ["pending", "confirmed", "dismissed"]);
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -155,12 +169,60 @@ export const products = pgTable("products", {
   photoUrl: text("photo_url"),
 });
 
+// Bibliothèque de ressources visuelles (docs/SPEC_RESSOURCES_VISUELLES.md). Les images sources ne
+// sont stockées que pour sourceType="upload" (originalKey) ; pour "google_drive", elles restent dans
+// le Drive de l'utilisateur et sont relues à la demande via l'API Drive (fileId = externalId).
+export const brandAssets = pgTable("brand_assets", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  sourceType: brandAssetSourceEnum("source_type").notNull(),
+  externalId: text("external_id"), // Drive fileId ; null pour un upload direct
+  sourceCheckedAt: timestamp("source_checked_at"),
+  checksum: text("checksum").notNull(), // md5Checksum Drive, ou sha256 calculé à l'upload
+  mimeType: text("mime_type").notNull(),
+  width: integer("width"),
+  height: integer("height"),
+  originalKey: text("original_key"), // clé objet R2 de l'original — rempli seulement pour sourceType="upload"
+  thumbnailKey: text("thumbnail_key"), // null tant que status="pending"
+  productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
+  aiDescription: text("ai_description"),
+  tags: text("tags").array(),
+  orientation: brandAssetOrientationEnum("orientation"),
+  hasEmbeddedText: boolean("has_embedded_text"),
+  embedding: vector("embedding", { dimensions: 768 }),
+  status: brandAssetStatusEnum("status").notNull().default("pending"),
+  archived: boolean("archived").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Connexion Google Drive (scope drive.file, via Google Picker) — distincte de socialConnections
+// qui ne couvre que tiktok/instagram/linkedin. Un seul refresh token par utilisateur, conservé pour
+// l'usage différé (files.get au captioning et à la génération d'image).
+export const googleDriveConnections = pgTable("google_drive_connections", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  accessTokenExpiresAt: timestamp("access_token_expires_at").notNull(),
+  driveAccountEmail: text("drive_account_email"),
+  status: googleDriveConnectionStatusEnum("status").notNull().default("ok"),
+  lastCheckedAt: timestamp("last_checked_at"),
+  connectedAt: timestamp("connected_at").notNull().defaultNow(),
+});
+
 export const socialConnections = pgTable("social_connections", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   platform: text("platform").notNull(),
   accessToken: text("access_token").notNull(),
   refreshToken: text("refresh_token"),
+  // Nullable : certains providers (ex. Instagram long-lived token) n'exposent pas d'expiration
+  // exploitable au même format que les autres — dans ce cas pas de refresh proactif possible,
+  // l'appel API échoue explicitement le cas échéant (cf. socialConnectionService.ts).
+  accessTokenExpiresAt: timestamp("access_token_expires_at"),
+  status: socialConnectionStatusEnum("status").notNull().default("ok"),
+  // Sert de repère pour la cadence de fetch (dédup 24h sur X, docs/SPEC_METRIQUES_AUTO.md §2.5).
+  lastMetricsFetchAt: timestamp("last_metrics_fetch_at"),
   platformUserId: text("platform_user_id").notNull(),
   connectedAt: timestamp("connected_at").notNull().defaultNow(),
 });
@@ -193,9 +255,37 @@ export const scripts = pgTable("scripts", {
   seriesId: uuid("series_id").references(() => contentSeries.id, { onDelete: "set null" }),
   contentType: contentTypeEnum("content_type").notNull().default("video"),
   status: scriptStatusEnum("status").notNull().default("draft"),
+  // Image de marque sélectionnée par recherche sémantique comme référence pour ce script (contentType
+  // "visual"), et image effectivement générée à partir d'elle le cas échéant.
+  brandAssetId: uuid("brand_asset_id").references(() => brandAssets.id, { onDelete: "set null" }),
+  // Référence circulaire scripts <-> generatedImages : annotation de retour explicite requise pour
+  // que TypeScript casse le cycle d'inférence (pattern documenté de drizzle-orm).
+  generatedImageId: uuid("generated_image_id").references((): AnyPgColumn => generatedImages.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Image produite par édition conditionnée (Nano Banana) à partir d'une ou plusieurs BrandAsset.
+// Un seul mode existe en v1 : "staging" (mise en scène — fond/lumière/cadrage autour du produit réel).
+// Le mode "transformation du produit" (couleur/matière/forme) n'existe pas dans le code, cf.
+// docs/SPEC_RESSOURCES_VISUELLES.md §6.1 — ce n'est pas une option masquée, c'est une absence.
+export const generatedImages = pgTable("generated_images", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  scriptId: uuid("script_id").references((): AnyPgColumn => scripts.id, { onDelete: "set null" }),
+  sourceAssetIds: uuid("source_asset_ids").array().notNull(), // pas de FK sur array Postgres
+  mode: text("mode").notNull().default("staging"),
+  instruction: text("instruction"),
+  storageKey: text("storage_key").notNull(),
+  mimeType: text("mime_type").notNull(),
+  width: integer("width"),
+  height: integer("height"),
+  status: generatedImageStatusEnum("status").notNull().default("ready"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Vue courante des métriques d'un post (1:1 avec Script). L'historique daté vit dans
+// postMetricsSnapshots ci-dessous — cette table reste la valeur "actuelle" utilisée partout
+// ailleurs dans le code (buildPerformanceSummary, categoryReweightService, etc.).
 export const postMetrics = pgTable("post_metrics", {
   id: uuid("id").primaryKey().defaultRandom(),
   scriptId: uuid("script_id").notNull().unique().references(() => scripts.id, { onDelete: "cascade" }),
@@ -203,8 +293,51 @@ export const postMetrics = pgTable("post_metrics", {
   likes: integer("likes").notNull().default(0),
   comments: integer("comments").notNull().default(0),
   shares: integer("shares").notNull().default(0),
+  // "manual" = saisie via PUT /api/scripts/:id/metrics, "api" = récupéré automatiquement et
+  // rattaché (confirmé) via le flow de matching post↔script (docs/SPEC_METRIQUES_AUTO.md §4).
+  // La re-pondération automatique des catégories ne considère jamais source="manual" — non vérifié.
+  source: postMetricsSourceEnum("source").notNull().default("manual"),
+  platformPostId: text("platform_post_id"),
+  fetchedAt: timestamp("fetched_at"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+// Historique daté, jamais écrasé — résout l'absence d'historique de PostMetrics identifiée en
+// docs/SPEC_METRIQUES_AUTO.md §5 (un post à J+7 et à J+30 sont deux informations différentes).
+export const postMetricsSnapshots = pgTable("post_metrics_snapshots", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  scriptId: uuid("script_id").notNull().references(() => scripts.id, { onDelete: "cascade" }),
+  views: integer("views").notNull().default(0),
+  likes: integer("likes").notNull().default(0),
+  comments: integer("comments").notNull().default(0),
+  shares: integer("shares").notNull().default(0),
+  source: postMetricsSourceEnum("source").notNull(),
+  capturedAt: timestamp("captured_at").notNull().defaultNow(),
+});
+
+// Candidats de rattachement post↔script en attente de confirmation utilisateur
+// (docs/SPEC_METRIQUES_AUTO.md §4, piste heuristique + confirmation unique). Un candidat
+// "confirmed" ou "dismissed" n'est plus jamais reproposé pour ce (platform, platformPostId).
+export const postMatchCandidates = pgTable(
+  "post_match_candidates",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    scriptId: uuid("script_id").notNull().references(() => scripts.id, { onDelete: "cascade" }),
+    platform: text("platform").notNull(),
+    platformPostId: text("platform_post_id").notNull(),
+    externalUrl: text("external_url").notNull(),
+    captionText: text("caption_text"),
+    publishedAt: timestamp("published_at"),
+    score: real("score").notNull(),
+    // Métriques du post au moment du scan — évite un second appel API à la confirmation.
+    metrics: jsonb("metrics").notNull(),
+    status: postMatchCandidateStatusEnum("status").notNull().default("pending"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    resolvedAt: timestamp("resolved_at"),
+  },
+  (t) => [unique().on(t.platform, t.platformPostId)]
+);
 
 export const postingGoals = pgTable("posting_goals", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -227,6 +360,15 @@ export const calendarEntries = pgTable("calendar_entries", {
 
 export const productsRelations = relations(products, ({ many }) => ({
   scripts: many(scripts),
+  brandAssets: many(brandAssets),
+}));
+
+export const brandAssetsRelations = relations(brandAssets, ({ one }) => ({
+  product: one(products, { fields: [brandAssets.productId], references: [products.id] }),
+}));
+
+export const generatedImagesRelations = relations(generatedImages, ({ one }) => ({
+  script: one(scripts, { fields: [generatedImages.scriptId], references: [scripts.id] }),
 }));
 
 export const contentCategoriesRelations = relations(contentCategories, ({ many }) => ({
@@ -271,12 +413,24 @@ export const scriptsRelations = relations(scripts, ({ one, many }) => ({
   }),
   angle: one(contentAngles, { fields: [scripts.angleId], references: [contentAngles.id] }),
   series: one(contentSeries, { fields: [scripts.seriesId], references: [contentSeries.id] }),
+  brandAsset: one(brandAssets, { fields: [scripts.brandAssetId], references: [brandAssets.id] }),
+  generatedImage: one(generatedImages, { fields: [scripts.generatedImageId], references: [generatedImages.id] }),
   calendarEntries: many(calendarEntries),
   metrics: one(postMetrics, { fields: [scripts.id], references: [postMetrics.scriptId] }),
+  metricsSnapshots: many(postMetricsSnapshots),
+  matchCandidates: many(postMatchCandidates),
 }));
 
 export const postMetricsRelations = relations(postMetrics, ({ one }) => ({
   script: one(scripts, { fields: [postMetrics.scriptId], references: [scripts.id] }),
+}));
+
+export const postMetricsSnapshotsRelations = relations(postMetricsSnapshots, ({ one }) => ({
+  script: one(scripts, { fields: [postMetricsSnapshots.scriptId], references: [scripts.id] }),
+}));
+
+export const postMatchCandidatesRelations = relations(postMatchCandidates, ({ one }) => ({
+  script: one(scripts, { fields: [postMatchCandidates.scriptId], references: [scripts.id] }),
 }));
 
 export const calendarEntriesRelations = relations(calendarEntries, ({ one }) => ({

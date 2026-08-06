@@ -6,6 +6,7 @@ import type { ContentCategoryContext, ContentType, Platform, ScriptGenerationCon
 import type { StyleProfile } from "@/lib/llm/styleProfile";
 import { buildPerformanceSummary } from "@/lib/services/performanceService";
 import { pickAngleForScript } from "@/lib/services/angleService";
+import { findBestBrandAssetForScript } from "@/lib/services/brandAssetService";
 import { ApiError } from "@/lib/api/errors";
 
 const RECENT_TOPICS_LIMIT = 15;
@@ -70,6 +71,18 @@ export async function buildGenerationContext(
     pickAngleForScript(userId, contentCategoryId, excludeScriptId),
   ]);
 
+  // Uniquement pour "visual" — un appel d'embedding serait un coût inutile sur les 2/3 des
+  // générations (video/text) qui n'affichent aucune image de référence.
+  const brandAsset =
+    contentType === "visual"
+      ? await findBestBrandAssetForScript(userId, {
+          productId,
+          categoryLabel: category.label,
+          categoryDescription: category.description,
+          seriesLabel: series?.label ?? null,
+        })
+      : null;
+
   return {
     creatorProfile: {
       brandName: profile.brandName,
@@ -94,6 +107,7 @@ export async function buildGenerationContext(
     performanceSummary,
     angle: angle ? { id: angle.id, label: angle.label, description: angle.description } : null,
     series,
+    brandAsset,
   };
 }
 
@@ -119,7 +133,7 @@ export async function createScriptRecord(
   contentCategory: ContentCategoryContext,
   productId: string | null,
   generated: GeneratedScript,
-  extras?: { angleId?: string | null; seriesId?: string | null }
+  extras?: { angleId?: string | null; seriesId?: string | null; brandAssetId?: string | null }
 ) {
   const [script] = await db
     .insert(scripts)
@@ -130,6 +144,7 @@ export async function createScriptRecord(
       contentCategoryId: contentCategory.id,
       angleId: extras?.angleId ?? null,
       seriesId: extras?.seriesId ?? null,
+      brandAssetId: extras?.brandAssetId ?? null,
       ...scriptColumnsFromGenerated(generated),
     })
     .returning();
@@ -140,12 +155,13 @@ export async function updateScriptRecord(
   scriptId: string,
   contentCategory: ContentCategoryContext,
   generated: GeneratedScript,
-  extras?: { angleId?: string | null }
+  extras?: { angleId?: string | null; brandAssetId?: string | null }
 ) {
   const [script] = await db
     .update(scripts)
     .set({
       ...(extras?.angleId !== undefined && { angleId: extras.angleId }),
+      ...(extras?.brandAssetId !== undefined && { brandAssetId: extras.brandAssetId }),
       ...scriptColumnsFromGenerated(generated),
     })
     .where(eq(scripts.id, scriptId))

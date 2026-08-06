@@ -35,6 +35,7 @@ export async function POST(
     const generated = await generateScript(context);
     const script = await updateScriptRecord(existing.id, context.contentCategory, generated, {
       angleId: context.angle?.id ?? null,
+      brandAssetId: context.brandAsset?.id ?? null,
     });
 
     return NextResponse.json({ script });

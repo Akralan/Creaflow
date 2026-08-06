@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, Compass, Settings, Sparkles } from "lucide-react";
+import { CalendarDays, Compass, Settings, Sparkles, TrendingUp } from "lucide-react";
 import { api, type ContentCategory, type ContentSeries, type CreatorProfile, type User } from "@/lib/apiClient";
 import { accent, accentAlpha, color, fontHeading } from "@/lib/design/tokens";
 import { CategoryLabelsContext } from "@/contexts/CategoryLabelsContext";
@@ -12,6 +12,7 @@ import { SeriesContext } from "@/contexts/SeriesContext";
 const navItems = [
   { href: "/calendar", label: "Calendrier", icon: CalendarDays, match: (p: string) => p.startsWith("/calendar") || p.startsWith("/scripts") },
   { href: "/direction", label: "Direction", icon: Compass, match: (p: string) => p.startsWith("/direction") },
+  { href: "/performance", label: "Performance", icon: TrendingUp, match: (p: string) => p.startsWith("/performance") },
   { href: "/assistant", label: "Assistant", icon: Sparkles, match: (p: string) => p.startsWith("/assistant") },
   { href: "/settings", label: "Paramètres", icon: Settings, match: (p: string) => p.startsWith("/settings") },
 ];

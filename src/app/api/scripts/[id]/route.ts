@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { scripts, scriptStatusEnum } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
 import { ApiError, handleApiError } from "@/lib/api/errors";
+import { getObjectStorage } from "@/lib/storage";
 
 const patchSchema = z.object({
   status: z.enum(scriptStatusEnum.enumValues),
@@ -20,14 +21,28 @@ export async function GET(
 
     const script = await db.query.scripts.findFirst({
       where: and(eq(scripts.id, id), eq(scripts.userId, userId)),
-      with: { product: true, contentCategory: true, series: { columns: { id: true, label: true } }, metrics: true },
+      with: {
+        product: true,
+        contentCategory: true,
+        series: { columns: { id: true, label: true } },
+        metrics: true,
+        generatedImage: true,
+      },
     });
 
     if (!script) {
       throw new ApiError(404, "Script introuvable.");
     }
 
-    return NextResponse.json({ script });
+    const { generatedImage, ...rest } = script;
+    return NextResponse.json({
+      script: {
+        ...rest,
+        generatedImage: generatedImage
+          ? { ...generatedImage, url: getObjectStorage().getPublicUrl(generatedImage.storageKey) }
+          : null,
+      },
+    });
   } catch (error) {
     return handleApiError(error);
   }

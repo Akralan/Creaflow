@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
     const script = await createScriptRecord(userId, platform, context.contentCategory, productId ?? null, generated, {
       angleId: context.angle?.id ?? null,
       seriesId: context.series?.id ?? null,
+      brandAssetId: context.brandAsset?.id ?? null,
     });
 
     if (scheduledDate) {

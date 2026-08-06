@@ -78,6 +78,9 @@ export interface Connection {
   platform: Platform;
   connected: boolean;
   connectedAt: string | null;
+  /** null si non connecté. "needs_reconnect" = refresh de token échoué, reconnexion requise. */
+  status: "ok" | "needs_reconnect" | null;
+  hasMetricsFetch: boolean;
 }
 
 export interface PostingGoal {
@@ -114,7 +117,22 @@ export interface PostMetrics {
   likes: number;
   comments: number;
   shares: number;
+  source: "manual" | "api";
+  fetchedAt: string | null;
   updatedAt: string;
+}
+
+export interface PostMatchCandidate {
+  id: string;
+  scriptId: string;
+  scriptTitle: string;
+  platform: Platform;
+  externalUrl: string;
+  captionText: string | null;
+  publishedAt: string | null;
+  score: number;
+  metrics: { views: number; likes: number; comments: number; shares: number };
+  createdAt: string;
 }
 
 export interface Script {
@@ -138,6 +156,11 @@ export interface Script {
   createdAt: string;
   product?: Product | null;
   metrics?: PostMetrics | null;
+  /** Photo de marque utilisée comme référence, et image effectivement générée (contentType "visual"). */
+  brandAssetId: string | null;
+  generatedImageId: string | null;
+  /** Présent (avec `url`) uniquement sur la fiche script détaillée (GET /api/scripts/:id). */
+  generatedImage?: GeneratedImage | null;
 }
 
 export interface CalendarEntry {
@@ -175,12 +198,42 @@ export interface AssistantProposal {
     | "category_update"
     | "angle_create"
     | "angle_update"
-    | "posting_goal_update";
+    | "posting_goal_update"
+    | "category_reweight";
   targetId: string | null;
   payload: Record<string, unknown>;
   status: "pending" | "accepted" | "rejected";
   createdAt: string;
   resolvedAt: string | null;
+}
+
+export interface BrandAsset {
+  id: string;
+  userId: string;
+  sourceType: "upload" | "google_drive";
+  thumbnailUrl: string | null;
+  status: "pending" | "ready" | "unreachable";
+  aiDescription: string | null;
+  tags: string[] | null;
+  productId: string | null;
+  createdAt: string;
+}
+
+export interface GeneratedImage {
+  id: string;
+  userId: string;
+  scriptId: string | null;
+  storageKey: string;
+  url: string;
+  mode: string;
+  createdAt: string;
+}
+
+export interface GoogleDriveConnection {
+  connected: boolean;
+  status: "ok" | "needs_reconnect" | null;
+  driveAccountEmail: string | null;
+  connectedAt: string | null;
 }
 
 export const api = {
@@ -280,4 +333,35 @@ export const api = {
     ),
   resolveAssistantProposal: (id: string, action: "accept" | "reject", fields?: Record<string, unknown>) =>
     post<{ proposals: AssistantProposal[] }>(`/api/assistant/proposals/${id}/resolve`, { action, fields }),
+
+  getAssets: () => apiFetch<{ assets: BrandAsset[] }>("/api/assets"),
+  uploadAssets: async (files: FileList | File[]) => {
+    const formData = new FormData();
+    Array.from(files).forEach((file) => formData.append("files", file));
+    // Pas d'en-tête Content-Type explicite : le navigateur doit fixer lui-même la frontière
+    // multipart, ce que le helper `apiFetch` (JSON par défaut) ne permet pas.
+    const res = await fetch("/api/assets", { method: "POST", body: formData });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new ApiClientError(body?.error || `Erreur ${res.status}`);
+    }
+    return body as { assets: BrandAsset[] };
+  },
+  finalizeAssetPicker: (fileIds: string[]) => post<{ assets: BrandAsset[] }>("/api/assets/picker", { fileIds }),
+  deleteAsset: (id: string) => del<{ ok: true }>(`/api/assets/${id}`),
+  generateStagedImage: (data: { assetIds: string[]; instruction: string; scriptId?: string }) =>
+    post<{ generatedImage: GeneratedImage }>("/api/assets/generate-image", data),
+
+  getGoogleDriveConnection: () => apiFetch<GoogleDriveConnection>("/api/google-drive/connection"),
+  connectGoogleDrive: (code: string) =>
+    post<{ accessToken: string; status: string }>("/api/google-drive/connection", { code }),
+  disconnectGoogleDrive: () => del<{ ok: true }>("/api/google-drive/connection"),
+
+  getMatchCandidates: () => apiFetch<{ candidates: PostMatchCandidate[] }>("/api/performance/match-candidates"),
+  refreshPerformance: () =>
+    post<{ results: Array<{ platform: string; updated: number; candidatesCreated: number; error: string | null }> }>(
+      "/api/performance/refresh"
+    ),
+  resolveMatchCandidate: (id: string, action: "confirm" | "dismiss") =>
+    post<{ ok: true }>(`/api/performance/match-candidates/${id}/resolve`, { action }),
 };

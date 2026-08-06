@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
     const script = await createScriptRecord(userId, entry.platform, context.contentCategory, null, generated, {
       angleId: context.angle?.id ?? null,
       seriesId: context.series?.id ?? null,
+      brandAssetId: context.brandAsset?.id ?? null,
     });
 
     await db.update(calendarEntries).set({ scriptId: script.id }).where(eq(calendarEntries.id, entry.id));

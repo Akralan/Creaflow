@@ -50,6 +50,20 @@
       "when": 1785795111605,
       "tag": "0006_needy_blizzard",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786033817413,
+      "tag": "0007_flippant_triton",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1786038602621,
+      "tag": "0008_clumsy_tony_stark",
+      "breakpoints": true
     }
   ]
 }

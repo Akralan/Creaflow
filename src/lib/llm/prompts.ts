@@ -84,6 +84,9 @@ export interface ScriptGenerationContext {
   angle?: { id: string; label: string; description: string } | null;
   /** Série récurrente à laquelle ce script appartient, le cas échéant. */
   series?: { id: string; label: string; description: string } | null;
+  /** Photo de marque sélectionnée par recherche sémantique (contentType "visual" uniquement),
+   *  cf. docs/SPEC_RESSOURCES_VISUELLES.md §5.3/§7. */
+  brandAsset?: { id: string; aiDescription: string; tags: string[] | null } | null;
 }
 
 export function buildScriptUserMessage(context: ScriptGenerationContext): string {
@@ -98,6 +101,7 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
     performanceSummary,
     angle,
     series,
+    brandAsset,
   } = context;
 
   const lines: string[] = [
@@ -146,6 +150,14 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
   }
 
   lines.push(`Type de contenu : ${contentType}. ${CONTENT_TYPE_GUIDANCE[contentType]}`);
+
+  if (contentType === "visual" && brandAsset) {
+    lines.push(
+      `Photo de référence disponible dans la bibliothèque de marque (base réelle du visuel — mise en scène uniquement : fond, lumière, cadrage autour du produit réel ; ne décris jamais un produit différent de celui-ci) : ${brandAsset.aiDescription}${
+        brandAsset.tags?.length ? ` (mots-clés : ${brandAsset.tags.join(", ")})` : ""
+      }`
+    );
+  }
 
   if (recentTopics?.length) {
     lines.push(

@@ -1,23 +1,11 @@
-import { GoogleGenAI, FunctionCallingConfigMode } from "@google/genai";
+import { FunctionCallingConfigMode } from "@google/genai";
 import type { StructuredCallParams } from "../types";
-
-let client: GoogleGenAI | null = null;
-
-function getClient(): GoogleGenAI {
-  if (!client) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error("GEMINI_API_KEY n'est pas défini dans l'environnement.");
-    }
-    client = new GoogleGenAI({ apiKey });
-  }
-  return client;
-}
+import { getGeminiClient } from "./geminiClient";
 
 const MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
 
 export async function callGemini({ system, userMessage, tool, maxTokens }: StructuredCallParams): Promise<unknown> {
-  const response = await getClient().models.generateContent({
+  const response = await getGeminiClient().models.generateContent({
     model: MODEL,
     contents: userMessage,
     config: {

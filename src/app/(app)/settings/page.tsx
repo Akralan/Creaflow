@@ -10,15 +10,17 @@ import ConnectionRow from "@/components/ConnectionRow";
 import EquipmentPicker from "@/components/EquipmentPicker";
 import StyleAnalysisPanel from "@/components/StyleAnalysisPanel";
 import CategoryLabelsPanel from "@/components/CategoryLabelsPanel";
+import BrandAssetLibrary from "@/components/BrandAssetLibrary/BrandAssetLibrary";
 import { api, ApiClientError, type Connection } from "@/lib/apiClient";
 import { color } from "@/lib/design/tokens";
 
-type Tab = "identity" | "catalogue" | "categories" | "connexions";
+type Tab = "identity" | "catalogue" | "categories" | "assets" | "connexions";
 
 const tabs: Array<{ id: Tab; label: string }> = [
   { id: "identity", label: "Identité de marque" },
   { id: "catalogue", label: "Catalogue produits" },
   { id: "categories", label: "Catégories de contenu" },
+  { id: "assets", label: "Ressources visuelles" },
   { id: "connexions", label: "Connexions sociales" },
 ];
 
@@ -160,6 +162,7 @@ function SettingsContent() {
       {tab === "identity" && <IdentityTab />}
       {tab === "catalogue" && <ProductCatalogue />}
       {tab === "categories" && <CategoryLabelsPanel />}
+      {tab === "assets" && <BrandAssetLibrary />}
       {tab === "connexions" && <ConnexionsTab />}
     </div>
   );

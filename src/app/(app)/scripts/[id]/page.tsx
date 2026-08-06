@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
+import Modal from "@/components/ui/Modal";
 import { PlatformBadge, CategoryPill } from "@/components/ui/Badge";
+import BrandAssetLibrary from "@/components/BrandAssetLibrary/BrandAssetLibrary";
 import { api, ApiClientError, type Script } from "@/lib/apiClient";
 import { color, fontHeading, platformMeta, scriptStatusOptions, statusMeta, type ScriptStatus } from "@/lib/design/tokens";
 
@@ -36,6 +38,7 @@ export default function ScriptPage() {
   const [regenerating, setRegenerating] = useState(false);
   const [metricsDraft, setMetricsDraft] = useState(EMPTY_METRICS_DRAFT);
   const [savingMetrics, setSavingMetrics] = useState(false);
+  const [showAssetLibrary, setShowAssetLibrary] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -202,6 +205,50 @@ export default function ScriptPage() {
           <HookBlock label="Composition" value={script.hookVisual!} />
         </Card>
       )}
+
+      {script.contentType === "visual" && (
+        <Card style={{ padding: 24, marginBottom: 16 }}>
+          <div style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, marginBottom: 16, display: "flex", alignItems: "center", gap: 9 }}>
+            <span style={{ color: "oklch(0.55 0.2 292)" }}>▧</span>Visuel
+          </div>
+          {script.generatedImage ? (
+            <div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={script.generatedImage.url}
+                alt={script.title}
+                style={{ width: "100%", borderRadius: 12, display: "block", marginBottom: 12 }}
+              />
+              <Button variant="secondary" onClick={() => setShowAssetLibrary(true)} style={{ padding: "8px 16px", fontSize: 13 }}>
+                Regénérer avec d&apos;autres photos
+              </Button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+              <p style={{ margin: 0, fontSize: 13, color: color.textMuted }}>
+                Pour produire le visuel, j&apos;ai besoin de photos de ta marque.
+              </p>
+              <Button variant="secondary" onClick={() => setShowAssetLibrary(true)}>
+                Générer le visuel
+              </Button>
+            </div>
+          )}
+        </Card>
+      )}
+
+      <Modal open={showAssetLibrary} onClose={() => setShowAssetLibrary(false)} width={640}>
+        <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 20, margin: "0 0 4px" }}>Ressources visuelles</h2>
+        <p style={{ margin: "0 0 18px", fontSize: 13, color: color.textMuted }}>
+          Choisis une ou plusieurs photos de ta marque, puis décris la mise en scène souhaitée.
+        </p>
+        <BrandAssetLibrary
+          scriptId={script.id}
+          onGenerated={(image) => {
+            setScript((prev) => (prev ? { ...prev, generatedImageId: image.id, generatedImage: image } : prev));
+            setShowAssetLibrary(false);
+          }}
+        />
+      </Modal>
 
       {script.contentType === "text" && (
         <Card style={{ padding: 24, marginBottom: 16 }}>

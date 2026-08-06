@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { socialConnections, postingGoals } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
 import { KNOWN_PLATFORMS } from "@/lib/social/types";
+import { hasMetricsFetch } from "@/lib/social";
 import { handleApiError } from "@/lib/api/errors";
 
 export async function GET() {
@@ -12,7 +13,7 @@ export async function GET() {
     const [connections, goals] = await Promise.all([
       db.query.socialConnections.findMany({
         where: eq(socialConnections.userId, userId),
-        columns: { platform: true, connectedAt: true },
+        columns: { platform: true, connectedAt: true, status: true },
       }),
       db.query.postingGoals.findMany({
         where: eq(postingGoals.userId, userId),
@@ -37,6 +38,8 @@ export async function GET() {
         platform,
         connected: Boolean(found),
         connectedAt: found?.connectedAt ?? null,
+        status: found?.status ?? null,
+        hasMetricsFetch: hasMetricsFetch(platform),
       };
     });
 
