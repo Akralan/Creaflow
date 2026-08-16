@@ -12,6 +12,7 @@ import { buildCaptionSystemPrompt } from "@/lib/llm/captionPrompts";
 import { brandAssetCaptionSchema, captionBrandAssetTool } from "@/lib/llm/visionSchema";
 import { embedText } from "@/lib/llm/embeddings";
 import { buildAssetSearchQuery, type AssetSearchContext } from "@/lib/services/assetSelection";
+import { logger } from "@/lib/logger";
 
 const THUMBNAIL_WIDTH = 400;
 
@@ -205,7 +206,7 @@ export async function processAssetCaptioning(assetId: string): Promise<void> {
   try {
     ({ bytes, mimeType } = await fetchAssetBytes(asset));
   } catch (err) {
-    console.error(`Lecture des bytes de l'asset ${assetId} échouée`, err);
+    logger.error("Lecture des bytes d'un asset échouée", err, { assetId });
     await db.update(brandAssets).set({ status: "unreachable" }).where(eq(brandAssets.id, assetId));
     return;
   }

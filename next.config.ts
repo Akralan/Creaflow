@@ -6,14 +6,22 @@ import type { NextConfig } from "next";
 // `'unsafe-inline'` reste donc nécessaire sur style-src ; script-src, lui, reste strict.
 // Domaines Google whitelistés pour le Picker (src/components/BrandAssetLibrary/GooglePickerButton.tsx)
 // — fonctionnalité "implémentée, non encore vérifiée en environnement réel" (docs/SPEC_RESSOURCES_VISUELLES.md).
+function originOf(url: string | undefined): string {
+  try {
+    return url ? new URL(url).origin : "";
+  } catch {
+    return "";
+  }
+}
+
 function buildCsp(): string {
-  const r2Origin = (() => {
-    try {
-      return process.env.R2_PUBLIC_BASE_URL ? new URL(process.env.R2_PUBLIC_BASE_URL).origin : "";
-    } catch {
-      return "";
-    }
-  })();
+  const r2Origin = originOf(process.env.R2_PUBLIC_BASE_URL);
+  // Le host d'ingestion Sentry dépend de l'org/région du projet (ex. o123456.ingest.us.sentry.io,
+  // .de.sentry.io, ou un domaine self-hosted) — extrait du DSN client réel plutôt que deviné, sinon
+  // le SDK client (src/instrumentation-client.ts) est initialisé pour rien : le navigateur bloque
+  // ses requêtes sortantes sans cette entrée dans connect-src, en échouant silencieusement (pas
+  // d'erreur applicative, juste une ligne dans la console DevTools).
+  const sentryOrigin = originOf(process.env.NEXT_PUBLIC_SENTRY_DSN);
 
   const directives = [
     `default-src 'self'`,
@@ -21,7 +29,7 @@ function buildCsp(): string {
     `style-src 'self' 'unsafe-inline'`,
     `img-src 'self' data: blob:${r2Origin ? ` ${r2Origin}` : ""}`,
     `font-src 'self' data:`,
-    `connect-src 'self' https://apis.google.com https://www.googleapis.com https://oauth2.googleapis.com https://accounts.google.com`,
+    `connect-src 'self' https://apis.google.com https://www.googleapis.com https://oauth2.googleapis.com https://accounts.google.com${sentryOrigin ? ` ${sentryOrigin}` : ""}`,
     `frame-src https://accounts.google.com https://docs.google.com https://drive.google.com`,
     `object-src 'none'`,
     `base-uri 'self'`,

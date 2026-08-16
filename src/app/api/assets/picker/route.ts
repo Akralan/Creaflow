@@ -6,6 +6,7 @@ import { handleApiError } from "@/lib/api/errors";
 import { getObjectStorage } from "@/lib/storage";
 import { createDriveAssets, processAssetCaptioning } from "@/lib/services/brandAssetService";
 import { MAX_ASSETS_PER_INGESTION } from "@/lib/validation";
+import { logger } from "@/lib/logger";
 
 const pickerSchema = z.object({
   fileIds: z.array(z.string().min(1)).min(1).max(MAX_ASSETS_PER_INGESTION),
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
     for (const asset of created) {
       after(() =>
         processAssetCaptioning(asset.id).catch((err) =>
-          console.error(`Captioning échoué pour l'asset ${asset.id}`, err)
+          logger.error("Captioning échoué pour un asset", err, { assetId: asset.id })
         )
       );
     }

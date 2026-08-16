@@ -4,6 +4,7 @@ import { contentSeries, contentSeriesCategories, contentSeriesPlatforms, creator
 import { suggestContentSeries } from "@/lib/llm/seriesLabels";
 import { listActiveCategoriesForUser, resolveCategoryLabelsToIds } from "@/lib/services/categoryLabelsService";
 import { ApiError } from "@/lib/api/errors";
+import { logger } from "@/lib/logger";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -46,7 +47,7 @@ export async function generateSeriesForUser(userId: string) {
     categories: activeCategories.map((c) => ({ label: c.label, description: c.description })),
   });
 
-  console.log("[seriesService] réponse brute LLM:", JSON.stringify(suggested, null, 2));
+  logger.debug("Réponse brute LLM (suggestion de séries)", { suggested });
 
   // Résout categoryLabels -> categoryId ; ignore une série suggérée dont aucune catégorie ne matche.
   const resolved = suggested

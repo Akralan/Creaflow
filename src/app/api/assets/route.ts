@@ -10,6 +10,7 @@ import {
   type UploadedFileInput,
 } from "@/lib/services/brandAssetService";
 import { MAX_ASSET_FILE_SIZE_BYTES, MAX_ASSETS_PER_INGESTION } from "@/lib/validation";
+import { logger } from "@/lib/logger";
 
 export async function GET() {
   try {
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
     for (const asset of created) {
       after(() =>
         processAssetCaptioning(asset.id).catch((err) =>
-          console.error(`Captioning échoué pour l'asset ${asset.id}`, err)
+          logger.error("Captioning échoué pour un asset", err, { assetId: asset.id })
         )
       );
     }
