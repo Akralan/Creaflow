@@ -4,6 +4,7 @@ import { requireUserId } from "@/lib/auth/session";
 import { generateSeriesForUser, listActiveSeriesForUser, saveSeriesForUser } from "@/lib/services/seriesService";
 import { platformSchema } from "@/lib/validation";
 import { handleApiError } from "@/lib/api/errors";
+import { enforceRateLimit } from "@/lib/services/rateLimitService";
 
 const saveSchema = z.object({
   series: z.array(
@@ -40,6 +41,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ series });
     }
 
+    // Régénération complète des séries via l'IA (contrairement à l'édition manuelle ci-dessus) —
+    // même ordre de grandeur que style-analysis pour une action de ce type.
+    await enforceRateLimit("series-generate", userId, 5, 60);
     const series = await generateSeriesForUser(userId);
     return NextResponse.json({ series });
   } catch (error) {

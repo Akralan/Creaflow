@@ -68,15 +68,8 @@
     {
       "idx": 9,
       "version": "7",
-      "when": 1786864179623,
-      "tag": "0009_volatile_lord_tyger",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1786864922326,
-      "tag": "0010_freezing_sentinels",
+      "when": 1786869118468,
+      "tag": "0009_bitter_misty_knight",
       "breakpoints": true
     }
   ]

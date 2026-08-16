@@ -8,6 +8,7 @@ import type { Platform } from "@/lib/llm/prompts";
 import { buildGenerationContext, updateScriptRecord } from "@/lib/services/scriptService";
 import { enforceScriptQuota } from "@/lib/services/billingService";
 import { ApiError, handleApiError } from "@/lib/api/errors";
+import { enforceRateLimit } from "@/lib/services/rateLimitService";
 
 export async function POST(
   _request: NextRequest,
@@ -15,6 +16,8 @@ export async function POST(
 ) {
   try {
     const userId = await requireUserId();
+    // Chaque génération de script coûte un appel LLM — limite partagée avec les autres routes de génération.
+    await enforceRateLimit("script-generate", userId, 20, 60);
     const { id } = await params;
     await enforceScriptQuota(userId);
 

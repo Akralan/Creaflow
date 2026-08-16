@@ -292,8 +292,28 @@ Self-service, mode `subscription` Stripe Checkout — pas d'intégration Stripe.
 
 ---
 
-## 7. Décisions ouvertes
+## 7. Sécurité (headers, rate limiting, CORS)
+
+- **Headers HTTP** (`next.config.ts`, appliqués à toutes les routes) : CSP, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (caméra/micro/géoloc désactivés — l'app n'en a jamais besoin), `Strict-Transport-Security`.
+- **CSP sans nonce** : l'app utilise `style={{}}` (styles inline React) partout plutôt que des classes CSS générées — un CSP à base de nonce casserait tout l'attribut `style` sans une réécriture complète en CSS-in-JS/nonce-aware. `style-src` garde donc `'unsafe-inline'` ; `script-src` reste strict (`'self'` + domaines Google du Picker). `img-src` inclut dynamiquement l'origine de `R2_PUBLIC_BASE_URL` (résolue au chargement de `next.config.ts`).
+- **Pas de CORS permissif sur `/api/*`, volontairement** : aucun `Access-Control-Allow-Origin` n'est posé. C'est un choix, pas un oubli — l'app n'expose pas d'API publique consommée par un autre origin, et l'absence de header CORS fait que la politique same-origin par défaut du navigateur bloque déjà la lecture des réponses par un site tiers. Ajouter un header CORS permissif réduirait la sécurité au lieu de l'améliorer. Combiné à `sameSite: "lax"` sur le cookie de session (`src/lib/auth/session.ts`), qui empêche déjà l'envoi du cookie sur une requête POST cross-site, la protection CSRF de base est couverte sans code dédié.
+- **Rate limiting** (`src/lib/services/rateLimitService.ts`) : fenêtre fixe backée Postgres (`rate_limit_buckets`), pas de Redis dans l'infra actuelle. Compteur incrémenté par upsert sur `(scope, identifier, fenêtre)`, purge paresseuse des fenêtres expirées (probabiliste, pas de cron dans ce repo — même philosophie que le reste de l'app). `enforceScriptQuota` (facturation) et le rate limiting sont deux mécanismes distincts et complémentaires : l'un borne le coût mensuel par abonnement, l'autre borne le débit de requêtes par minute (anti-spam/anti-brute-force), indépendamment du quota.
+  - `POST /api/auth/login` : 10/15min par IP + 5/15min par email (double limite : IP contre le spam générique, email contre le credential stuffing ciblé depuis plusieurs IP).
+  - `POST /api/auth/signup` : 5/heure par IP (anti-création massive de comptes).
+  - Génération de script (`POST /api/scripts`, `POST /api/scripts/generate`, `POST /api/scripts/:id/regenerate`) : 20/min par utilisateur, scope partagé entre les 3 routes (sinon la limite se contournerait en alternant entre elles).
+  - Chats IA (`POST /api/onboarding/chat`, `POST /api/assistant/chat`) : 20/min par utilisateur.
+  - `POST /api/profile/style-analysis` : 5/min par utilisateur (déclenchement manuel, usage rare).
+  - `POST /api/assets/generate-image` : 10/min par utilisateur.
+  - `POST /api/profile/content-categories` et `POST /api/series` (branche régénération IA uniquement, pas l'édition manuelle) : 5/min par utilisateur chacun.
+  - **Non couvert par cette itération** : les routes `/api/billing/*` (checkout, portail, webhook) n'ont pas encore ce traitement — à ajouter dans un prochain chantier.
+- **IP client** : lue depuis `X-Forwarded-For` (posé par la plateforme d'hébergement — Vercel, Railway, etc.). Si l'en-tête est absent (self-hosting direct sans proxy devant l'app), `getClientIp` renvoie `null` et le check par IP est **sauté** plutôt que d'utiliser une valeur de repli type "unknown" : un bucket partagé par tous les clients sans IP bloquerait tous les visiteurs légitimes dès qu'un seul dépasse la limite (déni de service auto-infligé). Sur `/api/auth/login`, le check par email reste actif dans ce cas ; sur `/api/auth/signup`, aucun filet ne reste (accepté en v1, cas de déploiement non standard).
+
+---
+
+## 8. Décisions ouvertes
 
 - Faut-il étendre `enforceScriptQuota` (ou une variante) à la génération d'images IA (`POST /api/assets/generate-image`), qui a un coût LLM comparable à un script mais n'est pour l'instant pas quotée ?
 - Le portail Stripe doit-il à terme permettre un changement de plan self-service (nécessiterait de résoudre `plan` depuis le price id à chaque event plutôt que depuis metadata figée à la création) ?
 - Durée/modalités d'un essai avec carte bancaire (`trial_period_days` Stripe) en complément ou remplacement de l'essai gratuit sans carte actuel (5 scripts à vie) ?
+- Le rate limiting fenêtre fixe (pas glissante) autorise un dépassement ponctuel jusqu'à ~2x la limite affichée à cheval sur deux fenêtres — acceptable pour de l'anti-abus, à revoir si un besoin de précision plus strict apparaît.
+- Faut-il migrer le rate limiting vers Redis/Upstash si l'app passe en déploiement multi-instance à fort trafic (la version Postgres reste correcte mais ajoute une requête DB par appel) ?

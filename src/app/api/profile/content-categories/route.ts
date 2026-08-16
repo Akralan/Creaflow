@@ -8,6 +8,7 @@ import {
 } from "@/lib/services/categoryLabelsService";
 import { platformSchema } from "@/lib/validation";
 import { handleApiError } from "@/lib/api/errors";
+import { enforceRateLimit } from "@/lib/services/rateLimitService";
 
 const saveSchema = z.object({
   categories: z
@@ -46,6 +47,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ categories });
     }
 
+    // Régénération complète des catégories via l'IA (contrairement à l'édition manuelle
+    // ci-dessus) — même ordre de grandeur que style-analysis pour une action de ce type.
+    await enforceRateLimit("content-categories-generate", userId, 5, 60);
     const categories = await generateCategoriesForUser(userId);
     return NextResponse.json({ categories });
   } catch (error) {
