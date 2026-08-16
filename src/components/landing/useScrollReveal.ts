@@ -80,6 +80,14 @@ export function useScrollReveal() {
     return () => {
       retries.forEach(clearTimeout);
       observer?.disconnect();
+      // Sans ça, React Strict Mode (dev only : monte -> nettoie -> remonte l'effet une fois,
+      // sur le même DOM déjà présent) laisse `data-armed` posé par le 1er passage, donc le
+      // scan() du 2e passage ne trouve plus aucun élément à observer (le sélecteur exclut
+      // `[data-armed]`) — le nouvel observer reste vide pendant que l'ancien vient d'être
+      // déconnecté : plus aucun élément ne se révèle jamais. On efface le marqueur au nettoyage
+      // pour que le prochain scan() reparte sur une base propre, quelle que soit la cause du
+      // démontage (Strict Mode ou navigation réelle).
+      document.querySelectorAll<HTMLElement>("[data-armed]").forEach((el) => el.removeAttribute("data-armed"));
     };
   }, []);
 }
