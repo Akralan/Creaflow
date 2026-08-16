@@ -13,12 +13,17 @@ export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [legalAccepted, setLegalAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (mode === "signup" && !legalAccepted) {
+      setError("Merci d'accepter les CGU et la politique de confidentialité pour créer un compte.");
+      return;
+    }
     setLoading(true);
     try {
       if (mode === "login") {
@@ -63,10 +68,10 @@ export default function LoginPage() {
               fontSize: 20,
             }}
           >
-            S
+            C
           </div>
           <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 22, letterSpacing: "-0.02em" }}>
-            SocialSkill
+            CreaFlow
           </span>
         </div>
 
@@ -101,6 +106,28 @@ export default function LoginPage() {
               />
               <p style={{ margin: "8px 0 0", fontSize: 12, color: color.textFaint }}>8 caractères minimum</p>
             </div>
+
+            {mode === "signup" && (
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: color.textMuted, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={legalAccepted}
+                  onChange={(e) => setLegalAccepted(e.target.checked)}
+                  style={{ marginTop: 2 }}
+                />
+                <span>
+                  J&apos;accepte les{" "}
+                  <a href="/legal/cgu" target="_blank" rel="noopener noreferrer">
+                    CGU
+                  </a>{" "}
+                  et la{" "}
+                  <a href="/legal/confidentialite" target="_blank" rel="noopener noreferrer">
+                    politique de confidentialité
+                  </a>
+                  .
+                </span>
+              </label>
+            )}
 
             {error && (
               <p style={{ margin: 0, fontSize: 13, color: color.danger }}>{error}</p>
