@@ -2,6 +2,7 @@ import type { StructuredCallParams } from "./types";
 import { callAnthropic } from "./providers/anthropic";
 import { callGemini } from "./providers/gemini";
 import { callGroq } from "./providers/groq";
+import { logger } from "@/lib/logger";
 
 // Rappel ajouté au system prompt pour la nouvelle tentative — certains modèles (notamment via Groq)
 // répondent parfois en texte libre malgré un tool_choice forcé ; un rappel explicite au 2e essai
@@ -28,7 +29,7 @@ export async function callStructured(params: StructuredCallParams): Promise<unkn
   try {
     return await callProvider(provider, params);
   } catch (err) {
-    console.warn(`[llm] Premier appel structuré échoué (${provider}), nouvelle tentative avec rappel.`, err);
+    logger.warn("Premier appel structuré LLM échoué, nouvelle tentative avec rappel", { provider, err: String(err) });
     return await callProvider(provider, { ...params, system: params.system + TOOL_CALL_RETRY_NOTE });
   }
 }

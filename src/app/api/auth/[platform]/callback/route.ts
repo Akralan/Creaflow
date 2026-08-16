@@ -7,6 +7,7 @@ import { requireUserId } from "@/lib/auth/session";
 import { socialProviders, hasOAuthProvider } from "@/lib/social";
 import { updateStyleProfileForUser } from "@/lib/services/styleProfileService";
 import { ApiError, handleApiError } from "@/lib/api/errors";
+import { logger } from "@/lib/logger";
 
 export async function GET(
   request: NextRequest,
@@ -84,7 +85,7 @@ export async function GET(
         await updateStyleProfileForUser(userId);
       }
     } catch (err) {
-      console.error(`Récupération des posts ${platform} échouée (connexion tout de même enregistrée) :`, err);
+      logger.error("Récupération des posts échouée (connexion tout de même enregistrée)", err, { platform });
     }
 
     const redirectUrl = new URL(returnTo, request.url);

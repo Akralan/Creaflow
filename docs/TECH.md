@@ -310,10 +310,25 @@ Self-service, mode `subscription` Stripe Checkout — pas d'intégration Stripe.
 
 ---
 
-## 8. Décisions ouvertes
+## 9. Monitoring (Sentry, logs structurés)
+
+- **Optionnel par défaut** : sans `SENTRY_DSN`/`NEXT_PUBLIC_SENTRY_DSN`, `Sentry.init()` tourne avec `dsn: undefined` — aucun événement envoyé, aucune erreur, l'app fonctionne normalement (comportement documenté du SDK, pas une branche conditionnelle codée à la main).
+- **Fichiers** (convention Next.js 15+, `src/` car le repo utilise ce dossier) : `src/instrumentation.ts` (`register()` charge la config par runtime, `onRequestError = Sentry.captureRequestError` capture les erreurs serveur non gérées — Server Components, Route Handlers, Server Actions), `src/instrumentation-client.ts` (init côté navigateur + `onRouterTransitionStart`), `src/sentry.server.config.ts` / `src/sentry.edge.config.ts` (init par runtime).
+- **Pas de Session Replay** : volontairement non activé (`Sentry.replayIntegration()`) — ça enregistre l'écran de l'utilisateur, ce que `src/app/legal/confidentialite/page.tsx` ne couvre pas encore. À activer seulement après avoir mis à jour la politique de confidentialité (et probablement un bandeau de consentement).
+- **Pas de `withSentryConfig` dans `next.config.ts`** : pas d'upload de source maps ni de tunneling en v1 — éviterait de exiger `SENTRY_AUTH_TOKEN`/org/projet pendant chaque build local. Conséquence : les stack traces vues dans Sentry seront minifiées tant que ce n'est pas ajouté (à faire une fois le projet Sentry créé, probablement dans le chantier CI/CD).
+- **Logger structuré** (`src/lib/logger.ts`) : remplace les `console.error`/`console.log` ad hoc dispersés dans le code. `logger.debug/info/warn/error` émettent une ligne JSON (level, message, timestamp, contexte). `logger.error` fait aussi remonter à Sentry — `captureException` s'il y a une vraie exception JS, sinon `captureMessage` (ex. une anomalie de données détectée sans throw, comme un webhook Stripe sans metadata attendue). `logger.warn` ne remonte jamais à Sentry (ex. signature webhook invalide — du bruit de scanner/bot attendu, pas un incident).
+  - **Angle mort connu** : `POST /api/billing/webhook` logue toute signature invalide en `warn` (donc sans alerte Sentry), pour ne pas noyer Sentry sous le bruit des scanners/bots qui tapent l'URL au hasard. Mais si `STRIPE_WEBHOOK_SECRET` est un jour désynchronisé du secret actif côté Stripe (rotation oubliée), **100% des webhooks échoueraient silencieusement** de la même façon, sans qu'aucune alerte ne se déclenche — les abonnements cesseraient de se synchroniser sans signal automatique. Pas de détection différenciée en v1 (nécessiterait un compteur d'échecs consécutifs ou une vérification périodique côté Stripe) — à surveiller manuellement après toute rotation de secret, ou à durcir plus tard.
+- **`handleApiError`** (`src/lib/api/errors.ts`) logue via `logger.error` uniquement la branche générique 500 (erreur non anticipée) — `ApiError`/`ZodError`/`UnauthorizedError` sont un fonctionnement normal de l'API, pas des incidents.
+- **Error boundaries** : `src/app/error.tsx` (tout le contenu sauf le root layout) et `src/app/global-error.tsx` (root layout uniquement, cas rarissime — doc Next.js : rendu de document séparé, sans les styles/polices globaux, d'où les styles en dur). Les deux capturent via `Sentry.captureException` dans un `useEffect`.
+- **Non couvert par cette itération** : upload de source maps, alerting configuré côté Sentry (seuils, intégrations Slack/email — à faire côté dashboard Sentry, pas dans le code), dashboards de métriques produit (hors périmètre — ça, c'est Phase 4 analytics).
+
+---
+
+## 10. Décisions ouvertes
 
 - Faut-il étendre `enforceScriptQuota` (ou une variante) à la génération d'images IA (`POST /api/assets/generate-image`), qui a un coût LLM comparable à un script mais n'est pour l'instant pas quotée ?
 - Le portail Stripe doit-il à terme permettre un changement de plan self-service (nécessiterait de résoudre `plan` depuis le price id à chaque event plutôt que depuis metadata figée à la création) ?
 - Durée/modalités d'un essai avec carte bancaire (`trial_period_days` Stripe) en complément ou remplacement de l'essai gratuit sans carte actuel (5 scripts à vie) ?
 - Le rate limiting fenêtre fixe (pas glissante) autorise un dépassement ponctuel jusqu'à ~2x la limite affichée à cheval sur deux fenêtres — acceptable pour de l'anti-abus, à revoir si un besoin de précision plus strict apparaît.
 - Faut-il migrer le rate limiting vers Redis/Upstash si l'app passe en déploiement multi-instance à fort trafic (la version Postgres reste correcte mais ajoute une requête DB par appel) ?
+- `withSentryConfig` (upload de source maps) à ajouter une fois un projet Sentry réel créé — probablement au moment du chantier CI/CD, pour l'intégrer à la pipeline de build plutôt qu'en config locale.

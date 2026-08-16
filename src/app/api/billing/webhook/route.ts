@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripeClient } from "@/lib/billing/stripeClient";
 import { markSubscriptionCanceled, upsertSubscriptionFromStripe } from "@/lib/services/billingService";
+import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 
@@ -32,7 +33,10 @@ export async function POST(request: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(rawBody, signature, getWebhookSecret());
   } catch (err) {
-    console.error("Signature webhook Stripe invalide :", err);
+    // warn, pas error : une signature invalide arrive couramment via des scanners/bots qui
+    // tapent l'URL du webhook au hasard, pas seulement via un vrai incident de config — ne pas
+    // saturer Sentry avec ce bruit (logger.error déclencherait une capture d'exception).
+    logger.warn("Signature webhook Stripe invalide", { err: String(err) });
     return NextResponse.json({ error: "Signature invalide." }, { status: 400 });
   }
 
@@ -44,14 +48,16 @@ export async function POST(request: NextRequest) {
 
         const userId = session.client_reference_id;
         if (!userId) {
-          console.error("checkout.session.completed sans client_reference_id, session:", session.id);
+          logger.error("checkout.session.completed sans client_reference_id", undefined, { sessionId: session.id });
           break;
         }
 
         const stripeSubscription = await stripe.subscriptions.retrieve(session.subscription as string);
         const plan = planFromMetadata(stripeSubscription.metadata);
         if (!plan) {
-          console.error("Abonnement Stripe sans metadata.plan valide :", stripeSubscription.id);
+          logger.error("Abonnement Stripe sans metadata.plan valide", undefined, {
+            stripeSubscriptionId: stripeSubscription.id,
+          });
           break;
         }
 
@@ -69,7 +75,9 @@ export async function POST(request: NextRequest) {
         const userId = stripeSubscription.metadata.userId;
         const plan = planFromMetadata(stripeSubscription.metadata);
         if (!userId || !plan) {
-          console.error("customer.subscription.updated sans metadata userId/plan :", stripeSubscription.id);
+          logger.error("customer.subscription.updated sans metadata userId/plan", undefined, {
+            stripeSubscriptionId: stripeSubscription.id,
+          });
           break;
         }
         await upsertSubscriptionFromStripe({
@@ -94,7 +102,7 @@ export async function POST(request: NextRequest) {
     // Erreur de traitement (DB, appel Stripe) plutôt qu'un event volontairement ignoré (ceux-ci
     // font `break` plus haut sans lever) : on répond 5xx pour que Stripe réessaie automatiquement
     // (retries avec backoff jusqu'à ~3 jours) au lieu d'accepter silencieusement un event perdu.
-    console.error("Erreur de traitement du webhook Stripe :", event.type, error);
+    logger.error("Erreur de traitement du webhook Stripe", error, { eventType: event.type });
     return NextResponse.json({ error: "Erreur de traitement interne." }, { status: 500 });
   }
 

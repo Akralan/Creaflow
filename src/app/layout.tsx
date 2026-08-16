@@ -15,7 +15,7 @@ const instrumentSans = Instrument_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "SocialSkill",
+  title: "CreaFlow",
   description: "Directeur marketing virtuel pour créateurs et boutiques.",
 };
 
