@@ -57,3 +57,46 @@ button {
 .modal-card {
   animation: modal-card-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+/* Landing page (src/components/landing/*) — accordéon FAQ natif <details>/<summary>. */
+summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Landing page (src/components/landing/*) — keyframes du design source, référencées via
+   `animation` dans les styles inline des composants de la landing. */
+@keyframes cf-float-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(3%, -6%, 0) scale(1.07); }
+}
+
+@keyframes cf-float-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-4%, 5%, 0) scale(1.1); }
+}
+
+@keyframes cf-marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+@keyframes cf-rise {
+  from { opacity: 0; transform: translate3d(0, 26px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes cf-blink {
+  0%, 45% { opacity: 1; }
+  50%, 95% { opacity: 0.15; }
+  100% { opacity: 1; }
+}
+
+@keyframes cf-bob {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -9px, 0); }
+}

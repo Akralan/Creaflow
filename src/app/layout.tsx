@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Instrument_Sans } from "next/font/google";
+import { Bricolage_Grotesque, Instrument_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 const bricolageGrotesque = Bricolage_Grotesque({
@@ -14,6 +14,12 @@ const instrumentSans = Instrument_Sans({
   weight: ["400", "500", "600"],
 });
 
+const jetBrainsMono = JetBrains_Mono({
+  variable: "--font-mono",
+  subsets: ["latin"],
+  weight: ["400", "500"],
+});
+
 export const metadata: Metadata = {
   title: "CreaFlow",
   description: "Directeur marketing virtuel pour créateurs et boutiques.",
@@ -25,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className={`${bricolageGrotesque.variable} ${instrumentSans.variable}`}>
+    <html lang="fr" className={`${bricolageGrotesque.variable} ${instrumentSans.variable} ${jetBrainsMono.variable}`}>
       <body suppressHydrationWarning>{children}</body>
     </html>
   );

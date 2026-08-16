@@ -34,6 +34,7 @@ export const color = {
 
 export const fontHeading = "'Bricolage Grotesque', system-ui, sans-serif";
 export const fontBody = "'Instrument Sans', system-ui, sans-serif";
+export const fontMono = "'JetBrains Mono', monospace";
 
 export type Platform = string;
 export type ScriptStatus = "draft" | "planned" | "shot" | "published";
