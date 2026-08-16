@@ -82,14 +82,24 @@ describe("logger", () => {
     expect(Sentry.captureException).not.toHaveBeenCalled();
   });
 
-  it("n'émet rien pour debug() en production", () => {
+  it("debug() n'émet que sous NODE_ENV=development (opt-in, pas opt-out)", () => {
     const original = process.env.NODE_ENV;
-    // @ts-expect-error -- NODE_ENV est en lecture seule dans les types Node, réassigné en test
-    process.env.NODE_ENV = "production";
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    logger.debug("Ne doit pas apparaître");
+    // "test" (valeur fixée par Vitest lui-même pendant `npm run test`) et "production" doivent
+    // tous les deux rester silencieux — c'est justement l'inconsistance corrigée (l'ancien garde
+    // `!== "production"` laissait passer le bruit sous NODE_ENV=test).
+    for (const value of ["test", "production", undefined]) {
+      // @ts-expect-error -- NODE_ENV est en lecture seule dans les types Node, réassigné en test
+      process.env.NODE_ENV = value;
+      logger.debug("Ne doit pas apparaître");
+    }
     expect(spy).not.toHaveBeenCalled();
+
+    // @ts-expect-error -- idem
+    process.env.NODE_ENV = "development";
+    logger.debug("Doit apparaître");
+    expect(spy).toHaveBeenCalledTimes(1);
 
     // @ts-expect-error -- idem
     process.env.NODE_ENV = original;
