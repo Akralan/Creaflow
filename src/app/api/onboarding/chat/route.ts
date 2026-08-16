@@ -7,6 +7,7 @@ import { requireUserId } from "@/lib/auth/session";
 import { runOnboardingChatTurn, type ExtractedOnboardingProfile, type OnboardingMessage } from "@/lib/llm/onboardingChat";
 import { finalizeOnboarding, mergeExtractedProfile } from "@/lib/services/onboardingService";
 import { handleApiError } from "@/lib/api/errors";
+import { enforceRateLimit } from "@/lib/services/rateLimitService";
 
 const MAX_HISTORY_MESSAGES = 20;
 
@@ -28,6 +29,8 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId();
+    // Chaque tour de chat d'onboarding déclenche un appel LLM — protège contre le spam.
+    await enforceRateLimit("onboarding-chat", userId, 20, 60);
     const { message } = schema.parse(await request.json());
 
     const session = await db.query.onboardingSessions.findFirst({ where: eq(onboardingSessions.userId, userId) });

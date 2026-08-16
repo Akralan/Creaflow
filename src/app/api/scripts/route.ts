@@ -8,6 +8,7 @@ import { requireUserId } from "@/lib/auth/session";
 import { buildGenerationContext, createScriptRecord } from "@/lib/services/scriptService";
 import { platformSchema, contentCategorySchema, contentTypeSchema } from "@/lib/validation";
 import { handleApiError } from "@/lib/api/errors";
+import { enforceRateLimit } from "@/lib/services/rateLimitService";
 
 const schema = z.object({
   platform: platformSchema,
@@ -44,6 +45,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId();
+    // Chaque génération de script coûte un appel LLM — limite partagée avec les autres routes de génération.
+    await enforceRateLimit("script-generate", userId, 20, 60);
     const { platform, contentCategoryId, contentType, productId, scheduledDate, seriesId } = schema.parse(
       await request.json()
     );

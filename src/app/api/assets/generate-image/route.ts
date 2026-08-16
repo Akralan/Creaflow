@@ -5,6 +5,7 @@ import { handleApiError } from "@/lib/api/errors";
 import { getObjectStorage } from "@/lib/storage";
 import { generateStagedImageForUser } from "@/lib/services/generatedImageService";
 import { MAX_GENERATE_IMAGE_SOURCE_ASSETS } from "@/lib/validation";
+import { enforceRateLimit } from "@/lib/services/rateLimitService";
 
 const schema = z.object({
   assetIds: z.array(z.uuid()).min(1).max(MAX_GENERATE_IMAGE_SOURCE_ASSETS),
@@ -15,6 +16,8 @@ const schema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId();
+    // Génération d'image coûteuse (appel modèle image) — limite pour éviter l'abus.
+    await enforceRateLimit("image-generate", userId, 10, 60);
     const body = schema.parse(await request.json());
 
     // Génération synchrone dans le handler — action explicite déclenchée par un clic, pas un

@@ -339,6 +339,17 @@ export const postMatchCandidates = pgTable(
   (t) => [unique().on(t.platform, t.platformPostId)]
 );
 
+// Rate limiting fenêtre fixe, backé Postgres (pas de Redis dans l'infra actuelle — cf.
+// docs/TECH.md §7 sécurité). `key` = `${scope}:${identifier}:${windowStart epoch}`, ex.
+// "login:203.0.113.4:1799990400". Une ligne = un compteur pour une fenêtre passée ; les fenêtres
+// expirées sont supprimées paresseusement à chaque appel de checkRateLimit (pas de cron dans ce
+// repo, même philosophie que le reste de l'app).
+export const rateLimitBuckets = pgTable("rate_limit_buckets", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull().default(1),
+  windowStart: timestamp("window_start").notNull(),
+});
+
 export const postingGoals = pgTable("posting_goals", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
