@@ -3,7 +3,20 @@ import type { NextConfig } from "next";
 // CSP volontairement sans nonce (cf. guide Next.js "Without Nonces") : l'app utilise `style={{}}`
 // (styles inline React) partout plutôt que des classes CSS générées — passer en CSP à base de
 // nonce casserait tout l'attribut `style` sans une réécriture complète en CSS-in-JS/nonce-aware.
-// `'unsafe-inline'` reste donc nécessaire sur style-src ; script-src, lui, reste strict.
+// Un nonce imposerait aussi le rendu dynamique partout (perte de la génération statique/ISR),
+// ce que ce repo n'a pas choisi d'assumer.
+//
+// `'unsafe-inline'` est donc nécessaire sur script-src ET style-src — pas seulement style-src
+// comme dans une première version de ce fichier. Next.js injecte lui-même des <script> inline
+// pour l'hydratation RSC (self.__next_f, self.__next_r), en dev ET en prod : sans 'unsafe-inline'
+// sur script-src, le navigateur les bloque et l'hydratation casse silencieusement (constaté en
+// conditions réelles : `InvariantError: Expected a request ID... self.__next_r`, cf. docs/TECH.md).
+// Conséquence assumée : la CSP ne bloque plus l'exécution d'un script injecté (XSS) — elle garde
+// sa valeur sur les autres axes (object-src, frame-ancestors, base-uri, connect-src/img-src
+// restreints aux domaines nécessaires). C'est le compromis documenté par Next.js lui-même pour
+// qui n'utilise pas de nonce, pas une régression spécifique à ce repo.
+// 'unsafe-eval' en dev uniquement : React s'en sert pour reconstruire les stacks d'erreur serveur
+// dans le navigateur (doc Next.js CSP) — jamais nécessaire en production.
 // Domaines Google whitelistés pour le Picker (src/components/BrandAssetLibrary/GooglePickerButton.tsx)
 // — fonctionnalité "implémentée, non encore vérifiée en environnement réel" (docs/SPEC_RESSOURCES_VISUELLES.md).
 function originOf(url: string | undefined): string {
@@ -22,10 +35,11 @@ function buildCsp(): string {
   // ses requêtes sortantes sans cette entrée dans connect-src, en échouant silencieusement (pas
   // d'erreur applicative, juste une ligne dans la console DevTools).
   const sentryOrigin = originOf(process.env.NEXT_PUBLIC_SENTRY_DSN);
+  const isDev = process.env.NODE_ENV === "development";
 
   const directives = [
     `default-src 'self'`,
-    `script-src 'self' https://apis.google.com https://accounts.google.com`,
+    `script-src 'self' 'unsafe-inline' https://apis.google.com https://accounts.google.com${isDev ? " 'unsafe-eval'" : ""}`,
     `style-src 'self' 'unsafe-inline'`,
     `img-src 'self' data: blob:${r2Origin ? ` ${r2Origin}` : ""}`,
     `font-src 'self' data:`,
