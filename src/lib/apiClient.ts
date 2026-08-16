@@ -229,6 +229,27 @@ export interface GeneratedImage {
   createdAt: string;
 }
 
+export interface QuotaStatus {
+  allowed: boolean;
+  used: number;
+  limit: number;
+  planName: string;
+}
+
+export interface BillingSubscription {
+  plan: "starter" | "pro";
+  planName: string;
+  status: "trialing" | "active" | "past_due" | "canceled" | "unpaid" | "incomplete" | "incomplete_expired";
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+}
+
+export interface BillingInfo {
+  subscription: BillingSubscription | null;
+  quota: QuotaStatus;
+  plans: Array<{ id: "starter" | "pro"; name: string; scriptsPerMonth: number }>;
+}
+
 export interface GoogleDriveConnection {
   connected: boolean;
   status: "ok" | "needs_reconnect" | null;
@@ -364,4 +385,8 @@ export const api = {
     ),
   resolveMatchCandidate: (id: string, action: "confirm" | "dismiss") =>
     post<{ ok: true }>(`/api/performance/match-candidates/${id}/resolve`, { action }),
+
+  getBillingInfo: () => apiFetch<BillingInfo>("/api/billing/subscription"),
+  startCheckout: (plan: "starter" | "pro") => post<{ url: string }>("/api/billing/checkout", { plan }),
+  openBillingPortal: () => post<{ url: string }>("/api/billing/portal"),
 };

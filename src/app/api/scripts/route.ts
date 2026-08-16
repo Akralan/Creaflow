@@ -6,6 +6,7 @@ import { calendarEntries, scripts } from "@/db/schema";
 import { generateScript } from "@/lib/llm/generateScript";
 import { requireUserId } from "@/lib/auth/session";
 import { buildGenerationContext, createScriptRecord } from "@/lib/services/scriptService";
+import { enforceScriptQuota } from "@/lib/services/billingService";
 import { platformSchema, contentCategorySchema, contentTypeSchema } from "@/lib/validation";
 import { handleApiError } from "@/lib/api/errors";
 
@@ -47,6 +48,7 @@ export async function POST(request: NextRequest) {
     const { platform, contentCategoryId, contentType, productId, scheduledDate, seriesId } = schema.parse(
       await request.json()
     );
+    await enforceScriptQuota(userId);
 
     const context = await buildGenerationContext(
       userId,

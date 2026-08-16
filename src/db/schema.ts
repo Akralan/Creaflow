@@ -42,6 +42,20 @@ export const generatedImageStatusEnum = pgEnum("generated_image_status", ["ready
 export const socialConnectionStatusEnum = pgEnum("social_connection_status", ["ok", "needs_reconnect"]);
 export const postMetricsSourceEnum = pgEnum("post_metrics_source", ["manual", "api"]);
 export const postMatchCandidateStatusEnum = pgEnum("post_match_candidate_status", ["pending", "confirmed", "dismissed"]);
+export const subscriptionPlanEnum = pgEnum("subscription_plan", ["starter", "pro"]);
+// Sous-ensemble des statuts Stripe (Subscription.status) réellement distingués côté produit —
+// "paused" n'est pas utilisé (pas de fonctionnalité de pause self-service en v1). Le webhook
+// (src/app/api/billing/webhook/route.ts) rejette explicitement toute valeur hors de cette liste
+// plutôt que de la stocker telle quelle.
+export const subscriptionStatusEnum = pgEnum("subscription_status", [
+  "trialing",
+  "active",
+  "past_due",
+  "canceled",
+  "unpaid",
+  "incomplete",
+  "incomplete_expired",
+]);
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -338,6 +352,36 @@ export const postMatchCandidates = pgTable(
   },
   (t) => [unique().on(t.platform, t.platformPostId)]
 );
+
+// Un événement par génération OU régénération de script — distinct de `scripts.createdAt`, qui ne
+// bouge jamais sur une régénération (updateScriptRecord fait un UPDATE en place sur la même ligne).
+// C'est cette table, pas `scripts`, que billingService.ts compte pour le quota mensuel : le coût
+// LLM (donc le quota) est déclenché à chaque génération, régénération comprise.
+export const scriptGenerationEvents = pgTable("script_generation_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  scriptId: uuid("script_id").notNull().references(() => scripts.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Facturation self-service (Stripe). Une seule ligne par utilisateur — un utilisateur qui n'a
+// jamais payé n'a pas de ligne du tout (essai gratuit géré par comptage dans billingService.ts,
+// pas par une ligne "free" ici). stripeSubscriptionId reste null tant que checkout.session.completed
+// n'est pas arrivé ; currentPeriodStart/End reflètent la période Stripe en cours, utilisée pour
+// borner le comptage des scripts générés dans le quota du mois.
+export const subscriptions = pgTable("subscriptions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+  stripeCustomerId: text("stripe_customer_id").notNull().unique(),
+  stripeSubscriptionId: text("stripe_subscription_id").unique(),
+  plan: subscriptionPlanEnum("plan").notNull(),
+  status: subscriptionStatusEnum("status").notNull(),
+  currentPeriodStart: timestamp("current_period_start"),
+  currentPeriodEnd: timestamp("current_period_end"),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
 
 export const postingGoals = pgTable("posting_goals", {
   id: uuid("id").primaryKey().defaultRandom(),

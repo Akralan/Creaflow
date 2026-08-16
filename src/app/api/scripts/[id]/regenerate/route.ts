@@ -6,6 +6,7 @@ import { requireUserId } from "@/lib/auth/session";
 import { generateScript } from "@/lib/llm/generateScript";
 import type { Platform } from "@/lib/llm/prompts";
 import { buildGenerationContext, updateScriptRecord } from "@/lib/services/scriptService";
+import { enforceScriptQuota } from "@/lib/services/billingService";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 
 export async function POST(
@@ -15,6 +16,7 @@ export async function POST(
   try {
     const userId = await requireUserId();
     const { id } = await params;
+    await enforceScriptQuota(userId);
 
     const existing = await db.query.scripts.findFirst({
       where: and(eq(scripts.id, id), eq(scripts.userId, userId)),
@@ -33,7 +35,7 @@ export async function POST(
       existing.seriesId
     );
     const generated = await generateScript(context);
-    const script = await updateScriptRecord(existing.id, context.contentCategory, generated, {
+    const script = await updateScriptRecord(userId, existing.id, context.contentCategory, generated, {
       angleId: context.angle?.id ?? null,
       brandAssetId: context.brandAsset?.id ?? null,
     });

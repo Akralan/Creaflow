@@ -1,6 +1,6 @@
 import { and, desc, eq, ne } from "drizzle-orm";
 import { db } from "@/db";
-import { creatorProfiles, products, contentCategories, contentSeries, scripts } from "@/db/schema";
+import { creatorProfiles, products, contentCategories, contentSeries, scriptGenerationEvents, scripts } from "@/db/schema";
 import type { GeneratedScript } from "@/lib/llm/scriptSchema";
 import type { ContentCategoryContext, ContentType, Platform, ScriptGenerationContext } from "@/lib/llm/prompts";
 import type { StyleProfile } from "@/lib/llm/styleProfile";
@@ -135,36 +135,48 @@ export async function createScriptRecord(
   generated: GeneratedScript,
   extras?: { angleId?: string | null; seriesId?: string | null; brandAssetId?: string | null }
 ) {
-  const [script] = await db
-    .insert(scripts)
-    .values({
-      userId,
-      productId,
-      platform,
-      contentCategoryId: contentCategory.id,
-      angleId: extras?.angleId ?? null,
-      seriesId: extras?.seriesId ?? null,
-      brandAssetId: extras?.brandAssetId ?? null,
-      ...scriptColumnsFromGenerated(generated),
-    })
-    .returning();
-  return { ...script, contentCategory };
+  return db.transaction(async (tx) => {
+    const [script] = await tx
+      .insert(scripts)
+      .values({
+        userId,
+        productId,
+        platform,
+        contentCategoryId: contentCategory.id,
+        angleId: extras?.angleId ?? null,
+        seriesId: extras?.seriesId ?? null,
+        brandAssetId: extras?.brandAssetId ?? null,
+        ...scriptColumnsFromGenerated(generated),
+      })
+      .returning();
+    // Comptabilisé pour le quota de facturation (billingService.ts) — voir le commentaire sur
+    // scriptGenerationEvents dans schema.ts.
+    await tx.insert(scriptGenerationEvents).values({ userId, scriptId: script.id });
+    return { ...script, contentCategory };
+  });
 }
 
 export async function updateScriptRecord(
+  userId: string,
   scriptId: string,
   contentCategory: ContentCategoryContext,
   generated: GeneratedScript,
   extras?: { angleId?: string | null; brandAssetId?: string | null }
 ) {
-  const [script] = await db
-    .update(scripts)
-    .set({
-      ...(extras?.angleId !== undefined && { angleId: extras.angleId }),
-      ...(extras?.brandAssetId !== undefined && { brandAssetId: extras.brandAssetId }),
-      ...scriptColumnsFromGenerated(generated),
-    })
-    .where(eq(scripts.id, scriptId))
-    .returning();
-  return { ...script, contentCategory };
+  return db.transaction(async (tx) => {
+    const [script] = await tx
+      .update(scripts)
+      .set({
+        ...(extras?.angleId !== undefined && { angleId: extras.angleId }),
+        ...(extras?.brandAssetId !== undefined && { brandAssetId: extras.brandAssetId }),
+        ...scriptColumnsFromGenerated(generated),
+      })
+      .where(eq(scripts.id, scriptId))
+      .returning();
+    // Une régénération ne change pas `scripts.createdAt` (même ligne, mise à jour en place) — sans
+    // cet événement, enforceScriptQuota() ne verrait jamais les régénérations, qui coûtent pourtant
+    // un appel LLM comme une génération initiale.
+    await tx.insert(scriptGenerationEvents).values({ userId, scriptId: script.id });
+    return { ...script, contentCategory };
+  });
 }
