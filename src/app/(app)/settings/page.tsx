@@ -11,10 +11,11 @@ import EquipmentPicker from "@/components/EquipmentPicker";
 import StyleAnalysisPanel from "@/components/StyleAnalysisPanel";
 import CategoryLabelsPanel from "@/components/CategoryLabelsPanel";
 import BrandAssetLibrary from "@/components/BrandAssetLibrary/BrandAssetLibrary";
+import BillingPanel from "@/components/BillingPanel";
 import { api, ApiClientError, type Connection } from "@/lib/apiClient";
 import { color } from "@/lib/design/tokens";
 
-type Tab = "identity" | "catalogue" | "categories" | "assets" | "connexions";
+type Tab = "identity" | "catalogue" | "categories" | "assets" | "connexions" | "billing";
 
 const tabs: Array<{ id: Tab; label: string }> = [
   { id: "identity", label: "Identité de marque" },
@@ -22,6 +23,7 @@ const tabs: Array<{ id: Tab; label: string }> = [
   { id: "categories", label: "Catégories de contenu" },
   { id: "assets", label: "Ressources visuelles" },
   { id: "connexions", label: "Connexions sociales" },
+  { id: "billing", label: "Facturation" },
 ];
 
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
@@ -146,7 +148,11 @@ function ConnexionsTab() {
 
 function SettingsContent() {
   const searchParams = useSearchParams();
-  const [tab, setTab] = useState<Tab>(() => (searchParams.get("connected") ? "connexions" : "identity"));
+  const [tab, setTab] = useState<Tab>(() => {
+    const requested = searchParams.get("tab");
+    if (requested && tabs.some((t) => t.id === requested)) return requested as Tab;
+    return searchParams.get("connected") ? "connexions" : "identity";
+  });
 
   return (
     <div style={{ padding: "32px 36px", maxWidth: 820 }}>
@@ -164,6 +170,7 @@ function SettingsContent() {
       {tab === "categories" && <CategoryLabelsPanel />}
       {tab === "assets" && <BrandAssetLibrary />}
       {tab === "connexions" && <ConnexionsTab />}
+      {tab === "billing" && <BillingPanel />}
     </div>
   );
 }

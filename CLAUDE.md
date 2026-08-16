@@ -20,6 +20,8 @@ Le provider LLM utilisé pour la génération de contenu est sélectionné via `
 
 Les credentials OAuth (TikTok/Instagram/LinkedIn) ne sont nécessaires que pour tester la connexion des comptes sociaux (Module A).
 
+La facturation self-service (Stripe) est optionnelle pour faire tourner l'app en dev : sans `STRIPE_SECRET_KEY`/`STRIPE_PRICE_*`/`STRIPE_WEBHOOK_SECRET`, tout utilisateur reste sur l'essai gratuit (5 scripts à vie) et les routes `/api/billing/*` échouent explicitement si sollicitées. Pour tester le flux complet en local : `stripe listen --forward-to localhost:3000/api/billing/webhook` (Stripe CLI) fournit le `STRIPE_WEBHOOK_SECRET` à utiliser. Voir `docs/TECH.md` §6.
+
 ## Documentation projet
 
 - `docs/PRODUCT.md` — vision produit et fonctionnalités, à jour.

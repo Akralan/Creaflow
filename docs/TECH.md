@@ -132,6 +132,13 @@ Script (fiche générée — Module B)
 - status (draft / planned / shot / published)
 - createdAt
 
+ScriptGenerationEvent (une ligne par génération OU régénération — jamais mise à jour, jamais lue
+ailleurs que par le quota de facturation)
+- id, userId (FK ON DELETE CASCADE), scriptId (FK ON DELETE CASCADE vers Script)
+- createdAt
+Distincte de `Script.createdAt`, qui ne bouge jamais sur une régénération (mise à jour en place de
+la même ligne) — voir §6.
+
 PostMetrics (1:1 avec Script — vue courante, manuelle ou automatique)
 - id, scriptId (unique, FK ON DELETE CASCADE)
 - views, likes, comments, shares (int, défaut 0)
@@ -271,6 +278,22 @@ Implémente `docs/SPEC_METRIQUES_AUTO.md` — pas d'appel LLM sur ce chemin, cal
 
 ---
 
-## 6. Décisions ouvertes
+## 6. Facturation (Stripe)
 
-*(Aucune à ce stade.)*
+Self-service, mode `subscription` Stripe Checkout — pas d'intégration Stripe.js côté client, le front redirige vers `session.url` et revient sur `/settings?tab=billing`.
+
+- **Plans** (`src/lib/billing/plans.ts`) : `starter` (30 scripts/mois) et `pro` (150 scripts/mois). Les montants ne sont jamais en dur dans le code — seul l'ID du Stripe Price est référencé, via `STRIPE_PRICE_STARTER`/`STRIPE_PRICE_PRO`.
+- **Essai gratuit** : pas de ligne `subscriptions` tant que l'utilisateur n'a jamais payé — quota `FREE_TRIAL_SCRIPT_LIMIT=5` générations **à vie** (pas de reset), compté sur `ScriptGenerationEvent` (`src/lib/services/billingService.ts`).
+- **Source de vérité** : Stripe uniquement. `subscriptions` (`src/db/schema.ts`) n'est jamais écrite par une route utilisateur, seulement par le webhook (`POST /api/billing/webhook`) sur `checkout.session.completed`, `customer.subscription.updated` et `customer.subscription.deleted`. Le rattachement `userId` passe par `client_reference_id` (session Checkout) et `subscription_data.metadata.userId`/`metadata.plan` (posés à la création, jamais recalculés depuis un price id).
+- **Pas de changement de plan self-service en v1** : le Customer Portal (`POST /api/billing/portal`) couvre moyen de paiement / factures / résiliation, pas le changement de plan — `subscriptions.plan` ne serait plus fiable si Stripe le modifiait sans passer par nos metadata. `POST /api/billing/checkout` refuse (409) tant qu'un abonnement existant n'est pas dans un statut terminal (`canceled`/`incomplete_expired`) — sinon un 2e Checkout créerait un 2e customer/2e subscription Stripe orphelins.
+- **Quota** : `enforceScriptQuota(userId)` appelé en tête de `POST /api/scripts`, `POST /api/scripts/generate` et `POST /api/scripts/:id/regenerate` — compte les `ScriptGenerationEvent` créés depuis `currentPeriodStart` (abonnement actif) ou depuis toujours (essai gratuit), lève une `ApiError(402)` au-delà de la limite du plan. Une régénération compte comme une génération (voir `ScriptGenerationEvent` en §3) : `createScriptRecord`/`updateScriptRecord` (`scriptService.ts`) insèrent l'événement dans la même transaction que l'écriture du script.
+- **Limite connue acceptée** : le check de quota et l'écriture de l'événement ne sont pas atomiques (l'appel LLM a lieu entre les deux) — deux requêtes concurrentes du même utilisateur peuvent ponctuellement dépasser la limite de quelques unités. Documenté dans `enforceScriptQuota` (`billingService.ts`).
+- **Non couvert par cette itération** : quota sur la génération d'images IA (`POST /api/assets/generate-image`, coût Gemini comparable à un script), plans annuels, changement de plan self-service, emails transactionnels de facturation (facture, échec de paiement, fin d'essai).
+
+---
+
+## 7. Décisions ouvertes
+
+- Faut-il étendre `enforceScriptQuota` (ou une variante) à la génération d'images IA (`POST /api/assets/generate-image`), qui a un coût LLM comparable à un script mais n'est pour l'instant pas quotée ?
+- Le portail Stripe doit-il à terme permettre un changement de plan self-service (nécessiterait de résoudre `plan` depuis le price id à chaque event plutôt que depuis metadata figée à la création) ?
+- Durée/modalités d'un essai avec carte bancaire (`trial_period_days` Stripe) en complément ou remplacement de l'essai gratuit sans carte actuel (5 scripts à vie) ?

@@ -7,6 +7,7 @@ import { requireUserId } from "@/lib/auth/session";
 import { generateScript } from "@/lib/llm/generateScript";
 import { defaultContentTypeForPlatform } from "@/lib/llm/prompts";
 import { buildGenerationContext, createScriptRecord } from "@/lib/services/scriptService";
+import { enforceScriptQuota } from "@/lib/services/billingService";
 import { contentTypeSchema } from "@/lib/validation";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 
@@ -16,6 +17,7 @@ export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId();
     const { calendarEntryId, contentType } = schema.parse(await request.json());
+    await enforceScriptQuota(userId);
 
     const entry = await db.query.calendarEntries.findFirst({
       where: and(eq(calendarEntries.id, calendarEntryId), eq(calendarEntries.userId, userId)),
