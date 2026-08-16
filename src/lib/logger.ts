@@ -46,9 +46,11 @@ async function reportToSentry(message: string, error: unknown, context?: LogCont
 }
 
 export const logger = {
-  /** Silencieux en production — bruit de développement uniquement. */
+  // Opt-in explicite (=== "development"), pas opt-out (!== "production") : ce dernier laisserait
+  // passer le bruit de debug sous NODE_ENV=test aussi (Vitest le fixe à "test", pas "production"),
+  // polluant la sortie de `npm run test`. Même idiome que sentry.server.config.ts et consorts.
   debug(message: string, context?: LogContext): void {
-    if (process.env.NODE_ENV !== "production") emit("debug", message, context);
+    if (process.env.NODE_ENV === "development") emit("debug", message, context);
   },
   info(message: string, context?: LogContext): void {
     emit("info", message, context);
