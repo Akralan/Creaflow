@@ -14,6 +14,9 @@ export async function generateScript(context: ScriptGenerationContext): Promise<
     userMessage: buildScriptUserMessage(context),
     tool: toolForContentType(context.contentType),
     maxTokens: 2048,
+    // Seul appel du repo à l'activer : son schéma (scriptSchema.ts) est le seul déclaré conforme au
+    // mode strict OpenAI (additionalProperties:false partout, cf. StructuredCallParams.strict).
+    strict: true,
   });
 
   if (context.contentType === "video") {

@@ -37,6 +37,8 @@ export interface ContentCategory {
   createdAt: string;
   /** Réseaux auxquels cette catégorie est restreinte ; vide = visible sur tous les réseaux. */
   platforms: Platform[];
+  /** Aiguillage matière×catégorie (docs/SPEC_MATIERE_EDITEUR.md §5.3) — sous-représentée quand le corpus est sec. */
+  materialHungry: boolean;
 }
 
 /** Forme légère d'une catégorie telle qu'embarquée (jointure) dans un Script ou une CalendarEntry. */
@@ -140,7 +142,8 @@ export interface Script {
   userId: string;
   productId: string | null;
   platform: Platform;
-  title: string;
+  /** Nullable : naissance paresseuse (§4.5) — la ligne peut naître avant qu'un titre n'existe. */
+  title: string | null;
   contentType: ContentType;
   /** Présents seulement pour contentType "video" (et hookVisual/storyboard aussi pour "visual"). */
   hookVisual: string | null;
@@ -151,9 +154,14 @@ export interface Script {
   hashtags: string[];
   soundRecommendation: string | null;
   contentCategory: ContentCategorySummary;
+  /** Angle imposé (mécanisme anti-répétition) — présent uniquement sur la fiche détaillée (GET /api/scripts/:id). */
+  angle?: { id: string; label: string; description: string } | null;
   series: ContentCategorySummary | null;
   status: ScriptStatus;
+  /** "generated" (LLM) / "imported" (POST /api/scripts/import) / "manual" (naissance paresseuse éditeur). */
+  origin: "generated" | "imported" | "manual";
   createdAt: string;
+  updatedAt: string;
   product?: Product | null;
   metrics?: PostMetrics | null;
   /** Photo de marque utilisée comme référence, et image effectivement générée (contentType "visual"). */
@@ -161,6 +169,34 @@ export interface Script {
   generatedImageId: string | null;
   /** Présent (avec `url`) uniquement sur la fiche script détaillée (GET /api/scripts/:id). */
   generatedImage?: GeneratedImage | null;
+  /** Matière utilisée pour ce script — présent uniquement sur la fiche détaillée. */
+  citations?: Citation[];
+}
+
+export interface SourceMaterial {
+  id: string;
+  userId: string;
+  productId: string | null;
+  kind: "paste" | "file" | "interview";
+  title: string | null;
+  rawText: string;
+  createdAt: string;
+}
+
+/** Citation post-génération (docs/SPEC_MATIERE_EDITEUR.md §3) — passage du corpus rapporté comme
+ *  utilisé par le LLM à la génération, retrouvé dans le texte source par recherche approximative. */
+export interface Citation {
+  id: string;
+  sourceMaterialId: string | null;
+  sourceMaterialTitle?: string | null;
+  scriptId?: string | null;
+  scriptTitle?: string | null;
+  excerpt: string;
+  /** Position dans le texte source, présente uniquement sur la vue "citations d'un document". */
+  matchStart?: number | null;
+  matchLength?: number | null;
+  /** Présent uniquement sur la vue "citations d'un script" (GET /api/scripts/:id). */
+  matched?: boolean;
 }
 
 export interface CalendarEntry {
@@ -247,6 +283,8 @@ export interface BillingSubscription {
 export interface BillingInfo {
   subscription: BillingSubscription | null;
   quota: QuotaStatus;
+  /** Pool distinct pour les micro-retouches de l'éditeur (docs/SPEC_MATIERE_EDITEUR.md §4.6). */
+  microEditQuota: QuotaStatus;
   plans: Array<{ id: "starter" | "pro"; name: string; scriptsPerMonth: number }>;
 }
 
@@ -277,7 +315,14 @@ export const api = {
   getContentCategories: () => apiFetch<{ categories: ContentCategory[] }>("/api/profile/content-categories"),
   generateContentCategories: () => post<{ categories: ContentCategory[] }>("/api/profile/content-categories"),
   saveContentCategories: (
-    categories: Array<{ id?: string; label: string; description: string; weight: number; platforms: string[] }>
+    categories: Array<{
+      id?: string;
+      label: string;
+      description: string;
+      weight: number;
+      platforms: string[];
+      materialHungry?: boolean;
+    }>
   ) => post<{ categories: ContentCategory[] }>("/api/profile/content-categories", { categories }),
 
   getContentSeries: () => apiFetch<{ series: ContentSeries[] }>("/api/series"),
@@ -311,6 +356,7 @@ export const api = {
 
   getCalendar: (month: string) =>
     apiFetch<{ entries: CalendarEntry[]; goals: PostingGoal[] }>(`/api/calendar?month=${month}`),
+  getCalendarEntry: (id: string) => apiFetch<{ entry: CalendarEntry }>(`/api/calendar/${id}`),
   generateCalendar: (month: string) => post<{ entries: CalendarEntry[] }>("/api/calendar/generate", { month }),
   placeScript: (scriptId: string, scheduledDate: string) =>
     post<{ entry: CalendarEntry }>("/api/calendar", { scriptId, scheduledDate }),
@@ -320,8 +366,8 @@ export const api = {
     patch<{ entry: CalendarEntry }>(`/api/calendar/${id}`, data),
   deleteCalendarEntry: (id: string) => del<{ ok: true }>(`/api/calendar/${id}`),
 
-  generateScriptForEntry: (calendarEntryId: string, contentType?: ContentType) =>
-    post<{ script: Script }>("/api/scripts/generate", { calendarEntryId, contentType }),
+  generateScriptForEntry: (calendarEntryId: string, contentType?: ContentType, productId?: string) =>
+    post<{ script: Script }>("/api/scripts/generate", { calendarEntryId, contentType, productId }),
   generateFreeformScript: (data: {
     platform: Platform;
     contentCategoryId: string;
@@ -336,6 +382,74 @@ export const api = {
   regenerateScript: (id: string) => post<{ script: Script }>(`/api/scripts/${id}/regenerate`),
   updateScriptStatus: (id: string, status: ScriptStatus) =>
     patch<{ script: Script }>(`/api/scripts/${id}`, { status }),
+  patchScriptContent: (
+    id: string,
+    data: Partial<{
+      title: string;
+      hookVisual: string;
+      hookText: string;
+      hookAudio: string;
+      storyboard: StoryboardStep[];
+      caption: string;
+      hashtags: string[];
+      soundRecommendation: string;
+    }>
+  ) => patch<{ script: Script }>(`/api/scripts/${id}`, data),
+  deleteScript: (id: string) => del<{ ok: true }>(`/api/scripts/${id}`),
+  applySelectionInstruction: (
+    id: string,
+    data: { blockField: string; selectedText: string; instruction: string }
+  ) => post<{ script: Script }>(`/api/scripts/${id}/micro-edit`, { action: "selection_instruction", ...data }),
+  regenerateScriptBlock: (id: string, block: "hook" | "storyboard" | "caption" | "hashtags") =>
+    post<{ script: Script }>(`/api/scripts/${id}/micro-edit`, { action: "block_regenerate", block }),
+  importScript: (data: {
+    platform: Platform;
+    contentCategoryId: string;
+    contentType: ContentType;
+    productId?: string;
+    seriesId?: string;
+    scheduledDate?: string;
+    calendarEntryId?: string;
+    title?: string;
+    caption?: string;
+    hashtags: string[];
+    hookVisual?: string;
+    hookText?: string;
+    hookAudio?: string;
+    storyboard?: StoryboardStep[];
+    soundRecommendation?: string;
+  }) => post<{ script: Script }>("/api/scripts/import", data),
+
+  getMaterials: (productId?: string) =>
+    apiFetch<{ materials: SourceMaterial[] }>(`/api/materials${productId ? `?productId=${productId}` : ""}`),
+  addPastedMaterial: (data: { productId?: string; title?: string; rawText: string }) =>
+    post<{ material: SourceMaterial }>("/api/materials", data),
+  deleteMaterial: (id: string) => del<{ ok: true }>(`/api/materials/${id}`),
+  getMaterialCitations: (id: string) => apiFetch<{ citations: Citation[] }>(`/api/materials/${id}/citations`),
+  uploadMaterialFile: async (file: File, productId?: string) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (productId) formData.append("productId", productId);
+    const res = await fetch("/api/materials/upload", { method: "POST", body: formData });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiClientError(body?.error || `Erreur ${res.status}`);
+    return body as { material: SourceMaterial };
+  },
+
+  getInterviewChat: (productId?: string) =>
+    apiFetch<{ messages: OnboardingMessage[] }>(`/api/materials/interview${productId ? `?productId=${productId}` : ""}`),
+  sendInterviewMessage: (message: string, productId?: string) =>
+    post<{ reply: string; extractedMaterial: string | null }>("/api/materials/interview", { message, productId }),
+
+  generateSeriesFromMaterial: (data: {
+    productId?: string;
+    seriesId?: string;
+    newSeries?: { label: string; description: string; weight?: number };
+    platform: Platform;
+    contentCategoryId: string;
+    contentType: ContentType;
+    episodeCount: number;
+  }) => post<{ series: ContentSeries; scripts: Script[] }>("/api/series/from-material", data),
   saveScriptMetrics: (
     id: string,
     data: Partial<{ views: number; likes: number; comments: number; shares: number }>

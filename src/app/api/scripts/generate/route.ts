@@ -12,14 +12,18 @@ import { contentTypeSchema } from "@/lib/validation";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
 
-const schema = z.object({ calendarEntryId: z.uuid(), contentType: contentTypeSchema.optional() });
+const schema = z.object({
+  calendarEntryId: z.uuid(),
+  contentType: contentTypeSchema.optional(),
+  productId: z.uuid().optional(),
+});
 
 export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId();
     // Chaque génération de script coûte un appel LLM — limite partagée avec les autres routes de génération.
     await enforceRateLimit("script-generate", userId, 20, 60);
-    const { calendarEntryId, contentType } = schema.parse(await request.json());
+    const { calendarEntryId, contentType, productId } = schema.parse(await request.json());
     await enforceScriptQuota(userId);
 
     const entry = await db.query.calendarEntries.findFirst({
@@ -38,12 +42,12 @@ export async function POST(request: NextRequest) {
       entry.platform,
       entry.contentCategoryId,
       resolvedContentType,
-      undefined,
+      productId ?? null,
       undefined,
       entry.seriesId
     );
     const generated = await generateScript(context);
-    const script = await createScriptRecord(userId, entry.platform, context.contentCategory, null, generated, {
+    const script = await createScriptRecord(userId, entry.platform, context.contentCategory, productId ?? null, generated, {
       angleId: context.angle?.id ?? null,
       seriesId: context.series?.id ?? null,
       brandAssetId: context.brandAsset?.id ?? null,

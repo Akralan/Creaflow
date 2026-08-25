@@ -46,7 +46,7 @@ describe("generateScript", () => {
     callStructuredMock.mockResolvedValue(validVideoInput);
 
     const result = await generateScript(videoContext);
-    expect(result).toEqual({ contentType: "video", ...validVideoInput });
+    expect(result).toEqual({ contentType: "video", ...validVideoInput, usedExcerpts: [] });
   });
 
   it("propage l'erreur si le provider ne renvoie pas de réponse structurée", async () => {
@@ -95,6 +95,7 @@ describe("generateScript", () => {
       hookText: "Accroche",
       caption: "Texte complet",
       hashtags: [],
+      usedExcerpts: [],
     });
     expect(callStructuredMock).toHaveBeenCalledWith(
       expect.objectContaining({ tool: expect.objectContaining({ name: GENERATE_TEXT_POST_TOOL_NAME }) })

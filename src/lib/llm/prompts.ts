@@ -56,7 +56,9 @@ Règles de structure d'un script :
 - L'accroche (hook) doit être pensée pour capter l'attention dès les premières secondes ou les premiers mots.
 - Le contenu est découpé en étapes simples, réalisables avec les ressources dont dispose le créateur.
 - La légende et les hashtags (si pertinents pour la plateforme) respectent les codes de la plateforme visée.
-- Le ton doit refléter l'identité de marque du créateur, pas un ton générique.`;
+- Le ton doit refléter l'identité de marque du créateur, pas un ton générique.
+- Tu ne dois JAMAIS inventer une information factuelle (nom, chiffre, date, anecdote, résultat...) qui ne t'a pas été donnée explicitement dans le contexte ci-dessous. Si une précision manque pour rendre une phrase concrète, écris littéralement "[à compléter]" à cet endroit plutôt que d'inventer.
+- Le champ "usedExcerpts" de l'outil est obligatoire dans tous les cas : renvoie un tableau vide [] si aucune matière factuelle ne t'a été fournie ci-dessous, ne l'omets jamais.`;
 
 export interface ScriptGenerationContext {
   creatorProfile: {
@@ -87,6 +89,13 @@ export interface ScriptGenerationContext {
   /** Photo de marque sélectionnée par recherche sémantique (contentType "visual" uniquement),
    *  cf. docs/SPEC_RESSOURCES_VISUELLES.md §5.3/§7. */
   brandAsset?: { id: string; aiDescription: string; tags: string[] | null } | null;
+  /** Documents de matière brute du sujet, injectés tels quels (docs/SPEC_MATIERE_EDITEUR.md §3) — le
+   *  LLM décide lui-même quoi utiliser, aucune présélection côté serveur. `annotatedText` entoure les
+   *  passages déjà cités par des générations précédentes de marqueurs `[déjà utilisé]...[/déjà utilisé]`. */
+  materialDocuments?: Array<{ id: string; title: string | null; annotatedText: string }>;
+  /** Directive d'épisode pour une génération de série depuis la matière (§3.8) — le sous-thème que
+   *  ce script doit couvrir au sein de la série, le LLM pioche lui-même dans materialDocuments. */
+  episodeDirective?: { episodeTitle: string; angleHint: string } | null;
 }
 
 export function buildScriptUserMessage(context: ScriptGenerationContext): string {
@@ -102,6 +111,8 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
     angle,
     series,
     brandAsset,
+    materialDocuments,
+    episodeDirective,
   } = context;
 
   const lines: string[] = [
@@ -131,6 +142,24 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
     );
   } else {
     lines.push("Aucun produit spécifique : script générique sur l'activité de la marque.");
+  }
+
+  if (materialDocuments?.length) {
+    const combined = materialDocuments
+      .map((d) => (d.title ? `[${d.title}]\n${d.annotatedText}` : d.annotatedText))
+      .join("\n\n---\n\n");
+    lines.push(
+      `Matière factuelle disponible sur ce sujet (base-toi dessus en priorité, n'invente rien au-delà). ` +
+        `Les passages entourés de [déjà utilisé dans un post précédent]...[/déjà utilisé] ont déjà servi dans un post — ` +
+        `évite de les reprendre tels quels, un nouvel angle sur le même fait reste bienvenu :\n${combined}\n\n` +
+        `Le champ "usedExcerpts" de l'outil est obligatoire : renseigne-le toujours avec les passages copiés mot pour mot que tu as effectivement utilisés (jamais une reformulation), même un seul suffit s'il n'y en a qu'un.`
+    );
+  }
+
+  if (episodeDirective) {
+    lines.push(
+      `Cet épisode de la série doit se concentrer sur : ${episodeDirective.episodeTitle} — ${episodeDirective.angleHint}`
+    );
   }
 
   lines.push(`Plateforme cible : ${platform}. ${platformRule(platform)}`);

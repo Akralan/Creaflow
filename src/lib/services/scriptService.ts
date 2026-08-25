@@ -7,6 +7,8 @@ import type { StyleProfile } from "@/lib/llm/styleProfile";
 import { buildPerformanceSummary } from "@/lib/services/performanceService";
 import { pickAngleForScript } from "@/lib/services/angleService";
 import { findBestBrandAssetForScript } from "@/lib/services/brandAssetService";
+import { getMaterialForSubject } from "@/lib/services/sourceMaterialService";
+import { recordCitations, deleteCitationsForScript } from "@/lib/services/citationService";
 import { ApiError } from "@/lib/api/errors";
 
 const RECENT_TOPICS_LIMIT = 15;
@@ -56,7 +58,7 @@ export async function buildGenerationContext(
     series = { id: found.id, label: found.label, description: found.description };
   }
 
-  const [recentScripts, performanceSummary, angle] = await Promise.all([
+  const [recentScripts, performanceSummary, angle, materialDocuments] = await Promise.all([
     db.query.scripts.findMany({
       where: and(
         eq(scripts.userId, userId),
@@ -69,6 +71,10 @@ export async function buildGenerationContext(
     }),
     buildPerformanceSummary(userId, platform),
     pickAngleForScript(userId, contentCategoryId, excludeScriptId),
+    // Texte brut complet du sujet, annoté des passages déjà cités (docs/SPEC_MATIERE_EDITEUR.md §3)
+    // — [] si le sujet n'a pas de corpus déposé. C'est le LLM qui décide quoi utiliser, aucune
+    // présélection côté serveur.
+    getMaterialForSubject(userId, productId ?? null),
   ]);
 
   // Uniquement pour "visual" — un appel d'embedding serait un coût inutile sur les 2/3 des
@@ -103,11 +109,14 @@ export async function buildGenerationContext(
     platform,
     contentCategory: { id: category.id, label: category.label, description: category.description },
     contentType,
-    recentTopics: recentScripts.map((s) => s.title),
+    // title nullable depuis la naissance paresseuse (§4.5) — un brouillon sans titre n'est pas un
+    // "sujet déjà traité" exploitable pour l'anti-répétition, on l'exclut simplement.
+    recentTopics: recentScripts.map((s) => s.title).filter((title): title is string => title !== null),
     performanceSummary,
     angle: angle ? { id: angle.id, label: angle.label, description: angle.description } : null,
     series,
     brandAsset,
+    materialDocuments: materialDocuments.map((d) => ({ id: d.id, title: d.title, annotatedText: d.annotatedText })),
   };
 }
 
@@ -136,6 +145,7 @@ export async function createScriptRecord(
   extras?: { angleId?: string | null; seriesId?: string | null; brandAssetId?: string | null }
 ) {
   return db.transaction(async (tx) => {
+    const columns = scriptColumnsFromGenerated(generated);
     const [script] = await tx
       .insert(scripts)
       .values({
@@ -146,12 +156,19 @@ export async function createScriptRecord(
         angleId: extras?.angleId ?? null,
         seriesId: extras?.seriesId ?? null,
         brandAssetId: extras?.brandAssetId ?? null,
-        ...scriptColumnsFromGenerated(generated),
+        origin: "generated",
+        // Gisement de la donnée de voix (§4.7) : capturé une seule fois, au premier jet — jamais
+        // réécrit ensuite, y compris par une régénération (updateScriptRecord ne le touche pas).
+        firstDraftSnapshot: columns,
+        ...columns,
       })
       .returning();
     // Comptabilisé pour le quota de facturation (billingService.ts) — voir le commentaire sur
     // scriptGenerationEvents dans schema.ts.
     await tx.insert(scriptGenerationEvents).values({ userId, scriptId: script.id });
+    // Citations post-génération (docs/SPEC_MATIERE_EDITEUR.md §3) — le LLM rapporte lui-même les
+    // passages de matière utilisés, on les retrouve dans le texte source et on les enregistre.
+    await recordCitations(tx, userId, script.id, productId, generated.usedExcerpts ?? []);
     return { ...script, contentCategory };
   });
 }
@@ -170,6 +187,7 @@ export async function updateScriptRecord(
         ...(extras?.angleId !== undefined && { angleId: extras.angleId }),
         ...(extras?.brandAssetId !== undefined && { brandAssetId: extras.brandAssetId }),
         ...scriptColumnsFromGenerated(generated),
+        updatedAt: new Date(),
       })
       .where(eq(scripts.id, scriptId))
       .returning();
@@ -177,6 +195,55 @@ export async function updateScriptRecord(
     // cet événement, enforceScriptQuota() ne verrait jamais les régénérations, qui coûtent pourtant
     // un appel LLM comme une génération initiale.
     await tx.insert(scriptGenerationEvents).values({ userId, scriptId: script.id });
+    // Réécrit à chaque régénération — le brief peut avoir changé, les citations précédentes sont obsolètes.
+    await deleteCitationsForScript(tx, script.id);
+    await recordCitations(tx, userId, script.id, script.productId, generated.usedExcerpts ?? []);
     return { ...script, contentCategory };
   });
+}
+
+export interface ScriptContentPatch {
+  status?: (typeof scripts.$inferSelect)["status"];
+  title?: string;
+  hookVisual?: string;
+  hookText?: string;
+  hookAudio?: string;
+  storyboard?: { planNumber: number; description: string }[];
+  caption?: string;
+  hashtags?: string[];
+  soundRecommendation?: string;
+}
+
+/**
+ * PATCH de contenu depuis l'éditeur (docs/SPEC_MATIERE_EDITEUR.md §4.5) — édition directe d'un
+ * bloc (`onBlur`) ou naissance paresseuse du premier contenu tapé. Ne touche jamais à
+ * `contentCategoryId`/`angleId`/`seriesId` (brief verrouillé, §4.2) ni à `firstDraftSnapshot`.
+ */
+export async function patchScriptContent(userId: string, scriptId: string, patch: ScriptContentPatch) {
+  const [script] = await db
+    .update(scripts)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(and(eq(scripts.id, scriptId), eq(scripts.userId, userId)))
+    .returning();
+  if (!script) {
+    throw new ApiError(404, "Script introuvable.");
+  }
+  return script;
+}
+
+/**
+ * Suppression d'un brouillon (docs/SPEC_MATIERE_EDITEUR.md §4.5) — pendant de la naissance
+ * paresseuse. Cascade DB déjà en place pour scriptGenerationEvents/scriptMicroEditEvents/
+ * postMetrics/postMatchCandidates ; SET NULL déjà en place pour generatedImages.scriptId et
+ * calendarEntries.scriptId (le créneau survit et redevient générable).
+ */
+export async function deleteScriptForUser(userId: string, scriptId: string) {
+  const [deleted] = await db
+    .delete(scripts)
+    .where(and(eq(scripts.id, scriptId), eq(scripts.userId, userId)))
+    .returning({ id: scripts.id });
+  if (!deleted) {
+    throw new ApiError(404, "Script introuvable.");
+  }
+  return deleted;
 }

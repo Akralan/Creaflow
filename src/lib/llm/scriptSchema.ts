@@ -11,6 +11,12 @@ const baseFields = {
   title: z.string().min(1),
   caption: z.string().min(1),
   hashtags: z.array(z.string()).min(1),
+  // Citations post-génération (docs/SPEC_MATIERE_EDITEUR.md §3) — passages copiés mot pour mot
+  // depuis la matière factuelle fournie, utilisés comme base de ce script. `required` côté JSON
+  // schema des 3 tools (voir plus bas) : un champ vraiment optionnel est rempli de façon peu
+  // fiable par le modèle (observé en usage réel — tantôt absent, tantôt renseigné, mêmes entrées).
+  // `.default([])` ici en filet de sécurité si le provider l'omet quand même.
+  usedExcerpts: z.array(z.string()).default([]),
 };
 
 export const videoScriptSchema = z.object({
@@ -63,13 +69,20 @@ export const generateVideoScriptTool: LlmToolDefinition = {
             description: { type: "string" },
           },
           required: ["planNumber", "description"],
+          additionalProperties: false,
         },
       },
       caption: { type: "string", description: "Légende rédigée selon les règles SEO de la plateforme visée." },
       hashtags: { type: "array", description: "Liste de hashtags pertinents pour la plateforme visée.", items: { type: "string" } },
       soundRecommendation: { type: "string", description: "Recommandation de musique/audio/tendance à associer." },
+      usedExcerpts: {
+        type: "array",
+        description: "OBLIGATOIRE — ne jamais omettre ce champ. Passages copiés MOT POUR MOT depuis la matière factuelle fournie que tu as utilisés comme base de ce script, un par information factuelle reprise. Renvoie un tableau vide [] si aucune matière ne t'a été fournie ou si tu n'en as repris aucun passage mot pour mot.",
+        items: { type: "string" },
+      },
     },
-    required: ["title", "hookVisual", "hookText", "hookAudio", "storyboard", "caption", "hashtags", "soundRecommendation"],
+    required: ["title", "hookVisual", "hookText", "hookAudio", "storyboard", "caption", "hashtags", "soundRecommendation", "usedExcerpts"],
+    additionalProperties: false,
   },
 };
 
@@ -95,12 +108,19 @@ export const generateVisualPostTool: LlmToolDefinition = {
             description: { type: "string" },
           },
           required: ["planNumber", "description"],
+          additionalProperties: false,
         },
       },
       caption: { type: "string", description: "Légende rédigée selon les règles SEO de la plateforme visée." },
       hashtags: { type: "array", description: "Liste de hashtags pertinents pour la plateforme visée.", items: { type: "string" } },
+      usedExcerpts: {
+        type: "array",
+        description: "OBLIGATOIRE — ne jamais omettre ce champ. Passages copiés MOT POUR MOT depuis la matière factuelle fournie que tu as utilisés comme base de ce script, un par information factuelle reprise. Renvoie un tableau vide [] si aucune matière ne t'a été fournie ou si tu n'en as repris aucun passage mot pour mot.",
+        items: { type: "string" },
+      },
     },
-    required: ["title", "hookVisual", "storyboard", "caption", "hashtags"],
+    required: ["title", "hookVisual", "storyboard", "caption", "hashtags", "usedExcerpts"],
+    additionalProperties: false,
   },
 };
 
@@ -118,8 +138,14 @@ export const generateTextPostTool: LlmToolDefinition = {
         description: "Liste de hashtags pertinents pour la plateforme visée (vide si la plateforme n'en utilise pas).",
         items: { type: "string" },
       },
+      usedExcerpts: {
+        type: "array",
+        description: "OBLIGATOIRE — ne jamais omettre ce champ. Passages copiés MOT POUR MOT depuis la matière factuelle fournie que tu as utilisés comme base de ce script, un par information factuelle reprise. Renvoie un tableau vide [] si aucune matière ne t'a été fournie ou si tu n'en as repris aucun passage mot pour mot.",
+        items: { type: "string" },
+      },
     },
-    required: ["title", "hookText", "caption", "hashtags"],
+    required: ["title", "hookText", "caption", "hashtags", "usedExcerpts"],
+    additionalProperties: false,
   },
 };
 
