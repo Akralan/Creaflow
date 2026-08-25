@@ -2,6 +2,7 @@ import type { StructuredCallParams } from "./types";
 import { callAnthropic } from "./providers/anthropic";
 import { callGemini } from "./providers/gemini";
 import { callGroq } from "./providers/groq";
+import { callOpenAI } from "./providers/openai";
 import { logger } from "@/lib/logger";
 
 // Rappel ajouté au system prompt pour la nouvelle tentative — certains modèles (notamment via Groq)
@@ -18,8 +19,10 @@ function callProvider(provider: string, params: StructuredCallParams): Promise<u
       return callAnthropic(params);
     case "groq":
       return callGroq(params);
+    case "openai":
+      return callOpenAI(params);
     default:
-      throw new Error(`LLM_PROVIDER inconnu : "${provider}" (attendu "gemini", "anthropic" ou "groq").`);
+      throw new Error(`LLM_PROVIDER inconnu : "${provider}" (attendu "gemini", "anthropic", "groq" ou "openai").`);
   }
 }
 

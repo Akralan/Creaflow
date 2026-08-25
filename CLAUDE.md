@@ -16,7 +16,7 @@
 
 Copier `.env.example` vers `.env` et renseigner au minimum `DATABASE_URL` (PostgreSQL local) pour que l'app démarre.
 
-Le provider LLM utilisé pour la génération de contenu est sélectionné via `LLM_PROVIDER` (`gemini` par défaut, `anthropic`, ou `groq`) — voir `src/lib/llm/`. Renseigner la clé correspondante : `GEMINI_API_KEY` (clé Google AI Studio, quota gratuit), `ANTHROPIC_API_KEY`, ou `GROQ_API_KEY` (quota gratuit nettement plus généreux, pratique pour tester en dev).
+Le provider LLM utilisé pour la génération de contenu est sélectionné via `LLM_PROVIDER` (`gemini` par défaut, `anthropic`, `groq`, ou `openai`) — voir `src/lib/llm/`. Renseigner la clé correspondante : `GEMINI_API_KEY` (clé Google AI Studio, quota gratuit), `ANTHROPIC_API_KEY`, `GROQ_API_KEY` (quota gratuit nettement plus généreux, pratique pour tester en dev — mais palier gratuit à faible débit, ex. 8000 tokens/minute, qui peut être atteint si le corpus de matière brute injecté en entier à la génération (`docs/SPEC_MATIERE_EDITEUR.md` §3) est volumineux), ou `OPENAI_API_KEY`.
 
 Les credentials OAuth (TikTok/Instagram/LinkedIn) ne sont nécessaires que pour tester la connexion des comptes sociaux (Module A).
 
