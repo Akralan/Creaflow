@@ -2,11 +2,50 @@
 
 import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
-import { TextField } from "@/components/ui/TextField";
+import { TextAreaField, TextField } from "@/components/ui/TextField";
 import { api, ApiClientError, type Product } from "@/lib/apiClient";
 import { color } from "@/lib/design/tokens";
 import { MAX_PRODUCTS } from "@/lib/validation";
 import MaterialPanel from "@/components/MaterialPanel";
+
+/** Override d'audience par sujet (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — null = fallback sur
+ *  l'audience de marque (paramètres > Identité). Panneau dépliable, même pattern que "Matière". */
+function AudienceOverridePanel({ product, onUpdated }: { product: Product; onUpdated: (product: Product) => void }) {
+  const [value, setValue] = useState(product.targetAudience ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    setSaving(true);
+    setError(null);
+    try {
+      const { product: updated } = await api.updateProduct(product.id, { targetAudience: value.trim() || null });
+      onUpdated(updated);
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 8 }}>
+      <TextAreaField
+        label="Audience de ce sujet"
+        helper="Laisse vide pour utiliser l'audience de marque définie dans les paramètres."
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="Qui achète ou lit, ce qui l'intéresse, ce qu'il doit retenir de ce sujet précis"
+      />
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <Button variant="secondary" onClick={save} disabled={saving || value === (product.targetAudience ?? "")}>
+          {saving ? "..." : "Enregistrer"}
+        </Button>
+        {error && <span style={{ fontSize: 12, color: color.danger }}>{error}</span>}
+      </div>
+    </div>
+  );
+}
 
 export default function ProductCatalogue({ onCountChange }: { onCountChange?: (count: number) => void }) {
   const [products, setProducts] = useState<Product[]>([]);
@@ -16,6 +55,7 @@ export default function ProductCatalogue({ onCountChange }: { onCountChange?: (c
   const [valueProposition, setValueProposition] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [expandedMaterialId, setExpandedMaterialId] = useState<string | null>(null);
+  const [expandedAudienceId, setExpandedAudienceId] = useState<string | null>(null);
 
   useEffect(() => {
     api.getProducts().then(({ products }) => {
@@ -95,6 +135,21 @@ export default function ProductCatalogue({ onCountChange }: { onCountChange?: (c
                 )}
               </div>
               <button
+                onClick={() => setExpandedAudienceId((cur) => (cur === p.id ? null : p.id))}
+                style={{
+                  fontSize: 13,
+                  color: color.text3,
+                  border: `1px solid ${color.border}`,
+                  borderRadius: 8,
+                  padding: "6px 10px",
+                  background: "none",
+                  cursor: "pointer",
+                  flexShrink: 0,
+                }}
+              >
+                {expandedAudienceId === p.id ? "Fermer" : "Audience"}
+              </button>
+              <button
                 onClick={() => setExpandedMaterialId((cur) => (cur === p.id ? null : p.id))}
                 style={{
                   fontSize: 13,
@@ -125,6 +180,14 @@ export default function ProductCatalogue({ onCountChange }: { onCountChange?: (c
                 Supprimer
               </button>
             </div>
+            {expandedAudienceId === p.id && (
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${color.border}` }}>
+                <AudienceOverridePanel
+                  product={p}
+                  onUpdated={(updated) => setProducts((prev) => prev.map((prod) => (prod.id === updated.id ? updated : prod)))}
+                />
+              </div>
+            )}
             {expandedMaterialId === p.id && (
               <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${color.border}` }}>
                 <MaterialPanel productId={p.id} />

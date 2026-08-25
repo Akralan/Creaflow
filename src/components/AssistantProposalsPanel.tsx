@@ -20,6 +20,7 @@ const KIND_LABEL: Record<AssistantProposal["kind"], string> = {
   angle_update: "Modifier l'angle",
   posting_goal_update: "Objectif de fréquence",
   category_reweight: "Rééquilibrage des catégories",
+  profile_update: "Audience de la marque",
 };
 
 const inputStyle: React.CSSProperties = {
@@ -45,7 +46,7 @@ function pillStyle(active: boolean): React.CSSProperties {
   };
 }
 
-type ProposalGroup = "product" | "series" | "category" | "angle" | "postingGoal" | "categoryReweight";
+type ProposalGroup = "product" | "series" | "category" | "angle" | "postingGoal" | "categoryReweight" | "profile";
 
 function proposalGroup(kind: AssistantProposal["kind"]): ProposalGroup {
   switch (kind) {
@@ -65,6 +66,8 @@ function proposalGroup(kind: AssistantProposal["kind"]): ProposalGroup {
       return "postingGoal";
     case "category_reweight":
       return "categoryReweight";
+    case "profile_update":
+      return "profile";
   }
 }
 
@@ -111,6 +114,10 @@ interface CategoryReweightDraft {
   reasonSummary: string;
 }
 
+interface ProfileDraft {
+  targetAudience: string;
+}
+
 function toProductDraft(payload: Record<string, unknown>): ProductDraft {
   return {
     name: typeof payload.name === "string" ? payload.name : "",
@@ -152,6 +159,10 @@ function toPostingGoalDraft(payload: Record<string, unknown>): PostingGoalDraft 
   };
 }
 
+function toProfileDraft(payload: Record<string, unknown>): ProfileDraft {
+  return { targetAudience: typeof payload.targetAudience === "string" ? payload.targetAudience : "" };
+}
+
 function toCategoryReweightDraft(payload: Record<string, unknown>): CategoryReweightDraft {
   const rawItems = Array.isArray(payload.items) ? (payload.items as Record<string, unknown>[]) : [];
   return {
@@ -183,6 +194,7 @@ function ProposalCard({
   const [categoryReweightDraft, setCategoryReweightDraft] = useState<CategoryReweightDraft>(() =>
     toCategoryReweightDraft(proposal.payload)
   );
+  const [profileDraft, setProfileDraft] = useState<ProfileDraft>(() => toProfileDraft(proposal.payload));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -201,7 +213,9 @@ function ProposalCard({
                 ? postingGoalDraft
                 : group === "categoryReweight"
                   ? { items: categoryReweightDraft.items }
-                  : productDraft;
+                  : group === "profile"
+                    ? profileDraft
+                    : productDraft;
       const fields: Record<string, unknown> | undefined = action === "accept" && editing ? { ...draft } : undefined;
       const { proposals } = await api.resolveAssistantProposal(proposal.id, action, fields);
       onResolved(proposals);
@@ -246,7 +260,9 @@ function ProposalCard({
             ? platformLabel(postingGoalDraft.platform)
             : group === "categoryReweight"
               ? "Rééquilibrage des catégories"
-              : productDraft.name;
+              : group === "profile"
+                ? "Audience de marque"
+                : productDraft.name;
 
   const description =
     group === "series"
@@ -259,7 +275,9 @@ function ProposalCard({
             ? `${postingGoalDraft.targetCountPerWeek}/semaine`
             : group === "categoryReweight"
               ? categoryReweightDraft.reasonSummary
-              : productDraft.description;
+              : group === "profile"
+                ? profileDraft.targetAudience
+                : productDraft.description;
 
   return (
     <Card style={{ padding: 16 }}>
@@ -384,6 +402,15 @@ function ProposalCard({
                 <span style={{ fontSize: 12, color: color.textFaint }}>%</span>
               </div>
             ))}
+          </div>
+        ) : group === "profile" ? (
+          <div style={{ display: "grid", gap: 8 }}>
+            <textarea
+              style={{ ...inputStyle, minHeight: 70, resize: "vertical" }}
+              value={profileDraft.targetAudience}
+              onChange={(e) => setProfileDraft({ targetAudience: e.target.value })}
+              placeholder="Qui achète ou lit, ce qui l'intéresse, ce qu'il doit retenir de la marque"
+            />
           </div>
         ) : (
           <div style={{ display: "grid", gap: 8 }}>

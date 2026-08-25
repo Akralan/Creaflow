@@ -13,6 +13,10 @@ const updateProductSchema = z.object({
   description: z.string().optional(),
   valueProposition: z.string().optional(),
   photoUrl: z.string().optional(),
+  // Override d'audience par sujet, nullable explicitement pour permettre de revenir au fallback
+  // marque (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — seul champ de ce schéma qui accepte null,
+  // les autres restent "omis = inchangé" par cohérence avec le reste du formulaire produit.
+  targetAudience: z.string().nullable().optional(),
 });
 
 export async function PUT(

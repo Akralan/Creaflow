@@ -13,6 +13,7 @@ const profileSchema = z.object({
   values: z.string().optional(),
   equipment: z.array(z.string()).optional(),
   weeklyTimeAvailable: z.string().optional(),
+  targetAudience: z.string().optional(),
 });
 
 export async function GET() {

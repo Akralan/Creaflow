@@ -16,6 +16,9 @@ export const extractedProfileSchema = z.object({
   equipment: z.array(z.string()).optional(),
   weeklyTimeAvailable: z.string().optional(),
   suggestedPlatforms: z.array(z.string()).optional(),
+  // Audience de marque (docs/SPEC_PROMPT_GENERATION_TECH.md §5/Annexe A.7) — skippable, ne fait
+  // jamais partie des critères de `complete` ci-dessous.
+  targetAudience: z.string().optional(),
 });
 export type ExtractedOnboardingProfile = z.infer<typeof extractedProfileSchema>;
 
@@ -58,6 +61,10 @@ const updateOnboardingProfileTool: LlmToolDefinition = {
             description: "Matériel de production disponible, seulement si pertinent pour ce type de contenu.",
           },
           weeklyTimeAvailable: { type: "string", description: "Temps disponible par semaine pour produire du contenu." },
+          targetAudience: {
+            type: "string",
+            description: "Audience visée : qui achète ou lit, ce qui l'intéresse, ce qu'il doit retenir de la marque. Champ optionnel, ne pas insister si l'utilisateur ne sait pas répondre ou préfère passer.",
+          },
           suggestedPlatforms: {
             type: "array",
             items: { type: "string", enum: KNOWN_PLATFORM_KEYS },
@@ -81,7 +88,8 @@ Règles :
 - Pose une seule question à la fois, de façon conversationnelle, jamais un formulaire déguisé.
 - Ne suppose jamais que l'utilisateur fait de la vidéo ou vend des produits physiques — adapte-toi entièrement à ce qu'il décrit.
 - Dès que tu as assez d'informations sur : le nom/l'activité, une description de l'activité, le temps disponible par semaine, et au moins une plateforme pertinente pour ce type d'activité, marque complete=true et termine par un message de récapitulatif chaleureux.
-- Ne suggère que des plateformes parmi celles-ci : ${KNOWN_PLATFORM_KEYS.join(", ")}.`;
+- Ne suggère que des plateformes parmi celles-ci : ${KNOWN_PLATFORM_KEYS.join(", ")}.
+- Cherche aussi à connaître l'audience visée : qui achète ou lit, ce qui intéresse ces personnes, ce qu'elles doivent retenir de la marque. Pose une question simple, avec un exemple adapté à l'activité décrite. Si la personne ne sait pas répondre ou préfère passer, n'insiste pas : ce champ n'est pas nécessaire pour terminer l'onboarding.`;
 
 export interface OnboardingChatContext {
   history: OnboardingMessage[];

@@ -49,6 +49,7 @@ export async function finalizeOnboarding(userId: string, extracted: ExtractedOnb
     values: extracted.values ?? null,
     equipment: extracted.equipment ?? null,
     weeklyTimeAvailable: extracted.weeklyTimeAvailable ?? null,
+    targetAudience: extracted.targetAudience ?? null,
   };
   if (existingProfile) {
     await db.update(creatorProfiles).set(profileValues).where(eq(creatorProfiles.userId, userId));

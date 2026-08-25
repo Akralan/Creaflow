@@ -1,7 +1,7 @@
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { assistantProposals, assistantSessions, postingGoals, products } from "@/db/schema";
+import { assistantProposals, assistantSessions, creatorProfiles, postingGoals, products } from "@/db/schema";
 import { runAssistantChatTurn, type AssistantMessage } from "@/lib/llm/assistantChat";
 import { listActiveSeriesForUser, upsertSeriesItem } from "@/lib/services/seriesService";
 import {
@@ -33,7 +33,7 @@ export async function getAssistantChatState(userId: string) {
 }
 
 export async function runAssistantChatTurnForUser(userId: string, message: string, urls: string[] = []) {
-  const [session, { sources, failures }, productList, activeSeries, activeCategories, activeAngles, goals] =
+  const [session, { sources, failures }, productList, activeSeries, activeCategories, activeAngles, goals, profile] =
     await Promise.all([
       db.query.assistantSessions.findFirst({ where: eq(assistantSessions.userId, userId) }),
       urls.length > 0 ? fetchSources(urls) : Promise.resolve({ sources: [], failures: [] }),
@@ -42,6 +42,7 @@ export async function runAssistantChatTurnForUser(userId: string, message: strin
       listActiveCategoriesForUser(userId),
       listActiveAnglesForUser(userId),
       db.query.postingGoals.findMany({ where: eq(postingGoals.userId, userId) }),
+      db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId), columns: { targetAudience: true } }),
     ]);
 
   // Le texte complet des pages ne sert que pour ce tour (via `sources` ci-dessous) — seul un
@@ -60,6 +61,7 @@ export async function runAssistantChatTurnForUser(userId: string, message: strin
     categories: activeCategories,
     angles: activeAngles,
     postingGoals: goals.map((g) => ({ platform: g.platform, targetCountPerWeek: g.targetCountPerWeek })),
+    currentTargetAudience: profile?.targetAudience ?? null,
     sources,
   });
 
@@ -129,6 +131,15 @@ export async function runAssistantChatTurnForUser(userId: string, message: strin
     });
   }
 
+  for (const p of result.profileProposals) {
+    rows.push({
+      userId,
+      kind: "profile_update",
+      targetId: null,
+      payload: { targetAudience: p.targetAudience },
+    });
+  }
+
   if (rows.length > 0) {
     await db.insert(assistantProposals).values(rows);
   }
@@ -161,6 +172,10 @@ const categoryPayloadSchema = z.object({
 const anglePayloadSchema = z.object({
   label: z.string().min(1),
   description: z.string().min(1),
+});
+
+const profilePayloadSchema = z.object({
+  targetAudience: z.string().min(1),
 });
 
 // Payload de category_reweight, produit par un calcul déterministe (categoryReweightService.ts),
@@ -302,6 +317,11 @@ export async function resolveProposal(
       throw new ApiError(400, "Le nombre de catégories actives doit rester entre 2 et 6.");
     }
     await saveCategoriesForUser(userId, nextItems);
+  } else if (proposal.kind === "profile_update") {
+    const data = profilePayloadSchema.parse(merged);
+    // Une seule cible possible (le CreatorProfile de l'utilisateur, forcément déjà créé — l'assistant
+    // n'est accessible qu'après l'onboarding) : pas d'upsert à gérer, contrairement aux autres kinds.
+    await db.update(creatorProfiles).set({ targetAudience: data.targetAudience }).where(eq(creatorProfiles.userId, userId));
   } else {
     // posting_goal_update
     const data = postingGoalPayloadSchema.parse(merged);

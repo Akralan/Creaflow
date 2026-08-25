@@ -16,6 +16,7 @@ interface ProductUpdateInput {
   description?: string;
   valueProposition?: string;
   photoUrl?: string;
+  targetAudience?: string | null;
 }
 
 export async function createProductsForUser(userId: string, items: ProductCreateInput[]) {

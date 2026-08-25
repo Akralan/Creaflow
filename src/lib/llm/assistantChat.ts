@@ -53,6 +53,14 @@ export const postingGoalProposalSchema = z.object({
 });
 export type PostingGoalProposal = z.infer<typeof postingGoalProposalSchema>;
 
+// Audience de marque (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — une seule cible possible
+// (CreatorProfile de l'utilisateur), pas de action create/update ni de targetId comme les autres :
+// plafonné à 1 élément plutôt que 5 (cf. assistantChatResultSchema).
+export const profileProposalSchema = z.object({
+  targetAudience: z.string().min(1),
+});
+export type ProfileProposal = z.infer<typeof profileProposalSchema>;
+
 export const assistantChatResultSchema = z.object({
   assistantReply: z.string().min(1),
   productProposals: z.array(productProposalSchema).max(5),
@@ -60,6 +68,7 @@ export const assistantChatResultSchema = z.object({
   categoryProposals: z.array(categoryProposalSchema).max(5),
   angleProposals: z.array(angleProposalSchema).max(5),
   postingGoalProposals: z.array(postingGoalProposalSchema).max(5),
+  profileProposals: z.array(profileProposalSchema).max(1),
 });
 export type AssistantChatResult = z.infer<typeof assistantChatResultSchema>;
 
@@ -192,13 +201,37 @@ function buildAssistantTool(context: {
             required: ["platform", "targetCountPerWeek"],
           },
         },
+        profileProposals: {
+          type: "array",
+          description:
+            "0 ou 1 proposition de mise à jour de l'AUDIENCE DE MARQUE (pas l'audience d'un sujet précis — ça, c'est product_update). La plupart des tours n'en proposent aucune, seulement quand l'audience se précise clairement dans la conversation et diffère de ce qui est déjà connu.",
+          maxItems: 1,
+          items: {
+            type: "object",
+            properties: {
+              targetAudience: {
+                type: "string",
+                description: "Qui achète ou lit, ce qui l'intéresse, ce qu'il doit retenir de la marque — valeur complète à jour, pas seulement le delta.",
+              },
+            },
+            required: ["targetAudience"],
+          },
+        },
       },
-      required: ["assistantReply", "productProposals", "seriesProposals", "categoryProposals", "angleProposals", "postingGoalProposals"],
+      required: [
+        "assistantReply",
+        "productProposals",
+        "seriesProposals",
+        "categoryProposals",
+        "angleProposals",
+        "postingGoalProposals",
+        "profileProposals",
+      ],
     },
   };
 }
 
-const SYSTEM_PROMPT = `Tu es l'assistant éditorial de CreaFlow. Tu discutes avec l'utilisateur de sa direction éditoriale et des paramètres de son calendrier de publication, et tu proposes, quand c'est pertinent, des créations ou modifications de PRODUITS, CATÉGORIES DE CONTENU, ANGLES, SÉRIES récurrentes, et OBJECTIFS DE FRÉQUENCE par plateforme.
+const SYSTEM_PROMPT = `Tu es l'assistant éditorial de CreaFlow. Tu discutes avec l'utilisateur de sa direction éditoriale et des paramètres de son calendrier de publication, et tu proposes, quand c'est pertinent, des créations ou modifications de PRODUITS, CATÉGORIES DE CONTENU, ANGLES, SÉRIES récurrentes, OBJECTIFS DE FRÉQUENCE par plateforme, et l'AUDIENCE DE MARQUE.
 
 Règles :
 - Pose une seule question à la fois, de façon conversationnelle.
@@ -210,7 +243,8 @@ Règles :
 - Pour les plateformes (séries et catégories), utilise UNIQUEMENT les clés du registre fourni. Ne restreins à des plateformes précises que si le contexte de la conversation le justifie clairement (ex. l'utilisateur mentionne un réseau en particulier) — sinon laisse le tableau vide (= toutes les plateformes), ne sur-scope jamais sans raison. Pour une mise à jour, restitue les plateformes actuelles de l'élément sauf changement explicitement demandé.
 - Tu ne proposes JAMAIS d'action sur le calendrier lui-même : pas de génération de mois, pas de création/déplacement/suppression de créneau. Ton rôle s'arrête aux données qui alimentent le calendrier (catégories, angles, séries, objectifs de fréquence) — jamais le calendrier généré.
 - Rien n'est jamais enregistré directement : chaque proposition sera relue, éditée ou refusée par l'utilisateur avant d'être appliquée — tu peux donc proposer dès que c'est raisonnable, sans sur-demander de confirmation.
-- Tu ne dois JAMAIS inventer une information (nom, caractéristique, chiffre, date...) qui ne t'a pas été donnée explicitement par l'utilisateur ou par une source fournie. En cas de doute ou d'info manquante, pose une question de clarification plutôt que de deviner.`;
+- Tu ne dois JAMAIS inventer une information (nom, caractéristique, chiffre, date...) qui ne t'a pas été donnée explicitement par l'utilisateur ou par une source fournie. En cas de doute ou d'info manquante, pose une question de clarification plutôt que de deviner.
+- L'audience de marque (qui achète/lit, ce qui l'intéresse, ce qu'il doit retenir) est une donnée de PROFIL, distincte de l'audience éventuelle d'un sujet précis (ça, c'est une propriété du produit — utilise product_update, pas profileProposals, dans ce cas). Ne propose une mise à jour de l'audience de marque que si elle se précise clairement et diffère de la valeur déjà connue fournie dans le contexte.`;
 
 export interface AssistantChatContext {
   history: AssistantMessage[];
@@ -226,6 +260,8 @@ export interface AssistantChatContext {
   categories: Array<{ id: string; label: string; description: string; weight: number; platforms: string[] }>;
   angles: Array<{ id: string; label: string; description: string }>;
   postingGoals: Array<{ platform: string; targetCountPerWeek: number }>;
+  /** Audience de marque actuelle (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — null si jamais renseignée. */
+  currentTargetAudience?: string | null;
   sources?: Array<{ url: string; text: string }>;
 }
 
@@ -264,6 +300,9 @@ export async function runAssistantChatTurn(context: AssistantChatContext): Promi
           .map((g) => `${platformLabel(g.platform)} : ${g.targetCountPerWeek}/semaine`)
           .join(" ; ")}`
       : "Aucun objectif de fréquence défini pour l'instant.",
+    context.currentTargetAudience
+      ? `Audience de marque actuelle : ${context.currentTargetAudience}`
+      : "Aucune audience de marque renseignée pour l'instant.",
   ];
 
   const sourceBlocks = (context.sources ?? []).map((s) => `--- Source : ${s.url} ---\n${s.text}`);

@@ -55,6 +55,7 @@ function IdentityTab() {
   const [values, setValues] = useState("");
   const [equipment, setEquipment] = useState<string[]>([]);
   const [weeklyTimeAvailable, setWeeklyTimeAvailable] = useState("");
+  const [targetAudience, setTargetAudience] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -69,6 +70,7 @@ function IdentityTab() {
         setValues(profile.values || "");
         setEquipment(profile.equipment || []);
         setWeeklyTimeAvailable(profile.weeklyTimeAvailable || "");
+        setTargetAudience(profile.targetAudience || "");
       }
       setLoaded(true);
     });
@@ -79,7 +81,7 @@ function IdentityTab() {
     setSaved(false);
     setError(null);
     try {
-      await api.saveProfile({ brandName, activityType, tone, values, equipment, weeklyTimeAvailable });
+      await api.saveProfile({ brandName, activityType, tone, values, equipment, weeklyTimeAvailable, targetAudience });
       setSaved(true);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement.");
@@ -98,6 +100,12 @@ function IdentityTab() {
         <TextField label="Ton" value={tone} onChange={(e) => setTone(e.target.value)} />
       </div>
       <TextAreaField label="Valeurs" value={values} onChange={(e) => setValues(e.target.value)} />
+      <TextAreaField
+        label="Audience visée"
+        value={targetAudience}
+        onChange={(e) => setTargetAudience(e.target.value)}
+        placeholder="Qui achète ou lit, ce qui l'intéresse, ce qu'il doit retenir de la marque"
+      />
       <div>
         <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 12 }}>
           Matériel
