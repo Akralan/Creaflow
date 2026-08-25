@@ -57,6 +57,8 @@ export interface CreatorProfile {
   values: string | null;
   equipment: string[] | null;
   weeklyTimeAvailable: string | null;
+  /** Audience de marque (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — fallback pour Product.targetAudience. */
+  targetAudience: string | null;
   styleProfile: {
     tone: string;
     sentenceLength: string;
@@ -74,6 +76,8 @@ export interface Product {
   description: string | null;
   valueProposition: string | null;
   photoUrl: string | null;
+  /** Override d'audience par sujet (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — null = fallback marque. */
+  targetAudience: string | null;
 }
 
 export interface Connection {
@@ -144,6 +148,9 @@ export interface Script {
   platform: Platform;
   /** Nullable : naissance paresseuse (§4.5) — la ligne peut naître avant qu'un titre n'existe. */
   title: string | null;
+  /** Intention de génération (docs/SPEC_PROMPT_GENERATION_TECH.md §2) — non affiché à l'utilisateur
+   *  en V1 (§6.4) ; présent ici seulement pour conditionner l'affichage du bouton "autre idée". */
+  concept: string | null;
   contentType: ContentType;
   /** Présents seulement pour contentType "video" (et hookVisual/storyboard aussi pour "visual"). */
   hookVisual: string | null;
@@ -235,7 +242,8 @@ export interface AssistantProposal {
     | "angle_create"
     | "angle_update"
     | "posting_goal_update"
-    | "category_reweight";
+    | "category_reweight"
+    | "profile_update";
   targetId: string | null;
   payload: Record<string, unknown>;
   status: "pending" | "accepted" | "rejected";
@@ -309,6 +317,7 @@ export const api = {
     values?: string;
     equipment?: string[];
     weeklyTimeAvailable?: string;
+    targetAudience?: string;
   }) => post<{ profile: CreatorProfile }>("/api/profile", data),
   triggerStyleAnalysis: () => post<{ profile: CreatorProfile }>("/api/profile/style-analysis"),
 
@@ -344,7 +353,7 @@ export const api = {
   ) => post<{ products: Product[] }>("/api/products", items),
   updateProduct: (
     id: string,
-    data: Partial<{ name: string; description: string; valueProposition: string; photoUrl: string }>
+    data: Partial<{ name: string; description: string; valueProposition: string; photoUrl: string; targetAudience: string | null }>
   ) => put<{ product: Product }>(`/api/products/${id}`, data),
   deleteProduct: (id: string) => del<{ ok: true }>(`/api/products/${id}`),
 
@@ -402,6 +411,9 @@ export const api = {
   ) => post<{ script: Script }>(`/api/scripts/${id}/micro-edit`, { action: "selection_instruction", ...data }),
   regenerateScriptBlock: (id: string, block: "hook" | "storyboard" | "caption" | "hashtags") =>
     post<{ script: Script }>(`/api/scripts/${id}/micro-edit`, { action: "block_regenerate", block }),
+  /** "Autre idée, même brief" (docs/SPEC_PROMPT_GENERATION_TECH.md §6) — remplace tout le contenu du
+   *  script en place, brief verrouillé. Confirmation à afficher côté appelant avant d'exécuter (§6.3). */
+  newIdea: (id: string) => post<{ script: Script }>(`/api/scripts/${id}/new-idea`),
   importScript: (data: {
     platform: Platform;
     contentCategoryId: string;
