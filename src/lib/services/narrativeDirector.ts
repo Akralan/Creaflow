@@ -4,12 +4,15 @@ import { db } from "@/db";
 import { narrativeState, products, contentSeries, creatorProfiles, scripts, sourceMaterials, sourceMaterialCitations } from "@/db/schema";
 import {
   planNarrative,
+  chooseDailyDirection,
   type LlmNarrativeBeat,
   type NarrativePlanContext,
   type NarrativePlanDocumentContext,
+  type DailyDirectionBeatCandidate,
 } from "@/lib/llm/narrativePrompts";
 import { backfillMaterialSummaries } from "@/lib/services/sourceMaterialService";
 import { ApiError } from "@/lib/api/errors";
+import { logger } from "@/lib/logger";
 
 const MAX_FOCUS_DOCS = 3;
 const MAX_CALLBACKS = 8;
@@ -363,4 +366,190 @@ export async function patchNarrativeStateForUser(
 
   const [row] = await db.update(narrativeState).set(set).where(eq(narrativeState.id, stateId)).returning();
   return toNarrativeStateDTO(row);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Choix du jour (docs/SPEC_REDACTEUR_EN_CHEF.md §3.3/§4.1) — interne au flux de génération.
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * Résolution de l'état à la génération (§2/§4.1.2) : série > produit > marque, jamais de création
+ * implicite — pas d'état = pas de chef. Contrairement à {@link planNarrativeForSubject}, ne crée
+ * jamais rien : seule une planification explicite fait naître un état.
+ */
+export async function resolveNarrativeState(
+  userId: string,
+  productId: string | null,
+  seriesId: string | null
+): Promise<NarrativeStateDTO | null> {
+  if (seriesId) {
+    const state = await findNarrativeState(userId, null, seriesId);
+    if (state) return state;
+  }
+  if (productId) {
+    const state = await findNarrativeState(userId, productId, null);
+    if (state) return state;
+  }
+  return findNarrativeState(userId, null, null);
+}
+
+async function resolveSubjectMode(userId: string, seriesId: string | null): Promise<"feuilleton" | "rendez_vous"> {
+  // Un sujet hors série = arc léger, régime feuilleton (§1).
+  if (!seriesId) return "feuilleton";
+  const series = await db.query.contentSeries.findFirst({
+    where: and(eq(contentSeries.id, seriesId), eq(contentSeries.userId, userId)),
+    columns: { mode: true },
+  });
+  return series?.mode ?? "feuilleton";
+}
+
+export interface DailyDirection {
+  /** Traçabilité pour {@link markBeatDrafted} après génération — ne sert pas à l'assemblage du message. */
+  stateId: string;
+  beatId: string | null;
+  beatTitle: string | null;
+  concept: string;
+  kind: NarrativeBeatKind;
+  focusDocIds: string[];
+  callbackToUse: string | null;
+  promiseToHonor: string | null;
+  promiseToMake: string | null;
+  angleHint: string | null;
+}
+
+/**
+ * Choix du jour (§3.3), orchestré ici — jamais un endpoint, appelé depuis `buildGenerationContext`
+ * (scriptService.ts). Ne lève JAMAIS : toute erreur (état absent, profil absent, appel LLM, parsing)
+ * renvoie `null` — dégradation silencieuse vers le pipeline actuel (§4.1 point 4), le chef n'est
+ * jamais bloquant.
+ */
+export async function resolveDailyDirection(
+  userId: string,
+  params: {
+    productId: string | null;
+    seriesId: string | null;
+    platform: string;
+    contentCategoryLabel: string;
+    contentCategoryDescription: string;
+    contentType: string;
+    directive?: string | null;
+    rejectedConcepts?: string[];
+  }
+): Promise<DailyDirection | null> {
+  try {
+    let state = await resolveNarrativeState(userId, params.productId, params.seriesId);
+    if (!state) return null; // pas d'état = pas de chef (§2)
+
+    const mode = await resolveSubjectMode(userId, state.seriesId);
+
+    // Replanification paresseuse avant le choix du jour, mode feuilleton uniquement (§3.2/§4.1.3) —
+    // le mode rendez_vous n'a pas de beats à maintenir.
+    if (mode === "feuilleton" && state.isStale) {
+      state = await planNarrativeForSubject(userId, {
+        productId: state.productId,
+        seriesId: state.seriesId,
+        // La replanification paresseuse n'est pas un geste utilisateur : elle n'injecte pas la
+        // directive du jour, réservée à l'appel choix du jour qui suit.
+        directive: null,
+      });
+    }
+
+    const { product, subjectLabel } = await resolveSubject(userId, state.productId, state.seriesId);
+    const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
+    if (!profile) return null; // pas de profil = pas de chef, dégradation silencieuse
+
+    const openPromiseTexts = state.openPromises.map((p) => p.text);
+    const baseContext = {
+      brandName: profile.brandName,
+      activityType: profile.activityType,
+      targetAudience: product?.targetAudience ?? profile.targetAudience,
+      subjectLabel,
+      mode,
+      platform: params.platform,
+      contentCategoryLabel: params.contentCategoryLabel,
+      contentCategoryDescription: params.contentCategoryDescription,
+      contentType: params.contentType,
+      directive: params.directive ?? null,
+      rejectedConcepts: params.rejectedConcepts,
+      openPromiseTexts,
+      callbacks: state.callbacks,
+    };
+
+    const dailyContext =
+      mode === "feuilleton"
+        ? {
+            ...baseContext,
+            arcSummary: state.arcSummary,
+            beats: state.beats
+              .filter((b): b is NarrativeBeat & { status: "planned" | "drafted" } => b.status === "planned" || b.status === "drafted")
+              .map(
+                (b): DailyDirectionBeatCandidate => ({ id: b.id, title: b.title, kind: b.kind, status: b.status, rationale: b.rationale })
+              ),
+            // Documents candidats : ceux référencés par les beats à venir (planned/drafted), pas tout
+            // le corpus déjà résumé côté planification — décision d'implémentation, la spec ne
+            // précise pas exactement quels "focusDocs candidats" en mode feuilleton.
+            documents: (await loadDocumentSummaries(userId, state.productId)).filter((d) =>
+              state.beats.some((b) => (b.status === "planned" || b.status === "drafted") && b.focusDocIds.includes(d.id))
+            ),
+          }
+        : {
+            ...baseContext,
+            formatContract: state.formatContract,
+            publishedConcepts: await loadPublishedConcepts(userId, state.productId, state.seriesId),
+            // Biais de fraîcheur explicite (§3.3) : les 20 docs les plus récents, déjà triés
+            // desc(createdAt) par loadDocumentSummaries.
+            documents: (await loadDocumentSummaries(userId, state.productId)).slice(0, 20),
+          };
+
+    const result = await chooseDailyDirection(dailyContext);
+
+    const beat = result.beatId ? state.beats.find((b) => b.id === result.beatId) : undefined;
+    return {
+      stateId: state.id,
+      beatId: beat ? beat.id : null, // ignore un beatId halluciné ne correspondant à aucun beat connu
+      beatTitle: beat?.title ?? null,
+      concept: result.concept,
+      kind: result.kind,
+      focusDocIds: result.focusDocIds.slice(0, MAX_FOCUS_DOCS),
+      callbackToUse: result.callbackToUse,
+      promiseToHonor: result.promiseToHonor,
+      promiseToMake: result.promiseToMake,
+      angleHint: result.angleHint,
+    };
+  } catch (err) {
+    logger.error("Choix du jour échoué — dégradation silencieuse vers le pipeline sans chef", err, {
+      userId,
+      productId: params.productId,
+      seriesId: params.seriesId,
+    });
+    return null;
+  }
+}
+
+/**
+ * Après génération réussie (§4.1.6) : le beat choisi passe en "drafted" et pointe le script créé.
+ * Jamais bloquant — l'appelant catch et journalise, un échec ici ne doit jamais faire échouer une
+ * génération qui a réussi.
+ */
+/** Bandeau éditeur (docs/SPEC_REDACTEUR_EN_CHEF.md §7 : "Épisode de l'arc : ${beat.title}") — résout
+ *  le titre d'un beat depuis le contexte (productId/seriesId) d'un script qui porte ce beatId.
+ *  `null` si l'état ou le beat n'existe plus (script orphelin d'un plan remanié — pas une erreur). */
+export async function findBeatTitle(
+  userId: string,
+  productId: string | null,
+  seriesId: string | null,
+  beatId: string
+): Promise<string | null> {
+  const state = await resolveNarrativeState(userId, productId, seriesId);
+  return state?.beats.find((b) => b.id === beatId)?.title ?? null;
+}
+
+export async function markBeatDrafted(stateId: string, beatId: string, scriptId: string): Promise<void> {
+  const state = await db.query.narrativeState.findFirst({ where: eq(narrativeState.id, stateId) });
+  if (!state) return;
+  const beats = (state.beats as NarrativeBeat[] | null) ?? [];
+  const idx = beats.findIndex((b) => b.id === beatId);
+  if (idx === -1) return;
+  const updatedBeats = beats.map((b, i) => (i === idx ? { ...b, status: "drafted" as const, scriptId } : b));
+  await db.update(narrativeState).set({ beats: updatedBeats, updatedAt: new Date() }).where(eq(narrativeState.id, stateId));
 }

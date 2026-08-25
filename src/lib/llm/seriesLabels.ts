@@ -7,6 +7,8 @@ export const seriesEntrySchema = z.object({
   description: z.string().min(1),
   weight: z.number().int().min(0).max(60),
   categoryLabels: z.array(z.string().min(1)).min(1),
+  // docs/SPEC_REDACTEUR_EN_CHEF.md §4.5, Annexe B.8 — inférence à la création, éditable ensuite.
+  mode: z.enum(["feuilleton", "rendez_vous"]),
 });
 
 export type SeriesEntry = z.infer<typeof seriesEntrySchema>;
@@ -50,8 +52,14 @@ function buildSuggestContentSeriesTool(categoryLabels: string[]): LlmToolDefinit
                 description: "Une ou plusieurs catégories de contenu actives auxquelles cette série appartient.",
                 items: { type: "string", enum: categoryLabels },
               },
+              mode: {
+                type: "string",
+                enum: ["feuilleton", "rendez_vous"],
+                description:
+                  'Détermine le mode de la série : "feuilleton" si les épisodes se suivent et construisent une progression (devlog, coulisses d\'un projet, avancement d\'un chantier) ; "rendez_vous" si les épisodes sont autonomes et ne partagent qu\'un format (news de la semaine, sélection, FAQ, top). En cas de doute, choisis "rendez_vous".',
+              },
             },
-            required: ["label", "description", "weight", "categoryLabels"],
+            required: ["label", "description", "weight", "categoryLabels", "mode"],
           },
         },
       },

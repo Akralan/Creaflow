@@ -90,7 +90,7 @@ export async function generateSeriesForUser(userId: string) {
 
     const inserted = await tx
       .insert(contentSeries)
-      .values(resolved.map((s) => ({ userId, label: s.label, description: s.description, weight: s.weight })))
+      .values(resolved.map((s) => ({ userId, label: s.label, description: s.description, weight: s.weight, mode: s.mode })))
       .returning();
 
     const joinRows = inserted.flatMap((series, i) =>

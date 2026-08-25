@@ -220,3 +220,154 @@ export async function planNarrative(context: NarrativePlanContext): Promise<Upda
   });
   return updateNarrativePlanResultSchema.parse(args);
 }
+
+// ---------------------------------------------------------------------------------------------
+// Choix du jour (Annexe B.2b/B.5) — interne au flux de génération, jamais un endpoint public.
+// ---------------------------------------------------------------------------------------------
+
+// Annexe B.2b, verbatim.
+const CHOOSE_DAILY_DIRECTION_INSTRUCTIONS = `Choisis la direction du prochain post via l'outil fourni.
+- Mode feuilleton : prends le premier beat non couvert compatible avec le créneau (plateforme, catégorie, type de contenu). Si aucun beat ne convient, choisis le moment hors plan le plus utile à l'arc (beatId null) et explique-le dans le concept.
+- Mode rendez-vous : choisis le meilleur moment de la période — matière récente d'abord, jamais un sujet déjà couvert par un post publié de la série, dans le respect du contrat de format.
+- Si une promesse ouverte peut être honorée par ce créneau, honore-la (promiseToHonor) avant d'en faire une nouvelle. Jamais plus d'une promesse faite par post.
+- Si le créateur a fourni une idée, elle guide ce choix : interprète-la (c'est une piste, pas un texte), et si elle sort du plan, assume le détour (beatId null).
+- Si des concepts refusés te sont fournis, propose une direction réellement différente, pas une reformulation.
+- Le champ "concept" est ta direction éditoriale : l'idée unique, à qui elle s'adresse, ce qu'on doit retenir — en 1-2 phrases. Ne rédige rien d'autre.`;
+
+const CHOOSE_DAILY_DIRECTION_TOOL_NAME = "choose_daily_direction";
+
+// Mêmes chaînes vides que llmNarrativeBeatSchema (angleHint) — pas d'union JSON Schema avec null.
+const emptyToNull = z.string().transform((v) => v.trim() || null);
+
+const chooseDailyDirectionTool: LlmToolDefinition = {
+  name: CHOOSE_DAILY_DIRECTION_TOOL_NAME,
+  description: "Choisit la direction éditoriale du prochain post à générer.",
+  input_schema: {
+    type: "object",
+    properties: {
+      beatId: {
+        type: "string",
+        description: "Id du beat choisi dans le plan, ou chaîne vide (mode rendez-vous, ou détour hors plan assumé).",
+      },
+      concept: {
+        type: "string",
+        description:
+          "La direction éditoriale : l'idée unique de ce post, à qui il s'adresse, ce qu'on doit retenir — 1 à 2 phrases. Une décision, pas une paraphrase du créneau.",
+      },
+      kind: {
+        type: "string",
+        enum: [...narrativeBeatKindSchema],
+        description: "material | pedagogical | personal — même sens que dans le plan.",
+      },
+      focusDocIds: {
+        type: "array",
+        items: { type: "string" },
+        description: "Les 1 à 3 documents que le rédacteur lira en entier pour écrire ce post. [] si kind n'est pas material.",
+      },
+      callbackToUse: { type: "string", description: "Un callback à replacer naturellement, ou chaîne vide si aucun." },
+      promiseToHonor: {
+        type: "string",
+        description: "Le texte EXACT d'une promesse ouverte que ce post honore, ou chaîne vide si aucune.",
+      },
+      promiseToMake: {
+        type: "string",
+        description: "Une promesse que ce post fera en conclusion, ou chaîne vide. Jamais plus d'une.",
+      },
+      angleHint: {
+        type: "string",
+        description: "Forme de hook recommandée, ou chaîne vide (l'angle par défaut du système s'appliquera).",
+      },
+    },
+    required: ["beatId", "concept", "kind", "focusDocIds", "callbackToUse", "promiseToHonor", "promiseToMake", "angleHint"],
+  },
+};
+
+const chooseDailyDirectionResultSchema = z.object({
+  beatId: emptyToNull,
+  concept: z.string().min(1),
+  kind: z.enum(narrativeBeatKindSchema),
+  focusDocIds: z.array(z.string()).max(3),
+  callbackToUse: emptyToNull,
+  promiseToHonor: emptyToNull,
+  promiseToMake: emptyToNull,
+  angleHint: emptyToNull,
+});
+export type ChooseDailyDirectionResult = z.infer<typeof chooseDailyDirectionResultSchema>;
+
+export interface DailyDirectionBeatCandidate {
+  id: string;
+  title: string;
+  kind: (typeof narrativeBeatKindSchema)[number];
+  status: (typeof narrativeBeatStatusSchema)[number];
+  rationale: string;
+}
+
+export interface DailyDirectionContext {
+  brandName: string;
+  activityType: string;
+  targetAudience?: string | null;
+  subjectLabel: string;
+  mode: "feuilleton" | "rendez_vous";
+  platform: string;
+  contentCategoryLabel: string;
+  contentCategoryDescription: string;
+  contentType: string;
+  directive?: string | null;
+  rejectedConcepts?: string[];
+  /** Mode feuilleton uniquement. */
+  arcSummary?: string | null;
+  beats?: DailyDirectionBeatCandidate[];
+  /** Mode rendez-vous uniquement. */
+  formatContract?: string | null;
+  publishedConcepts?: string[];
+  openPromiseTexts: string[];
+  callbacks: string[];
+  documents: NarrativePlanDocumentContext[];
+}
+
+function buildDailyDirectionUserMessage(context: DailyDirectionContext): string {
+  const lines: string[] = [
+    `Sujet : ${context.subjectLabel}`,
+    context.targetAudience ? `Audience visée : ${context.targetAudience}` : null,
+    `Créneau : ${context.platform}, catégorie "${context.contentCategoryLabel}" (${context.contentCategoryDescription}), type de contenu ${context.contentType}.`,
+    context.mode === "feuilleton"
+      ? `Mode feuilleton. Arc actuel : ${context.arcSummary ?? "aucun."}`
+      : `Mode rendez-vous.${context.formatContract ? ` Contrat de format : ${context.formatContract}` : ""}`,
+    context.mode === "feuilleton"
+      ? context.beats?.length
+        ? `Beats du plan (dans l'ordre) :\n${context.beats
+            .map((b) => `- [${b.id}] (${b.status}, ${b.kind}) ${b.title} — ${b.rationale}`)
+            .join("\n")}`
+        : "Aucun beat disponible dans le plan pour ce créneau."
+      : context.publishedConcepts?.length
+        ? `Posts déjà publiés récemment sur ce sujet (ne pas répéter) : ${context.publishedConcepts.join(" ; ")}`
+        : "Aucun post publié sur ce sujet pour l'instant.",
+    context.openPromiseTexts.length > 0 ? `Promesses ouvertes : ${context.openPromiseTexts.join(" ; ")}` : null,
+    context.callbacks.length > 0 ? `Callbacks disponibles : ${context.callbacks.join(" ; ")}` : null,
+    context.documents.length > 0
+      ? `Documents disponibles (résumés) :\n${context.documents
+          .map((d) => `- [${d.id}]${d.alreadyUsed ? " (déjà exploité)" : ""} ${d.summary ?? "(résumé pas encore disponible)"}`)
+          .join("\n")}`
+      : "Aucun document de matière disponible pour ce créneau.",
+    context.rejectedConcepts?.length
+      ? `Concepts déjà proposés et refusés pour ce post — choisis une direction réellement différente : ${context.rejectedConcepts.slice(-5).join(" ; ")}`
+      : null,
+    context.directive ? `Idée soufflée par le créateur à intégrer à ce choix : ${context.directive}` : null,
+  ].filter((l): l is string => l !== null);
+
+  return `${lines.join("\n")}\n\n${CHOOSE_DAILY_DIRECTION_INSTRUCTIONS}`;
+}
+
+/** Choix du jour (docs/SPEC_REDACTEUR_EN_CHEF.md §3.3) — jamais appelé directement par une route :
+ *  interne au flux de génération (narrativeDirector.ts), dont c'est le seul point d'entrée LLM qui
+ *  peut échouer sans jamais bloquer une génération (l'appelant dégrade silencieusement vers le
+ *  pipeline actuel, §4.1). */
+export async function chooseDailyDirection(context: DailyDirectionContext): Promise<ChooseDailyDirectionResult> {
+  const args = await callStructured({
+    system: narrativeDirectorSystemPrompt(context.brandName, context.activityType),
+    userMessage: buildDailyDirectionUserMessage(context),
+    tool: chooseDailyDirectionTool,
+    maxTokens: 1024,
+  });
+  return chooseDailyDirectionResultSchema.parse(args);
+}

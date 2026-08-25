@@ -256,6 +256,29 @@ export default function ScriptPage() {
         </Button>
       </div>
 
+      {script.beatId && script.beatTitle && (
+        <button
+          onClick={() => router.push("/direction")}
+          title="Voir le plan dans Direction"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 12,
+            fontWeight: 600,
+            color: "oklch(0.5 0.2 292)",
+            background: "oklch(0.55 0.2 292 / 0.08)",
+            border: "none",
+            borderRadius: 20,
+            padding: "5px 12px",
+            cursor: "pointer",
+            marginBottom: 14,
+          }}
+        >
+          ◈ Épisode de l&apos;arc : {script.beatTitle}
+        </button>
+      )}
+
       <div style={{ margin: "8px 0 20px" }}>
         <input
           value={script.title ?? ""}

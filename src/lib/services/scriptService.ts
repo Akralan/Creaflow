@@ -17,7 +17,9 @@ import { pickAngleForScript } from "@/lib/services/angleService";
 import { findBestBrandAssetForScript } from "@/lib/services/brandAssetService";
 import { getMaterialForSubject } from "@/lib/services/sourceMaterialService";
 import { recordCitations, deleteCitationsForScript } from "@/lib/services/citationService";
+import { resolveDailyDirection, markBeatDrafted } from "@/lib/services/narrativeDirector";
 import { ApiError } from "@/lib/api/errors";
+import { logger } from "@/lib/logger";
 
 const RECENT_TOPICS_LIMIT = 15;
 const SERIES_RECENT_TOPICS_LIMIT = 10;
@@ -57,7 +59,11 @@ export async function buildGenerationContext(
   excludeScriptId?: string | null,
   seriesId?: string | null,
   lockedAngleId?: string | null,
-  directive?: string | null
+  directive?: string | null,
+  // "Autre idée, même brief" uniquement (docs/SPEC_PROMPT_GENERATION_TECH.md §6.1 point 2) — transmis
+  // au choix du jour du chef pour qu'il propose une direction réellement différente (§3.3), pas
+  // seulement au rédacteur via context.rejectedConcepts (assemblé plus bas, inchangé).
+  rejectedConcepts?: string[]
 ): Promise<ScriptGenerationContext> {
   const profile = await db.query.creatorProfiles.findFirst({
     where: eq(creatorProfiles.userId, userId),
@@ -125,6 +131,29 @@ export async function buildGenerationContext(
         })
       : null;
 
+  // Rédacteur en chef (docs/SPEC_REDACTEUR_EN_CHEF.md §4.1) : jamais bloquant — resolveDailyDirection
+  // ne lève jamais, renvoie null sur toute erreur ou absence d'état (pipeline actuel inchangé dans
+  // ce cas). Flag d'environnement, défaut activé (§1).
+  const direction =
+    process.env.NARRATIVE_DIRECTOR_ENABLED === "false"
+      ? null
+      : await resolveDailyDirection(userId, {
+          productId: productId ?? null,
+          seriesId: seriesId ?? null,
+          platform,
+          contentCategoryLabel: category.label,
+          contentCategoryDescription: category.description,
+          contentType,
+          directive: directive ?? null,
+          rejectedConcepts,
+        });
+
+  // materialDocuments restreints aux focusDocIds choisis par le chef (§4.1 point 5) — mécanique de
+  // citation inchangée (texte intégral + annotations), juste un sous-ensemble des documents du sujet.
+  const scopedMaterialDocuments = direction
+    ? materialDocuments.filter((d) => direction.focusDocIds.includes(d.id))
+    : materialDocuments;
+
   return {
     creatorProfile: {
       brandName: profile.brandName,
@@ -154,9 +183,22 @@ export async function buildGenerationContext(
     angle,
     series,
     brandAsset,
-    materialDocuments: materialDocuments.map((d) => ({ id: d.id, title: d.title, annotatedText: d.annotatedText })),
+    materialDocuments: scopedMaterialDocuments.map((d) => ({ id: d.id, title: d.title, annotatedText: d.annotatedText })),
     directive: directive ?? null,
+    direction,
   };
+}
+
+/**
+ * Après génération réussie (docs/SPEC_REDACTEUR_EN_CHEF.md §4.1.6) : le beat choisi par le chef passe
+ * en "drafted" et pointe le script créé. Jamais bloquant — appelé après la création du script,
+ * n'affecte jamais son résultat en cas d'échec (déjà non-throwing, cf. markBeatDrafted).
+ */
+export async function recordBeatDraftedIfNeeded(context: ScriptGenerationContext, scriptId: string): Promise<void> {
+  if (!context.direction?.beatId) return;
+  await markBeatDrafted(context.direction.stateId, context.direction.beatId, scriptId).catch((err) =>
+    logger.error("Mise à jour du beat après génération échouée", err, { scriptId, beatId: context.direction?.beatId })
+  );
 }
 
 /** Traduit le script généré (une des 3 formes selon contentType) en colonnes DB —
@@ -179,6 +221,9 @@ function scriptColumnsFromGenerated(generated: GeneratedScript) {
     hookAudio: "hookAudio" in generated ? generated.hookAudio : null,
     storyboard: "storyboard" in generated ? generated.storyboard : null,
     soundRecommendation: "soundRecommendation" in generated ? generated.soundRecommendation : null,
+    // Annexe B.6 (docs/SPEC_REDACTEUR_EN_CHEF.md Lot B3) — consolidées dans NarrativeState.openPromises
+    // à la publication (§5, Lot B4).
+    promisesMade: generated.promisesMade,
   };
 }
 
@@ -188,7 +233,7 @@ export async function createScriptRecord(
   contentCategory: ContentCategoryContext,
   productId: string | null,
   generated: GeneratedScript,
-  extras?: { angleId?: string | null; seriesId?: string | null; brandAssetId?: string | null }
+  extras?: { angleId?: string | null; seriesId?: string | null; brandAssetId?: string | null; beatId?: string | null }
 ) {
   return db.transaction(async (tx) => {
     const columns = scriptColumnsFromGenerated(generated);
@@ -202,6 +247,9 @@ export async function createScriptRecord(
         angleId: extras?.angleId ?? null,
         seriesId: extras?.seriesId ?? null,
         brandAssetId: extras?.brandAssetId ?? null,
+        // Traçabilité vers le plan du chef (docs/SPEC_REDACTEUR_EN_CHEF.md §2/§4.1.6) — null hors
+        // chef ou détour hors plan assumé.
+        beatId: extras?.beatId ?? null,
         origin: "generated",
         // Gisement de la donnée de voix (§4.7) : capturé une seule fois, au premier jet — jamais
         // réécrit ensuite, y compris par une régénération (updateScriptRecord ne le touche pas).
@@ -224,7 +272,7 @@ export async function updateScriptRecord(
   scriptId: string,
   contentCategory: ContentCategoryContext,
   generated: GeneratedScript,
-  extras?: { angleId?: string | null; brandAssetId?: string | null; rejectedConcepts?: string[] }
+  extras?: { angleId?: string | null; brandAssetId?: string | null; rejectedConcepts?: string[]; beatId?: string | null }
 ) {
   return db.transaction(async (tx) => {
     const [script] = await tx
@@ -235,6 +283,9 @@ export async function updateScriptRecord(
         // "Autre idée, même brief" uniquement (docs/SPEC_PROMPT_GENERATION_TECH.md §6.1 point 2) — le
         // regenerate legacy n'en passe pas, rejectedConcepts reste alors inchangé.
         ...(extras?.rejectedConcepts !== undefined && { rejectedConcepts: extras.rejectedConcepts }),
+        // Mutable comme concept/rejectedConcepts (pas figé comme firstDraftSnapshot) — "autre idée"
+        // peut aussi passer par un nouveau choix du jour du chef (docs/SPEC_REDACTEUR_EN_CHEF.md §4.1).
+        ...(extras?.beatId !== undefined && { beatId: extras.beatId }),
         ...scriptColumnsFromGenerated(generated),
         updatedAt: new Date(),
       })

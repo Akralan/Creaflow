@@ -218,6 +218,11 @@ export interface Script {
   generatedImage?: GeneratedImage | null;
   /** Matière utilisée pour ce script — présent uniquement sur la fiche détaillée. */
   citations?: Citation[];
+  /** Id du beat du plan narratif dont ce script est issu (docs/SPEC_REDACTEUR_EN_CHEF.md §2/§4.1.6) —
+   *  null hors chef ou détour hors plan assumé. */
+  beatId: string | null;
+  /** Titre du beat, résolu à la lecture — présent uniquement sur la fiche détaillée (GET /api/scripts/:id). */
+  beatTitle?: string | null;
 }
 
 export interface SourceMaterial {
@@ -525,15 +530,13 @@ export const api = {
   sendInterviewMessage: (message: string, productId?: string) =>
     post<{ reply: string; extractedMaterial: string | null }>("/api/materials/interview", { message, productId }),
 
+  /** "Série depuis la matière" (docs/SPEC_REDACTEUR_EN_CHEF.md §4.4) — crée le plan (NarrativeState)
+   *  de la série, ne génère plus de scripts synchrones : la génération suit ensuite le flux normal. */
   generateSeriesFromMaterial: (data: {
     productId?: string;
     seriesId?: string;
     newSeries?: { label: string; description: string; weight?: number };
-    platform: Platform;
-    contentCategoryId: string;
-    contentType: ContentType;
-    episodeCount: number;
-  }) => post<{ series: ContentSeries; scripts: Script[] }>("/api/series/from-material", data),
+  }) => post<{ series: ContentSeries; state: NarrativeState }>("/api/series/from-material", data),
   saveScriptMetrics: (
     id: string,
     data: Partial<{ views: number; likes: number; comments: number; shares: number }>

@@ -7,6 +7,10 @@ import type { ContentType } from "./prompts";
 const CONCEPT_FIELD_DESCRIPTION =
   "À rédiger en premier, avant tous les autres champs : en 1 ou 2 phrases, l'idée unique de ce post, à qui il s'adresse précisément, et ce que cette personne doit retenir ou faire après l'avoir vu. Une vraie décision éditoriale — pas une paraphrase du brief.";
 
+// Annexe B.6 de docs/SPEC_REDACTEUR_EN_CHEF.md, verbatim — identique sur les 3 tools de génération.
+const PROMISES_MADE_FIELD_DESCRIPTION =
+  'Les promesses explicites que ce script fait à l\'audience ("je publierai le verdict", "la semaine prochaine je teste X"), copiées telles qu\'elles apparaissent dans le script. Tableau vide [] si le script n\'en fait aucune.';
+
 export const storyboardStepSchema = z.object({
   planNumber: z.number().int().positive(),
   description: z.string().min(1),
@@ -26,6 +30,10 @@ const baseFields = {
   // fiable par le modèle (observé en usage réel — tantôt absent, tantôt renseigné, mêmes entrées).
   // `.default([])` ici en filet de sécurité si le provider l'omet quand même.
   usedExcerpts: z.array(z.string()).default([]),
+  // Annexe B.6 (docs/SPEC_REDACTEUR_EN_CHEF.md Lot B3) — `required` côté JSON schema des 3 tools,
+  // même raisonnement que usedExcerpts (un champ optionnel est rempli de façon peu fiable) ;
+  // `.default([])` en filet de sécurité si le provider l'omet quand même.
+  promisesMade: z.array(z.string()).default([]),
 };
 
 export const videoScriptSchema = z.object({
@@ -101,8 +109,13 @@ export const generateVideoScriptTool: LlmToolDefinition = {
         description: "OBLIGATOIRE — ne jamais omettre ce champ. Passages copiés MOT POUR MOT depuis la matière factuelle fournie que tu as utilisés comme base de ce script, un par information factuelle reprise. Renvoie un tableau vide [] si aucune matière ne t'a été fournie ou si tu n'en as repris aucun passage mot pour mot.",
         items: { type: "string" },
       },
+      promisesMade: {
+        type: "array",
+        description: PROMISES_MADE_FIELD_DESCRIPTION,
+        items: { type: "string" },
+      },
     },
-    required: ["concept", "title", "hookVisual", "hookText", "hookAudio", "storyboard", "caption", "hashtags", "soundRecommendation", "usedExcerpts"],
+    required: ["concept", "title", "hookVisual", "hookText", "hookAudio", "storyboard", "caption", "hashtags", "soundRecommendation", "usedExcerpts", "promisesMade"],
     additionalProperties: false,
   },
 };
@@ -152,8 +165,13 @@ export const generateVisualPostTool: LlmToolDefinition = {
         description: "OBLIGATOIRE — ne jamais omettre ce champ. Passages copiés MOT POUR MOT depuis la matière factuelle fournie que tu as utilisés comme base de ce script, un par information factuelle reprise. Renvoie un tableau vide [] si aucune matière ne t'a été fournie ou si tu n'en as repris aucun passage mot pour mot.",
         items: { type: "string" },
       },
+      promisesMade: {
+        type: "array",
+        description: PROMISES_MADE_FIELD_DESCRIPTION,
+        items: { type: "string" },
+      },
     },
-    required: ["concept", "title", "hookVisual", "storyboard", "caption", "hashtags", "usedExcerpts"],
+    required: ["concept", "title", "hookVisual", "storyboard", "caption", "hashtags", "usedExcerpts", "promisesMade"],
     additionalProperties: false,
   },
 };
@@ -178,8 +196,13 @@ export const generateTextPostTool: LlmToolDefinition = {
         description: "OBLIGATOIRE — ne jamais omettre ce champ. Passages copiés MOT POUR MOT depuis la matière factuelle fournie que tu as utilisés comme base de ce script, un par information factuelle reprise. Renvoie un tableau vide [] si aucune matière ne t'a été fournie ou si tu n'en as repris aucun passage mot pour mot.",
         items: { type: "string" },
       },
+      promisesMade: {
+        type: "array",
+        description: PROMISES_MADE_FIELD_DESCRIPTION,
+        items: { type: "string" },
+      },
     },
-    required: ["concept", "title", "hookText", "caption", "hashtags", "usedExcerpts"],
+    required: ["concept", "title", "hookText", "caption", "hashtags", "usedExcerpts", "promisesMade"],
     additionalProperties: false,
   },
 };

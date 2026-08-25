@@ -352,8 +352,10 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
         onClose={() => setShowSeriesModal(false)}
         productId={productId}
         onDone={() => {
+          // Le résultat est un plan (NarrativeState), pas des scripts déjà placés (docs/SPEC_REDACTEUR_EN_CHEF.md
+          // §4.4) — direction vers l'écran Direction, où le plan est visible et éditable.
           setShowSeriesModal(false);
-          router.push("/calendar");
+          router.push("/direction");
         }}
       />
     </div>

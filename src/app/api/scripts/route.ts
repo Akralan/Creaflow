@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { calendarEntries, scripts } from "@/db/schema";
 import { generateScript } from "@/lib/llm/generateScript";
 import { requireUserId } from "@/lib/auth/session";
-import { buildGenerationContext, createScriptRecord } from "@/lib/services/scriptService";
+import { buildGenerationContext, createScriptRecord, recordBeatDraftedIfNeeded } from "@/lib/services/scriptService";
 import { enforceScriptQuota } from "@/lib/services/billingService";
 import { platformSchema, contentCategorySchema, contentTypeSchema, directiveSchema } from "@/lib/validation";
 import { handleApiError } from "@/lib/api/errors";
@@ -70,7 +70,9 @@ export async function POST(request: NextRequest) {
       angleId: context.angle?.id ?? null,
       seriesId: context.series?.id ?? null,
       brandAssetId: context.brandAsset?.id ?? null,
+      beatId: context.direction?.beatId ?? null,
     });
+    await recordBeatDraftedIfNeeded(context, script.id);
 
     if (scheduledDate) {
       await db.insert(calendarEntries).values({
