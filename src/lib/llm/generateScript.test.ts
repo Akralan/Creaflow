@@ -27,6 +27,7 @@ const baseContext = {
 const videoContext: ScriptGenerationContext = { ...baseContext, contentType: "video" };
 
 const validVideoInput = {
+  concept: "Idée unique du post, à qui elle s'adresse, ce qu'il doit en retenir.",
   title: "Titre",
   hookVisual: "Visuel",
   hookText: "Texte",
@@ -69,6 +70,7 @@ describe("generateScript", () => {
 
   it("appelle le provider avec l'outil generate_visual_post pour un contentType visual", async () => {
     callStructuredMock.mockResolvedValue({
+      concept: "Idée unique du post.",
       title: "Titre",
       hookVisual: "Visuel",
       storyboard: [{ planNumber: 1, description: "Slide 1" }],
@@ -83,6 +85,7 @@ describe("generateScript", () => {
 
   it("appelle le provider avec l'outil generate_text_post pour un contentType text", async () => {
     callStructuredMock.mockResolvedValue({
+      concept: "Idée unique du post.",
       title: "Titre",
       hookText: "Accroche",
       caption: "Texte complet",
@@ -91,6 +94,7 @@ describe("generateScript", () => {
     const result = await generateScript({ ...baseContext, contentType: "text" });
     expect(result).toEqual({
       contentType: "text",
+      concept: "Idée unique du post.",
       title: "Titre",
       hookText: "Accroche",
       caption: "Texte complet",

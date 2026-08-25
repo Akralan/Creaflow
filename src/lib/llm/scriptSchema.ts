@@ -2,12 +2,21 @@ import { z } from "zod";
 import type { LlmToolDefinition } from "./types";
 import type { ContentType } from "./prompts";
 
+// Annexe A.4 de docs/SPEC_PROMPT_GENERATION_TECH.md — texte à recopier tel quel, identique sur les
+// 3 tools de génération.
+const CONCEPT_FIELD_DESCRIPTION =
+  "À rédiger en premier, avant tous les autres champs : en 1 ou 2 phrases, l'idée unique de ce post, à qui il s'adresse précisément, et ce que cette personne doit retenir ou faire après l'avoir vu. Une vraie décision éditoriale — pas une paraphrase du brief.";
+
 export const storyboardStepSchema = z.object({
   planNumber: z.number().int().positive(),
   description: z.string().min(1),
 });
 
 const baseFields = {
+  // Première propriété du schéma — l'ordre des propriétés est le mécanisme qui force le LLM à
+  // décider l'idée avant de rédiger le reste (docs/SPEC_PROMPT_GENERATION_TECH.md §4.1) : ne pas
+  // déplacer. Persisté sur Script.concept par createScriptRecord (scriptService.ts).
+  concept: z.string().min(1),
   title: z.string().min(1),
   caption: z.string().min(1),
   hashtags: z.array(z.string()).min(1),
@@ -55,10 +64,15 @@ export const generateVideoScriptTool: LlmToolDefinition = {
   input_schema: {
     type: "object",
     properties: {
-      title: { type: "string", description: "Titre du concept, clair sur l'objectif du contenu." },
-      hookVisual: { type: "string", description: "Description du visuel des 3 premières secondes (l'accroche)." },
-      hookText: { type: "string", description: "Texte à afficher à l'écran pendant l'accroche." },
-      hookAudio: { type: "string", description: "Ce qui est dit ou entendu pendant l'accroche (voix/audio)." },
+      concept: { type: "string", description: CONCEPT_FIELD_DESCRIPTION },
+      title: { type: "string", description: "Le nom de l'idée, pas du sujet : court, spécifique à ce post, impossible à réutiliser pour un autre." },
+      hookVisual: {
+        type: "string",
+        description:
+          "Ce qu'on voit dans les 3 premières secondes : une action ou un objet précis, filmable avec le matériel listé. Pas une intention (\"plan dynamique\") — une image.",
+      },
+      hookText: { type: "string", description: "Le texte affiché à l'écran : une phrase courte qui crée une tension ou une curiosité. Jamais une annonce du sujet." },
+      hookAudio: { type: "string", description: "Ce qui est dit ou entendu pendant l'accroche : prolonge le manque créé par le visuel, ne le répète pas." },
       storyboard: {
         type: "array",
         description: "Découpage en plans simples et numérotés.",
@@ -66,26 +80,38 @@ export const generateVideoScriptTool: LlmToolDefinition = {
           type: "object",
           properties: {
             planNumber: { type: "integer" },
-            description: { type: "string" },
+            description: {
+              type: "string",
+              description: "Une action filmable en un seul plan avec le matériel listé : qui fait quoi, sur quoi. Concret et exécutable, pas une intention.",
+            },
           },
           required: ["planNumber", "description"],
           additionalProperties: false,
         },
       },
-      caption: { type: "string", description: "Légende rédigée selon les règles SEO de la plateforme visée." },
-      hashtags: { type: "array", description: "Liste de hashtags pertinents pour la plateforme visée.", items: { type: "string" } },
-      soundRecommendation: { type: "string", description: "Recommandation de musique/audio/tendance à associer." },
+      caption: { type: "string", description: "Développe l'idée du concept avec les détails de la matière. Un seul appel à l'action, clair, à la fin. Respecte les codes de la plateforme cible." },
+      hashtags: {
+        type: "array",
+        description: "Chaque hashtag sert la découverte du post selon la règle de la plateforme cible (mix large + niche, nombre adapté). Jamais décoratif.",
+        items: { type: "string" },
+      },
+      soundRecommendation: { type: "string", description: "Un type de son, musique ou tendance cohérent avec l'idée et la plateforme, décrit concrètement." },
       usedExcerpts: {
         type: "array",
         description: "OBLIGATOIRE — ne jamais omettre ce champ. Passages copiés MOT POUR MOT depuis la matière factuelle fournie que tu as utilisés comme base de ce script, un par information factuelle reprise. Renvoie un tableau vide [] si aucune matière ne t'a été fournie ou si tu n'en as repris aucun passage mot pour mot.",
         items: { type: "string" },
       },
     },
-    required: ["title", "hookVisual", "hookText", "hookAudio", "storyboard", "caption", "hashtags", "soundRecommendation", "usedExcerpts"],
+    required: ["concept", "title", "hookVisual", "hookText", "hookAudio", "storyboard", "caption", "hashtags", "soundRecommendation", "usedExcerpts"],
     additionalProperties: false,
   },
 };
 
+// Note d'implémentation : l'Annexe A.5 de docs/SPEC_PROMPT_GENERATION_TECH.md liste `hookText` comme
+// applicable à "video, visual", mais §4.2 ne décrit que des réécritures de description sur des champs
+// existants et ce tool n'a jamais eu de champ hookText séparé (le texte à l'écran d'un post visuel
+// fait partie de hookVisual/storyboard[].description). Interprété ici comme un ajout de champ hors
+// périmètre d'une passe "descriptions qualitatives" — non ajouté ; à trancher explicitement si besoin.
 export const generateVisualPostTool: LlmToolDefinition = {
   name: GENERATE_VISUAL_POST_TOOL_NAME,
   description:
@@ -93,7 +119,8 @@ export const generateVisualPostTool: LlmToolDefinition = {
   input_schema: {
     type: "object",
     properties: {
-      title: { type: "string", description: "Titre du concept, clair sur l'objectif du contenu." },
+      concept: { type: "string", description: CONCEPT_FIELD_DESCRIPTION },
+      title: { type: "string", description: "Le nom de l'idée, pas du sujet : court, spécifique à ce post, impossible à réutiliser pour un autre." },
       hookVisual: {
         type: "string",
         description: "Description de la composition visuelle qui capte l'attention (image unique, ou 1re slide d'un carrousel).",
@@ -105,21 +132,28 @@ export const generateVisualPostTool: LlmToolDefinition = {
           type: "object",
           properties: {
             planNumber: { type: "integer" },
-            description: { type: "string" },
+            description: {
+              type: "string",
+              description: "Le contenu d'une slide : ce qu'on voit et le texte affiché, au service de l'idée du concept.",
+            },
           },
           required: ["planNumber", "description"],
           additionalProperties: false,
         },
       },
-      caption: { type: "string", description: "Légende rédigée selon les règles SEO de la plateforme visée." },
-      hashtags: { type: "array", description: "Liste de hashtags pertinents pour la plateforme visée.", items: { type: "string" } },
+      caption: { type: "string", description: "Développe l'idée du concept avec les détails de la matière. Un seul appel à l'action, clair, à la fin. Respecte les codes de la plateforme cible." },
+      hashtags: {
+        type: "array",
+        description: "Chaque hashtag sert la découverte du post selon la règle de la plateforme cible (mix large + niche, nombre adapté). Jamais décoratif.",
+        items: { type: "string" },
+      },
       usedExcerpts: {
         type: "array",
         description: "OBLIGATOIRE — ne jamais omettre ce champ. Passages copiés MOT POUR MOT depuis la matière factuelle fournie que tu as utilisés comme base de ce script, un par information factuelle reprise. Renvoie un tableau vide [] si aucune matière ne t'a été fournie ou si tu n'en as repris aucun passage mot pour mot.",
         items: { type: "string" },
       },
     },
-    required: ["title", "hookVisual", "storyboard", "caption", "hashtags", "usedExcerpts"],
+    required: ["concept", "title", "hookVisual", "storyboard", "caption", "hashtags", "usedExcerpts"],
     additionalProperties: false,
   },
 };
@@ -130,12 +164,13 @@ export const generateTextPostTool: LlmToolDefinition = {
   input_schema: {
     type: "object",
     properties: {
-      title: { type: "string", description: "Titre du concept, clair sur l'objectif du contenu." },
-      hookText: { type: "string", description: "Première phrase du texte, pensée pour capter l'attention." },
-      caption: { type: "string", description: "Corps du texte complet, prêt à publier." },
+      concept: { type: "string", description: CONCEPT_FIELD_DESCRIPTION },
+      title: { type: "string", description: "Le nom de l'idée, pas du sujet : court, spécifique à ce post, impossible à réutiliser pour un autre." },
+      hookText: { type: "string", description: "La première phrase du texte : elle crée un manque qui oblige à lire la deuxième." },
+      caption: { type: "string", description: "Développe l'idée du concept avec les détails de la matière. Un seul appel à l'action, clair, à la fin. Respecte les codes de la plateforme cible." },
       hashtags: {
         type: "array",
-        description: "Liste de hashtags pertinents pour la plateforme visée (vide si la plateforme n'en utilise pas).",
+        description: "Chaque hashtag sert la découverte du post selon la règle de la plateforme cible (mix large + niche, nombre adapté). Jamais décoratif. Vide si la plateforme n'en utilise pas.",
         items: { type: "string" },
       },
       usedExcerpts: {
@@ -144,7 +179,7 @@ export const generateTextPostTool: LlmToolDefinition = {
         items: { type: "string" },
       },
     },
-    required: ["title", "hookText", "caption", "hashtags", "usedExcerpts"],
+    required: ["concept", "title", "hookText", "caption", "hashtags", "usedExcerpts"],
     additionalProperties: false,
   },
 };

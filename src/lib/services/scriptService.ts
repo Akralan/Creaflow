@@ -1,6 +1,14 @@
 import { and, desc, eq, ne } from "drizzle-orm";
 import { db } from "@/db";
-import { creatorProfiles, products, contentCategories, contentSeries, scriptGenerationEvents, scripts } from "@/db/schema";
+import {
+  creatorProfiles,
+  products,
+  contentCategories,
+  contentAngles,
+  contentSeries,
+  scriptGenerationEvents,
+  scripts,
+} from "@/db/schema";
 import type { GeneratedScript } from "@/lib/llm/scriptSchema";
 import type { ContentCategoryContext, ContentType, Platform, ScriptGenerationContext } from "@/lib/llm/prompts";
 import type { StyleProfile } from "@/lib/llm/styleProfile";
@@ -14,6 +22,32 @@ import { ApiError } from "@/lib/api/errors";
 const RECENT_TOPICS_LIMIT = 15;
 const SERIES_RECENT_TOPICS_LIMIT = 10;
 
+/** Angle : recalculé normalement (mécanisme anti-répétition, pickAngleForScript) sauf si
+ *  `lockedAngleId` est explicitement fourni (même `undefined` vs valeur — pas de sentinel exotique :
+ *  passer `undefined` = comportement normal, passer une valeur, y compris `null`, = verrouillage).
+ *  Utilisé par "autre idée, même brief" (docs/SPEC_PROMPT_GENERATION_TECH.md §6.1) : contrairement à
+ *  l'ancien regenerate, l'angle du script existant est conservé tel quel, jamais recalculé — "verrouiller
+ *  le brief, libérer les mots" (docs/SPEC_MATIERE_EDITEUR.md §1.3). */
+async function resolveAngle(
+  userId: string,
+  contentCategoryId: string,
+  excludeScriptId: string | null | undefined,
+  lockedAngleId: string | null | undefined
+) {
+  if (lockedAngleId !== undefined) {
+    if (lockedAngleId === null) return null;
+    const found = await db.query.contentAngles.findFirst({
+      where: and(eq(contentAngles.id, lockedAngleId), eq(contentAngles.userId, userId)),
+      columns: { id: true, label: true, description: true },
+    });
+    // Dégradation gracieuse si l'angle a été archivé/supprimé entre-temps — pas une 404 bloquante,
+    // même logique que listActiveAnglesForUser() qui ignore déjà les angles archivés ailleurs.
+    return found ?? null;
+  }
+  const angle = await pickAngleForScript(userId, contentCategoryId, excludeScriptId);
+  return angle ? { id: angle.id, label: angle.label, description: angle.description } : null;
+}
+
 export async function buildGenerationContext(
   userId: string,
   platform: Platform,
@@ -21,7 +55,8 @@ export async function buildGenerationContext(
   contentType: ContentType,
   productId?: string | null,
   excludeScriptId?: string | null,
-  seriesId?: string | null
+  seriesId?: string | null,
+  lockedAngleId?: string | null
 ): Promise<ScriptGenerationContext> {
   const profile = await db.query.creatorProfiles.findFirst({
     where: eq(creatorProfiles.userId, userId),
@@ -70,7 +105,7 @@ export async function buildGenerationContext(
       columns: { title: true },
     }),
     buildPerformanceSummary(userId, platform),
-    pickAngleForScript(userId, contentCategoryId, excludeScriptId),
+    resolveAngle(userId, contentCategoryId, excludeScriptId, lockedAngleId),
     // Texte brut complet du sujet, annoté des passages déjà cités (docs/SPEC_MATIERE_EDITEUR.md §3)
     // — [] si le sujet n'a pas de corpus déposé. C'est le LLM qui décide quoi utiliser, aucune
     // présélection côté serveur.
@@ -97,6 +132,7 @@ export async function buildGenerationContext(
       values: profile.values,
       equipment: profile.equipment,
       weeklyTimeAvailable: profile.weeklyTimeAvailable,
+      targetAudience: profile.targetAudience,
     },
     styleProfile: (profile.styleProfile as StyleProfile | null) ?? null,
     product: product
@@ -104,6 +140,7 @@ export async function buildGenerationContext(
           name: product.name,
           description: product.description,
           valueProposition: product.valueProposition,
+          targetAudience: product.targetAudience,
         }
       : null,
     platform,
@@ -113,7 +150,7 @@ export async function buildGenerationContext(
     // "sujet déjà traité" exploitable pour l'anti-répétition, on l'exclut simplement.
     recentTopics: recentScripts.map((s) => s.title).filter((title): title is string => title !== null),
     performanceSummary,
-    angle: angle ? { id: angle.id, label: angle.label, description: angle.description } : null,
+    angle,
     series,
     brandAsset,
     materialDocuments: materialDocuments.map((d) => ({ id: d.id, title: d.title, annotatedText: d.annotatedText })),
@@ -124,6 +161,13 @@ export async function buildGenerationContext(
  *  les champs non pertinents pour ce type sont explicitement mis à null. */
 function scriptColumnsFromGenerated(generated: GeneratedScript) {
   return {
+    // Écrit à la création, figé ensuite (docs/SPEC_PROMPT_GENERATION_TECH.md §6.4) — cette fonction
+    // n'est appelée que par createScriptRecord (génération complète) et par la route legacy
+    // /api/scripts/:id/regenerate (updateScriptRecord, encore présente en code bien que désactivée
+    // côté produit, cf. note en tête de la spec ; destinée à être remplacée par "autre idée" au Lot 3).
+    // La régénération de bloc (regenerateBlock, microEditService.ts) ne passe JAMAIS par ici — elle
+    // utilise patchScriptContent, donc ne touche jamais Script.concept, conformément au gel.
+    concept: generated.concept,
     title: generated.title,
     caption: generated.caption,
     hashtags: generated.hashtags,
@@ -178,7 +222,7 @@ export async function updateScriptRecord(
   scriptId: string,
   contentCategory: ContentCategoryContext,
   generated: GeneratedScript,
-  extras?: { angleId?: string | null; brandAssetId?: string | null }
+  extras?: { angleId?: string | null; brandAssetId?: string | null; rejectedConcepts?: string[] }
 ) {
   return db.transaction(async (tx) => {
     const [script] = await tx
@@ -186,6 +230,9 @@ export async function updateScriptRecord(
       .set({
         ...(extras?.angleId !== undefined && { angleId: extras.angleId }),
         ...(extras?.brandAssetId !== undefined && { brandAssetId: extras.brandAssetId }),
+        // "Autre idée, même brief" uniquement (docs/SPEC_PROMPT_GENERATION_TECH.md §6.1 point 2) — le
+        // regenerate legacy n'en passe pas, rejectedConcepts reste alors inchangé.
+        ...(extras?.rejectedConcepts !== undefined && { rejectedConcepts: extras.rejectedConcepts }),
         ...scriptColumnsFromGenerated(generated),
         updatedAt: new Date(),
       })

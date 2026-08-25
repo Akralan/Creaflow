@@ -10,6 +10,7 @@ import {
 } from "./scriptSchema";
 
 const validVideoScript = {
+  concept: "Montrer le geste précis derrière une commande personnalisée, pour donner envie d'en passer une.",
   title: "Coulisses - Réalisation d'une commande",
   hookVisual: "Gros plan sur les mains qui découpent le sticker",
   hookText: "Regarde comment je fais ça",
@@ -55,6 +56,7 @@ describe("videoScriptSchema", () => {
 
 describe("visualScriptSchema", () => {
   const validVisualPost = {
+    concept: "Présenter la nouvelle collection à ceux qui suivent déjà la marque, pour qu'ils aillent voir le catalogue.",
     title: "Nouvelle collection",
     hookVisual: "Photo produit sur fond neutre, lumière naturelle",
     storyboard: [{ planNumber: 1, description: "Slide 1 : produit seul" }],
@@ -75,6 +77,7 @@ describe("visualScriptSchema", () => {
 
 describe("textScriptSchema", () => {
   const validTextPost = {
+    concept: "Partager ce que la première année de freelance a vraiment changé, pour rassurer ceux qui hésitent à se lancer.",
     title: "Retour d'expérience",
     hookText: "Ce que j'ai appris en un an de freelance",
     caption: "Texte complet du post...",
