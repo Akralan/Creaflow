@@ -28,6 +28,11 @@ export const assistantProposalKindEnum = pgEnum("assistant_proposal_kind", [
   "angle_create",
   "angle_update",
   "posting_goal_update",
+  // Mise à jour de l'audience de marque (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — payload
+  // { targetAudience }, targetId toujours null (une seule cible : CreatorProfile de l'utilisateur,
+  // pas d'id à référencer). L'override par sujet, lui, réutilise "product_update" (le champ vit sur
+  // Product) — pas de kind dédié pour ce cas.
+  "profile_update",
   // Rééquilibrage batch de ContentCategory.weight à partir des métriques auto (docs/SPEC_METRIQUES_AUTO.md
   // §6/§7.4) — généré par un calcul déterministe (categoryReweightService.ts), pas par le LLM. targetId
   // reste null comme posting_goal_update : le payload porte la liste des catégories touchées.
@@ -126,6 +131,10 @@ export const creatorProfiles = pgTable("creator_profiles", {
   values: text("values"),
   equipment: text("equipment").array(),
   weeklyTimeAvailable: text("weekly_time_available"),
+  // Audience de marque (docs/SPEC_PROMPT_GENERATION_TECH.md §2/§5) — qui lit/achète, ce qui
+  // l'intéresse, ce qu'il doit retenir ou faire ; texte libre, extrait de l'onboarding ou édité en
+  // paramètres. Fallback pour Product.targetAudience quand ce dernier est null.
+  targetAudience: text("target_audience"),
   styleProfile: jsonb("style_profile"),
   styleProfileUpdatedAt: timestamp("style_profile_updated_at"),
 });
@@ -207,6 +216,10 @@ export const products = pgTable("products", {
   description: text("description"),
   valueProposition: text("value_proposition"),
   photoUrl: text("photo_url"),
+  // Override d'audience par sujet (docs/SPEC_PROMPT_GENERATION_TECH.md §2/§5) — null = fallback sur
+  // CreatorProfile.targetAudience à l'injection (buildScriptUserMessage). Couvre le cas personal
+  // branding multi-sujets : l'audience d'un projet ML ≠ celle d'un produit en dev.
+  targetAudience: text("target_audience"),
 });
 
 // Corpus de matière première par sujet (docs/SPEC_MATIERE_EDITEUR.md §3) — dépôt brut dont la
@@ -320,6 +333,18 @@ export const scripts = pgTable("scripts", {
   // Nullable : naissance paresseuse (docs/SPEC_MATIERE_EDITEUR.md §4.5) — la ligne peut naître avec
   // un seul bloc rempli, avant qu'un titre n'existe. L'UI affiche un fallback "(sans titre)".
   title: text("title"),
+  // Intention de génération (docs/SPEC_PROMPT_GENERATION_TECH.md §2/§6.4) — la TRACE de l'intention,
+  // pas une description vivante, même philosophie que firstDraftSnapshot. Écrite par le LLM en
+  // premier champ du tool à la génération, puis figée : micro-retouches, éditions manuelles et
+  // régénérations de bloc n'y touchent jamais. Remplacée uniquement par le geste "autre idée, même
+  // brief" (§6, pas encore implémenté ici). Null pour origin="manual"/"imported" et pour les scripts
+  // antérieurs à cette migration.
+  concept: text("concept"),
+  // Concepts écartés via "autre idée, même brief" (§6, pas encore implémenté ici — colonne posée par
+  // anticipation avec le champ concept, migration unique pour les deux). Appendés dans l'ordre ;
+  // réinjectés en contexte des générations suivantes du même script, plafonnés aux N plus récents à
+  // l'injection (§6.3).
+  rejectedConcepts: jsonb("rejected_concepts").notNull().default([]),
   hookVisual: text("hook_visual"),
   hookText: text("hook_text"),
   hookAudio: text("hook_audio"),
