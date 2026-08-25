@@ -47,6 +47,8 @@ export default function ScriptPage() {
   const [regeneratingBlock, setRegeneratingBlock] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmNewIdea, setConfirmNewIdea] = useState(false);
+  const [applyingNewIdea, setApplyingNewIdea] = useState(false);
   const [metricsDraft, setMetricsDraft] = useState(EMPTY_METRICS_DRAFT);
   const [savingMetrics, setSavingMetrics] = useState(false);
   const [showAssetLibrary, setShowAssetLibrary] = useState(false);
@@ -143,6 +145,25 @@ export default function ScriptPage() {
       setError(err instanceof ApiClientError ? err.message : "Erreur lors de la régénération du bloc.");
     } finally {
       setRegeneratingBlock(null);
+    }
+  }
+
+  /** "Autre idée, même brief" (docs/SPEC_PROMPT_GENERATION_TECH.md §6) — remplace tout le contenu en
+   *  place, brief verrouillé (plateforme/catégorie/angle/série inchangés). Geste distinct des
+   *  régénérations de bloc : intention, pas mots — confirmation systématique avant exécution (§6.3). */
+  async function handleNewIdea() {
+    if (!script) return;
+    pushHistory();
+    setConfirmNewIdea(false);
+    setApplyingNewIdea(true);
+    setError(null);
+    try {
+      const { script: updated } = await api.newIdea(script.id);
+      setScript((prev) => (prev ? { ...prev, ...updated } : updated));
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Erreur lors de la génération d'une autre idée.");
+    } finally {
+      setApplyingNewIdea(false);
     }
   }
 
@@ -278,6 +299,26 @@ export default function ScriptPage() {
             );
           })}
         </div>
+        {script.origin === "generated" && script.concept && (
+          <button
+            onClick={() => setConfirmNewIdea(true)}
+            disabled={applyingNewIdea}
+            title="Remplace tout le contenu par une nouvelle idée, même brief (plateforme/catégorie/angle/série inchangés)"
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: "oklch(0.5 0.2 292)",
+              background: "oklch(0.55 0.2 292 / 0.08)",
+              border: "none",
+              borderRadius: 8,
+              padding: "6px 12px",
+              cursor: "pointer",
+              opacity: applyingNewIdea ? 0.6 : 1,
+            }}
+          >
+            {applyingNewIdea ? "..." : "✦ Autre idée, même brief"}
+          </button>
+        )}
         {script.product && (
           <span style={{ marginLeft: "auto", fontSize: 13, color: color.textMuted, display: "flex", alignItems: "center", gap: 7 }}>
             Sujet : <span style={{ fontWeight: 600, color: color.text }}>{script.product.name}</span>
@@ -382,6 +423,21 @@ export default function ScriptPage() {
           </Button>
           <Button onClick={handleDelete} disabled={deleting} style={{ background: color.danger }}>
             {deleting ? "..." : "Supprimer"}
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal open={confirmNewIdea} onClose={() => setConfirmNewIdea(false)} width={420}>
+        <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, margin: "0 0 8px" }}>Partir sur une autre idée ?</h2>
+        <p style={{ margin: "0 0 18px", fontSize: 13, color: color.textMuted }}>
+          Tout le contenu de ce script sera remplacé par une nouvelle génération — plateforme, catégorie, angle et série restent inchangés. Si tu as modifié le texte à la main, ces modifications seront perdues. Cette action est irréversible.
+        </p>
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <Button variant="secondary" onClick={() => setConfirmNewIdea(false)}>
+            Annuler
+          </Button>
+          <Button onClick={handleNewIdea} disabled={applyingNewIdea}>
+            {applyingNewIdea ? "..." : "Générer une autre idée"}
           </Button>
         </div>
       </Modal>
