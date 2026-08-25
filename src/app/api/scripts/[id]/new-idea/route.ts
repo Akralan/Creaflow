@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { scripts } from "@/db/schema";
@@ -7,8 +8,11 @@ import { generateScript } from "@/lib/llm/generateScript";
 import type { Platform } from "@/lib/llm/prompts";
 import { buildGenerationContext, updateScriptRecord } from "@/lib/services/scriptService";
 import { enforceScriptQuota } from "@/lib/services/billingService";
+import { directiveSchema } from "@/lib/validation";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
+
+const schema = z.object({ directive: directiveSchema });
 
 /**
  * "Autre idée, même brief" (docs/SPEC_PROMPT_GENERATION_TECH.md §6) — remplace la régénération
@@ -18,7 +22,7 @@ import { enforceRateLimit } from "@/lib/services/rateLimitService";
  * ne pas revenir dessus (rejectedConcepts, injecté au tour suivant).
  */
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -26,6 +30,9 @@ export async function POST(
     // Même appel LLM complet qu'une génération ou l'ancien regenerate — même limite partagée.
     await enforceRateLimit("script-generate", userId, 20, 60);
     const { id } = await params;
+    // Body optionnel (champ "idée en tête" / bascule select-all, docs/SPEC_REDACTEUR_EN_CHEF.md Lot A)
+    // — l'absence de body reste valide, comme avant l'ajout de la directive.
+    const { directive } = schema.parse(await request.json().catch(() => ({})));
     await enforceScriptQuota(userId);
 
     const existing = await db.query.scripts.findFirst({
@@ -49,7 +56,8 @@ export async function POST(
       existing.productId,
       existing.id,
       existing.seriesId,
-      existing.angleId
+      existing.angleId,
+      directive
     );
     // §6.1 point 2 : le concept qu'on s'apprête à remplacer rejoint la liste des refusés — calculé
     // avant l'appel LLM mais persisté seulement si la génération réussit (updateScriptRecord plus

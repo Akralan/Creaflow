@@ -29,6 +29,7 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
   const [categoryId, setCategoryId] = useState<string>("");
   const [seriesId, setSeriesId] = useState<string>("");
   const [productId, setProductId] = useState<string>("");
+  const [directive, setDirective] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +61,7 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
         productId: productId || undefined,
         seriesId: selectedSeriesId || undefined,
         scheduledDate,
+        directive: directive.trim() || undefined,
       });
       onGenerated(script);
     } catch (err) {
@@ -241,6 +243,31 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
             </option>
           ))}
         </select>
+      </div>
+
+      <div style={{ marginBottom: 26 }}>
+        <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: color.text3, marginBottom: 6 }}>
+          Une idée en tête ? <span style={{ color: color.textFaint, fontWeight: 400 }}>— optionnel</span>
+        </label>
+        <textarea
+          value={directive}
+          onChange={(e) => setDirective(e.target.value)}
+          placeholder="Une piste à interpréter, pas un texte à recopier..."
+          rows={2}
+          maxLength={500}
+          style={{
+            width: "100%",
+            border: `1px solid ${color.inputBorder}`,
+            borderRadius: 11,
+            padding: "13px 14px",
+            fontSize: 15,
+            lineHeight: 1.4,
+            fontFamily: "inherit",
+            background: color.inputBg,
+            color: color.text,
+            resize: "vertical",
+          }}
+        />
       </div>
 
       {error && <p style={{ color: color.danger, fontSize: 13, marginBottom: 16 }}>{error}</p>}

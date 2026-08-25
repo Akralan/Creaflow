@@ -56,7 +56,8 @@ export async function buildGenerationContext(
   productId?: string | null,
   excludeScriptId?: string | null,
   seriesId?: string | null,
-  lockedAngleId?: string | null
+  lockedAngleId?: string | null,
+  directive?: string | null
 ): Promise<ScriptGenerationContext> {
   const profile = await db.query.creatorProfiles.findFirst({
     where: eq(creatorProfiles.userId, userId),
@@ -154,6 +155,7 @@ export async function buildGenerationContext(
     series,
     brandAsset,
     materialDocuments: materialDocuments.map((d) => ({ id: d.id, title: d.title, annotatedText: d.annotatedText })),
+    directive: directive ?? null,
   };
 }
 

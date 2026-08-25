@@ -7,7 +7,7 @@ import { generateScript } from "@/lib/llm/generateScript";
 import { requireUserId } from "@/lib/auth/session";
 import { buildGenerationContext, createScriptRecord } from "@/lib/services/scriptService";
 import { enforceScriptQuota } from "@/lib/services/billingService";
-import { platformSchema, contentCategorySchema, contentTypeSchema } from "@/lib/validation";
+import { platformSchema, contentCategorySchema, contentTypeSchema, directiveSchema } from "@/lib/validation";
 import { handleApiError } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
 
@@ -18,6 +18,7 @@ const schema = z.object({
   productId: z.uuid().optional(),
   scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format attendu : YYYY-MM-DD").optional(),
   seriesId: z.uuid().optional(),
+  directive: directiveSchema,
 });
 
 const listSchema = z.object({ seriesId: z.uuid().optional() });
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
     const userId = await requireUserId();
     // Chaque génération de script coûte un appel LLM — limite partagée avec les autres routes de génération.
     await enforceRateLimit("script-generate", userId, 20, 60);
-    const { platform, contentCategoryId, contentType, productId, scheduledDate, seriesId } = schema.parse(
+    const { platform, contentCategoryId, contentType, productId, scheduledDate, seriesId, directive } = schema.parse(
       await request.json()
     );
     await enforceScriptQuota(userId);
@@ -60,7 +61,9 @@ export async function POST(request: NextRequest) {
       contentType,
       productId,
       undefined,
-      seriesId ?? null
+      seriesId ?? null,
+      undefined,
+      directive
     );
     const generated = await generateScript(context);
     const script = await createScriptRecord(userId, platform, context.contentCategory, productId ?? null, generated, {

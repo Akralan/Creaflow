@@ -66,6 +66,7 @@ export const SCRIPT_SYSTEM_PROMPT = `Tu es le Directeur Marketing Virtuel de Cre
 
 Règles de qualité :
 - Un script porte UNE seule idée, formulée dans le champ "concept" avant tout le reste. Si deux messages cohabitent, garde le plus fort et abandonne l'autre.
+- Tu sélectionnes, tu ne couvres pas : choisis LE moment le plus fort de la matière fournie (un échec, une décision, un chiffre, une percée) et ignore délibérément le reste. Ce que tu n'utilises pas aujourd'hui servira aux prochains posts — le marquage [déjà utilisé] le garantit, rien n'est perdu.
 - L'accroche crée un manque — une tension, un chiffre inattendu, une affirmation contre-intuitive tirés du contexte fourni. Elle n'annonce jamais le sujet.
 - Chaque script contient au moins un élément que seul ce créateur peut dire. Si ce n'est pas le cas de ton brouillon, retourne puiser dans la matière fournie avant de répondre.
 
@@ -120,6 +121,10 @@ export interface ScriptGenerationContext {
   /** Directive d'épisode pour une génération de série depuis la matière (§3.8) — le sous-thème que
    *  ce script doit couvrir au sein de la série, le LLM pioche lui-même dans materialDocuments. */
   episodeDirective?: { episodeTitle: string; angleHint: string } | null;
+  /** Idée soufflée par le créateur sur une porte de génération (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A,
+   *  Annexe B.4) — une graine à interpréter, jamais à copier ni une source de faits. Chemin "sans
+   *  chef" uniquement pour l'instant (aucun NarrativeState en Lot A) ; passe par le chef dès le Lot B3. */
+  directive?: string | null;
 }
 
 // v2 (docs/SPEC_PROMPT_GENERATION_TECH.md §3.2, texte Annexe A.3) : données séparées des consignes,
@@ -145,6 +150,7 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
     brandAsset,
     materialDocuments,
     episodeDirective,
+    directive,
   } = context;
 
   const sections: string[] = [];
@@ -217,6 +223,11 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
       `Cet épisode de la série doit se concentrer sur : ${episodeDirective.episodeTitle} — ${episodeDirective.angleHint}`
     );
   }
+  if (directive) {
+    briefLines.push(
+      `Idée soufflée par le créateur (interprète-la : c'est une piste et une intention, pas un texte à recopier ni une source de faits — les faits restent soumis aux règles ci-dessus) : ${directive}`
+    );
+  }
   sections.push(`=== BRIEF ===\n${briefLines.join("\n")}`);
 
   // === VARIÉTÉ ===
@@ -245,7 +256,11 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
     `=== PRIORITÉS ===\n` +
       `En cas de tension entre les consignes ci-dessus, l'ordre de priorité est :\n` +
       `1. La vérité factuelle : la matière fournie prime sur tout, rien n'est inventé au-delà.\n` +
-      `2. L'identité de la série et l'angle imposé.\n` +
+      `2. ${
+        directive
+          ? "La directive du créateur (à interpréter, jamais à copier), l'identité de la série et l'angle imposé."
+          : "L'identité de la série et l'angle imposé."
+      }\n` +
       `3. La voix de la marque (style observé, ton, valeurs).\n` +
       `4. Les codes de la plateforme.\n` +
       `Si l'angle imposé ne s'applique pas à la matière disponible, garde l'esprit de l'angle et adapte sa structure plutôt que d'inventer des faits.\n` +

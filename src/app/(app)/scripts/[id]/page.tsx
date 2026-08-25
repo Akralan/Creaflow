@@ -48,6 +48,7 @@ export default function ScriptPage() {
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmNewIdea, setConfirmNewIdea] = useState(false);
+  const [newIdeaDirective, setNewIdeaDirective] = useState("");
   const [applyingNewIdea, setApplyingNewIdea] = useState(false);
   const [metricsDraft, setMetricsDraft] = useState(EMPTY_METRICS_DRAFT);
   const [savingMetrics, setSavingMetrics] = useState(false);
@@ -121,8 +122,16 @@ export default function ScriptPage() {
     }
   }
 
-  async function applyInstruction(blockField: string, selectedText: string, instruction: string) {
+  async function applyInstruction(blockField: string, selectedText: string, instruction: string, isMajoritySelection: boolean) {
     if (!script) return;
+    // Bascule select-all (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A/§7) : une sélection ≥80% du bloc +
+    // un commentaire soumis est un geste d'intention, pas une retouche — on ouvre la confirmation
+    // nouvelle-idée avec le commentaire pré-rempli en directive, sans appeler rewrite_selection.
+    if (isMajoritySelection) {
+      setNewIdeaDirective(instruction);
+      setConfirmNewIdea(true);
+      return;
+    }
     pushHistory();
     setError(null);
     try {
@@ -158,8 +167,10 @@ export default function ScriptPage() {
     setApplyingNewIdea(true);
     setError(null);
     try {
-      const { script: updated } = await api.newIdea(script.id);
+      const directive = newIdeaDirective.trim();
+      const { script: updated } = await api.newIdea(script.id, directive ? { directive } : undefined);
       setScript((prev) => (prev ? { ...prev, ...updated } : updated));
+      setNewIdeaDirective("");
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Erreur lors de la génération d'une autre idée.");
     } finally {
@@ -301,7 +312,10 @@ export default function ScriptPage() {
         </div>
         {script.origin === "generated" && script.concept && (
           <button
-            onClick={() => setConfirmNewIdea(true)}
+            onClick={() => {
+              setNewIdeaDirective("");
+              setConfirmNewIdea(true);
+            }}
             disabled={applyingNewIdea}
             title="Remplace tout le contenu par une nouvelle idée, même brief (plateforme/catégorie/angle/série inchangés)"
             style={{
@@ -344,7 +358,7 @@ export default function ScriptPage() {
                   value={script[field] ?? ""}
                   minRows={3}
                   onSave={(v) => saveField({ [field]: v })}
-                  onApplyInstruction={(text, instr) => applyInstruction(field, text, instr)}
+                  onApplyInstruction={(text, instr, isMajority) => applyInstruction(field, text, instr, isMajority)}
                 />
               </div>
             ))}
@@ -363,7 +377,7 @@ export default function ScriptPage() {
           <EditableField
             value={script.hookVisual ?? ""}
             onSave={(v) => saveField({ hookVisual: v })}
-            onApplyInstruction={(text, instr) => applyInstruction("hookVisual", text, instr)}
+            onApplyInstruction={(text, instr, isMajority) => applyInstruction("hookVisual", text, instr, isMajority)}
           />
         </Card>
       )}
@@ -432,6 +446,29 @@ export default function ScriptPage() {
         <p style={{ margin: "0 0 18px", fontSize: 13, color: color.textMuted }}>
           Tout le contenu de ce script sera remplacé par une nouvelle génération — plateforme, catégorie, angle et série restent inchangés. Si tu as modifié le texte à la main, ces modifications seront perdues. Cette action est irréversible.
         </p>
+        <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: color.textFaint, marginBottom: 6 }}>
+          Une idée en tête ? <span style={{ fontWeight: 400 }}>(optionnel)</span>
+        </label>
+        <textarea
+          value={newIdeaDirective}
+          onChange={(e) => setNewIdeaDirective(e.target.value)}
+          placeholder="Une piste à interpréter, pas un texte à recopier..."
+          rows={3}
+          maxLength={500}
+          style={{
+            width: "100%",
+            border: `1px solid ${color.inputBorder}`,
+            borderRadius: 10,
+            padding: "9px 11px",
+            fontSize: 13,
+            lineHeight: 1.4,
+            fontFamily: "inherit",
+            background: color.inputBg,
+            color: color.text2,
+            resize: "vertical",
+            marginBottom: 18,
+          }}
+        />
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <Button variant="secondary" onClick={() => setConfirmNewIdea(false)}>
             Annuler
@@ -455,7 +492,7 @@ export default function ScriptPage() {
           <EditableField
             value={script.hookText ?? ""}
             onSave={(v) => saveField({ hookText: v })}
-            onApplyInstruction={(text, instr) => applyInstruction("hookText", text, instr)}
+            onApplyInstruction={(text, instr, isMajority) => applyInstruction("hookText", text, instr, isMajority)}
           />
         </Card>
       )}
@@ -490,7 +527,7 @@ export default function ScriptPage() {
                         const storyboard = (script.storyboard ?? []).map((step, j) => (j === i ? { ...step, description: v } : step));
                         saveField({ storyboard });
                       }}
-                      onApplyInstruction={(text, instr) => applyInstruction(`storyboard.${i}`, text, instr)}
+                      onApplyInstruction={(text, instr, isMajority) => applyInstruction(`storyboard.${i}`, text, instr, isMajority)}
                     />
                   </div>
                 </div>
@@ -516,7 +553,7 @@ export default function ScriptPage() {
               value={script.caption}
               minRows={script.contentType === "text" ? 8 : 4}
               onSave={(v) => saveField({ caption: v })}
-              onApplyInstruction={(text, instr) => applyInstruction("caption", text, instr)}
+              onApplyInstruction={(text, instr, isMajority) => applyInstruction("caption", text, instr, isMajority)}
             />
           </Card>
           <Card style={{ padding: 22 }}>

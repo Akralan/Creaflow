@@ -375,8 +375,8 @@ export const api = {
     patch<{ entry: CalendarEntry }>(`/api/calendar/${id}`, data),
   deleteCalendarEntry: (id: string) => del<{ ok: true }>(`/api/calendar/${id}`),
 
-  generateScriptForEntry: (calendarEntryId: string, contentType?: ContentType, productId?: string) =>
-    post<{ script: Script }>("/api/scripts/generate", { calendarEntryId, contentType, productId }),
+  generateScriptForEntry: (calendarEntryId: string, contentType?: ContentType, productId?: string, directive?: string) =>
+    post<{ script: Script }>("/api/scripts/generate", { calendarEntryId, contentType, productId, directive }),
   generateFreeformScript: (data: {
     platform: Platform;
     contentCategoryId: string;
@@ -384,6 +384,7 @@ export const api = {
     productId?: string;
     scheduledDate?: string;
     seriesId?: string;
+    directive?: string;
   }) => post<{ script: Script }>("/api/scripts", data),
   getScripts: (params?: { seriesId?: string }) =>
     apiFetch<{ scripts: Script[] }>(`/api/scripts${params?.seriesId ? `?seriesId=${params.seriesId}` : ""}`),
@@ -412,8 +413,11 @@ export const api = {
   regenerateScriptBlock: (id: string, block: "hook" | "storyboard" | "caption" | "hashtags") =>
     post<{ script: Script }>(`/api/scripts/${id}/micro-edit`, { action: "block_regenerate", block }),
   /** "Autre idée, même brief" (docs/SPEC_PROMPT_GENERATION_TECH.md §6) — remplace tout le contenu du
-   *  script en place, brief verrouillé. Confirmation à afficher côté appelant avant d'exécuter (§6.3). */
-  newIdea: (id: string) => post<{ script: Script }>(`/api/scripts/${id}/new-idea`),
+   *  script en place, brief verrouillé. Confirmation à afficher côté appelant avant d'exécuter (§6.3).
+   *  `directive` optionnelle (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A) : idée soufflée par le créateur, ou
+   *  commentaire pré-rempli par la bascule select-all ≥80 %. */
+  newIdea: (id: string, data?: { directive?: string }) =>
+    post<{ script: Script }>(`/api/scripts/${id}/new-idea`, data),
   importScript: (data: {
     platform: Platform;
     contentCategoryId: string;

@@ -4,6 +4,8 @@ import { isKnownPlatform } from "@/lib/social/types";
 export const platformSchema = z.string().refine(isKnownPlatform, { message: "Plateforme inconnue." });
 export const contentCategorySchema = z.uuid();
 export const contentTypeSchema = z.enum(["video", "visual", "text"]);
+// Idée soufflée par le créateur sur une porte de génération (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A).
+export const directiveSchema = z.string().trim().max(500).optional();
 
 // Catalogue de sujets (UI : "sujet" ; schéma/routes/types restent "Product", docs/SPEC_MATIERE_EDITEUR.md
 // §3.3 — renommage côté UI uniquement). MIN_PRODUCTS abaissé à 1 : un profil personal branding peut
