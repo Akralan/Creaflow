@@ -47,9 +47,10 @@ AssistantProposal (une ligne par proposition émise par l'assistant)
 - id, userId
 - kind (product_create / product_update / series_create / series_update /
         category_create / category_update / angle_create / angle_update / posting_goal_update /
-        category_reweight)
+        category_reweight / profile_update)
 - targetId (nullable — id de l'entité ciblée si action="update", pas de FK typée : la cible dépend de `kind`.
-  Toujours null pour category_reweight, qui porte plusieurs catégories dans son payload, comme posting_goal_update.)
+  Toujours null pour category_reweight, qui porte plusieurs catégories dans son payload, comme posting_goal_update
+  et profile_update — une seule cible possible pour ce dernier, le CreatorProfile de l'utilisateur.)
 - payload (jsonb — contenu de la proposition)
 - status (pending / accepted / rejected)
 - createdAt, resolvedAt
@@ -64,6 +65,9 @@ CreatorProfile (1:1 avec User)
 - brandName, activityType, tone, values (texte libre)
 - equipment (array texte)
 - weeklyTimeAvailable
+- targetAudience (texte libre, nullable — qui achète/lit, ce qui l'intéresse, ce qu'il doit retenir ;
+  extrait de l'onboarding ou édité en paramètres, `docs/SPEC_PROMPT_GENERATION_TECH.md` §5. Fallback
+  quand Product.targetAudience est absent, cf. §5.1)
 - styleProfile (jsonb, nullable — résumé de style généré par IA à partir des InspirationVideo)
 - styleProfileUpdatedAt
 
@@ -99,6 +103,8 @@ Product (catalogue de sujets, 1 à 5 par créateur — MIN_PRODUCTS/MAX_PRODUCTS
 et types TS gardent "Product", zéro migration pour ce renommage)
 - id, userId
 - name, description, valueProposition (optionnels), photoUrl
+- targetAudience (texte libre, nullable — override d'audience par sujet, null = fallback sur
+  CreatorProfile.targetAudience ; couvre le cas personal branding multi-sujets, `docs/SPEC_PROMPT_GENERATION_TECH.md` §5)
 
 SourceMaterial (dépôt brut de matière première — un collage, un fichier .md/.txt, une session
 d'interview ; docs/SPEC_MATIERE_EDITEUR.md §3, amendement). Immédiatement utilisable, pas de pipeline
@@ -169,6 +175,14 @@ Script (document co-écrit — Module B, docs/SPEC_MATIERE_EDITEUR.md §4)
 - productId (nullable, FK ON DELETE SET NULL)
 - platform
 - title (nullable — naissance paresseuse, §4.5 : la ligne peut naître avant qu'un titre n'existe)
+- concept (texte, nullable — intention de génération, rédigée par le LLM en 1re propriété du tool,
+  `docs/SPEC_PROMPT_GENERATION_TECH.md` §2/§4.1. Trace de l'intention, pas une description vivante :
+  écrit à la génération puis figé (micro-retouches, régénérations de bloc n'y touchent jamais),
+  remplacé uniquement par "autre idée, même brief" (§6, `POST /api/scripts/:id/new-idea`). Null pour
+  origin manual/imported et pour les scripts antérieurs à cette migration)
+- rejectedConcepts (jsonb array de strings, défaut [] — concepts écartés via "autre idée, même brief",
+  appendés dans l'ordre ; réinjectés en contexte des générations suivantes du même script, plafonnés
+  aux 5 plus récents à l'injection, §6.3)
 - hookVisual, hookText, hookAudio (nullable — pertinents selon contentType)
 - storyboard (jsonb, nullable — liste de {planNumber, description})
 - caption, hashtags (array), soundRecommendation (nullable)
@@ -242,7 +256,7 @@ Aucune contrainte `NOT NULL` ne force l'un ou l'autre sens.
 ### Onboarding (Module A) — chat conversationnel (`/onboarding`)
 - `GET /api/onboarding/chat` — historique des messages + statut (`complete`).
 - `POST /api/onboarding/chat` `{ message }` — envoie un message utilisateur, fait tourner l'IA (`runOnboardingChatTurn`), fusionne les champs extraits sur l'état accumulé (`mergeExtractedProfile` — n'écrase jamais un champ connu par une valeur vide), et **si `complete=true`**, déclenche automatiquement `finalizeOnboarding` : persiste `CreatorProfile`, génère catégories + angles + séries (si aucune n'existe déjà), crée les `PostingGoal` par défaut sur les plateformes suggérées. Un seul aller-retour.
-- `GET/PUT/DELETE /api/products`, `/api/products/:id` — catalogue produits (3 à 5, bulk POST accepté).
+- `GET/PUT/DELETE /api/products`, `/api/products/:id` — catalogue produits (3 à 5, bulk POST accepté). `PUT` accepte aussi `targetAudience` (nullable — override d'audience par sujet, `docs/SPEC_PROMPT_GENERATION_TECH.md` §5).
 - `GET /api/auth/:platform/connect` → redirection OAuth (state + returnTo en cookies httpOnly) ; `GET /api/auth/:platform/callback` → crée/rafraîchit la `SocialConnection`, récupère les posts récents (`InspirationVideo`), **puis déclenche automatiquement `updateStyleProfileForUser`** — aucun appel supplémentaire requis depuis le front. Un échec de récupération des posts n'invalide pas la connexion.
 - `POST /api/profile/style-analysis` — force un recalcul manuel du `style_profile`.
 
@@ -254,7 +268,7 @@ Aucune contrainte `NOT NULL` ne force l'un ou l'autre sens.
 
 ### Assistant éditorial (Module E) — écran `/assistant`
 - `GET /api/assistant/chat` — historique des messages + propositions en attente.
-- `POST /api/assistant/chat` `{ message, urls? }` (jusqu'à 3 URLs) — fait tourner l'IA (`runAssistantChatTurn`) avec en contexte l'état actuel complet (produits, catégories, angles, séries, objectifs) et le contenu des URLs fournies (`urlFetchService`) ; peut renvoyer jusqu'à 5 propositions par type (produit, catégorie, angle, série, objectif), jamais de suppression, jamais d'action sur le calendrier lui-même.
+- `POST /api/assistant/chat` `{ message, urls? }` (jusqu'à 3 URLs) — fait tourner l'IA (`runAssistantChatTurn`) avec en contexte l'état actuel complet (produits, catégories, angles, séries, objectifs, audience de marque) et le contenu des URLs fournies (`urlFetchService`) ; peut renvoyer jusqu'à 5 propositions par type (produit, catégorie, angle, série, objectif) et jusqu'à 1 proposition d'audience de marque (`profile_update`, `docs/SPEC_PROMPT_GENERATION_TECH.md` §5), jamais de suppression, jamais d'action sur le calendrier lui-même.
 - `POST /api/assistant/proposals/:id/resolve` `{ action: "accept"|"reject", fields? }` — applique (avec édition optionnelle des champs) ou rejette une proposition individuelle.
 
 ### Calendrier mensuel (Module D) — vue principale `/calendar`
@@ -269,7 +283,8 @@ Aucune contrainte `NOT NULL` ne force l'un ou l'autre sens.
 - `GET /api/scripts/:id` — script complet, produit/catégorie/angle/série/métriques joints, ainsi que les `SourceMaterialCitation` du script (traçabilité de la matière utilisée, docs/SPEC_MATIERE_EDITEUR.md §3).
 - `GET /api/scripts?seriesId=` — liste des scripts de l'utilisateur, filtrable par série.
 - `POST /api/scripts` `{ platform, contentCategoryId, contentType, productId?, scheduledDate?, seriesId? }` — génération libre (flux secondaire), place directement au calendrier si `scheduledDate` fourni.
-- `POST /api/scripts/:id/regenerate` — régénère le script en conservant catégorie/plateforme/type/série, avec un nouvel angle recalculé par l'anti-répétition.
+- `POST /api/scripts/:id/regenerate` — **désactivé côté produit** au profit de la micro-édition (aucun bouton ne l'appelle plus) et de `new-idea` ci-dessous, `docs/SPEC_PROMPT_GENERATION_TECH.md` note d'ouverture ; encore présent en code (régénère en conservant catégorie/plateforme/type/série, avec un nouvel angle **recalculé** par l'anti-répétition).
+- `POST /api/scripts/:id/new-idea` (corps vide) — « autre idée, même brief » (`docs/SPEC_PROMPT_GENERATION_TECH.md` §6) : remplace `regenerate` comme geste de ré-génération complète. 409 si `origin≠"generated"` ou `concept` absent (rien à remplacer). Brief **intégralement verrouillé**, angle **conservé** (pas recalculé, contrairement à `regenerate` ci-dessus) ; le `concept` remplacé rejoint `rejectedConcepts` et est réinjecté en contexte des générations suivantes (plafonné aux 5 plus récents). Mise à jour en place (`CalendarEntry.scriptId`/`createdAt` intacts), même quota qu'une génération complète (`ScriptGenerationEvent`). Confirmation systématique côté UI avant exécution (contenu actuel remplacé, y compris d'éventuelles éditions manuelles).
 - `PATCH /api/scripts/:id` `{ status?, title?, hookVisual?, hookText?, hookAudio?, storyboard?, caption?, hashtags?, soundRecommendation? }` — statut ET contenu (docs/SPEC_MATIERE_EDITEUR.md §4.5) ; `contentCategoryId`/`angleId`/`seriesId` volontairement absents, brief verrouillé (§4.2). Au moins un champ requis.
 - `DELETE /api/scripts/:id` — supprime un brouillon (cascade sur `ScriptGenerationEvent`/`ScriptMicroEditEvent`/`SourceMaterialCitation`/métriques ; `SET NULL` sur `CalendarEntry.scriptId`, le créneau redevient générable).
 - `POST /api/scripts/:id/micro-edit` `{ action: "selection_instruction", blockField, selectedText, instruction }` ou `{ action: "block_regenerate", block }` — les deux gestes de l'éditeur (§4.4) : reformulation contrainte d'un passage sélectionné, ou régénération d'un seul bloc (hook/storyboard/caption/hashtags) sans repasser par le script entier. Compté sur le pool micro-retouches (§6), pas le quota de génération.
@@ -291,6 +306,7 @@ Aucune contrainte `NOT NULL` ne force l'un ou l'autre sens.
 - `POST /api/performance/match-candidates/:id/resolve` `{ action: "confirm"|"dismiss" }` — `confirm` upsert `PostMetrics` (`source="api"`) depuis les métriques déjà capturées sur le candidat + insère un `PostMetricsSnapshot` ; `dismiss` marque le candidat comme définitivement écarté. Les deux statuts sont terminaux.
 
 ### Paramètres / connexions sociales — écran `/settings`
+- `GET/POST /api/profile` — lecture/écriture du `CreatorProfile` (identité de marque), y compris `targetAudience` (`docs/SPEC_PROMPT_GENERATION_TECH.md` §5).
 - `GET /api/connections` — statut de connexion par plateforme, un seul appel : `connected`, `status` (`ok`/`needs_reconnect`/`null`), `hasMetricsFetch`. Les plateformes affichées sont l'union des `PostingGoal` définis et des `SocialConnection` existantes ; avant tout onboarding, retombe sur les plateformes à OAuth du registre.
 
 ---
@@ -300,18 +316,23 @@ Aucune contrainte `NOT NULL` ne force l'un ou l'autre sens.
 Tous les appels IA passent par `callStructured` (`src/lib/llm/provider.ts`) : sortie forcée en JSON strict via function/tool calling, avec retry automatique (rappel explicite dans le system prompt) si le modèle répond en texte libre au lieu d'appeler l'outil.
 
 ### 5.1 Génération de script (Module B) — `src/lib/llm/generateScript.ts` + `prompts.ts`
-- **Prompt système statique** (`SCRIPT_SYSTEM_PROMPT`) — rôle ("Directeur Marketing Virtuel de CreaFlow"), règles de structure générales (hook, découpage en étapes réalisables, cohérence de ton), et depuis `docs/SPEC_MATIERE_EDITEUR.md` §2 une règle explicite anti-invention : ne jamais inventer une information factuelle non fournie dans le contexte, marquer `[à compléter]` sinon (adaptation one-shot de la règle déjà présente dans `assistantChat.ts` §5.4, qui elle peut poser une question de clarification).
-- **Contexte dynamique par appel** (`buildScriptUserMessage`, `buildGenerationContext` dans `scriptService.ts`) — profil créateur, `style_profile` (résumé, pas le brut), produit si applicable, règles spécifiques à la plateforme (`PLATFORM_RULES`), catégorie de contenu visée, **série récurrente** si applicable (directive forte sur l'identité de la série), **angle imposé** par l'anti-répétition, type de contenu (`CONTENT_TYPE_GUIDANCE` : vidéo / visuel / texte), **corpus de matière du sujet** (§5.8 ci-dessous), sujets récents à éviter (15 derniers scripts, ou 10 derniers de la même série), résumé de performance récente.
-- **Sortie forcée en JSON strict** — un des 3 tools selon `contentType` (`generate_video_script` / `generate_visual_post` / `generate_text_post`, `scriptSchema.ts`), schéma correspondant aux colonnes de `Script` pertinentes pour ce type.
+Prompt v2 (`docs/SPEC_PROMPT_GENERATION_TECH.md`, Lots 1-2) — remplace l'ancienne version one-shot.
+
+- **Prompt système** (`SCRIPT_SYSTEM_PROMPT`) — rôle ("Directeur Marketing Virtuel de CreaFlow"), obsession de spécificité explicite ("un post publiable tel quel par un concurrent est un échec"), règles de qualité courtes (une seule idée par script formulée dans le champ `concept`, hook = manque jamais annonce, au moins un élément que seul ce créateur peut dire), interpole `EDITORIAL_WRITING_RULES` (constante partagée, anti-clichés/concret > abstrait — également consommée par `microEdit.ts::rewrite_selection` et `materialEpisodes.ts`, cf. §5.11/§5.12), puis interdits durs (anti-invention, `usedExcerpts` obligatoire).
+- **Contexte dynamique par appel** (`buildScriptUserMessage`, `buildGenerationContext` dans `scriptService.ts`) — blocs balisés à ordre fixe : `=== CONTEXTE MARQUE ===` (marque, **audience visée** — `Product.targetAudience ?? CreatorProfile.targetAudience`, §5 —, ton, valeurs, style, matériel, temps), `=== MATIÈRE ===` (§5.8), `=== BRIEF ===` (produit, plateforme + règle plateforme, catégorie, série, angle, type de contenu, photo de référence, directive d'épisode), `=== VARIÉTÉ ===` (sujets récents, performance, **concepts refusés** via "autre idée" — `rejectedConcepts`, plafonné aux 5 plus récents, §6.3), `=== PRIORITÉS ===` (bloc final, poids maximal : vérité factuelle > identité série/angle > voix de marque > codes plateforme, + rappel du test du concurrent).
+- **Champ `concept`** (`scriptSchema.ts`) — **première propriété, `required`**, sur les 3 tools de génération : l'ordre des propriétés JSON force le LLM à décider l'idée avant de rédiger le reste. Persisté sur `Script.concept` (§3), figé après la génération, jamais réécrit par la régénération de bloc (§5.11) ou la sélection→instruction — remplacé uniquement par "autre idée, même brief" (§6.3 ci-dessous).
+- **Sortie forcée en JSON strict** — un des 3 tools selon `contentType` (`generate_video_script` / `generate_visual_post` / `generate_text_post`, `scriptSchema.ts`), schéma correspondant aux colonnes de `Script` pertinentes pour ce type, descriptions de champs qualitatives (ex. `hookText` : "crée une tension ou une curiosité, jamais une annonce du sujet").
+
+**"Autre idée, même brief"** (`POST /api/scripts/:id/new-idea`, remplace `regenerate` désactivé — voir §4) : brief intégralement verrouillé — contrairement à `regenerate`, l'**angle n'est jamais recalculé**. `buildGenerationContext` accepte un paramètre `lockedAngleId` (tout appelant sauf celui-ci l'omet = comportement normal, angle recalculé par `pickAngleForScript` comme avant) ; le concept remplacé rejoint `Script.rejectedConcepts`, réinjecté dans `[VARIÉTÉ]` au tour suivant. Confirmation UI systématique avant exécution (bouton dans l'en-tête du brief de l'éditeur).
 
 ### 5.2 Anti-répétition par angles — `src/lib/services/angleService.ts`
 Cœur du mécanisme : `pickAngleForScript(userId, contentCategoryId, excludeScriptId?)` sélectionne l'angle actif le **moins récemment utilisé** par l'utilisateur dans la catégorie visée (`selectLeastRecentlyUsedAngle`, sur les 30 derniers scripts angle-non-null de la catégorie). Dégradation gracieuse : `null` si aucun angle actif (utilisateur legacy, avant génération d'angles). L'angle est injecté dans le prompt comme directive de structure/hook, invisible pour l'utilisateur final.
 
 ### 5.3 Chat d'onboarding — `src/lib/llm/onboardingChat.ts`
-Un seul tool (`update_onboarding_profile`) renvoie à la fois la réponse conversationnelle (`assistantReply`), les champs de profil déduits **cumulés depuis le début de la conversation** (pas seulement les nouveaux), et un booléen `complete` (vrai dès que nom/activité, temps disponible et au moins une plateforme suggérée sont connus). Une question à la fois, jamais de formulaire déguisé, aucune hypothèse sur le type d'activité (vidéo/produit physique).
+Un seul tool (`update_onboarding_profile`) renvoie à la fois la réponse conversationnelle (`assistantReply`), les champs de profil déduits **cumulés depuis le début de la conversation** (pas seulement les nouveaux), et un booléen `complete` (vrai dès que nom/activité, temps disponible et au moins une plateforme suggérée sont connus). Une question à la fois, jamais de formulaire déguisé, aucune hypothèse sur le type d'activité (vidéo/produit physique). Cherche aussi à connaître l'**audience visée** (`targetAudience`, `docs/SPEC_PROMPT_GENERATION_TECH.md` §5) — question skippable, n'entre jamais dans les critères de `complete`.
 
 ### 5.4 Chat assistant éditorial — `src/lib/llm/assistantChat.ts`
-Un seul tool (`update_assistant_conversation`) renvoie la réponse conversationnelle + jusqu'à 5 propositions par type (produits, catégories, angles, séries, objectifs de fréquence), chacune `create` ou `update` (jamais `delete`). Le contexte injecté inclut l'état complet actuel (ids exacts pour les cibles d'`update`, libellés exacts de catégories pour le rattachement des séries) et, si fournies, des sources web extraites (`urlFetchService`, jusqu'à 3 URLs). Contrainte explicite : ne jamais inventer d'info non fournie, ne jamais agir sur le calendrier lui-même.
+Un seul tool (`update_assistant_conversation`) renvoie la réponse conversationnelle + jusqu'à 5 propositions par type (produits, catégories, angles, séries, objectifs de fréquence) et jusqu'à 1 proposition d'**audience de marque** (`profileProposals`, `kind="profile_update"`, §3 — distincte de l'audience par sujet, qui passe par `product_update`), chacune `create` ou `update` (jamais `delete`, l'audience de marque n'a qu'une seule forme comme les objectifs de fréquence). Le contexte injecté inclut l'état complet actuel (ids exacts pour les cibles d'`update`, libellés exacts de catégories pour le rattachement des séries, audience de marque actuelle) et, si fournies, des sources web extraites (`urlFetchService`, jusqu'à 3 URLs). Contrainte explicite : ne jamais inventer d'info non fournie, ne jamais agir sur le calendrier lui-même.
 
 ### 5.5 Analyse de style — `src/lib/llm/styleProfile.ts`
 Un appel dédié (`analyzeStyle`) résume les légendes des `InspirationVideo` récupérées après connexion OAuth en un `StyleProfile` structuré (ton, longueur de phrase, usage d'emojis, vocabulaire, résumé de 2-3 phrases). Déclenché automatiquement au callback OAuth (si des posts sont récupérés) et manuellement via `POST /api/profile/style-analysis`. Le résumé (pas le texte brut) est réinjecté à chaque génération de script — coût réduit, cohérence de ton stable.
@@ -379,14 +400,15 @@ Un seul tool (`record_interview_turn`) renvoie la question suivante (`assistantR
 
 ### 5.11 Micro-retouches — `src/lib/llm/microEdit.ts` + `microEditService.ts`
 Deux gestes contraints, jamais une régénération de structure complète (`docs/SPEC_MATIERE_EDITEUR.md` §4.4). Le vrai geste d'édition du corps, en usage réel, c'est le premier — petit bout par petit bout, pas une régénération à l'aveugle en espérant un bon résultat (constat direct, a fait retirer le bouton de régénération du bloc "Texte", cf. plus bas) :
-- **Sélection→instruction** (`rewrite_selection`) — reformule (ou supprime, cf. plus bas) uniquement le passage sélectionné selon l'instruction libre. Reçoit, comme la génération complète, le contexte marque/ton **et la matière du sujet** (`getMaterialForSubject`) — sans elle, une instruction du type « base-toi sur le premier run » ou « parle plutôt de X » serait impossible à honorer, faute de corpus où piocher. Rapporte `usedExcerpts` (`strict: true`, même garantie qu'en §5.8) ; `microEditService.ts::applySelectionInstruction` appelle ensuite `citationService.ts::reconcileCitationsAfterEdit` (§5.9) pour tenir les citations à jour sans effacer celles qui restent valides ailleurs dans le texte. `rewrittenText` peut être une chaîne **vide** — c'est la façon de supprimer le passage sélectionné ; le prompt interdit explicitement de le reformuler/raccourcir à la place d'une vraie suppression (un champ non-vide obligatoire produisait un rédacteur qui paraphrasait au lieu de supprimer, observé en usage réel).
-- **Régénération d'un bloc** (`regenerate_hook`/`regenerate_storyboard`/`regenerate_hashtags`, `toolForBlock`) — reconstruit le contexte complet (`buildGenerationContext`, `excludeScriptId`) mais ne demande au LLM que le bloc visé. Cas particulier `hook` en `contentType="text"` : l'accroche est la première phrase du texte, donc ce geste reçoit le **texte actuel du script comme référence fixe** (jamais reconstruit à l'aveugle) et ajuste l'accroche en conséquence ; le titre est renvoyé dans le même appel mais seulement modifié **si nécessaire** (le tool peut renvoyer le titre actuel inchangé — champ `required` pour la fiabilité, valeur libre pour la sémantique « si besoin »), pour éviter qu'il reste sur un ancien sujet après plusieurs éditions du corps. `regenerate_caption` existe toujours côté service (fallback générique, contexte reconstruit comme les autres blocs) mais n'a plus de bouton pour `contentType="text"` — jugé inutile en usage réel, retiré pour ne pas garder du code mort en façade.
+- **Sélection→instruction** (`rewrite_selection`) — reformule (ou supprime, cf. plus bas) uniquement le passage sélectionné selon l'instruction libre. Reçoit, comme la génération complète, le contexte marque/ton **et la matière du sujet** (`getMaterialForSubject`) — sans elle, une instruction du type « base-toi sur le premier run » ou « parle plutôt de X » serait impossible à honorer, faute de corpus où piocher. Reçoit `EDITORIAL_WRITING_RULES` (§5.1) mais **pas** le `concept` du script ni les règles stratégiques du system prompt complet (`docs/SPEC_PROMPT_GENERATION_TECH.md` §1 tableau "Portée des règles") — geste de mots, pas d'intention. Rapporte `usedExcerpts` (`strict: true`, même garantie qu'en §5.8) ; `microEditService.ts::applySelectionInstruction` appelle ensuite `citationService.ts::reconcileCitationsAfterEdit` (§5.9) pour tenir les citations à jour sans effacer celles qui restent valides ailleurs dans le texte. `rewrittenText` peut être une chaîne **vide** — c'est la façon de supprimer le passage sélectionné ; le prompt interdit explicitement de le reformuler/raccourcir à la place d'une vraie suppression (un champ non-vide obligatoire produisait un rédacteur qui paraphrasait au lieu de supprimer, observé en usage réel).
+- **Régénération d'un bloc** (`regenerate_hook`/`regenerate_storyboard`/`regenerate_hashtags`, `toolForBlock`) — reconstruit le contexte complet (`buildGenerationContext`, `excludeScriptId`) mais ne demande au LLM que le bloc visé ; hérite du system prompt complet v2 (`SCRIPT_SYSTEM_PROMPT`, donc `EDITORIAL_WRITING_RULES` incluse) plus une ligne de contexte dédiée si `Script.concept` existe : « Intention du script (le bloc régénéré doit rester cohérent avec elle) : … » — le concept n'est jamais réécrit par ce geste (lecture seule), même logique pour `regenerate_caption`. Cas particulier `hook` en `contentType="text"` : l'accroche est la première phrase du texte, donc ce geste reçoit le **texte actuel du script comme référence fixe** (jamais reconstruit à l'aveugle) et ajuste l'accroche en conséquence ; le titre est renvoyé dans le même appel mais seulement modifié **si nécessaire** (le tool peut renvoyer le titre actuel inchangé — champ `required` pour la fiabilité, valeur libre pour la sémantique « si besoin »), pour éviter qu'il reste sur un ancien sujet après plusieurs éditions du corps. `regenerate_caption` existe toujours côté service (fallback générique, contexte reconstruit comme les autres blocs) mais n'a plus de bouton pour `contentType="text"` — jugé inutile en usage réel, retiré pour ne pas garder du code mort en façade.
 
 ### 5.12 Découpage en épisodes de série — `src/lib/llm/materialEpisodes.ts`
 Un seul tool (`propose_series_episodes`) reçoit le texte brut complet du sujet (concaténation des
 `SourceMaterial`, pas d'unités pré-découpées) et propose une répartition en épisodes ordonnés
 (`{episodeTitle, angleHint}[]`), une progression cohérente plutôt qu'un ordre arbitraire — même règle
-anti-invention (« n'invente aucun contenu au-delà de ce que le texte fourni permet de couvrir »).
+anti-invention (« n'invente aucun contenu au-delà de ce que le texte fourni permet de couvrir »), et
+`EDITORIAL_WRITING_RULES` (§5.1) pour que les titres/angles proposés évitent déjà les clichés.
 Consommé par `seriesFromMaterialService.ts::generateSeriesFromMaterial` (§3.8) : pour chaque épisode,
 construit le contexte de génération normal (§5.8) puis injecte une directive d'épisode
 (`episodeDirective: {episodeTitle, angleHint}`) dans le prompt — le LLM choisit lui-même, dans le texte
@@ -403,7 +425,7 @@ Self-service, mode `subscription` Stripe Checkout — pas d'intégration Stripe.
 - **Pool micro-retouches** (`docs/SPEC_MATIERE_EDITEUR.md` §4.6) : `ScriptMicroEditEvent`, distinct de `ScriptGenerationEvent` — `getMicroEditQuotaStatus`/`enforceMicroEditQuota`, miroir exact de la logique de quota scripts (même branchement abonnement actif/essai gratuit, borné à `currentPeriodStart`). Chiffrage initial (x5/x4 le quota scripts) à recaler sur les coûts réels par provider — une micro-retouche est un appel LLM texte court sur un seul bloc, nettement moins coûteux qu'une génération structurée complète.
 - **Source de vérité** : Stripe uniquement. `subscriptions` (`src/db/schema.ts`) n'est jamais écrite par une route utilisateur, seulement par le webhook (`POST /api/billing/webhook`) sur `checkout.session.completed`, `customer.subscription.updated` et `customer.subscription.deleted`. Le rattachement `userId` passe par `client_reference_id` (session Checkout) et `subscription_data.metadata.userId`/`metadata.plan` (posés à la création, jamais recalculés depuis un price id).
 - **Pas de changement de plan self-service en v1** : le Customer Portal (`POST /api/billing/portal`) couvre moyen de paiement / factures / résiliation, pas le changement de plan — `subscriptions.plan` ne serait plus fiable si Stripe le modifiait sans passer par nos metadata. `POST /api/billing/checkout` refuse (409) tant qu'un abonnement existant n'est pas dans un statut terminal (`canceled`/`incomplete_expired`) — sinon un 2e Checkout créerait un 2e customer/2e subscription Stripe orphelins.
-- **Quota** : `enforceScriptQuota(userId)` appelé en tête de `POST /api/scripts`, `POST /api/scripts/generate` et `POST /api/scripts/:id/regenerate` — compte les `ScriptGenerationEvent` créés depuis `currentPeriodStart` (abonnement actif) ou depuis toujours (essai gratuit), lève une `ApiError(402)` au-delà de la limite du plan. Une régénération compte comme une génération (voir `ScriptGenerationEvent` en §3) : `createScriptRecord`/`updateScriptRecord` (`scriptService.ts`) insèrent l'événement dans la même transaction que l'écriture du script.
+- **Quota** : `enforceScriptQuota(userId)` appelé en tête de `POST /api/scripts`, `POST /api/scripts/generate`, `POST /api/scripts/:id/regenerate` (désactivé côté produit, §4) et `POST /api/scripts/:id/new-idea` — compte les `ScriptGenerationEvent` créés depuis `currentPeriodStart` (abonnement actif) ou depuis toujours (essai gratuit), lève une `ApiError(402)` au-delà de la limite du plan. Une régénération ou une "autre idée" comptent comme une génération (voir `ScriptGenerationEvent` en §3) : `createScriptRecord`/`updateScriptRecord` (`scriptService.ts`) insèrent l'événement dans la même transaction que l'écriture du script.
 - **Limite connue acceptée** : le check de quota et l'écriture de l'événement ne sont pas atomiques (l'appel LLM a lieu entre les deux) — deux requêtes concurrentes du même utilisateur peuvent ponctuellement dépasser la limite de quelques unités. Documenté dans `enforceScriptQuota` (`billingService.ts`).
 - **Non couvert par cette itération** : quota sur la génération d'images IA (`POST /api/assets/generate-image`, coût Gemini comparable à un script), plans annuels, changement de plan self-service, emails transactionnels de facturation (facture, échec de paiement, fin d'essai).
 
@@ -417,7 +439,7 @@ Self-service, mode `subscription` Stripe Checkout — pas d'intégration Stripe.
 - **Rate limiting** (`src/lib/services/rateLimitService.ts`) : fenêtre fixe backée Postgres (`rate_limit_buckets`), pas de Redis dans l'infra actuelle. Compteur incrémenté par upsert sur `(scope, identifier, fenêtre)`, purge paresseuse des fenêtres expirées (probabiliste, pas de cron dans ce repo — même philosophie que le reste de l'app). `enforceScriptQuota` (facturation) et le rate limiting sont deux mécanismes distincts et complémentaires : l'un borne le coût mensuel par abonnement, l'autre borne le débit de requêtes par minute (anti-spam/anti-brute-force), indépendamment du quota.
   - `POST /api/auth/login` : 10/15min par IP + 5/15min par email (double limite : IP contre le spam générique, email contre le credential stuffing ciblé depuis plusieurs IP).
   - `POST /api/auth/signup` : 5/heure par IP (anti-création massive de comptes).
-  - Génération de script (`POST /api/scripts`, `POST /api/scripts/generate`, `POST /api/scripts/:id/regenerate`) : 20/min par utilisateur, scope partagé entre les 3 routes (sinon la limite se contournerait en alternant entre elles).
+  - Génération de script (`POST /api/scripts`, `POST /api/scripts/generate`, `POST /api/scripts/:id/regenerate`, `POST /api/scripts/:id/new-idea`) : 20/min par utilisateur, scope `"script-generate"` partagé entre les 4 routes (sinon la limite se contournerait en alternant entre elles).
   - Chats IA (`POST /api/onboarding/chat`, `POST /api/assistant/chat`) : 20/min par utilisateur.
   - `POST /api/profile/style-analysis` : 5/min par utilisateur (déclenchement manuel, usage rare).
   - `POST /api/assets/generate-image` : 10/min par utilisateur.
