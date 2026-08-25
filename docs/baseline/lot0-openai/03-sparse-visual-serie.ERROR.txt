@@ -1,0 +1,9 @@
+ApiError: {"error":{"code":404,"message":"models/text-embedding-004 is not found for API version v1beta, or is not supported for embedContent. Call ModelService.ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}}
+    at throwErrorIfNotOK (E:\OneDrive\Bureau\PROJETS\CreaFlow\node_modules\@google\genai\dist\node\index.cjs:14213:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async E:\OneDrive\Bureau\PROJETS\CreaFlow\node_modules\@google\genai\dist\node\index.cjs:13907:13
+    at async Models.embedContent (E:\OneDrive\Bureau\PROJETS\CreaFlow\node_modules\@google\genai\dist\node\index.cjs:15283:24)
+    at async embedText (E:\OneDrive\Bureau\PROJETS\CreaFlow\src\lib\llm\embeddings.ts:8:20)
+    at async findBestBrandAssetForScript (E:\OneDrive\Bureau\PROJETS\CreaFlow\src\lib\services\brandAssetService.ts:268:26)
+    at async buildGenerationContext (E:\OneDrive\Bureau\PROJETS\CreaFlow\src\lib\services\scriptService.ts:84:9)
+    at async main (E:\OneDrive\Bureau\PROJETS\CreaFlow\scripts\baseline-lot0-run.ts:109:23)
