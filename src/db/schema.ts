@@ -235,6 +235,10 @@ export const sourceMaterials = pgTable("source_materials", {
   kind: sourceMaterialKindEnum("kind").notNull(),
   title: text("title"),
   rawText: text("raw_text").notNull(),
+  // Résumé orienté potentiel narratif (docs/SPEC_REDACTEUR_EN_CHEF.md §2/§3.1) — null = pas encore
+  // résumé (backfill paresseux en cours ou à venir) ; généré une fois à l'ingestion, jamais
+  // regénéré automatiquement après une édition manuelle (l'édition devient la source de vérité).
+  summary: text("summary"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

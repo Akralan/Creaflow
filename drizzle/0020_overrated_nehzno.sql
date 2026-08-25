@@ -1,0 +1,1 @@
+ALTER TABLE "source_materials" ADD COLUMN "summary" text;

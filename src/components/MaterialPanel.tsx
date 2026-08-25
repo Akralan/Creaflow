@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import GenerateSeriesFromMaterialModal from "@/components/GenerateSeriesFromMaterialModal";
@@ -39,6 +39,61 @@ function renderHighlighted(text: string, citations: Citation[]): ReactNode[] {
   });
   parts.push(text.slice(cursor));
   return parts;
+}
+
+/**
+ * Résumé orienté potentiel narratif sous chaque document (docs/SPEC_REDACTEUR_EN_CHEF.md §7) —
+ * "résumé en cours..." tant que `summary` est null (généré à l'ingestion, backfill paresseux sinon) ;
+ * une fois présent, éditable directement (`onBlur`) et l'édition devient la source de vérité, jamais
+ * regénérée automatiquement ensuite.
+ */
+function MaterialSummaryField({ summary, onSave }: { summary: string | null; onSave: (next: string) => void }) {
+  const [draft, setDraft] = useState(summary ?? "");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Même garde que EditableField (docs/SPEC_MATIERE_EDITEUR.md §4.4) : ne pas écraser une édition en
+  // cours si le résumé change ailleurs (backfill qui se termine pendant que l'utilisateur tape).
+  useEffect(() => {
+    if (document.activeElement !== textareaRef.current) {
+      setDraft(summary ?? "");
+    }
+  }, [summary]);
+
+  if (summary === null) {
+    return (
+      <div style={{ marginTop: 6, fontSize: 12, fontStyle: "italic", color: color.textFaint }}>
+        Résumé en cours...
+      </div>
+    );
+  }
+
+  return (
+    <textarea
+      ref={textareaRef}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        const trimmed = draft.trim();
+        if (trimmed && trimmed !== summary) onSave(trimmed);
+      }}
+      rows={2}
+      maxLength={300}
+      style={{
+        width: "100%",
+        marginTop: 6,
+        border: `1px solid ${color.inputBorder}`,
+        borderRadius: 8,
+        padding: "6px 8px",
+        fontSize: 12,
+        fontStyle: "italic",
+        lineHeight: 1.4,
+        fontFamily: "inherit",
+        background: color.inputBg,
+        color: color.textMuted,
+        resize: "vertical",
+      }}
+    />
+  );
 }
 
 /**
@@ -105,6 +160,16 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function saveSummary(id: string, summary: string) {
+    setError(null);
+    try {
+      const { material } = await api.updateMaterialSummary(id, summary);
+      setMaterials((prev) => prev.map((m) => (m.id === id ? material : m)));
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement du résumé.");
     }
   }
 
@@ -253,6 +318,7 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
                           Supprimer
                         </button>
                       </div>
+                      <MaterialSummaryField summary={m.summary} onSave={(next) => saveSummary(m.id, next)} />
                       {expanded && (
                         <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${color.divider}` }}>
                           <div style={{ fontSize: 13, lineHeight: 1.5, color: color.text2, whiteSpace: "pre-wrap" }}>

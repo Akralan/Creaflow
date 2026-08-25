@@ -2,7 +2,9 @@ import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { sourceMaterials, sourceMaterialCitations } from "@/db/schema";
 import { annotateUsedSpans } from "@/lib/services/citationMatching";
+import { summarizeMaterial } from "@/lib/llm/narrativePrompts";
 import { ApiError } from "@/lib/api/errors";
+import { logger } from "@/lib/logger";
 
 /**
  * Corpus de matière première par sujet (docs/SPEC_MATIERE_EDITEUR.md §3). Dépôt gratuit et
@@ -83,6 +85,59 @@ export async function deleteMaterialForUser(userId: string, materialId: string) 
     throw new ApiError(404, "Matière introuvable.");
   }
   return deleted;
+}
+
+/** Édition manuelle du résumé (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — devient la source de vérité :
+ *  `summary` n'étant plus null, {@link backfillMaterialSummaries} ne le touchera plus jamais. */
+export async function updateMaterialSummary(userId: string, materialId: string, summary: string | null) {
+  const [updated] = await db
+    .update(sourceMaterials)
+    .set({ summary })
+    .where(and(eq(sourceMaterials.id, materialId), eq(sourceMaterials.userId, userId)))
+    .returning();
+  if (!updated) {
+    throw new ApiError(404, "Matière introuvable.");
+  }
+  return updated;
+}
+
+/**
+ * Résumeur d'UN document (docs/SPEC_REDACTEUR_EN_CHEF.md §3.1) — appelé depuis `after()` juste après
+ * l'ingestion (même pattern que `processAssetCaptioning`, brandAssetService.ts) et depuis le backfill
+ * ci-dessous. Erreur non capturée ici : l'appelant journalise et le document reste avec `summary`
+ * null (retente au prochain backfill), jamais d'état d'échec dédié — pas nécessaire pour un texte.
+ */
+export async function summarizeMaterialDocument(materialId: string): Promise<void> {
+  const material = await db.query.sourceMaterials.findFirst({ where: eq(sourceMaterials.id, materialId) });
+  if (!material) return; // supprimé entretemps
+  const summary = await summarizeMaterial(material.rawText, material.title);
+  await db.update(sourceMaterials).set({ summary }).where(eq(sourceMaterials.id, materialId));
+}
+
+/**
+ * Backfill paresseux (docs/SPEC_REDACTEUR_EN_CHEF.md §3.1 : "toute planification commence par
+ * résumer les docs du sujet dont summary est null, séquentiel"). Décision d'implémentation Lot B1 :
+ * le déclencheur naturel de la spec (bouton "Planifier la suite") n'existe pas avant le Lot B2 — en
+ * attendant, ce backfill est déclenché à la consultation de l'espace matière (GET /api/materials),
+ * pour que les documents déposés avant ce chantier finissent par avoir un résumé sans script one-off
+ * manuel. À rebrancher sur `POST /api/narrative/plan` au Lot B2 (garder cette fonction, changer
+ * l'appelant). Séquentiel par sujet : un doc à la fois, pas de Promise.all — ce sont des documents de
+ * matière potentiellement longs, pas la peine de saturer le débit du provider LLM pour un backfill.
+ */
+export async function backfillMaterialSummaries(userId: string, productId: string | null): Promise<void> {
+  const pending = await db.query.sourceMaterials.findMany({
+    where: and(
+      eq(sourceMaterials.userId, userId),
+      productId ? eq(sourceMaterials.productId, productId) : isNull(sourceMaterials.productId),
+      isNull(sourceMaterials.summary)
+    ),
+    columns: { id: true },
+  });
+  for (const m of pending) {
+    await summarizeMaterialDocument(m.id).catch((err) =>
+      logger.error("Résumé de matière échoué (backfill)", err, { materialId: m.id })
+    );
+  }
 }
 
 export interface SubjectMaterialDocument {

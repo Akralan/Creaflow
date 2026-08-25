@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { requireUserId } from "@/lib/auth/session";
-import { createFileMaterial } from "@/lib/services/sourceMaterialService";
+import { createFileMaterial, summarizeMaterialDocument } from "@/lib/services/sourceMaterialService";
 import { ApiError, handleApiError } from "@/lib/api/errors";
+import { logger } from "@/lib/logger";
 
 const MAX_MATERIAL_FILE_SIZE_BYTES = 2 * 1024 * 1024; // 2 Mo — texte brut, largement suffisant
 
@@ -32,6 +34,11 @@ export async function POST(request: NextRequest) {
       title: file.name,
       rawText,
     });
+    after(() =>
+      summarizeMaterialDocument(material.id).catch((err) =>
+        logger.error("Résumé de matière échoué", err, { materialId: material.id })
+      )
+    );
 
     return NextResponse.json({ material }, { status: 201 });
   } catch (error) {

@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { z } from "zod";
 import { requireUserId } from "@/lib/auth/session";
-import { createPastedMaterial, listMaterialsForSubject } from "@/lib/services/sourceMaterialService";
+import {
+  backfillMaterialSummaries,
+  createPastedMaterial,
+  listMaterialsForSubject,
+  summarizeMaterialDocument,
+} from "@/lib/services/sourceMaterialService";
 import { handleApiError } from "@/lib/api/errors";
+import { logger } from "@/lib/logger";
 
 const listSchema = z.object({ productId: z.uuid().optional() });
 
@@ -17,6 +24,13 @@ export async function GET(request: NextRequest) {
     const userId = await requireUserId();
     const { productId } = listSchema.parse({ productId: request.nextUrl.searchParams.get("productId") ?? undefined });
     const materials = await listMaterialsForSubject(userId, productId ?? null);
+    // Backfill paresseux (docs/SPEC_REDACTEUR_EN_CHEF.md §3.1, décision Lot B1 — voir le commentaire
+    // sur backfillMaterialSummaries) : ne coûte rien tant qu'aucun résumé ne manque (requête isNull).
+    after(() =>
+      backfillMaterialSummaries(userId, productId ?? null).catch((err) =>
+        logger.error("Backfill de résumés de matière échoué", err, { userId, productId })
+      )
+    );
     return NextResponse.json({ materials });
   } catch (error) {
     return handleApiError(error);
@@ -29,6 +43,11 @@ export async function POST(request: NextRequest) {
     const { productId, title, rawText } = createSchema.parse(await request.json());
     // Dépôt gratuit, immédiatement utilisable — aucun traitement asynchrone (docs/SPEC_MATIERE_EDITEUR.md §3).
     const material = await createPastedMaterial(userId, { productId: productId ?? null, title, rawText });
+    after(() =>
+      summarizeMaterialDocument(material.id).catch((err) =>
+        logger.error("Résumé de matière échoué", err, { materialId: material.id })
+      )
+    );
     return NextResponse.json({ material }, { status: 201 });
   } catch (error) {
     return handleApiError(error);

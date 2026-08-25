@@ -187,6 +187,9 @@ export interface SourceMaterial {
   kind: "paste" | "file" | "interview";
   title: string | null;
   rawText: string;
+  /** Résumé orienté potentiel narratif (docs/SPEC_REDACTEUR_EN_CHEF.md §2/§3.1) — null tant que le
+   *  résumeur ne l'a pas encore traité (résumé en cours). */
+  summary: string | null;
   createdAt: string;
 }
 
@@ -441,6 +444,10 @@ export const api = {
   addPastedMaterial: (data: { productId?: string; title?: string; rawText: string }) =>
     post<{ material: SourceMaterial }>("/api/materials", data),
   deleteMaterial: (id: string) => del<{ ok: true }>(`/api/materials/${id}`),
+  /** Édition manuelle du résumé (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — devient la source de vérité,
+   *  jamais regénérée automatiquement ensuite. `null` remet le document en attente de résumé. */
+  updateMaterialSummary: (id: string, summary: string | null) =>
+    patch<{ material: SourceMaterial }>(`/api/materials/${id}`, { summary }),
   getMaterialCitations: (id: string) => apiFetch<{ citations: Citation[] }>(`/api/materials/${id}/citations`),
   uploadMaterialFile: async (file: File, productId?: string) => {
     const formData = new FormData();
