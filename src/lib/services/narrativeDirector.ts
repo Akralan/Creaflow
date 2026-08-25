@@ -101,19 +101,29 @@ export async function findNarrativeStatesForSeries(
   return new Map(rows.filter((r) => r.seriesId !== null).map((r) => [r.seriesId as string, toNarrativeStateDTO(r)]));
 }
 
+/**
+ * Résout le sujet effectif d'une génération/planification. Une série avec un sujet lié
+ * (`ContentSeries.productId`, sélecteur de sujet) prime sur le `productId` fourni quand il est
+ * absent — sinon le rédacteur en chef n'a aucune matière à lire pour une série qui n'a pas
+ * elle-même de `productId` explicite ailleurs (Script.productId, requête de planification...).
+ * `effectiveProductId` est celui à utiliser pour toute lecture de matière/citations ; `productId`
+ * (le paramètre d'entrée, potentiellement `null`) reste la bonne clé pour l'identité de
+ * NarrativeState, qui ne dépend jamais du sujet lié à la série (voir narrativeStateWhere).
+ */
 async function resolveSubject(userId: string, productId: string | null, seriesId: string | null) {
-  let product = null;
-  if (productId) {
-    product = await db.query.products.findFirst({ where: and(eq(products.id, productId), eq(products.userId, userId)) });
-    if (!product) throw new ApiError(404, "Sujet introuvable.");
-  }
   let series = null;
   if (seriesId) {
     series = await db.query.contentSeries.findFirst({ where: and(eq(contentSeries.id, seriesId), eq(contentSeries.userId, userId)) });
     if (!series) throw new ApiError(404, "Série introuvable.");
   }
+  const effectiveProductId = productId ?? series?.productId ?? null;
+  let product = null;
+  if (effectiveProductId) {
+    product = await db.query.products.findFirst({ where: and(eq(products.id, effectiveProductId), eq(products.userId, userId)) });
+    if (!product) throw new ApiError(404, "Sujet introuvable.");
+  }
   const subjectLabel = series?.label ?? product?.name ?? "l'activité de la marque";
-  return { product, series, subjectLabel };
+  return { product, series, subjectLabel, effectiveProductId };
 }
 
 async function loadDocumentSummaries(userId: string, productId: string | null): Promise<NarrativePlanDocumentContext[]> {
@@ -216,7 +226,7 @@ export async function planNarrativeForSubject(
   const productId = params.productId ?? null;
   const seriesId = params.seriesId ?? null;
 
-  const { product, series, subjectLabel } = await resolveSubject(userId, productId, seriesId);
+  const { product, series, subjectLabel, effectiveProductId } = await resolveSubject(userId, productId, seriesId);
 
   if (series && series.mode === "rendez_vous") {
     throw new ApiError(409, "Cette série est en mode rendez-vous : chaque épisode est autonome, pas de plan à maintenir.");
@@ -227,18 +237,20 @@ export async function planNarrativeForSubject(
     throw new ApiError(400, "Configure d'abord ton profil créateur (Module A) avant de planifier.");
   }
 
-  // Backfill paresseux (§3.1) : matière scopée par produit — une série sans produit associé (le
-  // schéma ne porte pas ce lien ; le mécanisme "série depuis la matière" le reçoit en paramètre
-  // indépendant) retombe sur la matière de niveau marque. Décision d'implémentation, non tranchée
-  // explicitement par la spec.
-  await backfillMaterialSummaries(userId, productId);
+  // Backfill paresseux (§3.1) : matière scopée par le sujet effectif (sélecteur de sujet de la
+  // série s'il y en a un, sinon le productId fourni) — une série sans sujet du tout retombe sur la
+  // matière de niveau marque.
+  await backfillMaterialSummaries(userId, effectiveProductId);
 
+  // Identité de l'état narratif : toujours le `productId` d'entrée (souvent null pour une série),
+  // jamais `effectiveProductId` — le sujet lié à la série ne fait pas naître un état distinct par
+  // sujet, il change seulement quelle matière ce plan de série lit.
   const existing = await findNarrativeState(userId, productId, seriesId);
   const existingBeats = existing?.beats ?? [];
   const existingCallbacks = existing?.callbacks ?? [];
 
   const [documents, publishedConcepts] = await Promise.all([
-    loadDocumentSummaries(userId, productId),
+    loadDocumentSummaries(userId, effectiveProductId),
     loadPublishedConcepts(userId, productId, seriesId),
   ]);
 
@@ -393,16 +405,6 @@ export async function resolveNarrativeState(
   return findNarrativeState(userId, null, null);
 }
 
-async function resolveSubjectMode(userId: string, seriesId: string | null): Promise<"feuilleton" | "rendez_vous"> {
-  // Un sujet hors série = arc léger, régime feuilleton (§1).
-  if (!seriesId) return "feuilleton";
-  const series = await db.query.contentSeries.findFirst({
-    where: and(eq(contentSeries.id, seriesId), eq(contentSeries.userId, userId)),
-    columns: { mode: true },
-  });
-  return series?.mode ?? "feuilleton";
-}
-
 export interface DailyDirection {
   /** Traçabilité pour {@link markBeatDrafted} après génération — ne sert pas à l'assemblage du message. */
   stateId: string;
@@ -440,7 +442,9 @@ export async function resolveDailyDirection(
     let state = await resolveNarrativeState(userId, params.productId, params.seriesId);
     if (!state) return null; // pas d'état = pas de chef (§2)
 
-    const mode = await resolveSubjectMode(userId, state.seriesId);
+    // Un sujet hors série = arc léger, régime feuilleton (§1).
+    const { product, series, subjectLabel, effectiveProductId } = await resolveSubject(userId, state.productId, state.seriesId);
+    const mode = series?.mode ?? "feuilleton";
 
     // Replanification paresseuse avant le choix du jour, mode feuilleton uniquement (§3.2/§4.1.3) —
     // le mode rendez_vous n'a pas de beats à maintenir.
@@ -454,7 +458,6 @@ export async function resolveDailyDirection(
       });
     }
 
-    const { product, subjectLabel } = await resolveSubject(userId, state.productId, state.seriesId);
     const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
     if (!profile) return null; // pas de profil = pas de chef, dégradation silencieuse
 
@@ -488,7 +491,7 @@ export async function resolveDailyDirection(
             // Documents candidats : ceux référencés par les beats à venir (planned/drafted), pas tout
             // le corpus déjà résumé côté planification — décision d'implémentation, la spec ne
             // précise pas exactement quels "focusDocs candidats" en mode feuilleton.
-            documents: (await loadDocumentSummaries(userId, state.productId)).filter((d) =>
+            documents: (await loadDocumentSummaries(userId, effectiveProductId)).filter((d) =>
               state.beats.some((b) => (b.status === "planned" || b.status === "drafted") && b.focusDocIds.includes(d.id))
             ),
           }
@@ -498,7 +501,7 @@ export async function resolveDailyDirection(
             publishedConcepts: await loadPublishedConcepts(userId, state.productId, state.seriesId),
             // Biais de fraîcheur explicite (§3.3) : les 20 docs les plus récents, déjà triés
             // desc(createdAt) par loadDocumentSummaries.
-            documents: (await loadDocumentSummaries(userId, state.productId)).slice(0, 20),
+            documents: (await loadDocumentSummaries(userId, effectiveProductId)).slice(0, 20),
           };
 
     const result = await chooseDailyDirection(dailyContext);

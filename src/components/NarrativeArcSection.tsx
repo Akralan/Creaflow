@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, X } from "lucide-react";
 import Button from "@/components/ui/Button";
-import { api, ApiClientError, type ContentSeries, type NarrativeBeat } from "@/lib/apiClient";
+import { api, ApiClientError, type ContentSeries, type NarrativeBeat, type Product } from "@/lib/apiClient";
 import { color } from "@/lib/design/tokens";
 
 const KIND_META: Record<NarrativeBeat["kind"], { label: string; fg: string; bg: string }> = {
@@ -60,6 +60,12 @@ export default function NarrativeArcSection({
   const [beatsDraft, setBeatsDraft] = useState<NarrativeBeat[]>(serverBeats);
   const [syncedServerBeats, setSyncedServerBeats] = useState<NarrativeBeat[]>(serverBeats);
   const [savingBeats, setSavingBeats] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [switchingProduct, setSwitchingProduct] = useState(false);
+
+  useEffect(() => {
+    api.getProducts().then(({ products }) => setProducts(products));
+  }, []);
 
   // Resynchronise le brouillon quand l'état serveur change (après Planifier/Replanifier, ou un
   // enregistrement réussi) — jamais pendant une sauvegarde en cours. Ajustement pendant le rendu
@@ -75,12 +81,28 @@ export default function NarrativeArcSection({
     setSwitchingMode(true);
     setError(null);
     try {
-      await api.updateSeriesMode(series.id, mode);
+      await api.updateSeriesFields(series.id, { mode });
       onSeriesUpdate({ ...series, mode });
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Erreur lors du changement de mode.");
     } finally {
       setSwitchingMode(false);
+    }
+  }
+
+  async function switchProduct(productId: string) {
+    const nextId = productId || null;
+    if (nextId === (series.product?.id ?? null)) return;
+    setSwitchingProduct(true);
+    setError(null);
+    try {
+      await api.updateSeriesFields(series.id, { productId: nextId });
+      const product = nextId ? (products.find((p) => p.id === nextId) ?? null) : null;
+      onSeriesUpdate({ ...series, product: product ? { id: product.id, name: product.name } : null });
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Erreur lors du changement de sujet.");
+    } finally {
+      setSwitchingProduct(false);
     }
   }
 
@@ -173,6 +195,32 @@ export default function NarrativeArcSection({
         {series.narrativeState?.isStale && (
           <span style={badgeStyle("oklch(0.55 0.18 60)", "oklch(0.62 0.13 60 / 0.16)")}>Nouvelle matière non planifiée</span>
         )}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+        <span style={{ fontSize: 12, color: color.textFaint }}>Sujet :</span>
+        <select
+          value={series.product?.id ?? ""}
+          onChange={(e) => switchProduct(e.target.value)}
+          disabled={switchingProduct}
+          title="Le sujet dont cette série tire sa matière — sans sujet, le rédacteur en chef lit la matière de niveau marque"
+          style={{
+            fontSize: 12,
+            border: `1px solid ${color.inputBorder}`,
+            borderRadius: 6,
+            padding: "4px 8px",
+            fontFamily: "inherit",
+            background: color.inputBg,
+            color: color.text,
+          }}
+        >
+          <option value="">Aucun sujet — matière de niveau marque</option>
+          {products.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {error && <p style={{ margin: "0 0 10px", fontSize: 12, color: color.danger }}>{error}</p>}

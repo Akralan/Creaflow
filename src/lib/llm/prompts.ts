@@ -148,6 +148,12 @@ export interface ScriptGenerationContext {
      *  fallback quand ce champ est null) — §4.1. */
     angleHint: string | null;
   } | null;
+  /** Sujet effectivement utilisé pour lire la matière et scoper les citations (buildGenerationContext,
+   *  scriptService.ts) — le `productId` explicite de la requête, ou à défaut le sujet lié à la série
+   *  (`ContentSeries.productId`, sélecteur de sujet). À utiliser pour `Script.productId`/les citations
+   *  à la création, au lieu du `productId` brut de la requête, pour rester cohérent avec la matière
+   *  effectivement lue par cette génération. */
+  resolvedProductId?: string | null;
 }
 
 // v2 (docs/SPEC_PROMPT_GENERATION_TECH.md §3.2, texte Annexe A.3) : données séparées des consignes,

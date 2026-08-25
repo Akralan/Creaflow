@@ -79,17 +79,8 @@ export async function buildGenerationContext(
     throw new ApiError(404, "Catégorie de contenu introuvable.");
   }
 
-  let product = null;
-  if (productId) {
-    product = await db.query.products.findFirst({
-      where: and(eq(products.id, productId), eq(products.userId, userId)),
-    });
-    if (!product) {
-      throw new ApiError(404, "Produit introuvable.");
-    }
-  }
-
   let series = null;
+  let seriesProductId: string | null = null;
   if (seriesId) {
     const found = await db.query.contentSeries.findFirst({
       where: and(eq(contentSeries.id, seriesId), eq(contentSeries.userId, userId)),
@@ -98,6 +89,24 @@ export async function buildGenerationContext(
       throw new ApiError(404, "Série introuvable.");
     }
     series = { id: found.id, label: found.label, description: found.description };
+    seriesProductId = found.productId;
+  }
+
+  // Sujet effectif : celui explicitement fourni prime, sinon le sujet lié à la série (sélecteur de
+  // sujet, docs/SPEC_REDACTEUR_EN_CHEF.md) — pour que la matière lue (rédacteur ET chef) et les
+  // citations enregistrées portent sur le bon corpus même quand ce script précis n'a pas lui-même
+  // de sujet choisi. Exposé sur le contexte (`resolvedProductId`) pour que les appelants l'utilisent
+  // à la création du script (Script.productId, citations) au lieu du `productId` brut de la requête.
+  const effectiveProductId = productId ?? seriesProductId ?? null;
+
+  let product = null;
+  if (effectiveProductId) {
+    product = await db.query.products.findFirst({
+      where: and(eq(products.id, effectiveProductId), eq(products.userId, userId)),
+    });
+    if (!product) {
+      throw new ApiError(404, "Produit introuvable.");
+    }
   }
 
   const [recentScripts, performanceSummary, angle, materialDocuments] = await Promise.all([
@@ -116,7 +125,7 @@ export async function buildGenerationContext(
     // Texte brut complet du sujet, annoté des passages déjà cités (docs/SPEC_MATIERE_EDITEUR.md §3)
     // — [] si le sujet n'a pas de corpus déposé. C'est le LLM qui décide quoi utiliser, aucune
     // présélection côté serveur.
-    getMaterialForSubject(userId, productId ?? null),
+    getMaterialForSubject(userId, effectiveProductId),
   ]);
 
   // Uniquement pour "visual" — un appel d'embedding serait un coût inutile sur les 2/3 des
@@ -124,7 +133,7 @@ export async function buildGenerationContext(
   const brandAsset =
     contentType === "visual"
       ? await findBestBrandAssetForScript(userId, {
-          productId,
+          productId: effectiveProductId,
           categoryLabel: category.label,
           categoryDescription: category.description,
           seriesLabel: series?.label ?? null,
@@ -138,7 +147,7 @@ export async function buildGenerationContext(
     process.env.NARRATIVE_DIRECTOR_ENABLED === "false"
       ? null
       : await resolveDailyDirection(userId, {
-          productId: productId ?? null,
+          productId: effectiveProductId,
           seriesId: seriesId ?? null,
           platform,
           contentCategoryLabel: category.label,
@@ -186,6 +195,7 @@ export async function buildGenerationContext(
     materialDocuments: scopedMaterialDocuments.map((d) => ({ id: d.id, title: d.title, annotatedText: d.annotatedText })),
     directive: directive ?? null,
     direction,
+    resolvedProductId: effectiveProductId,
   };
 }
 
@@ -272,7 +282,17 @@ export async function updateScriptRecord(
   scriptId: string,
   contentCategory: ContentCategoryContext,
   generated: GeneratedScript,
-  extras?: { angleId?: string | null; brandAssetId?: string | null; rejectedConcepts?: string[]; beatId?: string | null }
+  extras?: {
+    angleId?: string | null;
+    brandAssetId?: string | null;
+    rejectedConcepts?: string[];
+    beatId?: string | null;
+    /** Sujet effectif pour le scoping des citations (`context.resolvedProductId`, scriptService.ts) —
+     *  peut différer de `Script.productId` (jamais réécrit ici, brief verrouillé) quand ce script
+     *  n'a lui-même aucun sujet mais que sa série en a un lié. Défaut : `script.productId` (comportement
+     *  d'avant le sélecteur de sujet, pour le regenerate legacy qui ne le fournit pas). */
+    citationsProductId?: string | null;
+  }
 ) {
   return db.transaction(async (tx) => {
     const [script] = await tx
@@ -297,7 +317,7 @@ export async function updateScriptRecord(
     await tx.insert(scriptGenerationEvents).values({ userId, scriptId: script.id });
     // Réécrit à chaque régénération — le brief peut avoir changé, les citations précédentes sont obsolètes.
     await deleteCitationsForScript(tx, script.id);
-    await recordCitations(tx, userId, script.id, script.productId, generated.usedExcerpts ?? []);
+    await recordCitations(tx, userId, script.id, extras?.citationsProductId ?? script.productId, generated.usedExcerpts ?? []);
     return { ...script, contentCategory };
   });
 }

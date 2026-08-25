@@ -50,7 +50,9 @@ export async function POST(request: NextRequest) {
       directive
     );
     const generated = await generateScript(context);
-    const script = await createScriptRecord(userId, entry.platform, context.contentCategory, productId ?? null, generated, {
+    // resolvedProductId (pas productId brut) : hérite du sujet lié à la série quand aucun sujet
+    // n'a été choisi pour ce créneau précis (docs/SPEC_REDACTEUR_EN_CHEF.md, sélecteur de sujet).
+    const script = await createScriptRecord(userId, entry.platform, context.contentCategory, context.resolvedProductId ?? null, generated, {
       angleId: context.angle?.id ?? null,
       seriesId: context.series?.id ?? null,
       brandAssetId: context.brandAsset?.id ?? null,

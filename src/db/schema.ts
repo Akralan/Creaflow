@@ -179,6 +179,11 @@ export const contentSeries = pgTable("content_series", {
   archived: boolean("archived").notNull().default(false),
   // Lot B2 : colonne + toggle manuel. L'inférence LLM à la création (Annexe B.8) arrive au Lot B3.
   mode: contentSeriesModeEnum("mode").notNull().default("rendez_vous"),
+  // Sujet dont la série tire sa matière (docs/SPEC_REDACTEUR_EN_CHEF.md, sélecteur de sujet ajouté
+  // après le Lot B3) — nullable : une série peut n'être rattachée à aucun sujet précis, auquel cas
+  // le rédacteur en chef retombe sur la matière de niveau marque. SET NULL à la suppression du sujet
+  // (la série survit, perd juste son lien matière, même pattern que sourceMaterials.productId).
+  productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -583,6 +588,7 @@ export const productsRelations = relations(products, ({ many }) => ({
   brandAssets: many(brandAssets),
   sourceMaterials: many(sourceMaterials),
   narrativeStates: many(narrativeState),
+  series: many(contentSeries),
 }));
 
 export const narrativeStateRelations = relations(narrativeState, ({ one }) => ({
@@ -619,12 +625,13 @@ export const contentAnglesRelations = relations(contentAngles, ({ many }) => ({
   scripts: many(scripts),
 }));
 
-export const contentSeriesRelations = relations(contentSeries, ({ many }) => ({
+export const contentSeriesRelations = relations(contentSeries, ({ one, many }) => ({
   scripts: many(scripts),
   calendarEntries: many(calendarEntries),
   contentSeriesCategories: many(contentSeriesCategories),
   contentSeriesPlatforms: many(contentSeriesPlatforms),
   narrativeStates: many(narrativeState),
+  product: one(products, { fields: [contentSeries.productId], references: [products.id] }),
 }));
 
 export const contentSeriesCategoriesRelations = relations(contentSeriesCategories, ({ one }) => ({

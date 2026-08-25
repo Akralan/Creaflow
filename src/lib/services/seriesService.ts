@@ -19,6 +19,9 @@ export async function listActiveSeriesForUser(userId: string) {
     with: {
       contentSeriesCategories: { with: { category: { columns: { id: true, label: true } } } },
       contentSeriesPlatforms: { columns: { platform: true } },
+      // Sujet lié (sélecteur de sujet, docs/SPEC_REDACTEUR_EN_CHEF.md) — pour affichage et édition
+      // côté écran Direction ; `null` si la série n'est rattachée à aucun sujet précis.
+      product: { columns: { id: true, name: true } },
     },
   });
   const narrativeStates = await findNarrativeStatesForSeries(
@@ -33,12 +36,29 @@ export async function listActiveSeriesForUser(userId: string) {
   }));
 }
 
-/** Bascule de mode (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — n'affecte jamais l'état narratif existant :
- *  la bascule vers rendez_vous conserve les beats, elle masque seulement la planification côté UI. */
-export async function updateSeriesMode(userId: string, seriesId: string, mode: (typeof contentSeries.$inferInsert)["mode"]) {
+/** Bascule de mode et/ou changement du sujet lié (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — n'affecte
+ *  jamais l'état narratif existant : ni la bascule de mode (rendez_vous conserve les beats, masque
+ *  seulement la planification côté UI), ni le changement de sujet (l'état d'un plan déjà en cours
+ *  n'est pas migré — nouvelle matière lue à la prochaine planification/génération, cf.
+ *  narrativeDirector.ts::resolveSubject qui lit `ContentSeries.productId` à chaque appel, jamais
+ *  une valeur figée sur NarrativeState). */
+export async function updateSeriesFields(
+  userId: string,
+  seriesId: string,
+  fields: { mode?: (typeof contentSeries.$inferInsert)["mode"]; productId?: string | null }
+) {
+  if (fields.productId) {
+    const product = await db.query.products.findFirst({ where: and(eq(products.id, fields.productId), eq(products.userId, userId)) });
+    if (!product) {
+      throw new ApiError(404, "Sujet introuvable.");
+    }
+  }
   const [updated] = await db
     .update(contentSeries)
-    .set({ mode })
+    .set({
+      ...(fields.mode !== undefined && { mode: fields.mode }),
+      ...(fields.productId !== undefined && { productId: fields.productId }),
+    })
     .where(and(eq(contentSeries.id, seriesId), eq(contentSeries.userId, userId)))
     .returning();
   if (!updated) {
@@ -111,8 +131,9 @@ export async function generateSeriesForUser(userId: string) {
       // renvoyée reste identique à listActiveSeriesForUser/saveSeriesForUser.
       platforms: [] as string[],
       // Toujours null : ce sont des lignes fraîchement insérées, un état narratif ne peut exister
-      // que pour un seriesId déjà connu.
+      // que pour un seriesId déjà connu, et la génération IA ne propose pas de sujet lié.
       narrativeState: null,
+      product: null,
     }));
   });
 }

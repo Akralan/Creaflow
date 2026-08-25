@@ -147,6 +147,9 @@ export interface ContentSeries {
   platforms: Platform[];
   /** null tant qu'aucune planification n'a eu lieu pour cette série (ou mode rendez_vous). */
   narrativeState: NarrativeState | null;
+  /** Sujet dont cette série tire sa matière (sélecteur de sujet, docs/SPEC_REDACTEUR_EN_CHEF.md) —
+   *  null si la série n'est rattachée à aucun sujet précis (matière de niveau marque). */
+  product: { id: string; name: string } | null;
 }
 
 export interface StoryboardStep {
@@ -394,10 +397,11 @@ export const api = {
       platforms: string[];
     }>
   ) => post<{ series: ContentSeries[] }>("/api/series", { series }),
-  /** Bascule de mode (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — endpoint dédié plutôt que saveContentSeries :
-   *  ce dernier archive toute série active omise du tableau soumis, inadapté à l'édition d'un seul champ. */
-  updateSeriesMode: (id: string, mode: "feuilleton" | "rendez_vous") =>
-    patch<{ series: ContentSeries }>(`/api/series/${id}`, { mode }),
+  /** Bascule de mode et/ou sujet lié (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — endpoint dédié plutôt que
+   *  saveContentSeries : ce dernier archive toute série active omise du tableau soumis, inadapté à
+   *  l'édition d'un ou deux champs depuis une carte de la bibliothèque. */
+  updateSeriesFields: (id: string, fields: { mode?: "feuilleton" | "rendez_vous"; productId?: string | null }) =>
+    patch<{ series: ContentSeries }>(`/api/series/${id}`, fields),
 
   /** Planifie/replanifie l'arc narratif d'un sujet (docs/SPEC_REDACTEUR_EN_CHEF.md §6) — crée l'état
    *  paresseusement. 409 si la cible est une série en mode rendez_vous. */

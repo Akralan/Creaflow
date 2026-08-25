@@ -28,11 +28,22 @@ export async function generateSeriesFromMaterial(userId: string, params: Generat
 
   let series: typeof contentSeries.$inferSelect;
   if (params.seriesId) {
-    const found = await db.query.contentSeries.findFirst({
+    let found = await db.query.contentSeries.findFirst({
       where: and(eq(contentSeries.id, params.seriesId), eq(contentSeries.userId, userId)),
     });
     if (!found) {
       throw new ApiError(404, "Série introuvable.");
+    }
+    // Un sujet fourni ici est un geste explicite ("planifie CETTE série depuis la matière de CE
+    // sujet") — met à jour le lien série↔sujet en conséquence (sélecteur de sujet,
+    // docs/SPEC_REDACTEUR_EN_CHEF.md), pas seulement un scoping ponctuel de cet appel.
+    if (params.productId !== undefined && params.productId !== found.productId) {
+      const [updated] = await db
+        .update(contentSeries)
+        .set({ productId: params.productId })
+        .where(eq(contentSeries.id, found.id))
+        .returning();
+      found = updated;
     }
     series = found;
   } else {
@@ -47,20 +58,35 @@ export async function generateSeriesFromMaterial(userId: string, params: Generat
         // pas le défaut rendez_vous générique (§1 : l'inférence LLM normale, Annexe B.8, ne s'applique
         // qu'à la génération globale de séries depuis l'activité, pas à ce geste dédié).
         mode: "feuilleton",
+        // Sujet lié dès la création (sélecteur de sujet) — le sujet dont cette série tire sa matière.
+        productId: params.productId ?? null,
       })
       .returning();
     series = created;
   }
 
-  const documents = await getMaterialForSubject(userId, params.productId ?? null);
+  const documents = await getMaterialForSubject(userId, series.productId);
   if (documents.length === 0) {
     throw new ApiError(400, "Aucune matière disponible pour ce sujet — colle du texte ou fais une interview d'abord.");
   }
 
-  const state = await planNarrativeForSubject(userId, { productId: params.productId ?? null, seriesId: series.id });
+  // Pas de productId explicite ici : narrativeDirector.ts::resolveSubject le dérive automatiquement
+  // de `series.productId` (qu'on vient de garantir à jour ci-dessus) — l'état narratif d'une série
+  // reste toujours identifié par son seriesId seul (voir le commentaire sur resolveSubject).
+  const state = await planNarrativeForSubject(userId, { seriesId: series.id });
 
-  // Forme alignée sur listActiveSeriesForUser (categories/platforms/narrativeState) — cette série
-  // n'est encore rattachée à aucune catégorie/plateforme à ce stade (même limite que l'ancien
-  // mécanisme one-shot, pas introduite par ce remplacement).
-  return { series: { ...series, categories: [] as { id: string; label: string }[], platforms: [] as string[], narrativeState: state }, state };
+  // Forme alignée sur listActiveSeriesForUser (categories/platforms/narrativeState/product) — cette
+  // série n'est encore rattachée à aucune catégorie/plateforme à ce stade (même limite que l'ancien
+  // mécanisme one-shot, pas introduite par ce remplacement). `product` à `null` même si productId
+  // est renseigné : l'appelant redirige vers /direction juste après, qui relit la forme jointe exacte.
+  return {
+    series: {
+      ...series,
+      categories: [] as { id: string; label: string }[],
+      platforms: [] as string[],
+      narrativeState: state,
+      product: null as { id: string; name: string } | null,
+    },
+    state,
+  };
 }
