@@ -96,6 +96,41 @@ export interface PostingGoal {
   targetCountPerWeek: number;
 }
 
+/** Un épisode du plan éditorial (docs/SPEC_REDACTEUR_EN_CHEF.md §2, Annexe B.5). */
+export interface NarrativeBeat {
+  id: string;
+  title: string;
+  kind: "material" | "pedagogical" | "personal";
+  angleHint: string | null;
+  focusDocIds: string[];
+  status: "planned" | "drafted" | "published" | "skipped";
+  scriptId: string | null;
+  rationale: string;
+}
+
+export interface NarrativePromise {
+  text: string;
+  scriptId: string;
+  madeAt: string;
+}
+
+/** État narratif du rédacteur en chef pour un sujet (docs/SPEC_REDACTEUR_EN_CHEF.md §2). */
+export interface NarrativeState {
+  id: string;
+  userId: string;
+  productId: string | null;
+  seriesId: string | null;
+  arcSummary: string | null;
+  beats: NarrativeBeat[];
+  openPromises: NarrativePromise[];
+  callbacks: string[];
+  formatContract: string | null;
+  isStale: boolean;
+  lastPlannedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ContentSeries {
   id: string;
   userId: string;
@@ -103,10 +138,15 @@ export interface ContentSeries {
   description: string;
   weight: number;
   archived: boolean;
+  /** feuilleton = épisodes ordonnés (arc + beats) ; rendez_vous = épisodes autonomes, pas de
+   *  planification (docs/SPEC_REDACTEUR_EN_CHEF.md §1). Défaut rendez_vous. */
+  mode: "feuilleton" | "rendez_vous";
   createdAt: string;
   categories: ContentCategorySummary[];
   /** Réseaux auxquels cette série est restreinte ; vide = visible sur tous les réseaux. */
   platforms: Platform[];
+  /** null tant qu'aucune planification n'a eu lieu pour cette série (ou mode rendez_vous). */
+  narrativeState: NarrativeState | null;
 }
 
 export interface StoryboardStep {
@@ -349,6 +389,27 @@ export const api = {
       platforms: string[];
     }>
   ) => post<{ series: ContentSeries[] }>("/api/series", { series }),
+  /** Bascule de mode (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — endpoint dédié plutôt que saveContentSeries :
+   *  ce dernier archive toute série active omise du tableau soumis, inadapté à l'édition d'un seul champ. */
+  updateSeriesMode: (id: string, mode: "feuilleton" | "rendez_vous") =>
+    patch<{ series: ContentSeries }>(`/api/series/${id}`, { mode }),
+
+  /** Planifie/replanifie l'arc narratif d'un sujet (docs/SPEC_REDACTEUR_EN_CHEF.md §6) — crée l'état
+   *  paresseusement. 409 si la cible est une série en mode rendez_vous. */
+  planNarrative: (data: { productId?: string; seriesId?: string; directive?: string }) =>
+    post<{ state: NarrativeState }>("/api/narrative/plan", data),
+  /** Éditions manuelles de l'écran Direction (§6/§7) : arcSummary, formatContract, beats (réordonner/
+   *  éditer/passer skipped), fermeture d'une promesse (closePromiseText), callbacks. */
+  patchNarrativeState: (
+    id: string,
+    data: Partial<{
+      arcSummary: string;
+      formatContract: string | null;
+      beats: NarrativeBeat[];
+      callbacks: string[];
+      closePromiseText: string;
+    }>
+  ) => patch<{ state: NarrativeState }>(`/api/narrative/${id}`, data),
 
   getProducts: () => apiFetch<{ products: Product[] }>("/api/products"),
   createProducts: (

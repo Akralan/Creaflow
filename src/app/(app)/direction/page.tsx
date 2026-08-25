@@ -6,11 +6,18 @@ import Card from "@/components/ui/Card";
 import { PlatformBadge } from "@/components/ui/Badge";
 import { heading1Style } from "@/components/ui/TextField";
 import SeriesPanel from "@/components/SeriesPanel";
+import NarrativeArcSection from "@/components/NarrativeArcSection";
 import { api, ApiClientError, type ContentSeries, type Script } from "@/lib/apiClient";
 import { color, statusMeta } from "@/lib/design/tokens";
 import { resolveCategoryMeta } from "@/lib/design/categoryDisplay";
 
-function SeriesLibrary({ series }: { series: ContentSeries[] }) {
+function SeriesLibrary({
+  series,
+  onSeriesUpdate,
+}: {
+  series: ContentSeries[];
+  onSeriesUpdate: (updated: ContentSeries) => void;
+}) {
   const router = useRouter();
   const [openSeriesIds, setOpenSeriesIds] = useState<Set<string>>(new Set());
   const [scriptsBySeriesId, setScriptsBySeriesId] = useState<Record<string, Script[]>>({});
@@ -113,6 +120,9 @@ function SeriesLibrary({ series }: { series: ContentSeries[] }) {
 
               {open && (
                 <div style={{ borderTop: `1px solid ${color.dividerAlt}`, padding: 16 }}>
+                  <div style={{ marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${color.dividerAlt}` }}>
+                    <NarrativeArcSection series={s} onSeriesUpdate={onSeriesUpdate} />
+                  </div>
                   {loading ? (
                     <p style={{ fontSize: 13, color: color.textMuted, margin: 0 }}>Chargement...</p>
                   ) : error ? (
@@ -168,7 +178,10 @@ export default function DirectionPage() {
       </p>
       <SeriesPanel onSeriesChange={setSeries} />
       <div style={{ marginTop: 28 }}>
-        <SeriesLibrary series={series} />
+        <SeriesLibrary
+          series={series}
+          onSeriesUpdate={(updated) => setSeries((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))}
+        />
       </div>
     </div>
   );

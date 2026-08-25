@@ -116,13 +116,12 @@ export async function summarizeMaterialDocument(materialId: string): Promise<voi
 
 /**
  * Backfill paresseux (docs/SPEC_REDACTEUR_EN_CHEF.md §3.1 : "toute planification commence par
- * résumer les docs du sujet dont summary est null, séquentiel"). Décision d'implémentation Lot B1 :
- * le déclencheur naturel de la spec (bouton "Planifier la suite") n'existe pas avant le Lot B2 — en
- * attendant, ce backfill est déclenché à la consultation de l'espace matière (GET /api/materials),
- * pour que les documents déposés avant ce chantier finissent par avoir un résumé sans script one-off
- * manuel. À rebrancher sur `POST /api/narrative/plan` au Lot B2 (garder cette fonction, changer
- * l'appelant). Séquentiel par sujet : un doc à la fois, pas de Promise.all — ce sont des documents de
- * matière potentiellement longs, pas la peine de saturer le débit du provider LLM pour un backfill.
+ * résumer les docs du sujet dont summary est null, séquentiel"). Appelé depuis
+ * `planNarrativeForSubject` (narrativeDirector.ts), en tête de `POST /api/narrative/plan` — le
+ * déclencheur natif de la spec (bouton "Planifier la suite"/"Replanifier"). Un déclencheur
+ * intermédiaire posé au Lot B1 sur `GET /api/materials` (avant que la planification existe) a été
+ * retiré au Lot B2. Séquentiel par sujet : un doc à la fois, pas de Promise.all — ce sont des
+ * documents de matière potentiellement longs, pas la peine de saturer le débit du provider LLM.
  */
 export async function backfillMaterialSummaries(userId: string, productId: string | null): Promise<void> {
   const pending = await db.query.sourceMaterials.findMany({

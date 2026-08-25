@@ -2,12 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { after } from "next/server";
 import { z } from "zod";
 import { requireUserId } from "@/lib/auth/session";
-import {
-  backfillMaterialSummaries,
-  createPastedMaterial,
-  listMaterialsForSubject,
-  summarizeMaterialDocument,
-} from "@/lib/services/sourceMaterialService";
+import { createPastedMaterial, listMaterialsForSubject, summarizeMaterialDocument } from "@/lib/services/sourceMaterialService";
 import { handleApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
 
@@ -24,13 +19,10 @@ export async function GET(request: NextRequest) {
     const userId = await requireUserId();
     const { productId } = listSchema.parse({ productId: request.nextUrl.searchParams.get("productId") ?? undefined });
     const materials = await listMaterialsForSubject(userId, productId ?? null);
-    // Backfill paresseux (docs/SPEC_REDACTEUR_EN_CHEF.md §3.1, décision Lot B1 — voir le commentaire
-    // sur backfillMaterialSummaries) : ne coûte rien tant qu'aucun résumé ne manque (requête isNull).
-    after(() =>
-      backfillMaterialSummaries(userId, productId ?? null).catch((err) =>
-        logger.error("Backfill de résumés de matière échoué", err, { userId, productId })
-      )
-    );
+    // Le backfill paresseux (docs/SPEC_REDACTEUR_EN_CHEF.md §3.1) est déclenché depuis
+    // POST /api/narrative/plan (narrativeDirector.ts) depuis le Lot B2, plus ici — c'est le
+    // déclencheur natif de la spec (bouton "Planifier la suite"). Le trigger intermédiaire posé au
+    // Lot B1 (avant que la planification existe) a été retiré.
     return NextResponse.json({ materials });
   } catch (error) {
     return handleApiError(error);

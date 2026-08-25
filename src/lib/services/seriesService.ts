@@ -3,11 +3,15 @@ import { db } from "@/db";
 import { contentSeries, contentSeriesCategories, contentSeriesPlatforms, creatorProfiles, products } from "@/db/schema";
 import { suggestContentSeries } from "@/lib/llm/seriesLabels";
 import { listActiveCategoriesForUser, resolveCategoryLabelsToIds } from "@/lib/services/categoryLabelsService";
+import { findNarrativeStatesForSeries } from "@/lib/services/narrativeDirector";
 import { ApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
+/** Écran Direction — endpoint agrégé (docs/SPEC_REDACTEUR_EN_CHEF.md §6 : "pas de nouvel endpoint de
+ *  lecture, étendre l'endpoint agrégé existant") : chaque série porte son état narratif le cas
+ *  échéant (`null` si jamais planifiée, ou mode rendez_vous). */
 export async function listActiveSeriesForUser(userId: string) {
   const rows = await db.query.contentSeries.findMany({
     where: and(eq(contentSeries.userId, userId), eq(contentSeries.archived, false)),
@@ -17,11 +21,30 @@ export async function listActiveSeriesForUser(userId: string) {
       contentSeriesPlatforms: { columns: { platform: true } },
     },
   });
+  const narrativeStates = await findNarrativeStatesForSeries(
+    userId,
+    rows.map((r) => r.id)
+  );
   return rows.map(({ contentSeriesCategories: joins, contentSeriesPlatforms: platformJoins, ...s }) => ({
     ...s,
     categories: joins.map((j) => j.category),
     platforms: platformJoins.map((j) => j.platform),
+    narrativeState: narrativeStates.get(s.id) ?? null,
   }));
+}
+
+/** Bascule de mode (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — n'affecte jamais l'état narratif existant :
+ *  la bascule vers rendez_vous conserve les beats, elle masque seulement la planification côté UI. */
+export async function updateSeriesMode(userId: string, seriesId: string, mode: (typeof contentSeries.$inferInsert)["mode"]) {
+  const [updated] = await db
+    .update(contentSeries)
+    .set({ mode })
+    .where(and(eq(contentSeries.id, seriesId), eq(contentSeries.userId, userId)))
+    .returning();
+  if (!updated) {
+    throw new ApiError(404, "Série introuvable.");
+  }
+  return updated;
 }
 
 /** Génère un nouveau jeu de séries via l'IA à partir des catégories actives de l'utilisateur.
@@ -87,6 +110,9 @@ export async function generateSeriesForUser(userId: string) {
       // "aucune ligne ContentSeriesPlatforms" (visible sur tous les réseaux), pour que la forme
       // renvoyée reste identique à listActiveSeriesForUser/saveSeriesForUser.
       platforms: [] as string[],
+      // Toujours null : ce sont des lignes fraîchement insérées, un état narratif ne peut exister
+      // que pour un seriesId déjà connu.
+      narrativeState: null,
     }));
   });
 }

@@ -6,6 +6,8 @@ export const contentCategorySchema = z.uuid();
 export const contentTypeSchema = z.enum(["video", "visual", "text"]);
 // Idée soufflée par le créateur sur une porte de génération (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A).
 export const directiveSchema = z.string().trim().max(500).optional();
+// Mode d'une série (docs/SPEC_REDACTEUR_EN_CHEF.md §1/§2, Lot B2).
+export const contentSeriesModeSchema = z.enum(["feuilleton", "rendez_vous"]);
 
 // Catalogue de sujets (UI : "sujet" ; schéma/routes/types restent "Product", docs/SPEC_MATIERE_EDITEUR.md
 // §3.3 — renommage côté UI uniquement). MIN_PRODUCTS abaissé à 1 : un profil personal branding peut

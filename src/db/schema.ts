@@ -50,6 +50,11 @@ export const postMatchCandidateStatusEnum = pgEnum("post_match_candidate_status"
 export const scriptOriginEnum = pgEnum("script_origin", ["generated", "imported", "manual"]);
 export const scriptMicroEditKindEnum = pgEnum("script_micro_edit_kind", ["selection_instruction", "block_regenerate"]);
 export const sourceMaterialKindEnum = pgEnum("source_material_kind", ["paste", "file", "interview"]);
+// Mode d'une série (docs/SPEC_REDACTEUR_EN_CHEF.md §1/§2) : "feuilleton" = épisodes ordonnés, arc +
+// beats maintenus par le rédacteur en chef (devlog, coulisses d'un projet) ; "rendez_vous" = épisodes
+// autonomes partageant un format (news de la semaine) — pas de beats, planification désactivée pour
+// ce mode. Défaut "rendez_vous" en cas de doute (inférence LLM à la création, Lot B3).
+export const contentSeriesModeEnum = pgEnum("content_series_mode", ["feuilleton", "rendez_vous"]);
 export const subscriptionPlanEnum = pgEnum("subscription_plan", ["starter", "pro"]);
 // Sous-ensemble des statuts Stripe (Subscription.status) réellement distingués côté produit —
 // "paused" n'est pas utilisé (pas de fonctionnalité de pause self-service en v1). Le webhook
@@ -172,6 +177,8 @@ export const contentSeries = pgTable("content_series", {
   // la couverture série n'est jamais forcée à 100%.
   weight: integer("weight").notNull(),
   archived: boolean("archived").notNull().default(false),
+  // Lot B2 : colonne + toggle manuel. L'inférence LLM à la création (Annexe B.8) arrive au Lot B3.
+  mode: contentSeriesModeEnum("mode").notNull().default("rendez_vous"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -261,6 +268,42 @@ export const sourceMaterialCitations = pgTable("source_material_citations", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// État narratif du rédacteur en chef (docs/SPEC_REDACTEUR_EN_CHEF.md §2) — un par sujet, priorité
+// série > produit > marque (productId et seriesId ne sont jamais renseignés ensemble). Stocke
+// uniquement l'indérivable (arc, beats, promesses, callbacks, contrat de format) ; le publié et la
+// matière consommée se dérivent de l'existant (Script.concept publiés, marquage [déjà utilisé]).
+// Contrainte unique tolérante aux NULL, même pattern que subjectInterviewSessions (commentaire plus
+// haut) : deux états "niveau marque" pourraient coexister en cas de double création concurrente,
+// même ordre de tolérance qu'ailleurs dans ce repo.
+export const narrativeState = pgTable(
+  "narrative_state",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    productId: uuid("product_id").references(() => products.id, { onDelete: "cascade" }),
+    seriesId: uuid("series_id").references(() => contentSeries.id, { onDelete: "cascade" }),
+    arcSummary: text("arc_summary"),
+    // Forme d'un élément (Annexe B.5) : { id, title, kind: "material"|"pedagogical"|"personal",
+    // angleHint, focusDocIds: string[], status: "planned"|"drafted"|"published"|"skipped", scriptId,
+    // rationale }. Vide en mode rendez_vous. Plafond 20 à l'écriture (§5, Lot B4).
+    beats: jsonb("beats").notNull().default([]),
+    // { text, scriptId, madeAt }[] — jamais modifié par la planification (§3.2), alimenté à la
+    // publication d'un script (§5, Lot B4). Plafond 10.
+    openPromises: jsonb("open_promises").notNull().default([]),
+    // string[] — détails récurrents devenus familiers pour l'audience. Plafond 8.
+    callbacks: jsonb("callbacks").notNull().default([]),
+    // Mode rendez_vous uniquement, ex. "3 news + 1 hot take".
+    formatContract: text("format_contract"),
+    // Posé à true à l'ingestion de nouvelle matière sur le sujet (§5, Lot B4) — déclenche une
+    // replanification paresseuse avant le prochain choix du jour (mode feuilleton, Lot B3).
+    isStale: boolean("is_stale").notNull().default(false),
+    lastPlannedAt: timestamp("last_planned_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [unique().on(t.userId, t.productId, t.seriesId)]
+);
+
 // Bibliothèque de ressources visuelles (docs/SPEC_RESSOURCES_VISUELLES.md). Les images sources ne
 // sont stockées que pour sourceType="upload" (originalKey) ; pour "google_drive", elles restent dans
 // le Drive de l'utilisateur et sont relues à la demande via l'API Drive (fileId = externalId).
@@ -349,6 +392,13 @@ export const scripts = pgTable("scripts", {
   // réinjectés en contexte des générations suivantes du même script, plafonnés aux N plus récents à
   // l'injection (§6.3).
   rejectedConcepts: jsonb("rejected_concepts").notNull().default([]),
+  // Traçabilité vers le plan du rédacteur en chef (docs/SPEC_REDACTEUR_EN_CHEF.md §2/§4.1.6) — id
+  // d'un beat dans NarrativeState.beats (jsonb, pas de FK possible). Null hors chef ou hors plan
+  // (détour assumé). Écrit à la génération, pas encore câblé avant le Lot B3.
+  beatId: text("beat_id"),
+  // Promesses explicites faites par ce script à l'audience (Annexe B.6) — consolidées dans
+  // NarrativeState.openPromises au passage en "published" (§5, Lot B4). Pas encore câblé avant B3.
+  promisesMade: jsonb("promises_made").notNull().default([]),
   hookVisual: text("hook_visual"),
   hookText: text("hook_text"),
   hookAudio: text("hook_audio"),
@@ -532,6 +582,12 @@ export const productsRelations = relations(products, ({ many }) => ({
   scripts: many(scripts),
   brandAssets: many(brandAssets),
   sourceMaterials: many(sourceMaterials),
+  narrativeStates: many(narrativeState),
+}));
+
+export const narrativeStateRelations = relations(narrativeState, ({ one }) => ({
+  product: one(products, { fields: [narrativeState.productId], references: [products.id] }),
+  series: one(contentSeries, { fields: [narrativeState.seriesId], references: [contentSeries.id] }),
 }));
 
 export const brandAssetsRelations = relations(brandAssets, ({ one }) => ({
@@ -568,6 +624,7 @@ export const contentSeriesRelations = relations(contentSeries, ({ many }) => ({
   calendarEntries: many(calendarEntries),
   contentSeriesCategories: many(contentSeriesCategories),
   contentSeriesPlatforms: many(contentSeriesPlatforms),
+  narrativeStates: many(narrativeState),
 }));
 
 export const contentSeriesCategoriesRelations = relations(contentSeriesCategories, ({ one }) => ({
