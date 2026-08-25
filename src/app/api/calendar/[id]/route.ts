@@ -18,6 +18,33 @@ const patchSchema = z
     { message: "Aucune modification fournie." }
   );
 
+// Lecture unitaire — nécessaire pour charger le brief d'un créneau AVANT qu'un Script n'existe
+// (naissance paresseuse de l'éditeur, docs/SPEC_MATIERE_EDITEUR.md §4.5) ; seul GET /api/calendar?month=
+// existait jusqu'ici (liste).
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const userId = await requireUserId();
+    const { id } = await params;
+
+    const entry = await db.query.calendarEntries.findFirst({
+      where: and(eq(calendarEntries.id, id), eq(calendarEntries.userId, userId)),
+      with: {
+        script: { columns: { id: true, title: true, status: true } },
+        contentCategory: { columns: { id: true, label: true, description: true } },
+        series: { columns: { id: true, label: true } },
+      },
+    });
+
+    if (!entry) {
+      throw new ApiError(404, "Créneau calendrier introuvable.");
+    }
+
+    return NextResponse.json({ entry });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

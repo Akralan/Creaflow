@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  adjustCategoryWeightsForMaterialScarcity,
   categoryWeightsFromCategories,
   distributeCategories,
   distributeDays,
@@ -219,5 +220,28 @@ describe("distributeSeriesOverrides", () => {
     for (const [, assignment] of result) {
       expect(["a", "b"]).toContain(assignment.seriesId);
     }
+  });
+});
+
+describe("adjustCategoryWeightsForMaterialScarcity", () => {
+  it("ne touche rien si la matière est suffisante", () => {
+    expect(adjustCategoryWeightsForMaterialScarcity(SAMPLE_WEIGHTS, new Set(["coulisses"]), true)).toEqual(SAMPLE_WEIGHTS);
+  });
+
+  it("ne touche rien si aucune catégorie n'est gourmande", () => {
+    expect(adjustCategoryWeightsForMaterialScarcity(SAMPLE_WEIGHTS, new Set(), false)).toEqual(SAMPLE_WEIGHTS);
+  });
+
+  it("ramène à 0 le poids des catégories gourmandes et redistribue le reste quand le corpus est sec", () => {
+    const result = adjustCategoryWeightsForMaterialScarcity(SAMPLE_WEIGHTS, new Set(["coulisses"]), false);
+    expect(result.find((w) => w.id === "coulisses")?.weight).toBe(0);
+    // vente (0.3) et educatif (0.2) totalisaient 0.5 → renormalisés à 1 en gardant leur proportion (3:2).
+    expect(result.find((w) => w.id === "vente")?.weight).toBeCloseTo(0.6);
+    expect(result.find((w) => w.id === "educatif")?.weight).toBeCloseTo(0.4);
+  });
+
+  it("laisse les poids inchangés si toutes les catégories sont gourmandes (mieux vaut un calendrier normal que vide)", () => {
+    const allHungry = new Set(SAMPLE_WEIGHTS.map((w) => w.id));
+    expect(adjustCategoryWeightsForMaterialScarcity(SAMPLE_WEIGHTS, allHungry, false)).toEqual(SAMPLE_WEIGHTS);
   });
 });

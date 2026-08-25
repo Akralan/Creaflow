@@ -10,6 +10,7 @@ import { TextField, heading1Style } from "@/components/ui/TextField";
 import IconActionButton from "@/components/ui/IconActionButton";
 import EntryCard from "@/components/EntryCard";
 import GenerateScriptModal from "@/components/GenerateScriptModal";
+import ImportScriptModal from "@/components/ImportScriptModal";
 import { api, ApiClientError, type CalendarEntry, type ContentType, type PostingGoal, type Script } from "@/lib/apiClient";
 import { accent, color, platformMeta, statusMeta } from "@/lib/design/tokens";
 import { resolveCategoryMeta } from "@/lib/design/categoryDisplay";
@@ -54,7 +55,6 @@ export default function CalendarPage() {
   const [goals, setGoals] = useState<PostingGoal[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [generatingSlotId, setGeneratingSlotId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editingGoals, setEditingGoals] = useState(false);
   const [goalDrafts, setGoalDrafts] = useState<Record<string, number>>(
@@ -67,6 +67,7 @@ export default function CalendarPage() {
 
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [modalScheduledDate, setModalScheduledDate] = useState<string | undefined>(undefined);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [placingScript, setPlacingScript] = useState<Script | null>(null);
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
 
@@ -157,16 +158,10 @@ export default function CalendarPage() {
     }
   }
 
-  async function handleGenerateSlot(entryId: string, contentType: ContentType) {
-    setGeneratingSlotId(entryId);
-    setError(null);
-    try {
-      const { script } = await api.generateScriptForEntry(entryId, contentType);
-      router.push(`/scripts/${script.id}`);
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de la génération du script.");
-      setGeneratingSlotId(null);
-    }
+  /** Ouvre l'éditeur en naissance paresseuse (docs/SPEC_MATIERE_EDITEUR.md §4.1) — le choix
+   *  "générer" vs "écrire à la main" se fait dès l'ouverture, plus en bloquant sur le calendrier. */
+  function openNewScript(entryId: string, contentType: ContentType) {
+    router.push(`/scripts/new?calendarEntryId=${entryId}&contentType=${contentType}`);
   }
 
   async function saveGoals() {
@@ -330,7 +325,6 @@ export default function CalendarPage() {
                     </div>
                     {c.entries.map((entry) => {
                       const status = entry.script ? statusMeta[entry.script.status] : null;
-                      const busy = generatingSlotId === entry.id;
                       return (
                         <EntryCard
                           key={entry.id}
@@ -338,7 +332,7 @@ export default function CalendarPage() {
                           onClick={() => {
                             if (placingScript) return; // remonte à la cellule parente, qui gère la pose
                             if (entry.script) router.push(`/scripts/${entry.script.id}`);
-                            else if (!busy) openEntryEditor(entry);
+                            else openEntryEditor(entry);
                           }}
                           style={{ cursor: "pointer" }}
                         >
@@ -348,10 +342,6 @@ export default function CalendarPage() {
                                 {status.label}
                               </span>
                             )
-                          ) : busy ? (
-                            <div style={{ marginTop: "auto", fontSize: 10, fontWeight: 600, color: "oklch(0.5 0.2 292)", border: "1px dashed oklch(0.6 0.15 292)", borderRadius: 6, padding: "3px 6px", textAlign: "center" }}>
-                              ...
-                            </div>
                           ) : (
                             <div style={{ marginTop: "auto", display: "flex", gap: 3 }}>
                               {(Object.keys(CONTENT_TYPE_SHORT) as ContentType[]).map((ct) => (
@@ -363,7 +353,7 @@ export default function CalendarPage() {
                                       if (c.day !== null) placeAt(dayDateStr(year, monthIndex, c.day));
                                       return;
                                     }
-                                    handleGenerateSlot(entry.id, ct);
+                                    openNewScript(entry.id, ct);
                                   }}
                                   title={`Générer un script ${CONTENT_TYPE_SHORT[ct].toLowerCase()}`}
                                   style={{
@@ -505,8 +495,41 @@ export default function CalendarPage() {
               <span style={{ display: "block", fontSize: 12, color: color.textMuted }}>Hors calendrier, à la demande</span>
             </span>
           </button>
+
+          <button
+            onClick={() => setShowImportModal(true)}
+            style={{
+              background: color.cardBg,
+              border: `1px solid ${color.border}`,
+              borderRadius: 16,
+              padding: "16px 18px",
+              textAlign: "left",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+            }}
+          >
+            <span style={{ width: 38, height: 38, borderRadius: 11, background: "oklch(0.6 0.14 150 / 0.12)", color: "oklch(0.45 0.14 150)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>
+              ⇩
+            </span>
+            <span>
+              <span style={{ display: "block", fontWeight: 600, fontSize: 14, color: color.text }}>Importer un script existant</span>
+              <span style={{ display: "block", fontSize: 12, color: color.textMuted }}>Écrit ailleurs, suivi ici</span>
+            </span>
+          </button>
         </div>
       </div>
+
+      <ImportScriptModal
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImported={() => {
+          setShowImportModal(false);
+          load();
+        }}
+      />
 
       <GenerateScriptModal
         open={showGenerateModal}

@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { and, eq, gte, lt } from "drizzle-orm";
 import { db } from "@/db";
-import { calendarEntries, postingGoals, scripts } from "@/db/schema";
+import { calendarEntries, postingGoals } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
 import { parseMonth } from "@/lib/services/calendarService";
-import { ApiError, handleApiError } from "@/lib/api/errors";
+import { placeScriptOnCalendar } from "@/lib/services/scriptImportService";
+import { handleApiError } from "@/lib/api/errors";
 
 const monthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Format attendu : YYYY-MM");
 
@@ -50,38 +51,7 @@ export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId();
     const { scriptId, scheduledDate } = placeScriptSchema.parse(await request.json());
-
-    const script = await db.query.scripts.findFirst({ where: and(eq(scripts.id, scriptId), eq(scripts.userId, userId)) });
-    if (!script) {
-      throw new ApiError(404, "Script introuvable.");
-    }
-
-    const existing = await db.query.calendarEntries.findFirst({ where: eq(calendarEntries.scriptId, scriptId) });
-    if (existing) {
-      throw new ApiError(409, "Ce script est déjà placé au calendrier.");
-    }
-
-    const [inserted] = await db
-      .insert(calendarEntries)
-      .values({
-        userId,
-        scriptId: script.id,
-        platform: script.platform,
-        scheduledDate: new Date(`${scheduledDate}T00:00:00.000Z`),
-        contentCategoryId: script.contentCategoryId,
-        seriesId: script.seriesId,
-      })
-      .returning();
-
-    const entry = await db.query.calendarEntries.findFirst({
-      where: eq(calendarEntries.id, inserted.id),
-      with: {
-        script: { columns: { id: true, title: true, status: true } },
-        contentCategory: { columns: { id: true, label: true } },
-        series: { columns: { id: true, label: true } },
-      },
-    });
-
+    const entry = await placeScriptOnCalendar(userId, scriptId, scheduledDate);
     return NextResponse.json({ entry }, { status: 201 });
   } catch (error) {
     return handleApiError(error);

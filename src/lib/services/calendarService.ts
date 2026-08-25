@@ -25,6 +25,26 @@ export function categoryWeightsFromCategories(
   return categories.map((c) => ({ id: c.id, weight: c.weight / 100 }));
 }
 
+/**
+ * Aiguillage matière×catégorie (docs/SPEC_MATIERE_EDITEUR.md §5.3) : quand le corpus est sec, réduit
+ * à zéro le poids des catégories "gourmandes en matière" (storytelling/coulisses) et redistribue
+ * proportionnellement le reste — sans jamais retoucher un calendrier déjà généré (§8.7, tranché),
+ * cette fonction n'agit qu'au moment de la génération d'un nouveau mois. Si toutes les catégories
+ * fournies sont gourmandes, les poids sont renvoyés inchangés — mieux vaut un calendrier normal
+ * qu'un calendrier vide (rien vers quoi réorienter).
+ */
+export function adjustCategoryWeightsForMaterialScarcity(
+  weights: CategoryWeight[],
+  hungryIds: Set<string>,
+  hasSufficientMaterial: boolean
+): CategoryWeight[] {
+  if (hasSufficientMaterial || hungryIds.size === 0) return weights;
+  const allHungry = weights.every((w) => hungryIds.has(w.id));
+  if (allHungry) return weights; // rien à réoriger vers : mieux vaut un calendrier normal que vide
+  const zeroed = weights.map((w) => (hungryIds.has(w.id) ? { ...w, weight: 0 } : w));
+  return renormalizeCategoryWeights(zeroed);
+}
+
 /** Répartit n créneaux entre catégories selon le mix fourni, en évitant les regroupements. Renvoie les id de catégorie. */
 export function distributeCategories(n: number, weights: CategoryWeight[]): string[] {
   if (n <= 0 || weights.length === 0) return [];
