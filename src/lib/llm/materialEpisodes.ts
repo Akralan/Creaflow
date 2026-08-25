@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { LlmToolDefinition } from "./types";
+import { EDITORIAL_WRITING_RULES } from "./prompts";
 
 /**
  * Découpage d'un corpus de matière en épisodes de série (docs/SPEC_MATIERE_EDITEUR.md §3.8) — le
@@ -15,7 +16,9 @@ Règles :
 - Propose des épisodes cohérents, dans un ordre qui raconte une progression (ex. décision → mise en œuvre → résultat), pas un ordre arbitraire.
 - Chaque épisode doit correspondre à un thème ou un angle réellement présent dans le texte fourni — jamais un épisode inventé sans rapport avec la matière.
 - Le nombre d'épisodes proposé doit être proche du nombre demandé.
-- N'invente aucun contenu au-delà de ce que le texte fourni permet de couvrir.`;
+- N'invente aucun contenu au-delà de ce que le texte fourni permet de couvrir.
+
+${EDITORIAL_WRITING_RULES}`;
 
 export const PROPOSE_SERIES_EPISODES_TOOL_NAME = "propose_series_episodes";
 export const proposeSeriesEpisodesTool: LlmToolDefinition = {

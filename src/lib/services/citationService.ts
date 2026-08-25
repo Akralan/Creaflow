@@ -84,3 +84,26 @@ export async function reconcileCitationsAfterEdit(
     await recordCitations(dbOrTx, userId, scriptId, productId, newExcerpts);
   }
 }
+
+/**
+ * Citations d'un script, dans la forme exacte attendue par le front (`apiClient.ts::Citation`,
+ * même mapping que `GET /api/scripts/:id`). Utilisé par les gestes de micro-retouche
+ * (`microEditService.ts`) pour renvoyer un état à jour : `patchScriptContent` (scriptService.ts) ne
+ * renvoie que les colonnes de `scripts`, jamais les relations jointes — sans cet appel explicite, le
+ * panneau "Matière utilisée" de l'éditeur affiche les citations d'avant l'édition jusqu'au prochain
+ * rechargement complet de la page (le merge `{...prev, ...updated}` côté front ne touche pas
+ * `citations` si la réponse ne porte pas cette clé).
+ */
+export async function getCitationsForScript(dbOrTx: DbOrTx, scriptId: string) {
+  const citations = await dbOrTx.query.sourceMaterialCitations.findMany({
+    where: eq(sourceMaterialCitations.scriptId, scriptId),
+    with: { sourceMaterial: { columns: { title: true } } },
+  });
+  return citations.map((c) => ({
+    id: c.id,
+    sourceMaterialId: c.sourceMaterialId,
+    sourceMaterialTitle: c.sourceMaterial?.title ?? null,
+    excerpt: c.excerpt,
+    matched: c.matchStart !== null,
+  }));
+}

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { LlmToolDefinition } from "./types";
 import type { ContentType } from "./prompts";
+import { EDITORIAL_WRITING_RULES } from "./prompts";
 import { storyboardStepSchema } from "./scriptSchema";
 
 /**
@@ -19,34 +20,67 @@ Règles :
 - De la matière factuelle sur le sujet peut être fournie ci-dessous (documents déposés par l'utilisateur) — sers-t'en si l'instruction le demande ou le suggère (ex. « base-toi sur... », « parle plutôt de... »), copié MOT POUR MOT pour toute information factuelle reprise.
 - Tu ne dois JAMAIS inventer une information factuelle (nom, chiffre, date, anecdote, résultat...) qui ne t'a pas été donnée explicitement — ni dans le texte d'origine, ni dans la matière fournie. Si une précision manque, écris littéralement "[à compléter]" plutôt que d'inventer.
 - Renvoie uniquement le texte de remplacement via l'outil fourni, sans guillemets ni commentaire autour.
-- Le champ "usedExcerpts" de l'outil est obligatoire : renvoie un tableau vide [] si tu n'as repris aucun passage mot pour mot depuis la matière fournie.`;
+- Le champ "usedExcerpts" de l'outil est obligatoire : renvoie un tableau vide [] si tu n'as repris aucun passage mot pour mot depuis la matière fournie.
+
+${EDITORIAL_WRITING_RULES}`;
+
+// Annexe A.6 de docs/SPEC_PROMPT_GENERATION_TECH.md — ligne de contexte ajoutée au message des tools
+// regenerate_* (hook/storyboard/hashtags/caption), jamais à rewrite_selection (§4.3 : la sélection→
+// instruction ne reçoit pas le concept). Chaîne vide si le script n'a pas de concept (origin manual/
+// imported, ou script antérieur à la migration §2) — à ajouter avec un séparateur, jamais collée sans
+// vérifier la longueur.
+export function buildConceptContextLine(concept: string | null): string {
+  if (!concept) return "";
+  return `Intention du script (le bloc régénéré doit rester cohérent avec elle) : ${concept}`;
+}
 
 export const REWRITE_SELECTION_TOOL_NAME = "rewrite_selection";
-export const rewriteSelectionTool: LlmToolDefinition = {
-  name: REWRITE_SELECTION_TOOL_NAME,
-  description: "Renvoie le texte de remplacement pour la sélection, appliquant l'instruction donnée.",
-  input_schema: {
-    type: "object",
-    properties: {
-      rewrittenText: {
-        type: "string",
-        description:
-          "Texte de remplacement, prêt à insérer à la place exacte de la sélection. Chaîne VIDE si l'instruction demande de supprimer ce passage — jamais une reformulation ou un raccourci à la place d'une vraie suppression.",
+
+/**
+ * `includeTitle=false` uniquement quand la sélection retouchée EST déjà le titre lui-même
+ * (`blockField === "title"`, microEditService.ts) — redemander un titre séparé dans ce cas précis
+ * serait redondant avec `rewrittenText` et contradictoire avec la consigne "renvoie-le inchangé si
+ * non concerné" (ici il EST concerné, c'est le champ édité). Dans tous les autres cas, le titre est
+ * redemandé à chaque retouche mais reconsidéré seulement si nécessaire — même convention que le
+ * `title` de `regenerate_hook` (contentType "text") plus bas dans ce fichier.
+ */
+export function buildRewriteSelectionTool(includeTitle: boolean): LlmToolDefinition {
+  return {
+    name: REWRITE_SELECTION_TOOL_NAME,
+    description: "Renvoie le texte de remplacement pour la sélection, appliquant l'instruction donnée.",
+    input_schema: {
+      type: "object",
+      properties: {
+        rewrittenText: {
+          type: "string",
+          description:
+            "Texte de remplacement, prêt à insérer à la place exacte de la sélection. Chaîne VIDE si l'instruction demande de supprimer ce passage — jamais une reformulation ou un raccourci à la place d'une vraie suppression.",
+        },
+        ...(includeTitle
+          ? {
+              title: {
+                type: "string",
+                description:
+                  "Titre cohérent avec le script une fois cette retouche appliquée. Renvoie le titre actuel (fourni en contexte) INCHANGÉ s'il décrit toujours bien le sujet — ne le change que si la retouche fait dévier significativement le sujet du post, pas pour une reformulation mineure.",
+              },
+            }
+          : {}),
+        usedExcerpts: {
+          type: "array",
+          description:
+            "OBLIGATOIRE — ne jamais omettre ce champ. Passages copiés MOT POUR MOT depuis la matière factuelle fournie que tu as utilisés dans ce remplacement. Tableau vide [] si aucune matière fournie ou utilisée.",
+          items: { type: "string" },
+        },
       },
-      usedExcerpts: {
-        type: "array",
-        description:
-          "OBLIGATOIRE — ne jamais omettre ce champ. Passages copiés MOT POUR MOT depuis la matière factuelle fournie que tu as utilisés dans ce remplacement. Tableau vide [] si aucune matière fournie ou utilisée.",
-        items: { type: "string" },
-      },
+      required: includeTitle ? ["rewrittenText", "title", "usedExcerpts"] : ["rewrittenText", "usedExcerpts"],
+      additionalProperties: false,
     },
-    required: ["rewrittenText", "usedExcerpts"],
-    additionalProperties: false,
-  },
-};
+  };
+}
 
 export const rewriteSelectionResultSchema = z.object({
   rewrittenText: z.string(),
+  title: z.string().optional(),
   usedExcerpts: z.array(z.string()).default([]),
 });
 
@@ -54,9 +88,15 @@ export function buildRewriteSelectionUserMessage(params: {
   brandContext: string;
   selectedText: string;
   instruction: string;
+  currentTitle?: string | null;
   materialDocuments?: Array<{ id: string; title: string | null; annotatedText: string }>;
 }): string {
-  const lines = [params.brandContext, `Passage sélectionné à retoucher : "${params.selectedText}"`, `Instruction : ${params.instruction}`];
+  const lines = [
+    params.brandContext,
+    params.currentTitle ? `Titre actuel : ${params.currentTitle}` : "",
+    `Passage sélectionné à retoucher : "${params.selectedText}"`,
+    `Instruction : ${params.instruction}`,
+  ];
   if (params.materialDocuments?.length) {
     const combined = params.materialDocuments
       .map((d) => (d.title ? `[${d.title}]\n${d.annotatedText}` : d.annotatedText))

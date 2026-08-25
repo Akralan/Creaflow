@@ -6,15 +6,16 @@ import { SCRIPT_SYSTEM_PROMPT, buildScriptUserMessage } from "@/lib/llm/prompts"
 import {
   REWRITE_SELECTION_SYSTEM_PROMPT,
   buildRewriteSelectionUserMessage,
+  buildRewriteSelectionTool,
+  buildConceptContextLine,
   rewriteSelectionResultSchema,
-  rewriteSelectionTool,
   toolForBlock,
   parseBlockResult,
   type MicroEditBlock,
 } from "@/lib/llm/microEdit";
 import { buildGenerationContext, patchScriptContent, type ScriptContentPatch } from "@/lib/services/scriptService";
 import { getMaterialForSubject } from "@/lib/services/sourceMaterialService";
-import { reconcileCitationsAfterEdit } from "@/lib/services/citationService";
+import { reconcileCitationsAfterEdit, getCitationsForScript } from "@/lib/services/citationService";
 import { ApiError } from "@/lib/api/errors";
 
 export type SelectionBlockField = "title" | "hookVisual" | "hookText" | "hookAudio" | "caption" | `storyboard.${number}`;
@@ -76,19 +77,24 @@ export async function applySelectionInstruction(
   // honorer — le modèle n'aurait rien où piocher (docs/SPEC_MATIERE_EDITEUR.md §3).
   const materialDocuments = await getMaterialForSubject(userId, script.productId);
 
+  // Le titre est reconsidéré sur chaque retouche (sauf si c'est déjà lui qu'on retouche — redondant
+  // avec rewrittenText dans ce cas) : demandé mais changé seulement si la retouche fait dévier le
+  // sujet du post, cf. buildRewriteSelectionTool.
+  const includeTitle = params.blockField !== "title";
   const args = await callStructured({
     system: REWRITE_SELECTION_SYSTEM_PROMPT,
     userMessage: buildRewriteSelectionUserMessage({
       brandContext,
       selectedText: params.selectedText,
       instruction: params.instruction,
+      currentTitle: includeTitle ? script.title : undefined,
       materialDocuments: materialDocuments.map((d) => ({ id: d.id, title: d.title, annotatedText: d.annotatedText })),
     }),
-    tool: rewriteSelectionTool,
+    tool: buildRewriteSelectionTool(includeTitle),
     maxTokens: 512,
     strict: true,
   });
-  const { rewrittenText, usedExcerpts } = rewriteSelectionResultSchema.parse(args);
+  const { rewrittenText, usedExcerpts, title } = rewriteSelectionResultSchema.parse(args);
 
   const patch: ScriptContentPatch = {};
   if (params.blockField.startsWith("storyboard.")) {
@@ -109,13 +115,18 @@ export async function applySelectionInstruction(
     }
     (patch as Record<string, string>)[field] = replaceOnce(currentValue, params.selectedText, rewrittenText);
   }
+  if (includeTitle && title !== undefined && title !== (script.title ?? "")) {
+    patch.title = title;
+  }
 
   const updated = await patchScriptContent(userId, scriptId, patch);
   await db.insert(scriptMicroEditEvents).values({ userId, scriptId, kind: "selection_instruction" });
   // Ne remplace jamais tout le lot de citations (contrairement à une régénération complète) : retire
   // seulement celles dont l'extrait a disparu du texte, ajoute celles rapportées par cette édition.
   await reconcileCitationsAfterEdit(db, userId, scriptId, script.productId, scriptTextForCitationCheck(updated), usedExcerpts);
-  return updated;
+  // patchScriptContent ne renvoie que les colonnes de `scripts` — sans ceci, le panneau "Matière
+  // utilisée" affiche les citations d'avant cette édition tant que la page n'est pas rechargée.
+  return { ...updated, citations: await getCitationsForScript(db, scriptId) };
 }
 
 /**
@@ -154,7 +165,14 @@ export async function regenerateBlock(userId: string, scriptId: string, block: M
     const args = await callStructured({
       system:
         "Tu es un rédacteur qui ajuste l'accroche et, si besoin, le titre d'un post existant pour CreaFlow, sans jamais réécrire le texte lui-même — fourni ci-dessous comme référence fixe.\n\nTu ne dois JAMAIS inventer une information factuelle qui ne figure pas dans ce texte.",
-      userMessage: `${brandContext}\n\nTitre actuel : ${script.title ?? "(sans titre)"}\n\nTexte actuel du post (référence fixe, ne pas modifier) :\n${script.caption}`,
+      userMessage: [
+        brandContext,
+        `Titre actuel : ${script.title ?? "(sans titre)"}`,
+        `Texte actuel du post (référence fixe, ne pas modifier) :\n${script.caption}`,
+        buildConceptContextLine(script.concept),
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
       tool: toolForBlock("hook", "text"),
       maxTokens: 512,
       strict: true,
@@ -162,12 +180,14 @@ export async function regenerateBlock(userId: string, scriptId: string, block: M
     const patch = parseBlockResult("hook", args) as ScriptContentPatch;
     const updated = await patchScriptContent(userId, scriptId, patch);
     await db.insert(scriptMicroEditEvents).values({ userId, scriptId, kind: "block_regenerate" });
-    return updated;
+    // Ce geste ne touche jamais les citations, mais patchScriptContent ne les renvoie pas non plus —
+    // sans ceci le front perdrait la liste affichée au premier merge (clé absente de la réponse).
+    return { ...updated, citations: await getCitationsForScript(db, scriptId) };
   }
 
   const args = await callStructured({
     system: `${SCRIPT_SYSTEM_PROMPT}\n\nTu dois régénérer UNIQUEMENT le bloc demandé via l'outil fourni — laisse strictement de côté le reste du script, déjà figé et non transmis ici.`,
-    userMessage: buildScriptUserMessage(context),
+    userMessage: [buildScriptUserMessage(context), buildConceptContextLine(script.concept)].filter(Boolean).join("\n\n"),
     tool: toolForBlock(block, script.contentType),
     maxTokens: 1024,
   });
@@ -175,5 +195,5 @@ export async function regenerateBlock(userId: string, scriptId: string, block: M
 
   const updated = await patchScriptContent(userId, scriptId, patch);
   await db.insert(scriptMicroEditEvents).values({ userId, scriptId, kind: "block_regenerate" });
-  return updated;
+  return { ...updated, citations: await getCitationsForScript(db, scriptId) };
 }
