@@ -101,14 +101,16 @@ export async function saveCategoriesForUser(userId: string, items: CategoryInput
         if (!updated) continue;
         categoryId = updated.id;
         await tx.delete(contentCategoriesPlatforms).where(eq(contentCategoriesPlatforms.categoryId, categoryId));
-        results.push(updated);
+        // Même forme que listActiveCategoriesForUser/generateCategoriesForUser (platforms rattaché) —
+        // sinon le front plante sur `.platforms.length` (undefined) juste après un enregistrement réussi.
+        results.push({ ...updated, platforms: c.platforms });
       } else {
         const [inserted] = await tx
           .insert(contentCategories)
           .values({ userId, label: c.label, description: c.description, weight: c.weight, materialHungry: c.materialHungry })
           .returning();
         categoryId = inserted.id;
-        results.push(inserted);
+        results.push({ ...inserted, platforms: c.platforms });
       }
       if (c.platforms.length > 0) {
         await tx.insert(contentCategoriesPlatforms).values(c.platforms.map((platform) => ({ categoryId, platform })));
