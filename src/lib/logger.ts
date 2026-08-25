@@ -12,9 +12,20 @@
 type LogLevel = "debug" | "info" | "warn" | "error";
 type LogContext = Record<string, unknown>;
 
-function serializeError(error: unknown): { message: string; stack?: string } | undefined {
+type SerializedError = { message: string; stack?: string; cause?: SerializedError };
+
+// drizzle-orm (et beaucoup d'autres libs) enveloppent l'erreur d'origine dans `.cause` — sans la
+// suivre, un échec de requête ne montre jamais que "Failed query: ..." et jamais la vraie erreur
+// Postgres (relation manquante, contrainte violée, connexion perdue...) qu'elle enveloppe.
+function serializeError(error: unknown): SerializedError | undefined {
   if (error === undefined) return undefined;
-  if (error instanceof Error) return { message: error.message, stack: error.stack };
+  if (error instanceof Error) {
+    return {
+      message: error.message,
+      stack: error.stack,
+      cause: error.cause !== undefined ? serializeError(error.cause) : undefined,
+    };
+  }
   return { message: String(error) };
 }
 

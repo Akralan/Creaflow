@@ -83,6 +83,10 @@ export async function generateSeriesForUser(userId: string) {
         const category = activeCategories.find((c) => c.id === id)!;
         return { id: category.id, label: category.label };
       }),
+      // La génération IA ne propose pas de ciblage plateforme — même valeur par défaut que
+      // "aucune ligne ContentSeriesPlatforms" (visible sur tous les réseaux), pour que la forme
+      // renvoyée reste identique à listActiveSeriesForUser/saveSeriesForUser.
+      platforms: [] as string[],
     }));
   });
 }

@@ -10,8 +10,8 @@ import { useContentCategories } from "@/contexts/CategoryLabelsContext";
 import { KNOWN_PLATFORMS, platformLabel } from "@/lib/social/types";
 
 const KIND_LABEL: Record<AssistantProposal["kind"], string> = {
-  product_create: "Nouveau produit",
-  product_update: "Modifier le produit",
+  product_create: "Nouveau sujet",
+  product_update: "Modifier le sujet",
   series_create: "Nouvelle série",
   series_update: "Modifier la série",
   category_create: "Nouvelle catégorie",
@@ -387,7 +387,7 @@ function ProposalCard({
           </div>
         ) : (
           <div style={{ display: "grid", gap: 8 }}>
-            <input style={inputStyle} value={productDraft.name} onChange={(e) => setProductDraft((d) => ({ ...d, name: e.target.value }))} placeholder="Nom du produit" />
+            <input style={inputStyle} value={productDraft.name} onChange={(e) => setProductDraft((d) => ({ ...d, name: e.target.value }))} placeholder="Nom du sujet" />
             <input style={inputStyle} value={productDraft.description} onChange={(e) => setProductDraft((d) => ({ ...d, description: e.target.value }))} placeholder="Description" />
             <input
               style={inputStyle}

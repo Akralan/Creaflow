@@ -50,10 +50,13 @@ export async function generateCategoriesForUser(userId: string) {
       .set({ archived: true })
       .where(and(eq(contentCategories.userId, userId), eq(contentCategories.archived, false)));
 
-    return tx
+    const inserted = await tx
       .insert(contentCategories)
       .values(suggested.map((c) => ({ userId, ...c })))
       .returning();
+    // La génération IA ne propose pas de ciblage plateforme — même forme que listActiveCategoriesForUser
+    // (qui joint contentCategoriesPlatforms), sinon le front plante sur `.platforms.length` (undefined).
+    return inserted.map((c) => ({ ...c, platforms: [] as string[] }));
   });
 }
 
@@ -63,6 +66,8 @@ interface CategoryInput {
   description: string;
   weight: number;
   platforms: string[];
+  /** Aiguillage matière×catégorie (docs/SPEC_MATIERE_EDITEUR.md §5.3) — curatable manuellement ici. */
+  materialHungry?: boolean;
 }
 
 /** Enregistrement manuel : met à jour les catégories existantes, insère les nouvelles,
@@ -72,6 +77,7 @@ export async function saveCategoriesForUser(userId: string, items: CategoryInput
     ...c,
     id: items[i].id,
     platforms: items[i].platforms,
+    materialHungry: items[i].materialHungry ?? false,
   }));
 
   const active = await listActiveCategoriesForUser(userId);
@@ -89,7 +95,7 @@ export async function saveCategoriesForUser(userId: string, items: CategoryInput
       if (c.id) {
         const [updated] = await tx
           .update(contentCategories)
-          .set({ label: c.label, description: c.description, weight: c.weight })
+          .set({ label: c.label, description: c.description, weight: c.weight, materialHungry: c.materialHungry })
           .where(and(eq(contentCategories.id, c.id), eq(contentCategories.userId, userId)))
           .returning();
         if (!updated) continue;
@@ -99,7 +105,7 @@ export async function saveCategoriesForUser(userId: string, items: CategoryInput
       } else {
         const [inserted] = await tx
           .insert(contentCategories)
-          .values({ userId, label: c.label, description: c.description, weight: c.weight })
+          .values({ userId, label: c.label, description: c.description, weight: c.weight, materialHungry: c.materialHungry })
           .returning();
         categoryId = inserted.id;
         results.push(inserted);

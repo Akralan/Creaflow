@@ -13,11 +13,10 @@ import CategoryLabelsPanel from "@/components/CategoryLabelsPanel";
 import OnboardingChat from "@/components/OnboardingChat";
 import { api, ApiClientError, type Connection } from "@/lib/apiClient";
 import { accent, accentAlpha, color, fontHeading } from "@/lib/design/tokens";
-
-const MIN_PRODUCTS = 3;
+import { MIN_PRODUCTS } from "@/lib/validation";
 
 function StepTab({ n, step, onClick }: { n: number; step: number; onClick: () => void }) {
-  const labels = ["1 · Discussion", "2 · Catalogue", "3 · Réseaux"];
+  const labels = ["1 · Discussion", "2 · Sujets", "3 · Réseaux"];
   const base: React.CSSProperties = {
     border: "none",
     fontFamily: "inherit",
@@ -103,7 +102,7 @@ function OnboardingContent() {
     }
     if (step === 2) {
       if (productCount < MIN_PRODUCTS) {
-        setStepError(`Ajoutez au moins ${MIN_PRODUCTS} produits avant de continuer.`);
+        setStepError(`Ajoutez au moins ${MIN_PRODUCTS} sujet${MIN_PRODUCTS > 1 ? "s" : ""} avant de continuer.`);
         return;
       }
       setStep(3);
@@ -296,9 +295,9 @@ function OnboardingContent() {
 
           {step === 2 && (
             <div>
-              <h2 style={heading2Style}>Vos produits phares</h2>
+              <h2 style={heading2Style}>Vos sujets</h2>
               <p style={{ margin: "0 0 24px", color: color.textMuted, fontSize: 15 }}>
-                La matière première de vos scripts. Ajoutez-en {MIN_PRODUCTS} à 5.
+                Ce dont vous allez parler. Ajoutez-en au moins {MIN_PRODUCTS}, jusqu&apos;à 5.
               </p>
               <ProductCatalogue onCountChange={setProductCount} />
             </div>

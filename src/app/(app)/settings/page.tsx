@@ -19,7 +19,7 @@ type Tab = "identity" | "catalogue" | "categories" | "assets" | "connexions" | "
 
 const tabs: Array<{ id: Tab; label: string }> = [
   { id: "identity", label: "Identité de marque" },
-  { id: "catalogue", label: "Catalogue produits" },
+  { id: "catalogue", label: "Sujets" },
   { id: "categories", label: "Catégories de contenu" },
   { id: "assets", label: "Ressources visuelles" },
   { id: "connexions", label: "Connexions sociales" },

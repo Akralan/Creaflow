@@ -6,7 +6,14 @@ import { api, ApiClientError, type ContentCategory } from "@/lib/apiClient";
 import { accentAlpha, color } from "@/lib/design/tokens";
 import { KNOWN_PLATFORMS } from "@/lib/social/types";
 
-type Draft = { id?: string; label: string; description: string; weight: number; platforms: string[] };
+type Draft = {
+  id?: string;
+  label: string;
+  description: string;
+  weight: number;
+  platforms: string[];
+  materialHungry: boolean;
+};
 
 function toDrafts(categories: ContentCategory[]): Draft[] {
   return categories.map((c) => ({
@@ -15,6 +22,7 @@ function toDrafts(categories: ContentCategory[]): Draft[] {
     description: c.description,
     weight: c.weight,
     platforms: c.platforms,
+    materialHungry: c.materialHungry,
   }));
 }
 
@@ -73,7 +81,11 @@ export default function CategoryLabelsPanel() {
   }
 
   function addCategory() {
-    setDrafts((prev) => [...prev, { label: "Nouvelle catégorie", description: "", weight: 10, platforms: [] }]);
+    setDrafts((prev) => [...prev, { label: "Nouvelle catégorie", description: "", weight: 10, platforms: [], materialHungry: false }]);
+  }
+
+  function toggleMaterialHungry(index: number) {
+    setDrafts((prev) => prev.map((d, i) => (i === index ? { ...d, materialHungry: !d.materialHungry } : d)));
   }
 
   function removeCategory(index: number) {
@@ -218,6 +230,23 @@ export default function CategoryLabelsPanel() {
                 </button>
               );
             })}
+            <button
+              onClick={() => toggleMaterialHungry(i)}
+              title="Catégorie gourmande en matière — sous-représentée quand le corpus est sec (docs/SPEC_MATIERE_EDITEUR.md §5.3)"
+              style={{
+                fontSize: 11,
+                fontWeight: d.materialHungry ? 600 : 500,
+                color: d.materialHungry ? "oklch(0.5 0.14 60)" : color.textMuted,
+                background: d.materialHungry ? "oklch(0.6 0.14 60 / 0.12)" : color.inputBg,
+                border: `1px solid ${d.materialHungry ? "oklch(0.6 0.14 60)" : color.inputBorder}`,
+                borderRadius: 20,
+                padding: "3px 9px",
+                cursor: "pointer",
+                marginLeft: 4,
+              }}
+            >
+              {d.materialHungry ? "◈ Gourmande en matière" : "Gourmande en matière ?"}
+            </button>
           </div>
           </div>
         ))}

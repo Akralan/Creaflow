@@ -7,6 +7,11 @@ export interface PlanDefinition {
   name: string;
   /** Quota de scripts générés/régénérés par cycle de facturation (checkout ou renouvellement). */
   scriptsPerMonth: number;
+  /** Quota de micro-retouches (sélection→instruction, régénération d'un bloc) par cycle de
+   *  facturation — pool distinct et plus généreux que scriptsPerMonth (docs/SPEC_MATIERE_EDITEUR.md
+   *  §4.6) : une micro-retouche est un appel LLM texte court sur un seul bloc, nettement moins
+   *  coûteux qu'une génération structurée complète multi-champs. */
+  microEditsPerMonth: number;
   /** Prix Stripe (mode "subscription", récurrence mensuelle) — créé côté Stripe Dashboard/CLI. */
   stripePriceIdEnvVar: "STRIPE_PRICE_STARTER" | "STRIPE_PRICE_PRO";
 }
@@ -20,12 +25,14 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     id: "starter",
     name: "Starter",
     scriptsPerMonth: 30,
+    microEditsPerMonth: 150, // x5 — chiffrage initial, à recaler sur les coûts réels par provider
     stripePriceIdEnvVar: "STRIPE_PRICE_STARTER",
   },
   pro: {
     id: "pro",
     name: "Pro",
     scriptsPerMonth: 150,
+    microEditsPerMonth: 600, // x4
     stripePriceIdEnvVar: "STRIPE_PRICE_PRO",
   },
 };
@@ -33,6 +40,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
 // Essai gratuit sans carte bancaire : quota à vie (pas de reset mensuel, pas de ligne `subscriptions`
 // tant que l'utilisateur n'a pas payé une fois — cf. billingService.ts).
 export const FREE_TRIAL_SCRIPT_LIMIT = 5;
+export const FREE_TRIAL_MICRO_EDIT_LIMIT = 30;
 
 export function getPlan(id: PlanId): PlanDefinition {
   return PLANS[id];

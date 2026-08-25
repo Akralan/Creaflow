@@ -19,6 +19,7 @@ const saveSchema = z.object({
         description: z.string().min(1),
         weight: z.number().int().min(5).max(90),
         platforms: z.array(platformSchema).default([]),
+        materialHungry: z.boolean().optional(),
       })
     )
     .min(2)

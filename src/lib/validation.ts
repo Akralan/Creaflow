@@ -5,8 +5,10 @@ export const platformSchema = z.string().refine(isKnownPlatform, { message: "Pla
 export const contentCategorySchema = z.uuid();
 export const contentTypeSchema = z.enum(["video", "visual", "text"]);
 
-// Catalogue produits : "3 à 5 produits phares" (BRIEF.md / SPEC_POC.md).
-export const MIN_PRODUCTS = 3;
+// Catalogue de sujets (UI : "sujet" ; schéma/routes/types restent "Product", docs/SPEC_MATIERE_EDITEUR.md
+// §3.3 — renommage côté UI uniquement). MIN_PRODUCTS abaissé à 1 : un profil personal branding peut
+// n'avoir qu'un seul sujet, sans proposition de valeur (valueProposition optionnelle).
+export const MIN_PRODUCTS = 1;
 export const MAX_PRODUCTS = 5;
 
 // Bibliothèque de ressources visuelles (docs/SPEC_RESSOURCES_VISUELLES.md §7.2 : "une sélection de

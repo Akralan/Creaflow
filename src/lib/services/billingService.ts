@@ -1,9 +1,9 @@
 import { and, count, eq, gte } from "drizzle-orm";
 import { db } from "@/db";
-import { scriptGenerationEvents, subscriptions, subscriptionStatusEnum } from "@/db/schema";
+import { scriptGenerationEvents, scriptMicroEditEvents, subscriptions, subscriptionStatusEnum } from "@/db/schema";
 import type { Stripe } from "stripe";
 import { ApiError } from "@/lib/api/errors";
-import { FREE_TRIAL_SCRIPT_LIMIT, getPlan, type PlanId } from "@/lib/billing/plans";
+import { FREE_TRIAL_MICRO_EDIT_LIMIT, FREE_TRIAL_SCRIPT_LIMIT, getPlan, type PlanId } from "@/lib/billing/plans";
 
 type DbSubscriptionStatus = (typeof subscriptionStatusEnum.enumValues)[number];
 
@@ -97,6 +97,44 @@ export async function enforceScriptQuota(userId: string): Promise<void> {
     throw new ApiError(
       402,
       `Quota atteint (${status.used}/${status.limit} scripts — ${status.planName}). Passe à un plan supérieur pour continuer à générer des scripts.`
+    );
+  }
+}
+
+// Compte les micro-retouches (scriptMicroEditEvents), pool distinct du quota de génération complète
+// ci-dessus — voir le commentaire sur scriptMicroEditEvents dans schema.ts.
+async function countMicroEditEvents(userId: string, since?: Date): Promise<number> {
+  const [{ value }] = await db
+    .select({ value: count() })
+    .from(scriptMicroEditEvents)
+    .where(
+      since
+        ? and(eq(scriptMicroEditEvents.userId, userId), gte(scriptMicroEditEvents.createdAt, since))
+        : eq(scriptMicroEditEvents.userId, userId)
+    );
+  return value;
+}
+
+/** Miroir exact de getQuotaStatus, sur le pool micro-retouches (docs/SPEC_MATIERE_EDITEUR.md §4.6). */
+export async function getMicroEditQuotaStatus(userId: string): Promise<QuotaStatus> {
+  const subscription = await getSubscriptionForUser(userId);
+  if (subscription && ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status)) {
+    const plan = getPlan(subscription.plan as PlanId);
+    const periodStart = subscription.currentPeriodStart ?? subscription.createdAt;
+    const used = await countMicroEditEvents(userId, periodStart);
+    return resolveQuotaStatus(used, plan.microEditsPerMonth, plan.name);
+  }
+  const used = await countMicroEditEvents(userId);
+  return resolveQuotaStatus(used, FREE_TRIAL_MICRO_EDIT_LIMIT, "Essai gratuit");
+}
+
+/** À appeler avant toute micro-retouche (POST /api/scripts/:id/micro-edit). */
+export async function enforceMicroEditQuota(userId: string): Promise<void> {
+  const status = await getMicroEditQuotaStatus(userId);
+  if (!status.allowed) {
+    throw new ApiError(
+      402,
+      `Quota de retouches atteint (${status.used}/${status.limit} — ${status.planName}). Passe à un plan supérieur pour continuer.`
     );
   }
 }

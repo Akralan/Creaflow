@@ -218,7 +218,7 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
 
       <div style={{ marginBottom: 30 }}>
         <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: color.text3, marginBottom: 6 }}>
-          Produit associé <span style={{ color: color.textFaint, fontWeight: 400 }}>— optionnel</span>
+          Sujet associé <span style={{ color: color.textFaint, fontWeight: 400 }}>— optionnel</span>
         </label>
         <select
           value={productId}
@@ -234,7 +234,7 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
             color: color.text,
           }}
         >
-          <option value="">Aucun produit — script générique</option>
+          <option value="">Aucun sujet — script générique</option>
           {products.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
