@@ -162,6 +162,13 @@
       "when": 1787692032683,
       "tag": "0022_tan_power_pack",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1787695153429,
+      "tag": "0023_redundant_arclight",
+      "breakpoints": true
     }
   ]
 }

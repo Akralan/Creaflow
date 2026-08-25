@@ -17,7 +17,7 @@ import { pickAngleForScript } from "@/lib/services/angleService";
 import { findBestBrandAssetForScript } from "@/lib/services/brandAssetService";
 import { getMaterialForSubject } from "@/lib/services/sourceMaterialService";
 import { recordCitations, deleteCitationsForScript } from "@/lib/services/citationService";
-import { resolveDailyDirection, markBeatDrafted } from "@/lib/services/narrativeDirector";
+import { resolveDailyDirection, markBeatDrafted, applyPublishSideEffects } from "@/lib/services/narrativeDirector";
 import { ApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
 
@@ -243,7 +243,15 @@ export async function createScriptRecord(
   contentCategory: ContentCategoryContext,
   productId: string | null,
   generated: GeneratedScript,
-  extras?: { angleId?: string | null; seriesId?: string | null; brandAssetId?: string | null; beatId?: string | null }
+  extras?: {
+    angleId?: string | null;
+    seriesId?: string | null;
+    brandAssetId?: string | null;
+    beatId?: string | null;
+    /** Texte exact de la promesse ouverte que ce script honore (direction.promiseToHonor, §3.3) —
+     *  retiré d'openPromises au passage en "published" (§5, narrativeDirector.ts::applyPublishSideEffects). */
+    promiseHonored?: string | null;
+  }
 ) {
   return db.transaction(async (tx) => {
     const columns = scriptColumnsFromGenerated(generated);
@@ -260,6 +268,7 @@ export async function createScriptRecord(
         // Traçabilité vers le plan du chef (docs/SPEC_REDACTEUR_EN_CHEF.md §2/§4.1.6) — null hors
         // chef ou détour hors plan assumé.
         beatId: extras?.beatId ?? null,
+        promiseHonored: extras?.promiseHonored ?? null,
         origin: "generated",
         // Gisement de la donnée de voix (§4.7) : capturé une seule fois, au premier jet — jamais
         // réécrit ensuite, y compris par une régénération (updateScriptRecord ne le touche pas).
@@ -287,6 +296,8 @@ export async function updateScriptRecord(
     brandAssetId?: string | null;
     rejectedConcepts?: string[];
     beatId?: string | null;
+    /** Texte exact de la promesse ouverte que ce script honore — même rôle que sur createScriptRecord. */
+    promiseHonored?: string | null;
     /** Sujet effectif pour le scoping des citations (`context.resolvedProductId`, scriptService.ts) —
      *  peut différer de `Script.productId` (jamais réécrit ici, brief verrouillé) quand ce script
      *  n'a lui-même aucun sujet mais que sa série en a un lié. Défaut : `script.productId` (comportement
@@ -306,6 +317,7 @@ export async function updateScriptRecord(
         // Mutable comme concept/rejectedConcepts (pas figé comme firstDraftSnapshot) — "autre idée"
         // peut aussi passer par un nouveau choix du jour du chef (docs/SPEC_REDACTEUR_EN_CHEF.md §4.1).
         ...(extras?.beatId !== undefined && { beatId: extras.beatId }),
+        ...(extras?.promiseHonored !== undefined && { promiseHonored: extras.promiseHonored }),
         ...scriptColumnsFromGenerated(generated),
         updatedAt: new Date(),
       })
@@ -338,6 +350,8 @@ export interface ScriptContentPatch {
  * PATCH de contenu depuis l'éditeur (docs/SPEC_MATIERE_EDITEUR.md §4.5) — édition directe d'un
  * bloc (`onBlur`) ou naissance paresseuse du premier contenu tapé. Ne touche jamais à
  * `contentCategoryId`/`angleId`/`seriesId` (brief verrouillé, §4.2) ni à `firstDraftSnapshot`.
+ * Passage en "published" (§5, Lot B4) : déclenche les effets de bord du chef (beat -> published,
+ * promesses) — jamais bloquant, une panne ici ne doit jamais faire échouer le changement de statut.
  */
 export async function patchScriptContent(userId: string, scriptId: string, patch: ScriptContentPatch) {
   const [script] = await db
@@ -347,6 +361,11 @@ export async function patchScriptContent(userId: string, scriptId: string, patch
     .returning();
   if (!script) {
     throw new ApiError(404, "Script introuvable.");
+  }
+  if (patch.status === "published") {
+    await applyPublishSideEffects(userId, script).catch((err) =>
+      logger.error("Effets de publication (rédacteur en chef) échoués", err, { scriptId: script.id })
+    );
   }
   return script;
 }

@@ -77,6 +77,7 @@ export async function POST(
       brandAssetId: context.brandAsset?.id ?? null,
       rejectedConcepts,
       beatId: context.direction?.beatId ?? null,
+      promiseHonored: context.direction?.promiseToHonor ?? null,
       // Script.productId reste verrouillé (existing.productId, jamais réécrit) mais les citations
       // doivent porter sur le même corpus que celui effectivement lu (hérité du sujet de la série
       // quand ce script n'en a pas lui-même, docs/SPEC_REDACTEUR_EN_CHEF.md, sélecteur de sujet).

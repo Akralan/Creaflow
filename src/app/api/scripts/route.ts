@@ -73,6 +73,7 @@ export async function POST(request: NextRequest) {
       seriesId: context.series?.id ?? null,
       brandAssetId: context.brandAsset?.id ?? null,
       beatId: context.direction?.beatId ?? null,
+      promiseHonored: context.direction?.promiseToHonor ?? null,
     });
     await recordBeatDraftedIfNeeded(context, script.id);
 

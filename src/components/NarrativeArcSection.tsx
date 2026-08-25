@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, X } from "lucide-react";
 import Button from "@/components/ui/Button";
@@ -38,12 +38,61 @@ function beatsEqual(a: NarrativeBeat[], b: NarrativeBeat[]): boolean {
 // référence plus bas ne stabilise jamais quand narrativeState est null, et boucle.
 const EMPTY_BEATS: NarrativeBeat[] = [];
 
+/** Contrat de format (mode rendez_vous, §7) — même garde que MaterialSummaryField (MaterialPanel.tsx) :
+ *  ne pas écraser une édition en cours si la valeur change ailleurs (ex. une autre session). */
+function FormatContractField({
+  formatContract,
+  onSave,
+}: {
+  formatContract: string | null;
+  onSave: (next: string | null) => Promise<void>;
+}) {
+  const [draft, setDraft] = useState(formatContract ?? "");
+  const [saving, setSaving] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (document.activeElement !== textareaRef.current) setDraft(formatContract ?? "");
+  }, [formatContract]);
+
+  return (
+    <textarea
+      ref={textareaRef}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      disabled={saving}
+      onBlur={async () => {
+        const trimmed = draft.trim();
+        if (trimmed === (formatContract ?? "")) return;
+        setSaving(true);
+        try {
+          await onSave(trimmed || null);
+        } finally {
+          setSaving(false);
+        }
+      }}
+      placeholder="Ex : 3 news + 1 coup de cœur"
+      rows={2}
+      style={{
+        width: "100%",
+        border: `1px solid ${color.inputBorder}`,
+        borderRadius: 8,
+        padding: "8px 10px",
+        fontSize: 13,
+        lineHeight: 1.4,
+        fontFamily: "inherit",
+        background: color.inputBg,
+        color: color.text2,
+        resize: "vertical",
+      }}
+    />
+  );
+}
+
 /**
- * Arc narratif d'une série (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — mode, plan (arcSummary + beats),
- * callbacks, promesses ouvertes, boutons Planifier/Replanifier. Décision d'implémentation Lot B2 :
- * `formatContract` (mode rendez_vous) est différé au Lot B4 avec le reste des "spécificités
- * rendez_vous" (§8) — un état narratif ne peut d'ailleurs pas encore exister pour une série
- * rendez_vous, la planification étant bloquée dans ce mode (409).
+ * Arc narratif d'une série (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — mode, sujet lié, plan (arcSummary +
+ * beats) pour le mode feuilleton, contrat de format pour le mode rendez_vous, callbacks et promesses
+ * ouvertes dans les deux cas.
  */
 export default function NarrativeArcSection({
   series,
@@ -62,6 +111,8 @@ export default function NarrativeArcSection({
   const [savingBeats, setSavingBeats] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [switchingProduct, setSwitchingProduct] = useState(false);
+  const [newCallback, setNewCallback] = useState("");
+  const [savingCallbacks, setSavingCallbacks] = useState(false);
 
   useEffect(() => {
     api.getProducts().then(({ products }) => setProducts(products));
@@ -119,6 +170,16 @@ export default function NarrativeArcSection({
     }
   }
 
+  /** Mode rendez_vous : /narrative/plan refuse ce mode (409) — pas de plan à maintenir — mais un
+   *  état doit quand même exister pour porter formatContract/callbacks/promesses édités à la main
+   *  (§5/§7, Lot B4). Créé paresseusement au premier besoin, sans jamais appeler le LLM. */
+  async function ensureStateId(): Promise<string> {
+    if (series.narrativeState) return series.narrativeState.id;
+    const { state } = await api.ensureNarrativeState({ seriesId: series.id });
+    onSeriesUpdate({ ...series, narrativeState: state });
+    return state.id;
+  }
+
   function moveBeat(index: number, direction: -1 | 1) {
     setBeatsDraft((prev) => {
       const next = [...prev];
@@ -162,7 +223,138 @@ export default function NarrativeArcSection({
     }
   }
 
+  async function saveCallbacks(next: string[]) {
+    setSavingCallbacks(true);
+    setError(null);
+    try {
+      const stateId = await ensureStateId();
+      const { state } = await api.patchNarrativeState(stateId, { callbacks: next });
+      onSeriesUpdate({ ...series, narrativeState: state });
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'édition des callbacks.");
+    } finally {
+      setSavingCallbacks(false);
+    }
+  }
+
+  function addCallback() {
+    const text = newCallback.trim();
+    if (!text) return;
+    const current = series.narrativeState?.callbacks ?? [];
+    setNewCallback("");
+    if (current.includes(text)) return;
+    saveCallbacks([...current, text]);
+  }
+
+  function removeCallback(text: string) {
+    const current = series.narrativeState?.callbacks ?? [];
+    saveCallbacks(current.filter((c) => c !== text));
+  }
+
+  async function saveFormatContract(next: string | null) {
+    setError(null);
+    try {
+      const stateId = await ensureStateId();
+      const { state } = await api.patchNarrativeState(stateId, { formatContract: next });
+      onSeriesUpdate({ ...series, narrativeState: state });
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement du contrat de format.");
+    }
+  }
+
   const hasUnsavedBeats = !beatsEqual(beatsDraft, series.narrativeState?.beats ?? []);
+
+  function renderCallbacksAndPromises() {
+    const state = series.narrativeState;
+    return (
+      <>
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: color.textFaint, marginBottom: 4 }}>Callbacks</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center", marginBottom: 6 }}>
+            {(state?.callbacks ?? []).map((cb) => (
+              <span
+                key={cb}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: 11,
+                  color: color.textMuted,
+                  background: color.chipBg,
+                  borderRadius: 10,
+                  padding: "2px 4px 2px 8px",
+                }}
+              >
+                {cb}
+                <button
+                  onClick={() => removeCallback(cb)}
+                  disabled={savingCallbacks}
+                  title="Retirer ce callback"
+                  style={{ border: "none", background: "none", cursor: "pointer", padding: 2, display: "flex" }}
+                >
+                  <X size={10} color={color.textFaint} />
+                </button>
+              </span>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <input
+              value={newCallback}
+              onChange={(e) => setNewCallback(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addCallback()}
+              placeholder="Ajouter un callback..."
+              disabled={savingCallbacks}
+              style={{
+                flex: 1,
+                fontSize: 12,
+                border: `1px solid ${color.inputBorder}`,
+                borderRadius: 8,
+                padding: "5px 8px",
+                fontFamily: "inherit",
+                background: color.inputBg,
+                color: color.text,
+              }}
+            />
+            <button
+              onClick={addCallback}
+              disabled={savingCallbacks || !newCallback.trim()}
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: "oklch(0.5 0.2 292)",
+                background: "oklch(0.55 0.2 292 / 0.08)",
+                border: "none",
+                borderRadius: 8,
+                padding: "5px 10px",
+                cursor: "pointer",
+              }}
+            >
+              +
+            </button>
+          </div>
+        </div>
+
+        {state && state.openPromises.length > 0 && (
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: color.textFaint, marginBottom: 4 }}>Promesses ouvertes</div>
+            <div style={{ display: "grid", gap: 4 }}>
+              {state.openPromises.map((p) => (
+                <div key={p.text} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: color.text2 }}>
+                  <span style={{ flex: 1 }}>{p.text}</span>
+                  <button
+                    onClick={() => closePromise(p.text)}
+                    style={{ fontSize: 11, color: "oklch(0.5 0.2 292)", background: "none", border: "none", cursor: "pointer" }}
+                  >
+                    Fermer
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
 
   return (
     <div>
@@ -226,9 +418,16 @@ export default function NarrativeArcSection({
       {error && <p style={{ margin: "0 0 10px", fontSize: 12, color: color.danger }}>{error}</p>}
 
       {series.mode === "rendez_vous" ? (
-        <p style={{ margin: 0, fontSize: 12, color: color.textFaint }}>
-          Épisodes autonomes, sans plan à maintenir — pas de planification dans ce mode.
-        </p>
+        <div>
+          <p style={{ margin: "0 0 10px", fontSize: 12, color: color.textFaint }}>
+            Épisodes autonomes, sans plan à maintenir — pas de planification dans ce mode.
+          </p>
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: color.textFaint, marginBottom: 4 }}>Contrat de format</div>
+            <FormatContractField formatContract={series.narrativeState?.formatContract ?? null} onSave={saveFormatContract} />
+          </div>
+          {renderCallbacksAndPromises()}
+        </div>
       ) : !series.narrativeState ? (
         <Button variant="secondary" onClick={plan} disabled={planning} style={{ padding: "8px 14px", fontSize: 13 }}>
           {planning ? "Planification..." : "Planifier la suite"}
@@ -337,37 +536,7 @@ export default function NarrativeArcSection({
             })}
           </div>
 
-          {series.narrativeState.callbacks.length > 0 && (
-            <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: color.textFaint, marginBottom: 4 }}>Callbacks</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                {series.narrativeState.callbacks.map((cb, i) => (
-                  <span key={i} style={{ fontSize: 11, color: color.textMuted, background: color.chipBg, borderRadius: 10, padding: "2px 8px" }}>
-                    {cb}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {series.narrativeState.openPromises.length > 0 && (
-            <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: color.textFaint, marginBottom: 4 }}>Promesses ouvertes</div>
-              <div style={{ display: "grid", gap: 4 }}>
-                {series.narrativeState.openPromises.map((p) => (
-                  <div key={p.text} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: color.text2 }}>
-                    <span style={{ flex: 1 }}>{p.text}</span>
-                    <button
-                      onClick={() => closePromise(p.text)}
-                      style={{ fontSize: 11, color: "oklch(0.5 0.2 292)", background: "none", border: "none", cursor: "pointer" }}
-                    >
-                      Fermer
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {renderCallbacksAndPromises()}
 
           <div style={{ display: "flex", gap: 8 }}>
             <Button variant="secondary" onClick={plan} disabled={planning} style={{ padding: "7px 12px", fontSize: 12 }}>

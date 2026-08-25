@@ -399,11 +399,18 @@ export const scripts = pgTable("scripts", {
   rejectedConcepts: jsonb("rejected_concepts").notNull().default([]),
   // Traçabilité vers le plan du rédacteur en chef (docs/SPEC_REDACTEUR_EN_CHEF.md §2/§4.1.6) — id
   // d'un beat dans NarrativeState.beats (jsonb, pas de FK possible). Null hors chef ou hors plan
-  // (détour assumé). Écrit à la génération, pas encore câblé avant le Lot B3.
+  // (détour assumé). Écrit à la génération (Lot B3), passe le beat en "drafted" puis "published"
+  // selon le statut de ce script (Lot B4).
   beatId: text("beat_id"),
   // Promesses explicites faites par ce script à l'audience (Annexe B.6) — consolidées dans
-  // NarrativeState.openPromises au passage en "published" (§5, Lot B4). Pas encore câblé avant B3.
+  // NarrativeState.openPromises au passage en "published" (§5, Lot B4).
   promisesMade: jsonb("promises_made").notNull().default([]),
+  // Texte EXACT de la promesse ouverte que ce post honore, choisi par le chef au choix du jour
+  // (direction.promiseToHonor, §3.3) — absent du modèle §2 de la spec, mais nécessaire pour retirer
+  // la promesse d'openPromises au passage en "published" (§5) : ce lien doit survivre entre la
+  // génération et une publication ultérieure, potentiellement dans une tout autre session. Null si
+  // ce post n'honore aucune promesse.
+  promiseHonored: text("promise_honored"),
   hookVisual: text("hook_visual"),
   hookText: text("hook_text"),
   hookAudio: text("hook_audio"),

@@ -407,6 +407,11 @@ export const api = {
    *  paresseusement. 409 si la cible est une série en mode rendez_vous. */
   planNarrative: (data: { productId?: string; seriesId?: string; directive?: string }) =>
     post<{ state: NarrativeState }>("/api/narrative/plan", data),
+  /** Trouve ou crée un état narratif vide, sans planification (§5/§7, Lot B4) — utilisé pour le mode
+   *  rendez_vous, où /narrative/plan refuse explicitement (409) mais où formatContract/callbacks
+   *  doivent quand même pouvoir être édités à la main. */
+  ensureNarrativeState: (data: { productId?: string; seriesId?: string }) =>
+    post<{ state: NarrativeState }>("/api/narrative/ensure", data),
   /** Éditions manuelles de l'écran Direction (§6/§7) : arcSummary, formatContract, beats (réordonner/
    *  éditer/passer skipped), fermeture d'une promesse (closePromiseText), callbacks. */
   patchNarrativeState: (

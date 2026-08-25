@@ -16,6 +16,8 @@ import { logger } from "@/lib/logger";
 
 const MAX_FOCUS_DOCS = 3;
 const MAX_CALLBACKS = 8;
+const MAX_BEATS = 20;
+const MAX_OPEN_PROMISES = 10;
 const PUBLISHED_CONCEPTS_LIMIT = 30;
 
 export type NarrativeBeatKind = "material" | "pedagogical" | "personal";
@@ -176,6 +178,13 @@ async function loadPublishedConcepts(userId: string, productId: string | null, s
  * `scriptId` n'est jamais affirmé par le chef (préservé depuis l'existant), et un beat que le LLM
  * marquerait `published` de son propre chef est ramené à son statut précédent (filet de sécurité en
  * plus de la consigne B.2a).
+ *
+ * Extension Lot B4 (au-delà du texte de la spec) : un beat `drafted` — un script existe déjà dessus,
+ * pas encore publié — bénéficie de la même garantie de PRÉSENCE qu'un beat `published` (jamais perdu
+ * s'il est omis de la réponse du LLM, sans quoi le bandeau éditeur du script déjà généré perdrait
+ * son lien vers l'arc), mais pas de la même garantie de CONTENU : le chef peut encore affiner son
+ * titre/angle/justification/kind s'il le retourne explicitement — seuls `status` (reste `drafted`,
+ * jamais rétrogradé) et `scriptId` (jamais réaffirmé par le chef) restent figés.
  */
 function mergeBeats(existingBeats: NarrativeBeat[], llmBeats: LlmNarrativeBeat[]): NarrativeBeat[] {
   const existingById = new Map(existingBeats.map((b) => [b.id, b]));
@@ -186,6 +195,17 @@ function mergeBeats(existingBeats: NarrativeBeat[], llmBeats: LlmNarrativeBeat[]
     const existing = existingById.get(llmBeat.id);
     if (existing?.status === "published") {
       merged.push(existing);
+    } else if (existing?.status === "drafted") {
+      merged.push({
+        id: llmBeat.id,
+        title: llmBeat.title,
+        kind: llmBeat.kind,
+        angleHint: llmBeat.angleHint,
+        focusDocIds: llmBeat.focusDocIds.slice(0, MAX_FOCUS_DOCS),
+        status: "drafted",
+        scriptId: existing.scriptId,
+        rationale: llmBeat.rationale,
+      });
     } else {
       merged.push({
         id: llmBeat.id,
@@ -201,17 +221,30 @@ function mergeBeats(existingBeats: NarrativeBeat[], llmBeats: LlmNarrativeBeat[]
     seenIds.add(llmBeat.id);
   }
 
-  // Beats publiés omis par le LLM : conservés tels quels, rajoutés à la fin dans leur ordre relatif
-  // d'origine — décision d'implémentation, la spec ne précise pas la position exacte pour ce cas
-  // (le plafond de 20 beats et le retrait des plus anciens publiés au-delà sont différés au Lot B4,
-  // §5/§8 — pas appliqués ici).
+  // Beats publiés OU en brouillon omis par le LLM : jamais perdus (un script existe déjà pour eux),
+  // rajoutés à la fin dans leur ordre relatif d'origine — décision d'implémentation, la spec ne
+  // précise pas la position exacte pour ce cas.
   for (const existing of existingBeats) {
-    if (existing.status === "published" && !seenIds.has(existing.id)) {
+    if ((existing.status === "published" || existing.status === "drafted") && !seenIds.has(existing.id)) {
       merged.push(existing);
     }
   }
 
   return merged;
+}
+
+/** Plafond §5 : au-delà de 20 beats, retire les `published` les plus anciens (les premiers dans
+ *  l'ordre du tableau) — jamais les `drafted`/`planned`, jamais rien qui reste à faire. L'historique
+ *  reste traçable via `Script.beatId` même une fois le beat retiré de ce tableau de travail. */
+function capBeats(beats: NarrativeBeat[]): NarrativeBeat[] {
+  if (beats.length <= MAX_BEATS) return beats;
+  const result = [...beats];
+  while (result.length > MAX_BEATS) {
+    const idx = result.findIndex((b) => b.status === "published");
+    if (idx === -1) break; // rien de publié à retirer — dépasse le plafond, cas rare (le LLM en a trop proposé)
+    result.splice(idx, 1);
+  }
+  return result;
 }
 
 /**
@@ -269,7 +302,7 @@ export async function planNarrativeForSubject(
   };
 
   const result = await planNarrative(planContext);
-  const mergedBeats = mergeBeats(existingBeats, result.beats);
+  const mergedBeats = capBeats(mergeBeats(existingBeats, result.beats));
   const cappedCallbacks = result.callbacks.slice(0, MAX_CALLBACKS);
   const now = new Date();
 
@@ -529,11 +562,6 @@ export async function resolveDailyDirection(
   }
 }
 
-/**
- * Après génération réussie (§4.1.6) : le beat choisi passe en "drafted" et pointe le script créé.
- * Jamais bloquant — l'appelant catch et journalise, un échec ici ne doit jamais faire échouer une
- * génération qui a réussi.
- */
 /** Bandeau éditeur (docs/SPEC_REDACTEUR_EN_CHEF.md §7 : "Épisode de l'arc : ${beat.title}") — résout
  *  le titre d'un beat depuis le contexte (productId/seriesId) d'un script qui porte ce beatId.
  *  `null` si l'état ou le beat n'existe plus (script orphelin d'un plan remanié — pas une erreur). */
@@ -547,6 +575,11 @@ export async function findBeatTitle(
   return state?.beats.find((b) => b.id === beatId)?.title ?? null;
 }
 
+/**
+ * Après génération réussie (§4.1.6) : le beat choisi passe en "drafted" et pointe le script créé.
+ * Jamais bloquant — l'appelant catch et journalise, un échec ici ne doit jamais faire échouer une
+ * génération qui a réussi.
+ */
 export async function markBeatDrafted(stateId: string, beatId: string, scriptId: string): Promise<void> {
   const state = await db.query.narrativeState.findFirst({ where: eq(narrativeState.id, stateId) });
   if (!state) return;
@@ -555,4 +588,144 @@ export async function markBeatDrafted(stateId: string, beatId: string, scriptId:
   if (idx === -1) return;
   const updatedBeats = beats.map((b, i) => (i === idx ? { ...b, status: "drafted" as const, scriptId } : b));
   await db.update(narrativeState).set({ beats: updatedBeats, updatedAt: new Date() }).where(eq(narrativeState.id, stateId));
+}
+
+// ---------------------------------------------------------------------------------------------
+// Cycle de vie (docs/SPEC_REDACTEUR_EN_CHEF.md §5, Lot B4) — règles serveur, sans LLM.
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * Effets de bord du passage d'un script en "published" (§5) : le beat associé (le cas échéant)
+ * passe en "published" dans le plan, les nouvelles promesses de ce script (`Script.promisesMade`)
+ * rejoignent `openPromises` (dédupliquées par texte exact, plafonnées à 10 — les plus anciennes
+ * sortent), et la promesse que ce script honorait (`Script.promiseHonored`, choisie par le chef au
+ * choix du jour, §3.3) en sort. Idempotent — rejouable sans effet si le script repasse par
+ * "published" (aucune écriture si rien ne change). Jamais bloquant : l'appelant catch et journalise
+ * (scriptService.ts::patchScriptContent), un échec ici ne doit jamais faire échouer un changement de
+ * statut qui a réussi.
+ */
+export async function applyPublishSideEffects(
+  userId: string,
+  script: {
+    id: string;
+    productId: string | null;
+    seriesId: string | null;
+    beatId: string | null;
+    promisesMade: unknown;
+    promiseHonored: string | null;
+  }
+): Promise<void> {
+  const state = await resolveNarrativeState(userId, script.productId, script.seriesId);
+  if (!state) return;
+
+  let beats = state.beats;
+  let beatsChanged = false;
+  if (script.beatId) {
+    const idx = beats.findIndex((b) => b.id === script.beatId);
+    if (idx !== -1 && beats[idx].status !== "published") {
+      beats = beats.map((b, i) => (i === idx ? { ...b, status: "published" as const } : b));
+      beatsChanged = true;
+    }
+  }
+
+  let openPromises = state.openPromises;
+  let promisesChanged = false;
+
+  const promisesMade = Array.isArray(script.promisesMade) ? (script.promisesMade as string[]) : [];
+  if (promisesMade.length > 0) {
+    const existingTexts = new Set(openPromises.map((p) => p.text));
+    const fresh = promisesMade.filter((text) => !existingTexts.has(text));
+    if (fresh.length > 0) {
+      const now = new Date().toISOString();
+      openPromises = [...openPromises, ...fresh.map((text) => ({ text, scriptId: script.id, madeAt: now }))].slice(-MAX_OPEN_PROMISES);
+      promisesChanged = true;
+    }
+  }
+
+  if (script.promiseHonored) {
+    const filtered = openPromises.filter((p) => p.text !== script.promiseHonored);
+    if (filtered.length !== openPromises.length) {
+      openPromises = filtered;
+      promisesChanged = true;
+    }
+  }
+
+  if (!beatsChanged && !promisesChanged) return;
+
+  await db
+    .update(narrativeState)
+    .set({
+      // La publication ne fait jamais grandir le tableau de beats (elle ne fait que changer le
+      // statut d'une entrée déjà présente) — pas besoin de capBeats ici, contrairement à la
+      // planification.
+      ...(beatsChanged && { beats }),
+      ...(promisesChanged && { openPromises }),
+      updatedAt: new Date(),
+    })
+    .where(eq(narrativeState.id, state.id));
+}
+
+/**
+ * Existe ou crée une ligne NarrativeState vide, sans jamais appeler le LLM ni vérifier le mode de
+ * la série — contrairement à {@link planNarrativeForSubject}, qui refuse (409) les séries
+ * rendez_vous. Nécessaire pour que le mode rendez_vous ait un endroit où stocker
+ * formatContract/callbacks/openPromises : la planification reste bloquée pour ce mode (§1/§6), mais
+ * l'état, lui, doit pouvoir exister pour porter ces réglages édités à la main (§7).
+ */
+export async function ensureNarrativeState(
+  userId: string,
+  params: { productId?: string | null; seriesId?: string | null }
+): Promise<NarrativeStateDTO> {
+  const productId = params.productId ?? null;
+  const seriesId = params.seriesId ?? null;
+  // Valide au passage l'existence/l'appartenance du sujet/série avant de créer quoi que ce soit.
+  await resolveSubject(userId, productId, seriesId);
+
+  const existing = await findNarrativeState(userId, productId, seriesId);
+  if (existing) return existing;
+
+  const [row] = await db.insert(narrativeState).values({ userId, productId, seriesId }).returning();
+  return toNarrativeStateDTO(row);
+}
+
+/**
+ * Ingestion d'un document de matière (§5) : marque `isStale` l'état du sujet lui-même (produit ou
+ * marque) ET les états des séries liées à ce même sujet (`ContentSeries.productId`, sélecteur de
+ * sujet) — une série sans sujet propre lit la matière de niveau marque (cf. resolveSubject), donc
+ * un dépôt marque (productId null) rend aussi stale les séries sans sujet lié.
+ */
+export async function markStaleForMaterialIngestion(userId: string, productId: string | null): Promise<void> {
+  await db
+    .update(narrativeState)
+    .set({ isStale: true, updatedAt: new Date() })
+    .where(
+      and(
+        eq(narrativeState.userId, userId),
+        productId ? eq(narrativeState.productId, productId) : isNull(narrativeState.productId),
+        isNull(narrativeState.seriesId)
+      )
+    );
+
+  const linkedSeries = await db.query.contentSeries.findMany({
+    where: and(
+      eq(contentSeries.userId, userId),
+      productId ? eq(contentSeries.productId, productId) : isNull(contentSeries.productId)
+    ),
+    columns: { id: true },
+  });
+  if (linkedSeries.length === 0) return;
+
+  await db
+    .update(narrativeState)
+    .set({ isStale: true, updatedAt: new Date() })
+    .where(
+      and(
+        eq(narrativeState.userId, userId),
+        isNull(narrativeState.productId),
+        inArray(
+          narrativeState.seriesId,
+          linkedSeries.map((s) => s.id)
+        )
+      )
+    );
 }
