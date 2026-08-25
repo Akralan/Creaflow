@@ -1,0 +1,1 @@
+ALTER TABLE "content_categories" ADD COLUMN "material_hungry" boolean DEFAULT false NOT NULL;

@@ -42,6 +42,9 @@ export const generatedImageStatusEnum = pgEnum("generated_image_status", ["ready
 export const socialConnectionStatusEnum = pgEnum("social_connection_status", ["ok", "needs_reconnect"]);
 export const postMetricsSourceEnum = pgEnum("post_metrics_source", ["manual", "api"]);
 export const postMatchCandidateStatusEnum = pgEnum("post_match_candidate_status", ["pending", "confirmed", "dismissed"]);
+export const scriptOriginEnum = pgEnum("script_origin", ["generated", "imported", "manual"]);
+export const scriptMicroEditKindEnum = pgEnum("script_micro_edit_kind", ["selection_instruction", "block_regenerate"]);
+export const sourceMaterialKindEnum = pgEnum("source_material_kind", ["paste", "file", "interview"]);
 export const subscriptionPlanEnum = pgEnum("subscription_plan", ["starter", "pro"]);
 // Sous-ensemble des statuts Stripe (Subscription.status) réellement distingués côté produit —
 // "paused" n'est pas utilisé (pas de fonctionnalité de pause self-service en v1). Le webhook
@@ -82,6 +85,24 @@ export const assistantSessions = pgTable("assistant_sessions", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Deuxième porte d'alimentation du corpus (docs/SPEC_MATIERE_EDITEUR.md §3.7/§8.8) : une session par
+// sujet (productId nullable = niveau marque), pattern jsonb messages identique à onboardingSessions/
+// assistantSessions. Limite connue et acceptée : Postgres ne déduplique pas les NULL dans une
+// contrainte unique — deux sessions "niveau marque" pourraient coexister en cas de double création
+// concurrente (même ordre de tolérance que le check-then-write non atomique d'enforceScriptQuota).
+export const subjectInterviewSessions = pgTable(
+  "subject_interview_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
+    messages: jsonb("messages").notNull().default([]),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [unique().on(t.userId, t.productId)]
+);
+
 export const assistantProposals = pgTable("assistant_proposals", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -116,6 +137,11 @@ export const contentCategories = pgTable("content_categories", {
   description: text("description").notNull(),
   weight: integer("weight").notNull(),
   archived: boolean("archived").notNull().default(false),
+  // Aiguillage matière×catégorie (docs/SPEC_MATIERE_EDITEUR.md §5.3) : catégorie qui tourne mal sans
+  // matière documentée (storytelling/coulisses) par opposition à une catégorie qui tourne sans
+  // journal (expertise/pédagogie). Curatable manuellement ; le générateur de calendrier réduit le
+  // poids de ces catégories quand le corpus est sec, un jour J le re-typage reste manuel.
+  materialHungry: boolean("material_hungry").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -181,6 +207,41 @@ export const products = pgTable("products", {
   description: text("description"),
   valueProposition: text("value_proposition"),
   photoUrl: text("photo_url"),
+});
+
+// Corpus de matière première par sujet (docs/SPEC_MATIERE_EDITEUR.md §3) — dépôt brut dont la
+// génération de script se nourrit, injecté tel quel (pas de structuration intermédiaire — testé,
+// une passe de découpage en unités typées perdait la richesse narrative du texte et produisait une
+// sélection sans rapport avec le thème du post). productId nullable : une partie du corpus peut être
+// de niveau marque (pas rattachée à un sujet précis), même pattern que brandAssets.productId. Un
+// dépôt est immédiatement utilisable, pas de traitement asynchrone.
+export const sourceMaterials = pgTable("source_materials", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
+  kind: sourceMaterialKindEnum("kind").notNull(),
+  title: text("title"),
+  rawText: text("raw_text").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Citation post-génération (docs/SPEC_MATIERE_EDITEUR.md §3 — remplace le découpage en unités) : le
+// LLM rapporte lui-même, dans sa réponse de génération (GeneratedScript.usedExcerpts), les passages
+// du corpus qu'il a utilisés comme base factuelle. On les retrouve dans le texte source par
+// recherche approximative (citationMatching.ts) et on les enregistre ici — sert à la fois de
+// traçabilité (UI "matière utilisée pour ce script") et de repère pour annoter, dans les prochaines
+// générations, les passages déjà exploités (inciter à la variété sans jamais les exclure).
+export const sourceMaterialCitations = pgTable("source_material_citations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  scriptId: uuid("script_id").notNull().references(() => scripts.id, { onDelete: "cascade" }),
+  // Nullable : aucun document n'a matché avec une confiance suffisante — la citation est quand même
+  // conservée (signal de debug : "le modèle a cru citer de la matière, on n'a pas su la localiser").
+  sourceMaterialId: uuid("source_material_id").references(() => sourceMaterials.id, { onDelete: "cascade" }),
+  excerpt: text("excerpt").notNull(),
+  matchStart: integer("match_start"),
+  matchLength: integer("match_length"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Bibliothèque de ressources visuelles (docs/SPEC_RESSOURCES_VISUELLES.md). Les images sources ne
@@ -256,7 +317,9 @@ export const scripts = pgTable("scripts", {
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
   platform: text("platform").notNull(),
-  title: text("title").notNull(),
+  // Nullable : naissance paresseuse (docs/SPEC_MATIERE_EDITEUR.md §4.5) — la ligne peut naître avec
+  // un seul bloc rempli, avant qu'un titre n'existe. L'UI affiche un fallback "(sans titre)".
+  title: text("title"),
   hookVisual: text("hook_visual"),
   hookText: text("hook_text"),
   hookAudio: text("hook_audio"),
@@ -275,7 +338,19 @@ export const scripts = pgTable("scripts", {
   // Référence circulaire scripts <-> generatedImages : annotation de retour explicite requise pour
   // que TypeScript casse le cycle d'inférence (pattern documenté de drizzle-orm).
   generatedImageId: uuid("generated_image_id").references((): AnyPgColumn => generatedImages.id, { onDelete: "set null" }),
+  // "generated" = passé par le LLM (génération ou régénération) ; "imported" = collé via
+  // POST /api/scripts/import (écrit ailleurs) ; "manual" = né dans l'éditeur (naissance paresseuse,
+  // docs/SPEC_MATIERE_EDITEUR.md §4.5). N'affecte ni le quota ni l'anti-répétition.
+  origin: scriptOriginEnum("origin").notNull().default("generated"),
+  // Gisement de la donnée de voix (docs/SPEC_MATIERE_EDITEUR.md §4.7) : les colonnes de blocs telles
+  // que générées, capturées une seule fois à la création si origin="generated" — jamais réécrit
+  // ensuite. V1 : stockage seul, pas d'exploitation (comparaison avec la version finale au moment
+  // d'une passe d'apprentissage `style_profile`, hors scope ici).
+  firstDraftSnapshot: jsonb("first_draft_snapshot"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  // Pas de trigger onUpdate dans ce repo — mis à jour explicitement à chaque écriture de contenu
+  // (patchScriptContent), même pattern que subscriptions.updatedAt.
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Image produite par édition conditionnée (Nano Banana) à partir d'une ou plusieurs BrandAsset.
@@ -364,6 +439,17 @@ export const scriptGenerationEvents = pgTable("script_generation_events", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Micro-retouches dans l'éditeur (docs/SPEC_MATIERE_EDITEUR.md §4.6) — comptées à part du quota de
+// génération complète (scriptGenerationEvents) : un pool distinct, plus généreux, sans quoi le
+// comptage plein tarif tuerait l'itération qui est tout le but de l'éditeur.
+export const scriptMicroEditEvents = pgTable("script_micro_edit_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  scriptId: uuid("script_id").notNull().references(() => scripts.id, { onDelete: "cascade" }),
+  kind: scriptMicroEditKindEnum("kind").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Facturation self-service (Stripe). Une seule ligne par utilisateur — un utilisateur qui n'a
 // jamais payé n'a pas de ligne du tout (essai gratuit géré par comptage dans billingService.ts,
 // pas par une ligne "free" ici). stripeSubscriptionId reste null tant que checkout.session.completed
@@ -416,10 +502,21 @@ export const calendarEntries = pgTable("calendar_entries", {
 export const productsRelations = relations(products, ({ many }) => ({
   scripts: many(scripts),
   brandAssets: many(brandAssets),
+  sourceMaterials: many(sourceMaterials),
 }));
 
 export const brandAssetsRelations = relations(brandAssets, ({ one }) => ({
   product: one(products, { fields: [brandAssets.productId], references: [products.id] }),
+}));
+
+export const sourceMaterialsRelations = relations(sourceMaterials, ({ one, many }) => ({
+  product: one(products, { fields: [sourceMaterials.productId], references: [products.id] }),
+  citations: many(sourceMaterialCitations),
+}));
+
+export const sourceMaterialCitationsRelations = relations(sourceMaterialCitations, ({ one }) => ({
+  script: one(scripts, { fields: [sourceMaterialCitations.scriptId], references: [scripts.id] }),
+  sourceMaterial: one(sourceMaterials, { fields: [sourceMaterialCitations.sourceMaterialId], references: [sourceMaterials.id] }),
 }));
 
 export const generatedImagesRelations = relations(generatedImages, ({ one }) => ({
@@ -474,6 +571,7 @@ export const scriptsRelations = relations(scripts, ({ one, many }) => ({
   metrics: one(postMetrics, { fields: [scripts.id], references: [postMetrics.scriptId] }),
   metricsSnapshots: many(postMetricsSnapshots),
   matchCandidates: many(postMatchCandidates),
+  citations: many(sourceMaterialCitations),
 }));
 
 export const postMetricsRelations = relations(postMetrics, ({ one }) => ({
