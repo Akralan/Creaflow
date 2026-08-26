@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Plus, RefreshCw, SquarePen } from "lucide-react";
 import { heading1Style } from "@/components/ui/TextField";
-import EditorialMixStrip from "@/components/EditorialMixStrip";
 import SeriesEditModal from "@/components/SeriesEditModal";
 import SeriesDetail from "@/components/SeriesDetail";
 import { api, ApiClientError, type ContentSeries } from "@/lib/apiClient";
@@ -218,9 +217,7 @@ export default function DirectionPage() {
         ici.
       </p>
 
-      <EditorialMixStrip />
-
-      {error && <p style={{ margin: "0 0 14px", fontSize: 13, color: color.danger }}>{error}</p>}
+      {error &&<p style={{ margin: "0 0 14px", fontSize: 13, color: color.danger }}>{error}</p>}
 
       <div style={{ display: "grid", gridTemplateColumns: "308px minmax(0, 1fr)", gap: 24, alignItems: "start" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
