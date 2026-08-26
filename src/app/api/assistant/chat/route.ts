@@ -5,13 +5,13 @@ import { handleApiError } from "@/lib/api/errors";
 import { getAssistantChatState, runAssistantChatTurnForUser } from "@/lib/services/assistantService";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
 
-const schema = z.object({ message: z.string().min(1), urls: z.array(z.url()).max(3).optional() });
+const schema = z.object({ message: z.string().min(1) });
 
 export async function GET() {
   try {
     const userId = await requireUserId();
-    const { messages, proposals } = await getAssistantChatState(userId);
-    return NextResponse.json({ messages, proposals });
+    const { messages, proposals, attachments } = await getAssistantChatState(userId);
+    return NextResponse.json({ messages, proposals, attachments });
   } catch (error) {
     return handleApiError(error);
   }
@@ -20,11 +20,13 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId();
-    // Chaque tour de chat assistant déclenche un appel LLM — protège contre le spam.
-    await enforceRateLimit("assistant-chat", userId, 20, 60);
-    const { message, urls } = schema.parse(await request.json());
-    const { reply, proposals, sourceErrors } = await runAssistantChatTurnForUser(userId, message, urls ?? []);
-    return NextResponse.json({ reply, proposals, sourceErrors });
+    // Un tour de chat assistant déclenche désormais PLUSIEURS appels LLM (boucle agentique, jusqu'à
+    // maxTurns — docs/SPEC_ASSISTANT_AGENTIQUE.md §2.3/§9.4) : le plafond compte toujours des tours
+    // de conversation, mais il est resserré en conséquence.
+    await enforceRateLimit("assistant-chat", userId, 10, 60);
+    const { message } = schema.parse(await request.json());
+    const { reply, proposals, attachments } = await runAssistantChatTurnForUser(userId, message);
+    return NextResponse.json({ reply, proposals, attachments });
   } catch (error) {
     return handleApiError(error);
   }

@@ -9,6 +9,9 @@ interface ProductCreateInput {
   description?: string;
   valueProposition?: string;
   photoUrl?: string;
+  /** Override d'audience par sujet (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — null/absent = fallback
+   *  sur CreatorProfile.targetAudience à l'injection. */
+  targetAudience?: string | null;
 }
 
 interface ProductUpdateInput {

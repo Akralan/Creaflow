@@ -37,6 +37,18 @@ export const assistantProposalKindEnum = pgEnum("assistant_proposal_kind", [
   // §6/§7.4) — généré par un calcul déterministe (categoryReweightService.ts), pas par le LLM. targetId
   // reste null comme posting_goal_update : le payload porte la liste des catégories touchées.
   "category_reweight",
+  // Matière première proposée depuis le chat (docs/SPEC_ASSISTANT_AGENTIQUE.md §5) — deux portes :
+  // extraction conversationnelle (le payload porte le texte) et fichier déposé dans la conversation
+  // (le payload porte un attachmentId, le texte vit dans assistant_attachments). Le SourceMaterial
+  // n'existe qu'à l'acceptation : l'assistant ne crée jamais de matière lui-même.
+  "material_create",
+  "material_update",
+  "material_delete",
+  // Archivage (jamais de suppression) des objets éditoriaux — l'assistant en était totalement privé
+  // avant ce chantier (docs/SPEC_ASSISTANT_AGENTIQUE.md §4.1).
+  "series_archive",
+  "category_archive",
+  "angle_archive",
 ]);
 export const assistantProposalStatusEnum = pgEnum("assistant_proposal_status", ["pending", "accepted", "rejected"]);
 export const brandAssetSourceEnum = pgEnum("brand_asset_source", ["upload", "google_drive"]);
@@ -112,6 +124,27 @@ export const subjectInterviewSessions = pgTable(
   },
   (t) => [unique().on(t.userId, t.productId)]
 );
+
+/**
+ * Fichier déposé dans la conversation de l'assistant, en attente d'être rangé en matière
+ * (docs/SPEC_ASSISTANT_AGENTIQUE.md §5.1).
+ *
+ * Le texte vit ici et NON dans le prompt : l'assistant ne reçoit que `filename`, jamais `rawText` —
+ * un journal de bord de plusieurs centaines de Ko ne coûte donc rien au contexte, et le modèle ne
+ * peut pas prétendre savoir ce que le fichier contient. Le SourceMaterial n'est créé qu'à
+ * l'acceptation de la proposition correspondante, comme toute écriture de l'assistant.
+ *
+ * `consumedAt` marque le rangement : une pièce non consommée reste proposée au modèle tour après
+ * tour, ce qui permet de la ranger plusieurs messages plus tard ("je te dirai après pour quel sujet").
+ */
+export const assistantAttachments = pgTable("assistant_attachments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  filename: text("filename").notNull(),
+  rawText: text("raw_text").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  consumedAt: timestamp("consumed_at"),
+});
 
 export const assistantProposals = pgTable("assistant_proposals", {
   id: uuid("id").primaryKey().defaultRandom(),

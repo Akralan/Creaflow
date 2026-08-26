@@ -114,6 +114,21 @@ export async function updateSeriesFields(
   return updated;
 }
 
+/** Archivage d'UNE série (docs/SPEC_ASSISTANT_AGENTIQUE.md §4.1) — l'archivage par omission de
+ *  saveSeriesForUser suppose de renvoyer la liste entière, ce qu'une proposition ciblée n'a pas.
+ *  Jamais de suppression : les scripts et créneaux déjà produits gardent leur référence. */
+export async function archiveSeriesForUser(userId: string, seriesId: string) {
+  const [archived] = await db
+    .update(contentSeries)
+    .set({ archived: true })
+    .where(and(eq(contentSeries.id, seriesId), eq(contentSeries.userId, userId)))
+    .returning();
+  if (!archived) {
+    throw new ApiError(404, "Série introuvable.");
+  }
+  return archived;
+}
+
 /** Génère un nouveau jeu de séries via l'IA à partir des catégories actives de l'utilisateur.
  *  Archive l'ancien jeu actif plutôt que de le supprimer (mêmes garanties que generateCategoriesForUser). */
 export async function generateSeriesForUser(userId: string) {
@@ -184,6 +199,13 @@ interface SeriesInput {
   weight: number;
   categoryId: string;
   platforms: string[];
+  /** docs/SPEC_REDACTEUR_EN_CHEF.md §4.5 — `undefined` laisse le mode inchangé (défaut base
+   *  "rendez_vous" à la création) : l'édition manuelle de l'écran Direction ne le passe pas. */
+  mode?: (typeof contentSeries.$inferInsert)["mode"];
+  /** Sujet dont la série tire sa matière — `undefined` laisse le rattachement inchangé.
+   *  L'appelant est responsable de vérifier que le sujet appartient bien à l'utilisateur
+   *  (cf. updateSeriesFields, qui le fait pour la porte d'édition directe). */
+  productId?: string | null;
 }
 
 /** Insère ou met à jour UNE série et resynchronise son rôle et ses plateformes, dans la transaction fournie.
@@ -194,7 +216,13 @@ export async function upsertSeriesItem(tx: Tx, userId: string, item: SeriesInput
   if (item.id) {
     const [updated] = await tx
       .update(contentSeries)
-      .set({ label: item.label, description: item.description, weight: item.weight })
+      .set({
+        label: item.label,
+        description: item.description,
+        weight: item.weight,
+        ...(item.mode !== undefined && { mode: item.mode }),
+        ...(item.productId !== undefined && { productId: item.productId }),
+      })
       .where(and(eq(contentSeries.id, item.id), eq(contentSeries.userId, userId)))
       .returning();
     if (!updated) return null;
@@ -204,7 +232,14 @@ export async function upsertSeriesItem(tx: Tx, userId: string, item: SeriesInput
   } else {
     const [inserted] = await tx
       .insert(contentSeries)
-      .values({ userId, label: item.label, description: item.description, weight: item.weight })
+      .values({
+        userId,
+        label: item.label,
+        description: item.description,
+        weight: item.weight,
+        ...(item.mode !== undefined && { mode: item.mode }),
+        ...(item.productId !== undefined && { productId: item.productId }),
+      })
       .returning();
     seriesId = inserted.id;
   }

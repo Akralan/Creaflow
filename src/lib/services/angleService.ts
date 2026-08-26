@@ -33,6 +33,20 @@ export async function upsertAngleItem(userId: string, item: { id?: string; label
 }
 
 /** Même pattern que generateCategoriesForUser : archive l'ancien jeu actif, insère le nouveau. */
+/** Archivage d'UN angle (docs/SPEC_ASSISTANT_AGENTIQUE.md §4.1) — jamais de suppression, les scripts
+ *  déjà générés référencent l'angle qui les a produits. */
+export async function archiveAngleForUser(userId: string, angleId: string) {
+  const [archived] = await db
+    .update(contentAngles)
+    .set({ archived: true })
+    .where(and(eq(contentAngles.id, angleId), eq(contentAngles.userId, userId)))
+    .returning();
+  if (!archived) {
+    throw new ApiError(404, "Angle introuvable.");
+  }
+  return archived;
+}
+
 export async function generateAnglesForUser(userId: string) {
   const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
   if (!profile) {
