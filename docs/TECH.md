@@ -94,7 +94,8 @@ ContentSeries ("Direction" — format récurrent nommé, ex: "Le mythe du mercre
 - archived (bool)
 - createdAt
 
-ContentSeriesCategories (jointure N:N série ↔ catégories auxquelles elle appartient)
+ContentSeriesCategories (jointure série ↔ rôle — physiquement N:N, mais l'invariant "exactement
+  une ligne par série" est imposé par le service, docs/SPEC_SERIES_ET_ROLES.md §3)
 ContentCategoriesPlatforms (ciblage plateforme d'une catégorie — absence de ligne = toutes plateformes)
 ContentSeriesPlatforms (ciblage plateforme d'une série — absence de ligne = toutes plateformes)
 
@@ -262,7 +263,7 @@ Aucune contrainte `NOT NULL` ne force l'un ou l'autre sens.
 
 ### Direction éditoriale (Module E) — écran `/direction`
 - `GET/POST /api/profile/content-categories` — `GET` liste les catégories actives ; `POST` avec corps régénère intégralement via IA (`generateCategoriesForUser`, archive l'ancien jeu actif) ; `POST` avec corps `{ categories: [...] }` valide et sauvegarde une édition manuelle (`saveCategoriesForUser`, poids renormalisés).
-- `GET/POST /api/series` — même pattern pour les séries récurrentes (`generateSeriesForUser` / `saveSeriesForUser`), dépend des catégories déjà actives.
+- `GET/POST /api/series` — même pattern pour les séries récurrentes (`generateSeriesForUser` / `saveSeriesForUser`), dépend des rôles déjà actifs. Chaque série porte **un** `categoryId` (docs/SPEC_SERIES_ET_ROLES.md) ; la lecture renvoie `category: {id,label}` (singulier).
 - Les angles n'ont pas d'endpoint dédié exposé séparément dans ce document — gérés via `src/lib/services/angleService.ts` (`generateAnglesForUser`, `upsertAngleItem`), appelés à l'onboarding et depuis l'écran Direction.
 - `GET/POST /api/posting-goals` — objectifs de fréquence hebdomadaire par plateforme.
 
@@ -275,14 +276,14 @@ Aucune contrainte `NOT NULL` ne force l'un ou l'autre sens.
 - `GET /api/calendar?month=YYYY-MM` — endpoint agrégé : `CalendarEntry` du mois avec script lié (`{id, title, status}` ou `null`), catégorie et série jointes, + `PostingGoal` par plateforme. Un seul appel.
 - `POST /api/calendar/generate` `{ month }` — génère les créneaux du mois : répartit les créneaux par plateforme selon `PostingGoal`, pondère par les poids de catégories actives ciblant cette plateforme (renormalisés), applique en plus les séries actives ciblant cette plateforme comme overrides sur une partie des créneaux (`distributeSeriesOverrides`). Aiguillage matière×catégorie (docs/SPEC_MATIERE_EDITEUR.md §5.3) : si des catégories `materialHungry` existent et que le corpus global (nombre de `SourceMaterial`, tous sujets confondus — heuristique grossière, plus de structuration en unités à compter) est sous un seuil (3), leur poids est ramené à 0 et redistribué (`adjustCategoryWeightsForMaterialScarcity`) — jamais de retouche d'un calendrier déjà généré. Échoue si un mois est déjà généré, si aucun objectif ou aucune catégorie n'est configuré(e).
 - `POST /api/calendar` `{ scriptId, scheduledDate }` — place un script déjà généré et non planifié sur une date (`placeScriptOnCalendar`, réutilisée telle quelle par la génération de série depuis la matière).
-- `PATCH /api/calendar/:id` `{ status?, contentCategoryId?, seriesId? }` — modification manuelle d'un créneau.
+- `PATCH /api/calendar/:id` `{ status?, contentCategoryId?, seriesId? }` — modification manuelle d'un créneau. Poser `seriesId` impose le rôle de la série (`contentCategoryId` envoyé est alors ignoré) ; changer le rôle seul d'un créneau déjà en série est refusé (400) — il faut d'abord le repasser en post libre.
 - `DELETE /api/calendar/:id` — supprime un créneau, uniquement s'il n'a pas encore de script généré.
 - `POST /api/scripts/generate` `{ calendarEntryId, contentType? }` — génère le script d'un créneau existant (type de contenu par défaut déduit de la plateforme si omis), crée `Script`, met à jour `CalendarEntry.scriptId`. Échoue si le créneau a déjà un script.
 
 ### Fiche Script & éditeur (Module B) — vue détail `/scripts/:id`, naissance paresseuse `/scripts/new`
 - `GET /api/scripts/:id` — script complet, produit/catégorie/angle/série/métriques joints, ainsi que les `SourceMaterialCitation` du script (traçabilité de la matière utilisée, docs/SPEC_MATIERE_EDITEUR.md §3).
 - `GET /api/scripts?seriesId=` — liste des scripts de l'utilisateur, filtrable par série.
-- `POST /api/scripts` `{ platform, contentCategoryId, contentType, productId?, scheduledDate?, seriesId? }` — génération libre (flux secondaire), place directement au calendrier si `scheduledDate` fourni.
+- `POST /api/scripts` `{ platform, contentCategoryId?, contentType, productId?, scheduledDate?, seriesId? }` — génération libre (flux secondaire), place directement au calendrier si `scheduledDate` fourni. `contentCategoryId` n'est requis qu'en post libre : avec `seriesId`, le rôle est dérivé de la série (`resolveCategoryForGeneration`, `seriesService.ts`).
 - `POST /api/scripts/:id/regenerate` — **désactivé côté produit** au profit de la micro-édition (aucun bouton ne l'appelle plus) et de `new-idea` ci-dessous, `docs/SPEC_PROMPT_GENERATION_TECH.md` note d'ouverture ; encore présent en code (régénère en conservant catégorie/plateforme/type/série, avec un nouvel angle **recalculé** par l'anti-répétition).
 - `POST /api/scripts/:id/new-idea` (corps vide) — « autre idée, même brief » (`docs/SPEC_PROMPT_GENERATION_TECH.md` §6) : remplace `regenerate` comme geste de ré-génération complète. 409 si `origin≠"generated"` ou `concept` absent (rien à remplacer). Brief **intégralement verrouillé**, angle **conservé** (pas recalculé, contrairement à `regenerate` ci-dessus) ; le `concept` remplacé rejoint `rejectedConcepts` et est réinjecté en contexte des générations suivantes (plafonné aux 5 plus récents). Mise à jour en place (`CalendarEntry.scriptId`/`createdAt` intacts), même quota qu'une génération complète (`ScriptGenerationEvent`). Confirmation systématique côté UI avant exécution (contenu actuel remplacé, y compris d'éventuelles éditions manuelles).
 - `PATCH /api/scripts/:id` `{ status?, title?, hookVisual?, hookText?, hookAudio?, storyboard?, caption?, hashtags?, soundRecommendation? }` — statut ET contenu (docs/SPEC_MATIERE_EDITEUR.md §4.5) ; `contentCategoryId`/`angleId`/`seriesId` volontairement absents, brief verrouillé (§4.2). Au moins un champ requis.
@@ -332,7 +333,7 @@ Cœur du mécanisme : `pickAngleForScript(userId, contentCategoryId, excludeScri
 Un seul tool (`update_onboarding_profile`) renvoie à la fois la réponse conversationnelle (`assistantReply`), les champs de profil déduits **cumulés depuis le début de la conversation** (pas seulement les nouveaux), et un booléen `complete` (vrai dès que nom/activité, temps disponible et au moins une plateforme suggérée sont connus). Une question à la fois, jamais de formulaire déguisé, aucune hypothèse sur le type d'activité (vidéo/produit physique). Cherche aussi à connaître l'**audience visée** (`targetAudience`, `docs/SPEC_PROMPT_GENERATION_TECH.md` §5) — question skippable, n'entre jamais dans les critères de `complete`.
 
 ### 5.4 Chat assistant éditorial — `src/lib/llm/assistantChat.ts`
-Un seul tool (`update_assistant_conversation`) renvoie la réponse conversationnelle + jusqu'à 5 propositions par type (produits, catégories, angles, séries, objectifs de fréquence) et jusqu'à 1 proposition d'**audience de marque** (`profileProposals`, `kind="profile_update"`, §3 — distincte de l'audience par sujet, qui passe par `product_update`), chacune `create` ou `update` (jamais `delete`, l'audience de marque n'a qu'une seule forme comme les objectifs de fréquence). Le contexte injecté inclut l'état complet actuel (ids exacts pour les cibles d'`update`, libellés exacts de catégories pour le rattachement des séries, audience de marque actuelle) et, si fournies, des sources web extraites (`urlFetchService`, jusqu'à 3 URLs). Contrainte explicite : ne jamais inventer d'info non fournie, ne jamais agir sur le calendrier lui-même.
+Un seul tool (`update_assistant_conversation`) renvoie la réponse conversationnelle + jusqu'à 5 propositions par type (produits, catégories, angles, séries, objectifs de fréquence) et jusqu'à 1 proposition d'**audience de marque** (`profileProposals`, `kind="profile_update"`, §3 — distincte de l'audience par sujet, qui passe par `product_update`), chacune `create` ou `update` (jamais `delete`, l'audience de marque n'a qu'une seule forme comme les objectifs de fréquence). Le contexte injecté inclut l'état complet actuel (ids exacts pour les cibles d'`update`, libellé exact du rôle unique de chaque série, audience de marque actuelle) et, si fournies, des sources web extraites (`urlFetchService`, jusqu'à 3 URLs). Contrainte explicite : ne jamais inventer d'info non fournie, ne jamais agir sur le calendrier lui-même.
 
 ### 5.5 Analyse de style — `src/lib/llm/styleProfile.ts`
 Un appel dédié (`analyzeStyle`) résume les légendes des `InspirationVideo` récupérées après connexion OAuth en un `StyleProfile` structuré (ton, longueur de phrase, usage d'emojis, vocabulaire, résumé de 2-3 phrases). Déclenché automatiquement au callback OAuth (si des posts sont récupérés) et manuellement via `POST /api/profile/style-analysis`. Le résumé (pas le texte brut) est réinjecté à chaque génération de script — coût réduit, cohérence de ton stable.
@@ -340,7 +341,7 @@ Un appel dédié (`analyzeStyle`) résume les légendes des `InspirationVideo` r
 ### 5.6 Suggestion de catégories / angles / séries (direction éditoriale initiale)
 - `src/lib/llm/categoryLabels.ts` — 2 à 6 catégories adaptées au métier décrit (pas de triptyque fixe imposé), poids normalisés à 100 après génération.
 - `src/lib/llm/angleLabels.ts` — 4 à 8 angles/archétypes de structure (pas des sujets), réutilisés par l'anti-répétition.
-- `src/lib/llm/seriesLabels.ts` — 0 à 5 séries récurrentes nommées, chacune rattachée à une ou plusieurs catégories actives par leur libellé exact ; liste vide acceptée si le métier ne s'y prête pas.
+- `src/lib/llm/seriesLabels.ts` — 0 à 5 séries récurrentes nommées, chacune rattachée à **un seul** rôle actif par son libellé exact (`categoryLabel`, docs/SPEC_SERIES_ET_ROLES.md) ; liste vide acceptée si le métier ne s'y prête pas.
 
 Ces trois générations sont déclenchées automatiquement à la fin de l'onboarding (`finalizeOnboarding`, dans cet ordre : catégories → angles → séries, les séries dépendant des catégories) et peuvent être régénérées manuellement depuis l'écran Direction (l'ancien jeu actif est archivé, pas supprimé).
 
