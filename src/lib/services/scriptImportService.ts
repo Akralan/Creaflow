@@ -3,10 +3,12 @@ import { db } from "@/db";
 import { calendarEntries, contentCategories, contentSeries, products, scripts, scriptOriginEnum } from "@/db/schema";
 import type { ContentType, Platform } from "@/lib/llm/prompts";
 import { ApiError } from "@/lib/api/errors";
+import { resolveCategoryForGeneration } from "@/lib/services/seriesService";
 
 export interface ImportScriptParams {
   platform: Platform;
-  contentCategoryId: string;
+  /** Rôle du post libre ; dérivé de la série si `seriesId` est fourni (docs/SPEC_SERIES_ET_ROLES.md §4.2). */
+  contentCategoryId?: string | null;
   contentType: ContentType;
   productId?: string | null;
   seriesId?: string | null;
@@ -47,11 +49,15 @@ export async function importScriptForUser(
     throw new ApiError(400, "Ajoute au moins un titre ou un texte avant d'enregistrer.");
   }
 
+  const contentCategoryId = await resolveCategoryForGeneration(userId, {
+    seriesId: params.seriesId,
+    contentCategoryId: params.contentCategoryId,
+  });
   const category = await db.query.contentCategories.findFirst({
-    where: and(eq(contentCategories.id, params.contentCategoryId), eq(contentCategories.userId, userId)),
+    where: and(eq(contentCategories.id, contentCategoryId), eq(contentCategories.userId, userId)),
   });
   if (!category) {
-    throw new ApiError(404, "Catégorie de contenu introuvable.");
+    throw new ApiError(404, "Rôle introuvable.");
   }
 
   if (params.productId) {

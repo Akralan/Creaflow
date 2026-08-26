@@ -111,12 +111,12 @@ export default function ImportScriptForm({ scheduledDate, calendarEntryId, onImp
 
       <div style={{ marginBottom: 22 }}>
         <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: color.text3, marginBottom: 12 }}>
-          Catégorie de contenu
+          Rôle
         </label>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {availableCategories.length === 0 && (
             <p style={{ fontSize: 13, color: color.textMuted, margin: 0 }}>
-              Aucune catégorie de contenu configurée pour cette plateforme.
+              Aucun rôle configuré pour cette plateforme.
             </p>
           )}
           {availableCategories.map((c) => {

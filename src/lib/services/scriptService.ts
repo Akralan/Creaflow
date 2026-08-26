@@ -18,6 +18,7 @@ import { findBestBrandAssetForScript } from "@/lib/services/brandAssetService";
 import { getMaterialForSubject } from "@/lib/services/sourceMaterialService";
 import { recordCitations, deleteCitationsForScript } from "@/lib/services/citationService";
 import { resolveDailyDirection, markBeatDrafted, applyPublishSideEffects } from "@/lib/services/narrativeDirector";
+import { resolveCategoryForGeneration } from "@/lib/services/seriesService";
 import { ApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
 
@@ -50,10 +51,15 @@ async function resolveAngle(
   return angle ? { id: angle.id, label: angle.label, description: angle.description } : null;
 }
 
+/**
+ * `contentCategoryId` : rôle du post libre ; ignoré (avec avertissement) si `seriesId` est fourni,
+ * la série imposant son rôle unique (docs/SPEC_SERIES_ET_ROLES.md §4.2). `null` n'est valide
+ * qu'avec une série — sinon 400.
+ */
 export async function buildGenerationContext(
   userId: string,
   platform: Platform,
-  contentCategoryId: string,
+  requestedCategoryId: string | null,
   contentType: ContentType,
   productId?: string | null,
   excludeScriptId?: string | null,
@@ -72,11 +78,12 @@ export async function buildGenerationContext(
     throw new ApiError(400, "Configure d'abord ton profil créateur (Module A) avant de générer un script.");
   }
 
+  const contentCategoryId = await resolveCategoryForGeneration(userId, { seriesId, contentCategoryId: requestedCategoryId });
   const category = await db.query.contentCategories.findFirst({
     where: and(eq(contentCategories.id, contentCategoryId), eq(contentCategories.userId, userId)),
   });
   if (!category) {
-    throw new ApiError(404, "Catégorie de contenu introuvable.");
+    throw new ApiError(404, "Rôle introuvable.");
   }
 
   let series = null;

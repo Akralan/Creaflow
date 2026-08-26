@@ -13,7 +13,7 @@ type Draft = {
   label: string;
   description: string;
   weight: number;
-  categoryIds: string[];
+  categoryId: string;
   platforms: string[];
 };
 
@@ -23,7 +23,7 @@ function toDrafts(series: ContentSeries[]): Draft[] {
     label: s.label,
     description: s.description,
     weight: s.weight,
-    categoryIds: s.categories.map((c) => c.id),
+    categoryId: s.category?.id ?? "",
     platforms: s.platforms,
   }));
 }
@@ -80,19 +80,9 @@ export default function SeriesPanel({ onSeriesChange }: { onSeriesChange?: (seri
     );
   }
 
-  function toggleCategory(index: number, categoryId: string) {
-    setDrafts((prev) =>
-      prev.map((d, i) =>
-        i === index
-          ? {
-              ...d,
-              categoryIds: d.categoryIds.includes(categoryId)
-                ? d.categoryIds.filter((id) => id !== categoryId)
-                : [...d.categoryIds, categoryId],
-            }
-          : d
-      )
-    );
+  // Rôle unique par série (docs/SPEC_SERIES_ET_ROLES.md §1) — sélection exclusive.
+  function selectCategory(index: number, categoryId: string) {
+    setDrafts((prev) => prev.map((d, i) => (i === index ? { ...d, categoryId } : d)));
   }
 
   function togglePlatform(index: number, platform: string) {
@@ -113,7 +103,7 @@ export default function SeriesPanel({ onSeriesChange }: { onSeriesChange?: (seri
   function addSeries() {
     setDrafts((prev) => [
       ...prev,
-      { label: "Nouvelle série", description: "", weight: 10, categoryIds: [], platforms: [] },
+      { label: "Nouvelle série", description: "", weight: 10, categoryId: "", platforms: [] },
     ]);
   }
 
@@ -122,8 +112,8 @@ export default function SeriesPanel({ onSeriesChange }: { onSeriesChange?: (seri
   }
 
   async function save() {
-    if (drafts.some((d) => d.categoryIds.length === 0)) {
-      setError("Chaque série doit être liée à au moins une catégorie de contenu.");
+    if (drafts.some((d) => !d.categoryId)) {
+      setError("Chaque série doit avoir un rôle.");
       return;
     }
     setSaving(true);
@@ -173,7 +163,7 @@ export default function SeriesPanel({ onSeriesChange }: { onSeriesChange?: (seri
       </div>
       {(expanded || drafts.length === 0) && (
         <p style={{ margin: "0 0 14px", fontSize: 12, color: color.textMuted }}>
-          Un format récurrent et nommé (ex: &laquo;&nbsp;Le mythe du mercredi&nbsp;&raquo;), avec sa propre identité, rattaché à une ou plusieurs catégories de contenu. Une partie du calendrier peut rester hors série.
+          Un format récurrent et nommé (ex: &laquo;&nbsp;Le mythe du mercredi&nbsp;&raquo;), avec sa propre identité, qui sert un rôle de ton mix. Une partie du calendrier reste hors série (posts libres).
         </p>
       )}
 
@@ -240,13 +230,14 @@ export default function SeriesPanel({ onSeriesChange }: { onSeriesChange?: (seri
                   marginBottom: 8,
                 }}
               />
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8, alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: color.textFaint, marginRight: 2 }}>Rôle :</span>
                 {categories.map((c) => {
-                  const active = d.categoryIds.includes(c.id);
+                  const active = d.categoryId === c.id;
                   return (
                     <button
                       key={c.id}
-                      onClick={() => toggleCategory(i, c.id)}
+                      onClick={() => selectCategory(i, c.id)}
                       style={{
                         fontSize: 11,
                         fontWeight: active ? 600 : 500,

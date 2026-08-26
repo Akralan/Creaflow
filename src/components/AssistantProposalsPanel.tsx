@@ -14,12 +14,12 @@ const KIND_LABEL: Record<AssistantProposal["kind"], string> = {
   product_update: "Modifier le sujet",
   series_create: "Nouvelle série",
   series_update: "Modifier la série",
-  category_create: "Nouvelle catégorie",
-  category_update: "Modifier la catégorie",
+  category_create: "Nouveau rôle",
+  category_update: "Modifier le rôle",
   angle_create: "Nouvel angle",
   angle_update: "Modifier l'angle",
   posting_goal_update: "Objectif de fréquence",
-  category_reweight: "Rééquilibrage des catégories",
+  category_reweight: "Rééquilibrage des rôles",
   profile_update: "Audience de la marque",
 };
 
@@ -81,7 +81,7 @@ interface SeriesDraft {
   label: string;
   description: string;
   weight: number;
-  categoryIds: string[];
+  categoryId: string;
   platforms: string[];
 }
 
@@ -131,7 +131,7 @@ function toSeriesDraft(payload: Record<string, unknown>): SeriesDraft {
     label: typeof payload.label === "string" ? payload.label : "",
     description: typeof payload.description === "string" ? payload.description : "",
     weight: typeof payload.weight === "number" ? payload.weight : 0,
-    categoryIds: Array.isArray(payload.categoryIds) ? (payload.categoryIds as string[]) : [],
+    categoryId: typeof payload.categoryId === "string" ? payload.categoryId : "",
     platforms: Array.isArray(payload.platforms) ? (payload.platforms as string[]) : [],
   };
 }
@@ -226,13 +226,9 @@ function ProposalCard({
     }
   }
 
-  function toggleSeriesCategory(categoryId: string) {
-    setSeriesDraft((d) => ({
-      ...d,
-      categoryIds: d.categoryIds.includes(categoryId)
-        ? d.categoryIds.filter((id) => id !== categoryId)
-        : [...d.categoryIds, categoryId],
-    }));
+  // Rôle unique par série (docs/SPEC_SERIES_ET_ROLES.md §1) — sélection exclusive.
+  function selectSeriesCategory(categoryId: string) {
+    setSeriesDraft((d) => ({ ...d, categoryId }));
   }
 
   function toggleSeriesPlatform(platform: string) {
@@ -259,7 +255,7 @@ function ProposalCard({
           : group === "postingGoal"
             ? platformLabel(postingGoalDraft.platform)
             : group === "categoryReweight"
-              ? "Rééquilibrage des catégories"
+              ? "Rééquilibrage des rôles"
               : group === "profile"
                 ? "Audience de marque"
                 : productDraft.name;
@@ -310,7 +306,7 @@ function ProposalCard({
             />
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {categories.map((c) => (
-                <button key={c.id} onClick={() => toggleSeriesCategory(c.id)} style={pillStyle(seriesDraft.categoryIds.includes(c.id))}>
+                <button key={c.id} onClick={() => selectSeriesCategory(c.id)} style={pillStyle(seriesDraft.categoryId === c.id)}>
                   {c.label}
                 </button>
               ))}
@@ -328,7 +324,7 @@ function ProposalCard({
           </div>
         ) : group === "category" ? (
           <div style={{ display: "grid", gap: 8 }}>
-            <input style={inputStyle} value={categoryDraft.label} onChange={(e) => setCategoryDraft((d) => ({ ...d, label: e.target.value }))} placeholder="Libellé de la catégorie" />
+            <input style={inputStyle} value={categoryDraft.label} onChange={(e) => setCategoryDraft((d) => ({ ...d, label: e.target.value }))} placeholder="Libellé du rôle" />
             <input style={inputStyle} value={categoryDraft.description} onChange={(e) => setCategoryDraft((d) => ({ ...d, description: e.target.value }))} placeholder="Consigne pour l'IA" />
             <input
               style={{ ...inputStyle, width: 100 }}

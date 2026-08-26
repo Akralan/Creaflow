@@ -38,16 +38,17 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
     api.getProducts().then(({ products }) => setProducts(products));
   }, []);
 
+  // Série d'abord (docs/SPEC_SERIES_ET_ROLES.md §5.5) : la série choisie impose son rôle ;
+  // le sélecteur de rôle n'apparaît qu'en post libre.
   const availableCategories = categories.filter((c) => c.platforms.length === 0 || c.platforms.includes(platform));
-  const selectedCategoryId = availableCategories.some((c) => c.id === categoryId)
-    ? categoryId
-    : availableCategories[0]?.id || "";
-  const availableSeries = series.filter(
-    (s) =>
-      s.categories.some((c) => c.id === selectedCategoryId) &&
-      (s.platforms.length === 0 || s.platforms.includes(platform))
-  );
+  const availableSeries = series.filter((s) => s.platforms.length === 0 || s.platforms.includes(platform));
   const selectedSeriesId = availableSeries.some((s) => s.id === seriesId) ? seriesId : "";
+  const selectedSeries = availableSeries.find((s) => s.id === selectedSeriesId);
+  const selectedCategoryId = selectedSeries
+    ? (selectedSeries.category?.id ?? "")
+    : availableCategories.some((c) => c.id === categoryId)
+      ? categoryId
+      : availableCategories[0]?.id || "";
 
   async function handleGenerate() {
     if (!selectedCategoryId) return;
@@ -56,7 +57,8 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
     try {
       const { script } = await api.generateFreeformScript({
         platform,
-        contentCategoryId: selectedCategoryId,
+        // Avec une série, le serveur dérive le rôle (§4.2).
+        contentCategoryId: selectedSeriesId ? undefined : selectedCategoryId,
         contentType,
         productId: productId || undefined,
         seriesId: selectedSeriesId || undefined,
@@ -107,47 +109,10 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
         </div>
       </div>
 
-      <div style={{ marginBottom: 26 }}>
-        <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: color.text3, marginBottom: 12 }}>
-          Catégorie de contenu
-        </label>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {availableCategories.length === 0 && (
-            <p style={{ fontSize: 13, color: color.textMuted, margin: 0 }}>
-              Aucune catégorie de contenu configurée pour cette plateforme.
-            </p>
-          )}
-          {availableCategories.map((c) => {
-            const active = c.id === selectedCategoryId;
-            const meta = resolveCategoryMeta(c);
-            return (
-              <button
-                key={c.id}
-                onClick={() => setCategoryId(c.id)}
-                style={{
-                  flex: 1,
-                  minWidth: 120,
-                  border: `1.5px solid ${active ? meta.base : color.border}`,
-                  background: active ? meta.bg : color.inputBg,
-                  borderRadius: 12,
-                  padding: 14,
-                  textAlign: "center",
-                  fontWeight: active ? 600 : 500,
-                  color: active ? meta.fg : color.textMuted,
-                  cursor: "pointer",
-                }}
-              >
-                {meta.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {availableSeries.length > 0 && (
         <div style={{ marginBottom: 26 }}>
           <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: color.text3, marginBottom: 12 }}>
-            Série <span style={{ color: color.textFaint, fontWeight: 400 }}>— optionnel</span>
+            Série
           </label>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button
@@ -162,7 +127,7 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
                 cursor: "pointer",
               }}
             >
-              Aucune série
+              Post libre
             </button>
             {availableSeries.map((s) => {
               const active = s.id === selectedSeriesId;
@@ -187,6 +152,46 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
           </div>
         </div>
       )}
+
+      <div style={{ marginBottom: 26 }}>
+        <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: color.text3, marginBottom: 12 }}>
+          Rôle
+          {selectedSeries && <span style={{ color: color.textFaint, fontWeight: 400 }}> — imposé par la série</span>}
+        </label>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {availableCategories.length === 0 && (
+            <p style={{ fontSize: 13, color: color.textMuted, margin: 0 }}>
+              Aucun rôle configuré pour cette plateforme.
+            </p>
+          )}
+          {availableCategories.map((c) => {
+            const active = c.id === selectedCategoryId;
+            const meta = resolveCategoryMeta(c);
+            if (selectedSeries && !active) return null;
+            return (
+              <button
+                key={c.id}
+                onClick={() => !selectedSeries && setCategoryId(c.id)}
+                disabled={!!selectedSeries}
+                style={{
+                  flex: 1,
+                  minWidth: 120,
+                  border: `1.5px solid ${active ? meta.base : color.border}`,
+                  background: active ? meta.bg : color.inputBg,
+                  borderRadius: 12,
+                  padding: 14,
+                  textAlign: "center",
+                  fontWeight: active ? 600 : 500,
+                  color: active ? meta.fg : color.textMuted,
+                  cursor: selectedSeries ? "default" : "pointer",
+                }}
+              >
+                {meta.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <div style={{ marginBottom: 26 }}>
         <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: color.text3, marginBottom: 12 }}>

@@ -6,6 +6,7 @@ import Card from "@/components/ui/Card";
 import { PlatformBadge } from "@/components/ui/Badge";
 import { heading1Style } from "@/components/ui/TextField";
 import SeriesPanel from "@/components/SeriesPanel";
+import EditorialMixStrip from "@/components/EditorialMixStrip";
 import NarrativeArcSection from "@/components/NarrativeArcSection";
 import { api, ApiClientError, type ContentSeries, type Script } from "@/lib/apiClient";
 import { color, statusMeta } from "@/lib/design/tokens";
@@ -102,17 +103,14 @@ function SeriesLibrary({
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 6 }}>{s.label}</div>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {s.categories.map((c) => {
-                      const meta = resolveCategoryMeta(c);
+                    {(() => {
+                      const meta = resolveCategoryMeta(s.category);
                       return (
-                        <span
-                          key={c.id}
-                          style={{ fontSize: 11, fontWeight: 600, color: meta.fg, background: meta.bg, borderRadius: 20, padding: "3px 9px" }}
-                        >
+                        <span style={{ fontSize: 11, fontWeight: 600, color: meta.fg, background: meta.bg, borderRadius: 20, padding: "3px 9px" }}>
                           {meta.label}
                         </span>
                       );
-                    })}
+                    })()}
                   </div>
                 </div>
                 <span style={{ fontSize: 13, fontWeight: 600, color: color.textMuted }}>{s.weight}%</span>
@@ -174,8 +172,9 @@ export default function DirectionPage() {
     <div style={{ padding: "32px 36px" }}>
       <h1 style={heading1Style}>Direction</h1>
       <p style={{ margin: "6px 0 24px", color: color.textMuted, fontSize: 15 }}>
-        Les formats récurrents qui donnent une identité à ton contenu, et tout ce qui a déjà été généré pour chacun.
+        Tes séries — les formats récurrents qui donnent une identité à ton contenu — et le rôle que chacune joue dans ton mix.
       </p>
+      <EditorialMixStrip />
       <SeriesPanel onSeriesChange={setSeries} />
       <div style={{ marginTop: 28 }}>
         <SeriesLibrary

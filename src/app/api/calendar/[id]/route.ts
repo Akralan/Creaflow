@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { calendarEntries, calendarStatusEnum, contentCategories, contentSeries } from "@/db/schema";
+import { calendarEntries, calendarStatusEnum, contentCategories } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
 import { contentCategorySchema } from "@/lib/validation";
+import { resolveCategoryForGeneration } from "@/lib/services/seriesService";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 
 const patchSchema = z
@@ -52,23 +53,30 @@ export async function PATCH(
   try {
     const userId = await requireUserId();
     const { id } = await params;
-    const { status, contentCategoryId, seriesId } = patchSchema.parse(await request.json());
+    const { status, contentCategoryId: requestedCategoryId, seriesId } = patchSchema.parse(await request.json());
 
-    if (contentCategoryId) {
+    // Cohérence série↔rôle (docs/SPEC_SERIES_ET_ROLES.md §3) : quand une série est posée, c'est
+    // elle qui impose le rôle ; en post libre (seriesId null ou inchangé sans série), le rôle
+    // demandé doit exister. Un changement de rôle seul sur un créneau déjà en série est refusé —
+    // il faut d'abord le passer en post libre.
+    let contentCategoryId = requestedCategoryId;
+    if (seriesId) {
+      contentCategoryId = await resolveCategoryForGeneration(userId, { seriesId, contentCategoryId: requestedCategoryId });
+    } else if (requestedCategoryId) {
       const category = await db.query.contentCategories.findFirst({
-        where: and(eq(contentCategories.id, contentCategoryId), eq(contentCategories.userId, userId)),
+        where: and(eq(contentCategories.id, requestedCategoryId), eq(contentCategories.userId, userId)),
       });
       if (!category) {
-        throw new ApiError(404, "Catégorie de contenu introuvable.");
+        throw new ApiError(404, "Rôle introuvable.");
       }
-    }
-
-    if (seriesId) {
-      const series = await db.query.contentSeries.findFirst({
-        where: and(eq(contentSeries.id, seriesId), eq(contentSeries.userId, userId)),
-      });
-      if (!series) {
-        throw new ApiError(404, "Série introuvable.");
+      if (seriesId === undefined) {
+        const existing = await db.query.calendarEntries.findFirst({
+          where: and(eq(calendarEntries.id, id), eq(calendarEntries.userId, userId)),
+          columns: { seriesId: true },
+        });
+        if (existing?.seriesId) {
+          throw new ApiError(400, "Ce créneau appartient à une série : son rôle est celui de la série. Passe-le d'abord en post libre.");
+        }
       }
     }
 

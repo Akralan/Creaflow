@@ -11,9 +11,11 @@ import { platformSchema, contentCategorySchema, contentTypeSchema, directiveSche
 import { handleApiError } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
 
+// contentCategoryId optionnel dès qu'une série est fournie — la série impose son rôle
+// (docs/SPEC_SERIES_ET_ROLES.md §4.2) ; obligatoire en post libre (vérifié côté service).
 const schema = z.object({
   platform: platformSchema,
-  contentCategoryId: contentCategorySchema,
+  contentCategoryId: contentCategorySchema.optional(),
   contentType: contentTypeSchema,
   productId: z.uuid().optional(),
   scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format attendu : YYYY-MM-DD").optional(),
@@ -57,7 +59,7 @@ export async function POST(request: NextRequest) {
     const context = await buildGenerationContext(
       userId,
       platform,
-      contentCategoryId,
+      contentCategoryId ?? null,
       contentType,
       productId,
       undefined,

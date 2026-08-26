@@ -181,12 +181,24 @@ export default function CalendarPage() {
     setEditSeriesId(entry.series?.id ?? "");
   }
 
+  /** Série d'abord (docs/SPEC_SERIES_ET_ROLES.md §5.4) : choisir une série impose son rôle ;
+   *  "Post libre" laisse le rôle actuel modifiable à la main. */
+  function selectEntrySeries(nextSeriesId: string) {
+    setEditSeriesId(nextSeriesId);
+    const role = series.find((s) => s.id === nextSeriesId)?.category?.id;
+    if (role) setEditCategoryId(role);
+  }
+
   async function saveEntryCategory() {
     if (!editingEntry) return;
     setSavingEntry(true);
     setError(null);
     try {
-      await api.updateCalendarEntry(editingEntry.id, { contentCategoryId: editCategoryId, seriesId: editSeriesId || null });
+      // Avec une série, le serveur dérive le rôle : on n'envoie que seriesId (§4.2).
+      await api.updateCalendarEntry(
+        editingEntry.id,
+        editSeriesId ? { seriesId: editSeriesId } : { contentCategoryId: editCategoryId, seriesId: null }
+      );
       setEditingEntry(null);
       await load();
     } catch (err) {
@@ -580,71 +592,37 @@ export default function CalendarPage() {
               Ce créneau n&apos;a pas encore de script généré.
             </p>
 
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 8 }}>
-              Catégorie de contenu
-            </label>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
-              {categories.map((c) => {
-                const meta = resolveCategoryMeta(c);
-                const active = c.id === editCategoryId;
-                return (
-                  <button
-                    key={c.id}
-                    onClick={() => {
-                      setEditCategoryId(c.id);
-                      setEditSeriesId((current) => {
-                        const stillValid = series.some((s) => s.id === current && s.categories.some((cat) => cat.id === c.id));
-                        return stillValid ? current : "";
-                      });
-                    }}
-                    style={{
-                      border: `1.5px solid ${active ? meta.base : color.border}`,
-                      background: active ? meta.bg : color.inputBg,
-                      borderRadius: 20,
-                      padding: "7px 13px",
-                      fontSize: 13,
-                      fontWeight: active ? 600 : 500,
-                      color: active ? meta.fg : color.textMuted,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {meta.label}
-                  </button>
-                );
-              })}
-            </div>
-
             {(() => {
-              const availableEditSeries = series.filter((s) => s.categories.some((c) => c.id === editCategoryId));
-              if (availableEditSeries.length === 0) return null;
-              const effectiveEditSeriesId = availableEditSeries.some((s) => s.id === editSeriesId) ? editSeriesId : "";
+              const availableEditSeries = series.filter(
+                (s) => s.platforms.length === 0 || s.platforms.includes(editingEntry.platform)
+              );
               return (
                 <>
                   <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 8 }}>
-                    Série <span style={{ color: color.textFaint, fontWeight: 400 }}>— optionnel</span>
+                    Série
                   </label>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 22 }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
                     <button
                       onClick={() => setEditSeriesId("")}
                       style={{
-                        border: `1.5px solid ${effectiveEditSeriesId === "" ? accent : color.border}`,
-                        background: effectiveEditSeriesId === "" ? "oklch(0.55 0.2 292 / 0.08)" : color.inputBg,
+                        border: `1.5px solid ${editSeriesId === "" ? accent : color.border}`,
+                        background: editSeriesId === "" ? "oklch(0.55 0.2 292 / 0.08)" : color.inputBg,
                         borderRadius: 20,
                         padding: "7px 13px",
                         fontSize: 13,
-                        fontWeight: effectiveEditSeriesId === "" ? 600 : 500,
-                        color: effectiveEditSeriesId === "" ? "oklch(0.45 0.2 292)" : color.textMuted,
+                        fontWeight: editSeriesId === "" ? 600 : 500,
+                        color: editSeriesId === "" ? "oklch(0.45 0.2 292)" : color.textMuted,
                         cursor: "pointer",
                       }}
                     >
-                      Aucune série
+                      Post libre
                     </button>
                     {availableEditSeries.map((s) => {
-                      const active = s.id === effectiveEditSeriesId;
+                      const active = s.id === editSeriesId;
                       return (
                         <button
                           key={s.id}
-                          onClick={() => setEditSeriesId(s.id)}
+                          onClick={() => selectEntrySeries(s.id)}
                           style={{
                             border: `1.5px solid ${active ? accent : color.border}`,
                             background: active ? "oklch(0.55 0.2 292 / 0.08)" : color.inputBg,
@@ -664,6 +642,37 @@ export default function CalendarPage() {
                 </>
               );
             })()}
+
+            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 8 }}>
+              Rôle
+              {editSeriesId && <span style={{ color: color.textFaint, fontWeight: 400 }}> — imposé par la série</span>}
+            </label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 22 }}>
+              {categories.map((c) => {
+                const meta = resolveCategoryMeta(c);
+                const active = c.id === editCategoryId;
+                if (editSeriesId && !active) return null;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => !editSeriesId && setEditCategoryId(c.id)}
+                    disabled={!!editSeriesId}
+                    style={{
+                      border: `1.5px solid ${active ? meta.base : color.border}`,
+                      background: active ? meta.bg : color.inputBg,
+                      borderRadius: 20,
+                      padding: "7px 13px",
+                      fontSize: 13,
+                      fontWeight: active ? 600 : 500,
+                      color: active ? meta.fg : color.textMuted,
+                      cursor: editSeriesId ? "default" : "pointer",
+                    }}
+                  >
+                    {meta.label}
+                  </button>
+                );
+              })}
+            </div>
 
             {error && <p style={{ color: color.danger, fontSize: 13, marginBottom: 14 }}>{error}</p>}
 

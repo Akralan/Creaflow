@@ -142,7 +142,9 @@ export interface ContentSeries {
    *  planification (docs/SPEC_REDACTEUR_EN_CHEF.md §1). Défaut rendez_vous. */
   mode: "feuilleton" | "rendez_vous";
   createdAt: string;
-  categories: ContentCategorySummary[];
+  /** Rôle unique de la série (docs/SPEC_SERIES_ET_ROLES.md §1) — null uniquement pour des données
+   *  antérieures à la migration, une telle série est ignorée par le calendrier. */
+  category: ContentCategorySummary | null;
   /** Réseaux auxquels cette série est restreinte ; vide = visible sur tous les réseaux. */
   platforms: Platform[];
   /** null tant qu'aucune planification n'a eu lieu pour cette série (ou mode rendez_vous). */
@@ -393,7 +395,7 @@ export const api = {
       label: string;
       description: string;
       weight: number;
-      categoryIds: string[];
+      categoryId: string;
       platforms: string[];
     }>
   ) => post<{ series: ContentSeries[] }>("/api/series", { series }),
@@ -457,7 +459,9 @@ export const api = {
     post<{ script: Script }>("/api/scripts/generate", { calendarEntryId, contentType, productId, directive }),
   generateFreeformScript: (data: {
     platform: Platform;
-    contentCategoryId: string;
+    /** Role du post libre ; omis quand seriesId est fourni - le serveur derive alors le role de la
+     *  serie (docs/SPEC_SERIES_ET_ROLES.md 4.2). */
+    contentCategoryId?: string;
     contentType: ContentType;
     productId?: string;
     scheduledDate?: string;
@@ -498,7 +502,8 @@ export const api = {
     post<{ script: Script }>(`/api/scripts/${id}/new-idea`, data),
   importScript: (data: {
     platform: Platform;
-    contentCategoryId: string;
+    /** Role du post libre ; omis quand seriesId est fourni (docs/SPEC_SERIES_ET_ROLES.md 4.2). */
+    contentCategoryId?: string;
     contentType: ContentType;
     productId?: string;
     seriesId?: string;
@@ -544,7 +549,7 @@ export const api = {
   generateSeriesFromMaterial: (data: {
     productId?: string;
     seriesId?: string;
-    newSeries?: { label: string; description: string; weight?: number };
+    newSeries?: { label: string; description: string; categoryId: string; weight?: number };
   }) => post<{ series: ContentSeries; state: NarrativeState }>("/api/series/from-material", data),
   saveScriptMetrics: (
     id: string,

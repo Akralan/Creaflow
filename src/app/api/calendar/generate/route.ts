@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 
       const seriesForPlatform = filterByPlatform(activeSeries, goal.platform);
       const seriesWeights = seriesWeightsFromSeries(
-        seriesForPlatform.map((s) => ({ id: s.id, weight: s.weight, categoryIds: s.categories.map((c) => c.id) }))
+        seriesForPlatform.map((s) => ({ id: s.id, weight: s.weight, categoryId: s.category?.id ?? null }))
       );
 
       const slotCount = Math.round(goal.targetCountPerWeek * weeks);

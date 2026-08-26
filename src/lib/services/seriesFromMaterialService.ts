@@ -1,6 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
-import { contentSeries } from "@/db/schema";
+import { contentCategories, contentSeries, contentSeriesCategories } from "@/db/schema";
 import { planNarrativeForSubject } from "@/lib/services/narrativeDirector";
 import { getMaterialForSubject } from "@/lib/services/sourceMaterialService";
 import { ApiError } from "@/lib/api/errors";
@@ -10,7 +10,9 @@ const DEFAULT_SERIES_WEIGHT = 15;
 export interface GenerateSeriesFromMaterialParams {
   productId?: string | null;
   seriesId?: string;
-  newSeries?: { label: string; description: string; weight?: number };
+  /** `categoryId` : rôle unique de la série créée (docs/SPEC_SERIES_ET_ROLES.md §1) — sans lui, la
+   *  série n'existerait pour aucun calendrier. */
+  newSeries?: { label: string; description: string; categoryId: string; weight?: number };
 }
 
 /**
@@ -27,13 +29,18 @@ export async function generateSeriesFromMaterial(userId: string, params: Generat
   }
 
   let series: typeof contentSeries.$inferSelect;
+  let category: { id: string; label: string } | null;
   if (params.seriesId) {
-    let found = await db.query.contentSeries.findFirst({
+    const existing = await db.query.contentSeries.findFirst({
       where: and(eq(contentSeries.id, params.seriesId), eq(contentSeries.userId, userId)),
+      with: { contentSeriesCategories: { with: { category: { columns: { id: true, label: true } } }, limit: 1 } },
     });
-    if (!found) {
+    if (!existing) {
       throw new ApiError(404, "Série introuvable.");
     }
+    const { contentSeriesCategories: joins, ...rest } = existing;
+    category = joins[0]?.category ?? null;
+    let found: typeof contentSeries.$inferSelect = rest;
     // Un sujet fourni ici est un geste explicite ("planifie CETTE série depuis la matière de CE
     // sujet") — met à jour le lien série↔sujet en conséquence (sélecteur de sujet,
     // docs/SPEC_REDACTEUR_EN_CHEF.md), pas seulement un scoping ponctuel de cet appel.
@@ -47,6 +54,14 @@ export async function generateSeriesFromMaterial(userId: string, params: Generat
     }
     series = found;
   } else {
+    const role = await db.query.contentCategories.findFirst({
+      where: and(eq(contentCategories.id, params.newSeries!.categoryId), eq(contentCategories.userId, userId)),
+      columns: { id: true, label: true },
+    });
+    if (!role) {
+      throw new ApiError(404, "Rôle introuvable.");
+    }
+    category = role;
     const [created] = await db
       .insert(contentSeries)
       .values({
@@ -62,6 +77,7 @@ export async function generateSeriesFromMaterial(userId: string, params: Generat
         productId: params.productId ?? null,
       })
       .returning();
+    await db.insert(contentSeriesCategories).values({ seriesId: created.id, categoryId: role.id });
     series = created;
   }
 
@@ -75,14 +91,13 @@ export async function generateSeriesFromMaterial(userId: string, params: Generat
   // reste toujours identifié par son seriesId seul (voir le commentaire sur resolveSubject).
   const state = await planNarrativeForSubject(userId, { seriesId: series.id });
 
-  // Forme alignée sur listActiveSeriesForUser (categories/platforms/narrativeState/product) — cette
-  // série n'est encore rattachée à aucune catégorie/plateforme à ce stade (même limite que l'ancien
-  // mécanisme one-shot, pas introduite par ce remplacement). `product` à `null` même si productId
-  // est renseigné : l'appelant redirige vers /direction juste après, qui relit la forme jointe exacte.
+  // Forme alignée sur listActiveSeriesForUser (category/platforms/narrativeState/product) — aucune
+  // plateforme à ce stade. `product` à `null` même si productId est renseigné : l'appelant redirige
+  // vers /direction juste après, qui relit la forme jointe exacte.
   return {
     series: {
       ...series,
-      categories: [] as { id: string; label: string }[],
+      category,
       platforms: [] as string[],
       narrativeState: state,
       product: null as { id: string; name: string } | null,

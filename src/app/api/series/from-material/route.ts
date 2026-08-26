@@ -13,7 +13,15 @@ const schema = z
   .object({
     productId: z.uuid().optional(),
     seriesId: z.uuid().optional(),
-    newSeries: z.object({ label: z.string().min(1), description: z.string().min(1), weight: z.number().int().min(1).max(100).optional() }).optional(),
+    newSeries: z
+      .object({
+        label: z.string().min(1),
+        description: z.string().min(1),
+        // Rôle unique de la série créée (docs/SPEC_SERIES_ET_ROLES.md §1).
+        categoryId: z.uuid(),
+        weight: z.number().int().min(1).max(100).optional(),
+      })
+      .optional(),
   })
   .refine((data) => !!data.seriesId !== !!data.newSeries, {
     message: "Précise soit seriesId, soit newSeries — pas les deux, pas aucun.",

@@ -81,7 +81,7 @@ export default function CategoryLabelsPanel() {
   }
 
   function addCategory() {
-    setDrafts((prev) => [...prev, { label: "Nouvelle catégorie", description: "", weight: 10, platforms: [], materialHungry: false }]);
+    setDrafts((prev) => [...prev, { label: "Nouveau rôle", description: "", weight: 10, platforms: [], materialHungry: false }]);
   }
 
   function toggleMaterialHungry(index: number) {
@@ -94,7 +94,7 @@ export default function CategoryLabelsPanel() {
 
   async function save() {
     if (drafts.length < 2) {
-      setError("Il faut au moins 2 catégories.");
+      setError("Il faut au moins 2 rôles.");
       return;
     }
     setSaving(true);
@@ -114,7 +114,7 @@ export default function CategoryLabelsPanel() {
   return (
     <div style={{ border: `1px solid ${accentAlpha(0.25)}`, background: accentAlpha(0.06), borderRadius: 14, padding: 16 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, gap: 12 }}>
-        <div style={{ fontWeight: 600, fontSize: 14 }}>Catégories de contenu adaptées à ton activité</div>
+        <div style={{ fontWeight: 600, fontSize: 14 }}>Rôles éditoriaux</div>
         <button
           onClick={generate}
           disabled={generating}
@@ -134,7 +134,7 @@ export default function CategoryLabelsPanel() {
         </button>
       </div>
       <p style={{ margin: "0 0 14px", fontSize: 12, color: color.textMuted }}>
-        Ces catégories structurent le mix de contenu du calendrier. Modifie le libellé et le poids (%), ajoute ou retire une catégorie si besoin.
+        Un rôle dit pourquoi un post existe (expertise, coulisses, preuve sociale…). Libellé, consigne pour l&apos;IA et poids (%) dans le mix ; un rôle porté par une série active ne peut pas être retiré.
       </p>
 
       {error && <p style={{ margin: "0 0 10px", fontSize: 12, color: color.danger }}>{error}</p>}
@@ -232,7 +232,7 @@ export default function CategoryLabelsPanel() {
             })}
             <button
               onClick={() => toggleMaterialHungry(i)}
-              title="Catégorie gourmande en matière — sous-représentée quand le corpus est sec (docs/SPEC_MATIERE_EDITEUR.md §5.3)"
+              title="Rôle gourmand en matière — sous-représenté quand le corpus est sec (docs/SPEC_MATIERE_EDITEUR.md §5.3)"
               style={{
                 fontSize: 11,
                 fontWeight: d.materialHungry ? 600 : 500,
@@ -245,7 +245,7 @@ export default function CategoryLabelsPanel() {
                 marginLeft: 4,
               }}
             >
-              {d.materialHungry ? "◈ Gourmande en matière" : "Gourmande en matière ?"}
+              {d.materialHungry ? "◈ Gourmand en matière" : "Gourmand en matière ?"}
             </button>
           </div>
           </div>
@@ -267,7 +267,7 @@ export default function CategoryLabelsPanel() {
             cursor: drafts.length >= 6 ? "default" : "pointer",
           }}
         >
-          + Ajouter une catégorie
+          + Ajouter un rôle
         </button>
         <Button onClick={save} disabled={saving} style={{ padding: "8px 16px", fontSize: 13, marginLeft: "auto" }}>
           {saving ? "..." : "Enregistrer"}
