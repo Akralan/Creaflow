@@ -103,6 +103,23 @@ function MaterialSummaryField({ summary, onSave }: { summary: string | null; onS
  * d'un document surligne les passages déjà cités par des générations précédentes.
  * `productId` undefined = matière de niveau marque (pas rattachée à un sujet précis).
  */
+const RECENT_MS = 24 * 60 * 60 * 1000;
+
+/** Un document déposé dans les dernières 24 h porte le badge « Nouveau » (maquette 1c). */
+function isRecent(iso: string): boolean {
+  return Date.now() - new Date(iso).getTime() < RECENT_MS;
+}
+
+/** « il y a 2 h » tant que le dépôt est frais, date courte ensuite. */
+function depositedAgo(iso: string): string {
+  const elapsed = Date.now() - new Date(iso).getTime();
+  if (elapsed < RECENT_MS) {
+    const hours = Math.floor(elapsed / (60 * 60 * 1000));
+    return hours < 1 ? "à l'instant" : `il y a ${hours} h`;
+  }
+  return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+}
+
 export default function MaterialPanel({ productId }: { productId?: string }) {
   const router = useRouter();
   const [materials, setMaterials] = useState<SourceMaterial[]>([]);
@@ -115,6 +132,8 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
   const [tab, setTab] = useState<"paste" | "interview">("paste");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [citationsByMaterial, setCitationsByMaterial] = useState<Record<string, Citation[]>>({});
+  // Où chaque document est consommé dans les plans (« Déjà exploité · Ép. N ») — lecture seule.
+  const [usage, setUsage] = useState<Record<string, { episode: number; beatTitle: string }>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!loaded) {
@@ -123,6 +142,18 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
       setLoaded(true);
     });
   }
+
+  useEffect(() => {
+    if (!productId) return;
+    let cancelled = false;
+    api
+      .getMaterialUsage(productId)
+      .then(({ usage }) => !cancelled && setUsage(usage))
+      .catch(() => !cancelled && setUsage({}));
+    return () => {
+      cancelled = true;
+    };
+  }, [productId]);
 
   async function addMaterial() {
     setError(null);
@@ -275,7 +306,7 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
             <div style={{ marginTop: 6 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: color.textSecondary }}>
-                  Documents déposés ({materials.length})
+                  Documents déposés · {materials.length}
                 </div>
                 <button
                   onClick={() => setShowSeriesModal(true)}
@@ -289,6 +320,7 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
                   const expanded = expandedId === m.id;
                   const citations = citationsByMaterial[m.id] ?? [];
                   const matchedCount = citations.filter((c) => c.matchStart != null).length;
+                  const docUsage = usage[m.id];
                   return (
                     <div
                       key={m.id}
@@ -299,16 +331,68 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
                           onClick={() => toggleExpand(m.id)}
                           style={{ flex: 1, minWidth: 0, textAlign: "left", border: "none", background: "none", cursor: "pointer", padding: 0 }}
                         >
-                          {m.title && <div style={{ fontWeight: 600, fontSize: 13, color: color.text, marginBottom: 2 }}>{m.title}</div>}
+                          {/* Ligne d'en-tête (maquette 1c) : nom du document, puis son exploitation
+                              réelle — planifié dans un épisode, déjà cité, ou encore inexploité. */}
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
+                            {m.title && <span style={{ fontWeight: 600, fontSize: 13, color: color.text }}>{m.title}</span>}
+                            {isRecent(m.createdAt) && (
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  color: "oklch(0.47 0.2 292)",
+                                  background: "oklch(0.55 0.2 292 / 0.12)",
+                                  borderRadius: 20,
+                                  padding: "2px 8px",
+                                }}
+                              >
+                                Nouveau
+                              </span>
+                            )}
+                            {docUsage ? (
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  color: "oklch(0.42 0.14 150)",
+                                  background: "oklch(0.62 0.13 150 / 0.16)",
+                                  borderRadius: 20,
+                                  padding: "2px 8px",
+                                }}
+                                title={docUsage.beatTitle}
+                              >
+                                Déjà exploité · Ép. {docUsage.episode}
+                              </span>
+                            ) : (
+                              matchedCount === 0 && (
+                                <span
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    color: "oklch(0.5 0.13 60)",
+                                    background: "oklch(0.62 0.13 60 / 0.16)",
+                                    borderRadius: 20,
+                                    padding: "2px 8px",
+                                  }}
+                                >
+                                  Pas encore exploité
+                                </span>
+                              )
+                            )}
+                            {matchedCount > 0 && (
+                              <span style={{ fontSize: 11, color: color.textFaint }}>
+                                {matchedCount} passage{matchedCount > 1 ? "s" : ""} cité{matchedCount > 1 ? "s" : ""}
+                              </span>
+                            )}
+                            <span style={{ fontSize: 11, color: color.textFaint }}>{depositedAgo(m.createdAt)}</span>
+                          </div>
                           {!expanded && (
                             <div style={{ fontSize: 13, color: color.text2 }}>
                               {m.rawText.length > 200 ? `${m.rawText.slice(0, 200)}…` : m.rawText}
                             </div>
                           )}
                           {matchedCount > 0 && !expanded && (
-                            <div style={{ fontSize: 11, color: color.textFaint, marginTop: 4 }}>
-                              {matchedCount} passage{matchedCount > 1 ? "s" : ""} déjà cité{matchedCount > 1 ? "s" : ""} — voir le détail
-                            </div>
+                            <div style={{ fontSize: 11, color: color.textFaint, marginTop: 4 }}>Voir le détail</div>
                           )}
                         </button>
                         <button

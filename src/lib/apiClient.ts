@@ -228,6 +228,14 @@ export interface Script {
   beatId: string | null;
   /** Titre du beat, résolu à la lecture — présent uniquement sur la fiche détaillée (GET /api/scripts/:id). */
   beatTitle?: string | null;
+  /** Pourquoi le rédacteur en chef a placé ce beat ici — même résolution à la lecture que beatTitle. */
+  beatRationale?: string | null;
+  /** Angle recommandé par le plan pour cet épisode (distinct de l'angle anti-répétition imposé). */
+  beatAngleHint?: string | null;
+  /** Promesse que ce script s'est engagé à honorer, figée à la génération. */
+  promiseHonored?: string | null;
+  /** Callbacks de la série — détails familiers disponibles, pas un ciblage par script. */
+  seriesCallbacks?: string[];
 }
 
 export interface SourceMaterial {
@@ -529,6 +537,11 @@ export const api = {
   updateMaterialSummary: (id: string, summary: string | null) =>
     patch<{ material: SourceMaterial }>(`/api/materials/${id}`, { summary }),
   getMaterialCitations: (id: string) => apiFetch<{ citations: Citation[] }>(`/api/materials/${id}/citations`),
+  /** Où chaque document d'un sujet est consommé dans les plans — lecture seule, ne crée aucun état. */
+  getMaterialUsage: (productId: string) =>
+    apiFetch<{ usage: Record<string, { episode: number; beatTitle: string }> }>(
+      `/api/materials/usage?productId=${productId}`
+    ),
   uploadMaterialFile: async (file: File, productId?: string) => {
     const formData = new FormData();
     formData.append("file", file);

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { db } from "@/db";
 import { narrativeState, products, contentSeries, creatorProfiles, scripts, sourceMaterials, sourceMaterialCitations } from "@/db/schema";
 import {
@@ -438,6 +438,46 @@ export async function resolveNarrativeState(
   return findNarrativeState(userId, null, null);
 }
 
+/**
+ * Où chaque document de matière est consommé dans les plans (espace matière, maquette 1c) : lecture
+ * seule, sans jamais créer d'état — un simple affichage ne doit pas provoquer d'effet de bord. Couvre
+ * l'état du sujet lui-même et ceux des séries qui lui sont rattachées, puisqu'un beat porte ses
+ * `focusDocIds` quel que soit le niveau où vit le plan.
+ *
+ * Renvoie, par id de document, le premier beat qui l'utilise : son rang (1-based, épisodes passés
+ * inclus) et son titre.
+ */
+export async function findDocumentUsage(
+  userId: string,
+  productId: string
+): Promise<Map<string, { episode: number; beatTitle: string }>> {
+  const seriesOfProduct = await db.query.contentSeries.findMany({
+    where: and(eq(contentSeries.userId, userId), eq(contentSeries.productId, productId)),
+    columns: { id: true },
+  });
+  const seriesIds = seriesOfProduct.map((s) => s.id);
+
+  const rows = await db.query.narrativeState.findMany({
+    where: and(
+      eq(narrativeState.userId, userId),
+      seriesIds.length > 0
+        ? or(eq(narrativeState.productId, productId), inArray(narrativeState.seriesId, seriesIds))
+        : eq(narrativeState.productId, productId)
+    ),
+  });
+
+  const usage = new Map<string, { episode: number; beatTitle: string }>();
+  for (const row of rows) {
+    const beats = ((row.beats as NarrativeBeat[] | null) ?? []).filter((b) => b.status !== "skipped");
+    beats.forEach((beat, index) => {
+      for (const docId of beat.focusDocIds) {
+        if (!usage.has(docId)) usage.set(docId, { episode: index + 1, beatTitle: beat.title });
+      }
+    });
+  }
+  return usage;
+}
+
 export interface DailyDirection {
   /** Traçabilité pour {@link markBeatDrafted} après génération — ne sert pas à l'assemblage du message. */
   stateId: string;
@@ -573,6 +613,31 @@ export async function findBeatTitle(
 ): Promise<string | null> {
   const state = await resolveNarrativeState(userId, productId, seriesId);
   return state?.beats.find((b) => b.id === beatId)?.title ?? null;
+}
+
+/**
+ * Contexte éditorial affiché en tête de l'éditeur (maquette 1b) : au-delà du titre du beat, la
+ * direction éditoriale qui a présidé à son choix et les callbacks de la série à replacer. Résolu à
+ * la lecture, jamais stocké — un beat peut être réécrit ou déplacé entre deux ouvertures du script.
+ *
+ * Les callbacks sont ceux de la série entière, pas un ciblage par script : le rédacteur en chef ne
+ * les assigne pas épisode par épisode. L'éditeur les présente donc comme des détails familiers
+ * disponibles, pas comme une consigne.
+ */
+export async function findBeatContext(
+  userId: string,
+  productId: string | null,
+  seriesId: string | null,
+  beatId: string
+): Promise<{ title: string | null; rationale: string | null; angleHint: string | null; callbacks: string[] }> {
+  const state = await resolveNarrativeState(userId, productId, seriesId);
+  const beat = state?.beats.find((b) => b.id === beatId) ?? null;
+  return {
+    title: beat?.title ?? null,
+    rationale: beat?.rationale ?? null,
+    angleHint: beat?.angleHint ?? null,
+    callbacks: state?.callbacks ?? [],
+  };
 }
 
 /**

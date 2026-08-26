@@ -9,7 +9,7 @@ import BrandAssetLibrary from "@/components/BrandAssetLibrary/BrandAssetLibrary"
 import BriefHeader from "@/components/ScriptEditor/BriefHeader";
 import EditableField from "@/components/ScriptEditor/EditableField";
 import { api, ApiClientError, type Script } from "@/lib/apiClient";
-import { color, fontHeading, scriptStatusOptions, statusMeta, type ScriptStatus } from "@/lib/design/tokens";
+import { accentAlpha, color, fontHeading, fontMono, scriptStatusOptions, statusMeta, type ScriptStatus } from "@/lib/design/tokens";
 
 const EMPTY_METRICS_DRAFT = { views: 0, likes: 0, comments: 0, shares: 0 };
 const HISTORY_LIMIT = 20;
@@ -256,27 +256,66 @@ export default function ScriptPage() {
         </Button>
       </div>
 
+      {/* Contexte éditorial de l'épisode (maquette 1b) — l'ancienne pilule ne portait que le titre ;
+          le bloc donne la direction du rédacteur en chef, la promesse à honorer et les callbacks
+          disponibles, avec un retour vers le plan. */}
       {script.beatId && script.beatTitle && (
-        <button
-          onClick={() => router.push("/direction")}
-          title="Voir le plan dans Direction"
+        <div
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 12,
-            fontWeight: 600,
-            color: "oklch(0.5 0.2 292)",
-            background: "oklch(0.55 0.2 292 / 0.08)",
-            border: "none",
-            borderRadius: 20,
-            padding: "5px 12px",
-            cursor: "pointer",
-            marginBottom: 14,
+            display: "flex",
+            gap: 14,
+            alignItems: "flex-start",
+            background: accentAlpha(0.06),
+            border: `1px solid ${accentAlpha(0.25)}`,
+            borderRadius: 14,
+            padding: "16px 18px",
+            marginBottom: 18,
           }}
         >
-          ◈ Épisode de l&apos;arc : {script.beatTitle}
-        </button>
+          <div style={{ fontSize: 16, color: "oklch(0.5 0.2 292)", lineHeight: 1.2, flexShrink: 0 }}>◈</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: color.text, marginBottom: 6 }}>
+              Épisode de l&apos;arc · {script.beatTitle}
+            </div>
+            <div style={{ fontSize: 13, lineHeight: 1.55, color: color.text2 }}>
+              {script.beatRationale && <>Direction éditoriale : {script.beatRationale} </>}
+              {script.promiseHonored && (
+                <>
+                  Promesse à faire en conclusion :{" "}
+                  <span style={{ fontWeight: 600 }}>« {script.promiseHonored} »</span>{" "}
+                </>
+              )}
+              {script.seriesCallbacks && script.seriesCallbacks.length > 0 && (
+                <>
+                  Callbacks disponibles :{" "}
+                  <span style={{ fontWeight: 600 }}>{script.seriesCallbacks.join(" · ")}</span>
+                </>
+              )}
+              {!script.beatRationale && !script.promiseHonored && !script.seriesCallbacks?.length && (
+                <span style={{ color: color.textMuted }}>
+                  Ce script est rattaché au plan de la série. Le détail de l&apos;arc est dans Direction.
+                </span>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={() => router.push("/direction")}
+            title="Voir le plan dans Direction"
+            style={{
+              flexShrink: 0,
+              fontFamily: "inherit",
+              fontSize: 12,
+              fontWeight: 600,
+              color: "oklch(0.5 0.2 292)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            Voir le plan →
+          </button>
+        </div>
       )}
 
       <div style={{ margin: "8px 0 20px" }}>
@@ -649,8 +688,19 @@ export default function ScriptPage() {
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   {c.sourceMaterialTitle && (
-                    <div style={{ fontSize: 11, fontWeight: 700, color: color.textFaint, marginBottom: 2 }}>
-                      {c.sourceMaterialTitle}
+                    <div style={{ marginBottom: 4 }}>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontFamily: fontMono,
+                          color: color.textSecondary,
+                          background: color.chipBg,
+                          borderRadius: 6,
+                          padding: "2px 8px",
+                        }}
+                      >
+                        {c.sourceMaterialTitle}
+                      </span>
                     </div>
                   )}
                   <div style={{ fontSize: 13, lineHeight: 1.4, color: color.text2 }}>&laquo;&nbsp;{c.excerpt}&nbsp;&raquo;</div>

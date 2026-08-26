@@ -49,6 +49,10 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
     : availableCategories.some((c) => c.id === categoryId)
       ? categoryId
       : availableCategories[0]?.id || "";
+  // Prochain épisode encore à écrire du plan de la série choisie — même règle que le choix du jour
+  // côté serveur (premier beat "planned"), affichée ici à titre indicatif.
+  const nextEpisodeTitle =
+    selectedSeries?.narrativeState?.beats.find((b) => b.status === "planned")?.title ?? null;
 
   async function handleGenerate() {
     if (!selectedCategoryId) return;
@@ -150,6 +154,28 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
               );
             })}
           </div>
+          {/* Le rédacteur en chef pioche dans le plan de la série : on annonce l'épisode qu'il
+              prendra, pour que le geste « générer » ne soit pas une boîte noire (maquette 1d). */}
+          {nextEpisodeTitle && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginTop: 12,
+                fontSize: 13,
+                color: color.textMuted,
+                background: accentAlpha(0.06),
+                border: `1px solid ${accentAlpha(0.2)}`,
+                borderRadius: 10,
+                padding: "9px 12px",
+              }}
+            >
+              <span style={{ color: "oklch(0.5 0.2 292)" }}>◈</span>
+              Le rédacteur en chef choisira l&apos;épisode : prochain prévu —{" "}
+              <span style={{ fontWeight: 600, color: color.text2 }}>{nextEpisodeTitle}</span>
+            </div>
+          )}
         </div>
       )}
 
