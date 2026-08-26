@@ -8,6 +8,7 @@ import Modal from "@/components/ui/Modal";
 import BrandAssetLibrary from "@/components/BrandAssetLibrary/BrandAssetLibrary";
 import BriefHeader from "@/components/ScriptEditor/BriefHeader";
 import EditableField from "@/components/ScriptEditor/EditableField";
+import TitleField from "@/components/ScriptEditor/TitleField";
 import { api, ApiClientError, type Script } from "@/lib/apiClient";
 import { accentAlpha, color, fontHeading, fontMono, scriptStatusOptions, statusMeta, type ScriptStatus } from "@/lib/design/tokens";
 
@@ -319,29 +320,7 @@ export default function ScriptPage() {
       )}
 
       <div style={{ margin: "8px 0 20px" }}>
-        <input
-          value={script.title ?? ""}
-          placeholder="(sans titre)"
-          onChange={(e) => setScript({ ...script, title: e.target.value })}
-          onBlur={(e) => {
-            if (e.target.value.trim() && e.target.value !== (history.at(-1)?.title ?? script.title)) {
-              saveField({ title: e.target.value });
-            }
-          }}
-          style={{
-            width: "100%",
-            fontFamily: fontHeading,
-            fontWeight: 700,
-            fontSize: 32,
-            letterSpacing: "-0.025em",
-            lineHeight: 1.1,
-            border: "none",
-            outline: "none",
-            background: "none",
-            color: color.text,
-            padding: 0,
-          }}
-        />
+        <TitleField title={script.title} onSave={(next) => saveField({ title: next })} />
       </div>
 
       {error && <p style={{ color: color.danger, fontSize: 13, marginBottom: 16 }}>{error}</p>}
