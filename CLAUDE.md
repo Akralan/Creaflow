@@ -27,5 +27,6 @@ La facturation self-service (Stripe) est optionnelle pour faire tourner l'app en
 - `docs/PRODUCT.md` — vision produit et fonctionnalités, à jour.
 - `docs/TECH.md` — scope technique à jour : stack, modèle de données, endpoints, architecture des prompts.
 - `docs/BRIEF.md` / `docs/SPEC_POC.md` — cadrage initial de la phase POC, conservés comme archive historique (ne plus mettre à jour).
+- `docs/SPEC_SERIES_ET_ROLES.md` — la série est le seul objet éditorial manipulé, la catégorie est un « rôle » (unique par série, ou porté par un post libre). Modèle de données inchangé, UX recadrée. Implémenté (Lots 0-4), migration de données appliquée en dev.
 - `docs/SPEC_RESSOURCES_VISUELLES.md` — cadrage de la bibliothèque de ressources visuelles / génération d'images, implémentée côté code, pas encore vérifiée en environnement réel.
 - `docs/SETUP_RESSOURCES_VISUELLES.md` — comptes/clés externes à créer (Cloudflare R2, Google Cloud) pour que cette feature fonctionne.
