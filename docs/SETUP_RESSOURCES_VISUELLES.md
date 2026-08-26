@@ -72,8 +72,13 @@ utilisez `anthropic` ou `groq` comme provider de génération de scripts.
 ```
 GEMINI_API_KEY=...
 GEMINI_IMAGE_MODEL=gemini-3-pro-image
-GEMINI_EMBEDDING_MODEL=text-embedding-004
 ```
+
+Les **embeddings** de la bibliothèque visuelle ne passent plus par Gemini : ils utilisent OpenAI
+(`OPENAI_API_KEY`, `OPENAI_EMBEDDING_MODEL=text-embedding-3-small`, 768 dimensions), le modèle
+`text-embedding-004` ayant été retiré côté Google — voir `docs/SPEC_RESSOURCES_VISUELLES.md` §8.4.
+Cette clé est de toute façon requise par l'assistant éditorial. Seuls le captioning vision et la
+génération d'images restent chez Gemini.
 
 ---
 

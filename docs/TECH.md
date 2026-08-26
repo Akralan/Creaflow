@@ -278,6 +278,8 @@ Aucune contrainte `NOT NULL` ne force l'un ou l'autre sens.
 - Les angles n'ont pas d'endpoint dédié exposé séparément dans ce document — gérés via `src/lib/services/angleService.ts` (`generateAnglesForUser`, `upsertAngleItem`), appelés à l'onboarding et depuis l'écran Direction.
 - `GET/POST /api/posting-goals` — objectifs de fréquence hebdomadaire par plateforme.
 
+- `POST /api/assets/reembed` — maintenance : recalcule les embeddings des ressources `ready` à partir de leur `aiDescription` déjà stockée (aucun appel vision). À lancer une fois après un changement de modèle d'embedding — deux modèles ne produisent pas des vecteurs comparables (`docs/SPEC_RESSOURCES_VISUELLES.md` §8.4). Pas d'écran dédié, appel manuel.
+
 ### Assistant éditorial (Module E) — écran `/assistant`
 Assistant **agentique** (`docs/SPEC_ASSISTANT_AGENTIQUE.md`) : il lit tout l'espace de travail via des outils, ne modifie jamais scripts ni calendrier, et toute écriture passe par une proposition à valider.
 - `GET /api/assistant/chat` — historique des messages, propositions en attente, fichiers déposés non rangés.
@@ -474,7 +476,8 @@ Self-service, mode `subscription` Stripe Checkout — pas d'intégration Stripe.
   - `POST /api/auth/login` : 10/15min par IP + 5/15min par email (double limite : IP contre le spam générique, email contre le credential stuffing ciblé depuis plusieurs IP).
   - `POST /api/auth/signup` : 5/heure par IP (anti-création massive de comptes).
   - Génération de script (`POST /api/scripts`, `POST /api/scripts/generate`, `POST /api/scripts/:id/regenerate`, `POST /api/scripts/:id/new-idea`) : 20/min par utilisateur, scope `"script-generate"` partagé entre les 4 routes (sinon la limite se contournerait en alternant entre elles).
-  - Chats IA (`POST /api/onboarding/chat`, `POST /api/assistant/chat`) : 20/min par utilisateur.
+  - Chat d'onboarding (`POST /api/onboarding/chat`) : 20/min par utilisateur.
+  - Chat assistant (`POST /api/assistant/chat`) : **10/min** — le plafond compte des tours de conversation, mais un tour agentique vaut désormais plusieurs appels LLM (`docs/SPEC_ASSISTANT_AGENTIQUE.md` §2.3).
   - `POST /api/profile/style-analysis` : 5/min par utilisateur (déclenchement manuel, usage rare).
   - `POST /api/assets/generate-image` : 10/min par utilisateur.
   - `POST /api/profile/content-categories` et `POST /api/series` (branche régénération IA uniquement, pas l'édition manuelle) : 5/min par utilisateur chacun.
