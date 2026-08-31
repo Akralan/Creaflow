@@ -27,6 +27,46 @@ export interface User {
   email: string;
 }
 
+/** Dépôt public proposé à l'étape « Projets » de l'onboarding dev. */
+export interface GithubRepoOption {
+  externalId: string;
+  fullName: string;
+  name: string;
+  description: string | null;
+  defaultBranch: string;
+  language: string | null;
+  pushedAt: string;
+}
+
+/** Source connectée alimentant le corpus d'un sujet (un dépôt GitHub à ce stade). */
+export interface MaterialSource {
+  id: string;
+  productId: string;
+  type: "github_repo";
+  externalId: string;
+  label: string;
+  syncCursor: string | null;
+  lastSyncedAt: string | null;
+  status: "ok" | "error" | "needs_reconnect";
+  lastError: string | null;
+  createdAt: string;
+}
+
+export interface SyncReport {
+  added: number;
+  updated: number;
+  unchanged: number;
+  truncated: boolean;
+}
+
+export interface ConnectRepoResult {
+  productId: string;
+  sourceId: string;
+  label: string;
+  report: SyncReport | null;
+  error: string | null;
+}
+
 export interface ContentCategory {
   id: string;
   userId: string;
@@ -380,6 +420,16 @@ export const api = {
   me: () => apiFetch<{ user: User | null }>("/api/auth/me"),
   /** Le bouton GitHub de /login n'est rendu que si les variables d'environnement sont présentes. */
   getGithubStatus: () => apiFetch<{ configured: boolean }>("/api/auth/github/status"),
+
+  getGithubRepos: () => apiFetch<{ repos: GithubRepoOption[] }>("/api/github/repos"),
+  connectGithubRepos: (repos: GithubRepoOption[]) =>
+    post<{ results: ConnectRepoResult[] }>("/api/github/repos", { repos }),
+
+  getMaterialSources: (productId: string) =>
+    apiFetch<{ sources: MaterialSource[] }>(`/api/material-sources?productId=${productId}`),
+  syncMaterialSource: (id: string) => post<{ report: SyncReport }>(`/api/material-sources/${id}/sync`),
+  /** Supprime aussi les documents miroir de la source — confirmer côté UI avant d'appeler. */
+  deleteMaterialSource: (id: string) => del<{ ok: true }>(`/api/material-sources/${id}`),
 
   getProfile: () => apiFetch<{ profile: CreatorProfile | null }>("/api/profile"),
   saveProfile: (data: {
