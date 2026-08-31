@@ -378,6 +378,8 @@ export const api = {
   login: (email: string, password: string) => post<{ user: User }>("/api/auth/login", { email, password }),
   logout: () => post<{ ok: true }>("/api/auth/logout"),
   me: () => apiFetch<{ user: User | null }>("/api/auth/me"),
+  /** Le bouton GitHub de /login n'est rendu que si les variables d'environnement sont présentes. */
+  getGithubStatus: () => apiFetch<{ configured: boolean }>("/api/auth/github/status"),
 
   getProfile: () => apiFetch<{ profile: CreatorProfile | null }>("/api/profile"),
   saveProfile: (data: {
