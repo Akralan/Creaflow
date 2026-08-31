@@ -115,7 +115,14 @@ suivre le même repo public.
 export const sourceMaterialKindEnum = pgEnum("source_material_kind", ["paste", "file", "interview", "connector"]);
 
 // sourceMaterials gagne trois colonnes :
-sourceId: uuid("source_id").references(() => materialSources.id, { onDelete: "set null" }),
+// CASCADE, et c'est une déviation assumée de la convention du repo (products.id est en
+// SET NULL depuis sourceMaterials, scripts, brandAssets, contentSeries). Un document
+// connecté est le MIROIR d'une source, pas de la matière rédigée : l'orpheliner à la
+// suppression du sujet le ferait basculer en matière de niveau marque (productId null),
+// donc injectée à CHAQUE génération sans sujet via getMaterialForSubject(userId, null).
+// Cinquante .md d'un projet qu'on vient de supprimer empoisonneraient toutes les
+// générations suivantes. Le contenu, lui, ne se perd pas : il est dans le repo.
+sourceId: uuid("source_id").references(() => materialSources.id, { onDelete: "cascade" }),
 // Identifiant du document DANS sa source : chemin du fichier ("docs/SPEC.md"), ou la
 // valeur réservée "__commits__" pour le journal. Null pour toute matière non connectée.
 externalRef: text("external_ref"),
@@ -125,7 +132,22 @@ externalChecksum: text("external_checksum"),
 ```
 
 Index partiel `unique(sourceId, externalRef) where source_id is not null` : un document par chemin
-et par source, condition d'un upsert propre.
+et par source, condition d'un upsert propre. Deux repos branchés sur le même sujet peuvent donc
+avoir chacun leur `README.md` sans collision.
+
+**Effet de bord à corriger dans la même migration :**
+
+```ts
+// sourceMaterialCitations.sourceMaterialId : cascade → set null.
+sourceMaterialId: uuid("source_material_id").references(() => sourceMaterials.id, { onDelete: "set null" }),
+```
+
+Sans ce changement, la cascade ci-dessus effacerait aussi les citations des scripts déjà publiés qui
+s'appuyaient sur ces documents. `sourceMaterialId` null est déjà un état de première classe —
+`citationService.ts` l'écrit quand aucun document ne matche, `narrativeDirector.ts` le filtre,
+`apiClient.ts` le type `string | null` : la traçabilité se dégrade proprement (l'extrait cité reste
+lisible, il n'est simplement plus rattachable à un document) au lieu de disparaître. Aucun code
+applicatif à modifier.
 
 **Un document ingéré reste une matière strictement ordinaire.** Résumé (`summary`, backfill
 paresseux), citations, injection à la génération, rattachement à une série : rien en aval ne
@@ -314,7 +336,7 @@ de fréquence identique.
 | `POST /api/github/repos` | `{ repos: [{ externalId, fullName, defaultBranch, description }] }` → sujets + sources + ingestion |
 | `GET /api/material-sources?productId=` | Sources d'un sujet, avec `lastSyncedAt` et `status` |
 | `POST /api/material-sources/:id/sync` | Re-sync, renvoie `{ added, updated, unchanged }` |
-| `DELETE /api/material-sources/:id` | Débranche la source ; les documents déjà ingérés restent (`sourceId` → null) |
+| `DELETE /api/material-sources/:id` | Débranche la source **et supprime ses documents miroir** (§3.3). Confirmation explicite côté UI, en annonçant le nombre de documents concernés |
 
 Toutes sauf `start`/`callback` passent par `requireUserId()` et filtrent sur `userId` — même
 discipline que le reste des routes du repo.
@@ -341,7 +363,8 @@ discipline que le reste des routes du repo.
 | Quota GitHub atteint | Message dédié avec délai, `status` inchangé — ce n'est pas une panne de la source |
 | Email GitHub non vérifié | 409 explicite, pas de rattachement à un compte existant (§4.2) |
 | Login par mot de passe sur un compte GitHub | Message orientant vers GitHub, jamais « mot de passe incorrect » |
-| Source débranchée puis le même repo rebranché | Nouvelle source, donc nouveaux documents : les anciens ont `sourceId` à null et ne participent plus à l'upsert. Le corpus contient alors deux copies du même `.md`. Assumé — débrancher est un geste rare et explicite, et dédupliquer sur le chemin seul casserait le cas légitime de deux repos partageant un `README.md` |
+| Sujet supprimé | Source supprimée en cascade, documents miroir supprimés avec elle (§3.3). Les citations des scripts publiés survivent avec `sourceMaterialId` à null |
+| Source débranchée puis le même repo rebranché | Aucune duplication : les documents de l'ancienne source ont été supprimés avec elle, le rebranchement ré-ingère depuis le repo et retrouve un corpus identique |
 | Compte créateur existant qui se connecte via GitHub | Identité rattachée, `onboardingTrack` inchangé : il reste en parcours créateur et n'a pas d'écran de choix de repos. Brancher un repo depuis l'écran matière est une évolution, pas cette itération |
 
 ## 11. Tests
