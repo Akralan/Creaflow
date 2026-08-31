@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import GenerateSeriesFromMaterialModal from "@/components/GenerateSeriesFromMaterialModal";
 import MaterialInterviewChat from "@/components/MaterialInterviewChat";
+import ConnectedSources from "@/components/ConnectedSources";
 import { api, ApiClientError, type Citation, type SourceMaterial } from "@/lib/apiClient";
 import { color } from "@/lib/design/tokens";
 
@@ -235,6 +236,8 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
 
   return (
     <div style={{ display: "grid", gap: 10 }}>
+      {/* Une source est toujours rattachée à un sujet précis : rien à afficher au niveau marque. */}
+      {productId && <ConnectedSources productId={productId} />}
       <div style={{ display: "flex", gap: 2, background: color.chipBg, borderRadius: 10, padding: 3, width: "fit-content", marginBottom: 4 }}>
         {(["paste", "interview"] as const).map((t) => (
           <button
