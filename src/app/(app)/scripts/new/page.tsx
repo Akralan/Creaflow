@@ -24,6 +24,7 @@ function NewScriptContent() {
   const [entry, setEntry] = useState<CalendarEntry | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [productId, setProductId] = useState("");
+  const [directive, setDirective] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -54,7 +55,12 @@ function NewScriptContent() {
     setGenerating(true);
     setError(null);
     try {
-      const { script } = await api.generateScriptForEntry(calendarEntryId, contentTypeParam ?? undefined, productId || undefined);
+      const { script } = await api.generateScriptForEntry(
+        calendarEntryId,
+        contentTypeParam ?? undefined,
+        productId || undefined,
+        directive.trim() || undefined
+      );
       router.replace(`/scripts/${script.id}`);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Erreur lors de la génération.");
@@ -151,6 +157,31 @@ function NewScriptContent() {
             </option>
           ))}
         </select>
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.text3, marginBottom: 6 }}>
+          Une idée en tête ? <span style={{ color: color.textFaint, fontWeight: 400 }}>— optionnel</span>
+        </label>
+        <textarea
+          value={directive}
+          onChange={(e) => setDirective(e.target.value)}
+          placeholder="Une piste à interpréter, pas un texte à recopier..."
+          rows={2}
+          maxLength={500}
+          style={{
+            width: "100%",
+            border: `1px solid ${color.inputBorder}`,
+            borderRadius: 11,
+            padding: "10px 14px",
+            fontSize: 14,
+            lineHeight: 1.45,
+            fontFamily: "inherit",
+            background: color.inputBg,
+            color: color.text2,
+            resize: "vertical",
+          }}
+        />
       </div>
 
       <Card style={{ padding: 24, marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>

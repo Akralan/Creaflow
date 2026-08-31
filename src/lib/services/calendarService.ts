@@ -102,16 +102,17 @@ export function weeksInMonth(daysInMonth: number): number {
 export interface SeriesWeight {
   id: string;
   weight: number; // fraction 0-1, PAS renormalisée pour sommer à 1 (contrairement à CategoryWeight)
-  categoryIds: string[];
+  categoryId: string; // rôle unique de la série (docs/SPEC_SERIES_ET_ROLES.md §1)
 }
 
-/** Convertit les séries (poids % absolu, pas de normalisation à 100 comme pour les catégories). */
+/** Convertit les séries (poids % absolu, pas de normalisation à 100 comme pour les catégories).
+ *  Une série sans rôle (données antérieures à la migration) est écartée. */
 export function seriesWeightsFromSeries(
-  series: Array<{ id: string; weight: number; categoryIds: string[] }>
+  series: Array<{ id: string; weight: number; categoryId: string | null }>
 ): SeriesWeight[] {
   return series
-    .filter((s) => s.categoryIds.length > 0)
-    .map((s) => ({ id: s.id, weight: s.weight / 100, categoryIds: s.categoryIds }));
+    .filter((s): s is typeof s & { categoryId: string } => s.categoryId !== null)
+    .map((s) => ({ id: s.id, weight: s.weight / 100, categoryId: s.categoryId }));
 }
 
 export interface SeriesSlotAssignment {
@@ -135,12 +136,11 @@ export function distributeSeriesOverrides(n: number, seriesWeights: SeriesWeight
   const totalWeight = seriesWeights.reduce((sum, s) => sum + s.weight, 0);
   const scale = totalWeight > 1 ? 1 / totalWeight : 1;
 
-  for (const { id, weight, categoryIds } of seriesWeights) {
+  for (const { id, weight, categoryId } of seriesWeights) {
     const count = Math.min(Math.round(weight * scale * n), n);
     if (count <= 0) continue;
 
     const step = n / count;
-    let categoryCursor = 0;
     for (let i = 0; i < count; i++) {
       let pos = Math.min(Math.round(i * step), n - 1);
       let attempts = 0;
@@ -149,8 +149,7 @@ export function distributeSeriesOverrides(n: number, seriesWeights: SeriesWeight
         attempts++;
       }
       if (result.has(pos)) continue; // plus de créneau libre : on abandonne cette occurrence plutôt que d'écraser une autre série
-      result.set(pos, { seriesId: id, categoryId: categoryIds[categoryCursor % categoryIds.length] });
-      categoryCursor++;
+      result.set(pos, { seriesId: id, categoryId });
     }
   }
   return result;

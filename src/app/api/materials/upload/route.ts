@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { requireUserId } from "@/lib/auth/session";
-import { createFileMaterial } from "@/lib/services/sourceMaterialService";
+import { createFileMaterial, summarizeMaterialDocument } from "@/lib/services/sourceMaterialService";
+import { markStaleForMaterialIngestion } from "@/lib/services/narrativeDirector";
 import { ApiError, handleApiError } from "@/lib/api/errors";
+import { logger } from "@/lib/logger";
 
 const MAX_MATERIAL_FILE_SIZE_BYTES = 2 * 1024 * 1024; // 2 Mo — texte brut, largement suffisant
 
@@ -27,11 +30,19 @@ export async function POST(request: NextRequest) {
     }
 
     const rawText = await file.text();
+    const resolvedProductId = typeof productId === "string" && productId ? productId : null;
     const material = await createFileMaterial(userId, {
-      productId: typeof productId === "string" && productId ? productId : null,
+      productId: resolvedProductId,
       title: file.name,
       rawText,
     });
+    // Ingestion de matière (§5, Lot B4) : marque isStale l'état du sujet + des séries liées.
+    await markStaleForMaterialIngestion(userId, resolvedProductId);
+    after(() =>
+      summarizeMaterialDocument(material.id).catch((err) =>
+        logger.error("Résumé de matière échoué", err, { materialId: material.id })
+      )
+    );
 
     return NextResponse.json({ material }, { status: 201 });
   } catch (error) {

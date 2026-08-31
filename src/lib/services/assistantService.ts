@@ -6,7 +6,7 @@ import { runAssistantChatTurn, type AssistantMessage } from "@/lib/llm/assistant
 import { listActiveSeriesForUser, upsertSeriesItem } from "@/lib/services/seriesService";
 import {
   listActiveCategoriesForUser,
-  resolveCategoryLabelsToIds,
+  resolveCategoryLabelToId,
   saveCategoriesForUser,
 } from "@/lib/services/categoryLabelsService";
 import { listActiveAnglesForUser, upsertAngleItem } from "@/lib/services/angleService";
@@ -86,7 +86,9 @@ export async function runAssistantChatTurnForUser(userId: string, message: strin
 
   for (const s of result.seriesProposals) {
     if (s.action === "update" && !s.targetId) continue;
-    const categoryIds = resolveCategoryLabelsToIds(s.categoryLabels, activeCategories);
+    // Un rôle unique par série (docs/SPEC_SERIES_ET_ROLES.md §1). Un libellé qui ne résout pas
+    // laisse categoryId à null : l'utilisateur choisit le rôle à l'acceptation (400 sinon).
+    const categoryId = resolveCategoryLabelToId(s.categoryLabel, activeCategories);
     rows.push({
       userId,
       kind: s.action === "create" ? "series_create" : "series_update",
@@ -95,8 +97,8 @@ export async function runAssistantChatTurnForUser(userId: string, message: strin
         label: s.label,
         description: s.description,
         weight: s.weight,
-        categoryLabels: s.categoryLabels,
-        categoryIds,
+        categoryLabel: s.categoryLabel,
+        categoryId,
         platforms: s.platforms,
       },
     });
@@ -157,8 +159,8 @@ const seriesPayloadSchema = z.object({
   label: z.string().min(1),
   description: z.string().min(1),
   weight: z.number().int().min(0).max(100),
-  categoryLabels: z.array(z.string()).optional().default([]),
-  categoryIds: z.array(z.string()).optional().default([]),
+  categoryLabel: z.string().optional(),
+  categoryId: z.string().nullable().optional(),
   platforms: z.array(z.string()).optional().default([]),
 });
 
@@ -238,10 +240,12 @@ export async function resolveProposal(
     });
   } else if (proposal.kind === "series_create" || proposal.kind === "series_update") {
     const data = seriesPayloadSchema.parse(merged);
-    const categoryIds =
-      data.categoryIds.length > 0
-        ? data.categoryIds
-        : resolveCategoryLabelsToIds(data.categoryLabels, await listActiveCategoriesForUser(userId));
+    const categoryId =
+      data.categoryId ??
+      (data.categoryLabel ? resolveCategoryLabelToId(data.categoryLabel, await listActiveCategoriesForUser(userId)) : null);
+    if (!categoryId) {
+      throw new ApiError(400, "Choisis un rôle pour cette série avant de l'accepter.");
+    }
 
     await db.transaction(async (tx) => {
       const seriesId = await upsertSeriesItem(tx, userId, {
@@ -249,7 +253,7 @@ export async function resolveProposal(
         label: data.label,
         description: data.description,
         weight: data.weight,
-        categoryIds,
+        categoryId,
         platforms: data.platforms,
       });
       if (!seriesId) {
@@ -281,7 +285,7 @@ export async function resolveProposal(
     }
 
     if (nextItems.length < 2 || nextItems.length > 6) {
-      throw new ApiError(400, "Le nombre de catégories actives doit rester entre 2 et 6.");
+      throw new ApiError(400, "Le nombre de rôles actifs doit rester entre 2 et 6.");
     }
     await saveCategoriesForUser(userId, nextItems);
   } else if (proposal.kind === "angle_create" || proposal.kind === "angle_update") {
@@ -314,7 +318,7 @@ export async function resolveProposal(
     }));
 
     if (nextItems.length < 2 || nextItems.length > 6) {
-      throw new ApiError(400, "Le nombre de catégories actives doit rester entre 2 et 6.");
+      throw new ApiError(400, "Le nombre de rôles actifs doit rester entre 2 et 6.");
     }
     await saveCategoriesForUser(userId, nextItems);
   } else if (proposal.kind === "profile_update") {

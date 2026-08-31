@@ -1,50 +1,27 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
-import { contentSeries } from "@/db/schema";
-import { callStructured } from "@/lib/llm/provider";
-import { generateScript } from "@/lib/llm/generateScript";
-import type { ContentType, Platform } from "@/lib/llm/prompts";
-import {
-  MATERIAL_EPISODES_SYSTEM_PROMPT,
-  buildMaterialEpisodesUserMessage,
-  proposeSeriesEpisodesTool,
-  seriesEpisodesResultSchema,
-} from "@/lib/llm/materialEpisodes";
-import { buildGenerationContext, createScriptRecord } from "@/lib/services/scriptService";
+import { contentCategories, contentSeries, contentSeriesCategories } from "@/db/schema";
+import { planNarrativeForSubject } from "@/lib/services/narrativeDirector";
 import { getMaterialForSubject } from "@/lib/services/sourceMaterialService";
-import { enforceScriptQuota } from "@/lib/services/billingService";
-import { placeScriptOnCalendar } from "@/lib/services/scriptImportService";
-import { logger } from "@/lib/logger";
 import { ApiError } from "@/lib/api/errors";
 
 const DEFAULT_SERIES_WEIGHT = 15;
-// Cadence par défaut entre deux épisodes — aucun signal fiable de fréquence de publication par
-// sujet à ce stade (les objectifs de fréquence sont par plateforme, pas par série) ; 3 jours est un
-// compromis raisonnable, ajustable ensuite au calendrier comme n'importe quel script placé.
-const DAYS_BETWEEN_EPISODES = 3;
-
-function toDateStr(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
 
 export interface GenerateSeriesFromMaterialParams {
   productId?: string | null;
   seriesId?: string;
-  newSeries?: { label: string; description: string; weight?: number };
-  platform: Platform;
-  contentCategoryId: string;
-  contentType: ContentType;
-  episodeCount: number;
+  /** `categoryId` : rôle unique de la série créée (docs/SPEC_SERIES_ET_ROLES.md §1) — sans lui, la
+   *  série n'existerait pour aucun calendrier. */
+  newSeries?: { label: string; description: string; categoryId: string; weight?: number };
 }
 
 /**
- * Génère N scripts ordonnés rattachés à une même ContentSeries depuis le corpus d'un sujet
- * (docs/SPEC_MATIERE_EDITEUR.md §3.8) — le Module C en version texte, validé par le test fondateur.
- * Le LLM lit le texte brut complet et propose lui-même un découpage thématique en épisodes (titre +
- * angle) ; chaque épisode est ensuite généré normalement (buildGenerationContext/createScriptRecord,
- * générations complètes, quota inchangé §4.6), avec cette directive d'épisode en plus du texte brut
- * complet — c'est le LLM qui pioche lui-même dans la matière ce qui correspond à l'angle demandé,
- * pas une pré-assignation de fragments côté serveur.
+ * « Série depuis la matière » (docs/SPEC_REDACTEUR_EN_CHEF.md §4.4) — remplace le mécanisme one-shot
+ * `propose_series_episodes` (qui générait N scripts complets synchrones en une requête). Crée
+ * désormais le `NarrativeState` de la série (mode feuilleton — une série née de la matière est par
+ * nature une progression) et lance une planification glissante (§3.2) : le résultat est un PLAN de
+ * beats, pas des scripts déjà générés. La génération réelle suit le flux normal (créneau/génération
+ * libre), qui pioche dans ce plan via le choix du jour (§3.3, Lot B3).
  */
 export async function generateSeriesFromMaterial(userId: string, params: GenerateSeriesFromMaterialParams) {
   if (!params.seriesId && !params.newSeries) {
@@ -52,15 +29,39 @@ export async function generateSeriesFromMaterial(userId: string, params: Generat
   }
 
   let series: typeof contentSeries.$inferSelect;
+  let category: { id: string; label: string } | null;
   if (params.seriesId) {
-    const found = await db.query.contentSeries.findFirst({
+    const existing = await db.query.contentSeries.findFirst({
       where: and(eq(contentSeries.id, params.seriesId), eq(contentSeries.userId, userId)),
+      with: { contentSeriesCategories: { with: { category: { columns: { id: true, label: true } } }, limit: 1 } },
     });
-    if (!found) {
+    if (!existing) {
       throw new ApiError(404, "Série introuvable.");
+    }
+    const { contentSeriesCategories: joins, ...rest } = existing;
+    category = joins[0]?.category ?? null;
+    let found: typeof contentSeries.$inferSelect = rest;
+    // Un sujet fourni ici est un geste explicite ("planifie CETTE série depuis la matière de CE
+    // sujet") — met à jour le lien série↔sujet en conséquence (sélecteur de sujet,
+    // docs/SPEC_REDACTEUR_EN_CHEF.md), pas seulement un scoping ponctuel de cet appel.
+    if (params.productId !== undefined && params.productId !== found.productId) {
+      const [updated] = await db
+        .update(contentSeries)
+        .set({ productId: params.productId })
+        .where(eq(contentSeries.id, found.id))
+        .returning();
+      found = updated;
     }
     series = found;
   } else {
+    const role = await db.query.contentCategories.findFirst({
+      where: and(eq(contentCategories.id, params.newSeries!.categoryId), eq(contentCategories.userId, userId)),
+      columns: { id: true, label: true },
+    });
+    if (!role) {
+      throw new ApiError(404, "Rôle introuvable.");
+    }
+    category = role;
     const [created] = await db
       .insert(contentSeries)
       .values({
@@ -68,73 +69,39 @@ export async function generateSeriesFromMaterial(userId: string, params: Generat
         label: params.newSeries!.label,
         description: params.newSeries!.description,
         weight: params.newSeries!.weight ?? DEFAULT_SERIES_WEIGHT,
+        // Une série née d'un corpus de matière raconte une progression par construction — feuilleton,
+        // pas le défaut rendez_vous générique (§1 : l'inférence LLM normale, Annexe B.8, ne s'applique
+        // qu'à la génération globale de séries depuis l'activité, pas à ce geste dédié).
+        mode: "feuilleton",
+        // Sujet lié dès la création (sélecteur de sujet) — le sujet dont cette série tire sa matière.
+        productId: params.productId ?? null,
       })
       .returning();
+    await db.insert(contentSeriesCategories).values({ seriesId: created.id, categoryId: role.id });
     series = created;
   }
 
-  const documents = await getMaterialForSubject(userId, params.productId ?? null);
+  const documents = await getMaterialForSubject(userId, series.productId);
   if (documents.length === 0) {
     throw new ApiError(400, "Aucune matière disponible pour ce sujet — colle du texte ou fais une interview d'abord.");
   }
-  const combinedRawText = documents.map((d) => (d.title ? `[${d.title}]\n${d.rawText}` : d.rawText)).join("\n\n---\n\n");
 
-  const episodeCount = Math.max(2, Math.min(params.episodeCount, 10));
-  const args = await callStructured({
-    system: MATERIAL_EPISODES_SYSTEM_PROMPT,
-    userMessage: buildMaterialEpisodesUserMessage({
-      seriesLabel: series.label,
-      seriesDescription: series.description,
-      episodeCount,
-      rawText: combinedRawText,
-    }),
-    tool: proposeSeriesEpisodesTool,
-    maxTokens: 2048,
-  });
-  const { episodes } = seriesEpisodesResultSchema.parse(args);
+  // Pas de productId explicite ici : narrativeDirector.ts::resolveSubject le dérive automatiquement
+  // de `series.productId` (qu'on vient de garantir à jour ci-dessus) — l'état narratif d'une série
+  // reste toujours identifié par son seriesId seul (voir le commentaire sur resolveSubject).
+  const state = await planNarrativeForSubject(userId, { seriesId: series.id });
 
-  const scripts = [];
-  let episodeIndex = 0;
-  for (const episode of episodes) {
-    // Une génération complète par épisode — quota inchangé dans son principe (§4.6). On s'arrête
-    // dès que le quota est atteint plutôt que d'échouer toute la série après coup : les épisodes
-    // déjà générés sont conservés (chaque createScriptRecord commit indépendamment).
-    try {
-      await enforceScriptQuota(userId);
-    } catch {
-      break;
-    }
-
-    const context = await buildGenerationContext(
-      userId,
-      params.platform,
-      params.contentCategoryId,
-      params.contentType,
-      params.productId ?? null,
-      undefined,
-      series.id
-    );
-    context.episodeDirective = { episodeTitle: episode.episodeTitle, angleHint: episode.angleHint };
-
-    const generated = await generateScript(context);
-    const script = await createScriptRecord(userId, params.platform, context.contentCategory, params.productId ?? null, generated, {
-      angleId: context.angle?.id ?? null,
-      seriesId: series.id,
-      brandAssetId: context.brandAsset?.id ?? null,
-    });
-    scripts.push(script);
-
-    // Posé directement sur un créneau (§3.8) — la mécanique de placement existante, réutilisée telle
-    // quelle. Un échec de placement ne doit pas faire perdre le script déjà généré.
-    episodeIndex += 1;
-    const scheduledDate = new Date();
-    scheduledDate.setDate(scheduledDate.getDate() + episodeIndex * DAYS_BETWEEN_EPISODES);
-    try {
-      await placeScriptOnCalendar(userId, script.id, toDateStr(scheduledDate));
-    } catch (err) {
-      logger.error("Placement au calendrier échoué pour un épisode de série", err, { scriptId: script.id });
-    }
-  }
-
-  return { series, scripts };
+  // Forme alignée sur listActiveSeriesForUser (category/platforms/narrativeState/product) — aucune
+  // plateforme à ce stade. `product` à `null` même si productId est renseigné : l'appelant redirige
+  // vers /direction juste après, qui relit la forme jointe exacte.
+  return {
+    series: {
+      ...series,
+      category,
+      platforms: [] as string[],
+      narrativeState: state,
+      product: null as { id: string; name: string } | null,
+    },
+    state,
+  };
 }

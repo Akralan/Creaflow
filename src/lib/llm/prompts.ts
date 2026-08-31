@@ -66,6 +66,7 @@ export const SCRIPT_SYSTEM_PROMPT = `Tu es le Directeur Marketing Virtuel de Cre
 
 Règles de qualité :
 - Un script porte UNE seule idée, formulée dans le champ "concept" avant tout le reste. Si deux messages cohabitent, garde le plus fort et abandonne l'autre.
+- Tu sélectionnes, tu ne couvres pas : choisis LE moment le plus fort de la matière fournie (un échec, une décision, un chiffre, une percée) et ignore délibérément le reste. Ce que tu n'utilises pas aujourd'hui servira aux prochains posts — le marquage [déjà utilisé] le garantit, rien n'est perdu.
 - L'accroche crée un manque — une tension, un chiffre inattendu, une affirmation contre-intuitive tirés du contexte fourni. Elle n'annonce jamais le sujet.
 - Chaque script contient au moins un élément que seul ce créateur peut dire. Si ce n'est pas le cas de ton brouillon, retourne puiser dans la matière fournie avant de répondre.
 
@@ -120,6 +121,39 @@ export interface ScriptGenerationContext {
   /** Directive d'épisode pour une génération de série depuis la matière (§3.8) — le sous-thème que
    *  ce script doit couvrir au sein de la série, le LLM pioche lui-même dans materialDocuments. */
   episodeDirective?: { episodeTitle: string; angleHint: string } | null;
+  /** Idée soufflée par le créateur sur une porte de génération (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A,
+   *  Annexe B.4) — une graine à interpréter, jamais à copier ni une source de faits. Rendue dans le
+   *  message uniquement quand `direction` est absente (§4.1 : le chef l'absorbe dans son concept
+   *  quand il est actif — "détour d'arc assumé"). */
+  directive?: string | null;
+  /** Direction éditoriale du chef (docs/SPEC_REDACTEUR_EN_CHEF.md §3.3/§4.1), résolue par
+   *  `resolveDailyDirection` (narrativeDirector.ts) avant l'assemblage du message. `null` = pas de
+   *  chef actif pour ce sujet (pas de NarrativeState, erreur silencieuse, ou flag désactivé) —
+   *  pipeline actuel inchangé dans ce cas. `materialDocuments` est déjà restreint aux `focusDocIds`
+   *  par l'appelant quand `direction` est présente (mécanique de citation inchangée). */
+  direction?: {
+    /** Id de l'état narratif concerné — traçabilité pour markBeatDrafted après génération, ne sert
+     *  pas à l'assemblage du message. */
+    stateId: string;
+    beatId: string | null;
+    /** Titre du beat choisi, résolu côté service (le tool choose_daily_direction ne renvoie que
+     *  l'id) — null si beatId est null. */
+    beatTitle: string | null;
+    concept: string;
+    kind: "material" | "pedagogical" | "personal";
+    callbackToUse: string | null;
+    promiseToHonor: string | null;
+    promiseToMake: string | null;
+    /** Remplace l'angle choisi par le mécanisme anti-répétition (`angle` ci-dessus, qui devient le
+     *  fallback quand ce champ est null) — §4.1. */
+    angleHint: string | null;
+  } | null;
+  /** Sujet effectivement utilisé pour lire la matière et scoper les citations (buildGenerationContext,
+   *  scriptService.ts) — le `productId` explicite de la requête, ou à défaut le sujet lié à la série
+   *  (`ContentSeries.productId`, sélecteur de sujet). À utiliser pour `Script.productId`/les citations
+   *  à la création, au lieu du `productId` brut de la requête, pour rester cohérent avec la matière
+   *  effectivement lue par cette génération. */
+  resolvedProductId?: string | null;
 }
 
 // v2 (docs/SPEC_PROMPT_GENERATION_TECH.md §3.2, texte Annexe A.3) : données séparées des consignes,
@@ -145,6 +179,8 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
     brandAsset,
     materialDocuments,
     episodeDirective,
+    directive,
+    direction,
   } = context;
 
   const sections: string[] = [];
@@ -166,6 +202,33 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
     brandLines.push(`Temps disponible par semaine : ${creatorProfile.weeklyTimeAvailable}`);
   }
   sections.push(`=== CONTEXTE MARQUE ===\n${brandLines.join("\n")}`);
+
+  // === DIRECTION ÉDITORIALE === (Annexe B.3, docs/SPEC_REDACTEUR_EN_CHEF.md §4.1 — entre CONTEXTE
+  // MARQUE et MATIÈRE) : le chef a choisi l'épisode du jour, le rédacteur l'exécute plutôt que de
+  // choisir une autre histoire.
+  if (direction) {
+    const directionLines: string[] = [
+      "La direction éditoriale a choisi l'épisode du jour. Ta mission est de l'exécuter, pas de choisir une autre histoire.",
+    ];
+    if (direction.beatTitle) directionLines.push(`Épisode : ${direction.beatTitle}`);
+    directionLines.push(`Direction : ${direction.concept}`);
+    directionLines.push(
+      `Ton champ "concept" doit décliner cette direction en décision d'exécution — comment tu la racontes sur cette plateforme — jamais la remplacer par une autre idée.`
+    );
+    if (direction.callbackToUse) directionLines.push(`Callback à replacer naturellement : ${direction.callbackToUse}`);
+    if (direction.promiseToHonor) directionLines.push(`Promesse à honorer dans ce post : ${direction.promiseToHonor}`);
+    if (direction.promiseToMake) directionLines.push(`Promesse à faire en fin de post : ${direction.promiseToMake}`);
+    if (direction.kind === "pedagogical") {
+      directionLines.push(
+        `Épisode pédagogique décidé par la direction éditoriale : tu peux utiliser le savoir général du domaine (définitions, concepts, ordres de grandeur publics) pour expliquer. Les faits spécifiques au créateur, à son projet ou à ses résultats restent soumis à la règle stricte : uniquement ce qui est dans le contexte fourni.`
+      );
+    } else if (direction.kind === "personal") {
+      directionLines.push(
+        `Épisode de présentation personnelle décidé par la direction éditoriale : la source est le contexte marque (identité, activité, valeurs, audience), pas la matière documentaire. La règle stricte reste entière : rien d'inventé au-delà de ce contexte — si un élément personnel manque, écris "[à compléter]".`
+      );
+    }
+    sections.push(`=== DIRECTION ÉDITORIALE ===\n${directionLines.join("\n")}`);
+  }
 
   // === MATIÈRE ===
   if (materialDocuments?.length) {
@@ -199,7 +262,12 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
       `Série récurrente à respecter (identité et angle de la série — directive forte) : ${series.label} — ${series.description}`
     );
   }
-  if (angle) {
+  // direction.angleHint remplace l'angle du mécanisme anti-répétition quand le chef en recommande
+  // un ; `angle` (résolu normalement) reste le fallback — chef absent, ou angleHint non fourni pour
+  // ce post (§4.1 : "l'angle par défaut du système s'appliquera").
+  if (direction?.angleHint) {
+    briefLines.push(`Angle à adopter pour ce script (structure/format de hook à respecter) : ${direction.angleHint}`);
+  } else if (angle) {
     briefLines.push(
       `Angle à adopter pour ce script (structure/format de hook à respecter) : ${angle.label} — ${angle.description}`
     );
@@ -215,6 +283,13 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
   if (episodeDirective) {
     briefLines.push(
       `Cet épisode de la série doit se concentrer sur : ${episodeDirective.episodeTitle} — ${episodeDirective.angleHint}`
+    );
+  }
+  // Chemin "sans chef" uniquement (§4.1/§1) : quand une direction existe, le chef a déjà absorbé la
+  // directive du créateur dans son concept ("détour d'arc assumé") — ne pas la répéter ici.
+  if (!direction && directive) {
+    briefLines.push(
+      `Idée soufflée par le créateur (interprète-la : c'est une piste et une intention, pas un texte à recopier ni une source de faits — les faits restent soumis aux règles ci-dessus) : ${directive}`
     );
   }
   sections.push(`=== BRIEF ===\n${briefLines.join("\n")}`);
@@ -245,7 +320,11 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
     `=== PRIORITÉS ===\n` +
       `En cas de tension entre les consignes ci-dessus, l'ordre de priorité est :\n` +
       `1. La vérité factuelle : la matière fournie prime sur tout, rien n'est inventé au-delà.\n` +
-      `2. L'identité de la série et l'angle imposé.\n` +
+      `2. ${
+        !direction && directive
+          ? "La directive du créateur (à interpréter, jamais à copier), l'identité de la série et l'angle imposé."
+          : "L'identité de la série et l'angle imposé."
+      }\n` +
       `3. La voix de la marque (style observé, ton, valeurs).\n` +
       `4. Les codes de la plateforme.\n` +
       `Si l'angle imposé ne s'applique pas à la matière disponible, garde l'esprit de l'angle et adapte sa structure plutôt que d'inventer des faits.\n` +

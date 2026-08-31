@@ -13,7 +13,8 @@ const saveSchema = z.object({
       label: z.string().min(1),
       description: z.string().min(1),
       weight: z.number().int().min(0).max(100),
-      categoryIds: z.array(z.uuid()).min(1),
+      // Un rôle unique par série (docs/SPEC_SERIES_ET_ROLES.md §1).
+      categoryId: z.uuid(),
       platforms: z.array(platformSchema).default([]),
     })
   ),

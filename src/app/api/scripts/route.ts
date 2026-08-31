@@ -5,19 +5,22 @@ import { db } from "@/db";
 import { calendarEntries, scripts } from "@/db/schema";
 import { generateScript } from "@/lib/llm/generateScript";
 import { requireUserId } from "@/lib/auth/session";
-import { buildGenerationContext, createScriptRecord } from "@/lib/services/scriptService";
+import { buildGenerationContext, createScriptRecord, recordBeatDraftedIfNeeded } from "@/lib/services/scriptService";
 import { enforceScriptQuota } from "@/lib/services/billingService";
-import { platformSchema, contentCategorySchema, contentTypeSchema } from "@/lib/validation";
+import { platformSchema, contentCategorySchema, contentTypeSchema, directiveSchema } from "@/lib/validation";
 import { handleApiError } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
 
+// contentCategoryId optionnel dès qu'une série est fournie — la série impose son rôle
+// (docs/SPEC_SERIES_ET_ROLES.md §4.2) ; obligatoire en post libre (vérifié côté service).
 const schema = z.object({
   platform: platformSchema,
-  contentCategoryId: contentCategorySchema,
+  contentCategoryId: contentCategorySchema.optional(),
   contentType: contentTypeSchema,
   productId: z.uuid().optional(),
   scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format attendu : YYYY-MM-DD").optional(),
   seriesId: z.uuid().optional(),
+  directive: directiveSchema,
 });
 
 const listSchema = z.object({ seriesId: z.uuid().optional() });
@@ -48,7 +51,7 @@ export async function POST(request: NextRequest) {
     const userId = await requireUserId();
     // Chaque génération de script coûte un appel LLM — limite partagée avec les autres routes de génération.
     await enforceRateLimit("script-generate", userId, 20, 60);
-    const { platform, contentCategoryId, contentType, productId, scheduledDate, seriesId } = schema.parse(
+    const { platform, contentCategoryId, contentType, productId, scheduledDate, seriesId, directive } = schema.parse(
       await request.json()
     );
     await enforceScriptQuota(userId);
@@ -56,18 +59,25 @@ export async function POST(request: NextRequest) {
     const context = await buildGenerationContext(
       userId,
       platform,
-      contentCategoryId,
+      contentCategoryId ?? null,
       contentType,
       productId,
       undefined,
-      seriesId ?? null
+      seriesId ?? null,
+      undefined,
+      directive
     );
     const generated = await generateScript(context);
-    const script = await createScriptRecord(userId, platform, context.contentCategory, productId ?? null, generated, {
+    // resolvedProductId (pas productId brut) : hérite du sujet lié à la série quand aucun sujet
+    // n'a été choisi pour cette génération précise (docs/SPEC_REDACTEUR_EN_CHEF.md, sélecteur de sujet).
+    const script = await createScriptRecord(userId, platform, context.contentCategory, context.resolvedProductId ?? null, generated, {
       angleId: context.angle?.id ?? null,
       seriesId: context.series?.id ?? null,
       brandAssetId: context.brandAsset?.id ?? null,
+      beatId: context.direction?.beatId ?? null,
+      promiseHonored: context.direction?.promiseToHonor ?? null,
     });
+    await recordBeatDraftedIfNeeded(context, script.id);
 
     if (scheduledDate) {
       await db.insert(calendarEntries).values({

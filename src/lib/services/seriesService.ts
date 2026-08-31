@@ -2,12 +2,21 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { contentSeries, contentSeriesCategories, contentSeriesPlatforms, creatorProfiles, products } from "@/db/schema";
 import { suggestContentSeries } from "@/lib/llm/seriesLabels";
-import { listActiveCategoriesForUser, resolveCategoryLabelsToIds } from "@/lib/services/categoryLabelsService";
+import { listActiveCategoriesForUser, resolveCategoryLabelToId } from "@/lib/services/categoryLabelsService";
+import { findNarrativeStatesForSeries } from "@/lib/services/narrativeDirector";
 import { ApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
+/** Écran Direction — endpoint agrégé (docs/SPEC_REDACTEUR_EN_CHEF.md §6 : "pas de nouvel endpoint de
+ *  lecture, étendre l'endpoint agrégé existant") : chaque série porte son état narratif le cas
+ *  échéant (`null` si jamais planifiée, ou mode rendez_vous).
+ *
+ *  Une série porte exactement UN rôle (docs/SPEC_SERIES_ET_ROLES.md §1) — la jonction
+ *  contentSeriesCategories est conservée physiquement, l'invariant est imposé ici et dans
+ *  upsertSeriesItem. `category` est le premier lien trouvé ; une série sans lien (données
+ *  antérieures à la migration) remonte `category: null` et est ignorée par le calendrier. */
 export async function listActiveSeriesForUser(userId: string) {
   const rows = await db.query.contentSeries.findMany({
     where: and(eq(contentSeries.userId, userId), eq(contentSeries.archived, false)),
@@ -15,13 +24,94 @@ export async function listActiveSeriesForUser(userId: string) {
     with: {
       contentSeriesCategories: { with: { category: { columns: { id: true, label: true } } } },
       contentSeriesPlatforms: { columns: { platform: true } },
+      // Sujet lié (sélecteur de sujet, docs/SPEC_REDACTEUR_EN_CHEF.md) — pour affichage et édition
+      // côté écran Direction ; `null` si la série n'est rattachée à aucun sujet précis.
+      product: { columns: { id: true, name: true } },
     },
   });
+  const narrativeStates = await findNarrativeStatesForSeries(
+    userId,
+    rows.map((r) => r.id)
+  );
   return rows.map(({ contentSeriesCategories: joins, contentSeriesPlatforms: platformJoins, ...s }) => ({
     ...s,
-    categories: joins.map((j) => j.category),
+    category: joins[0]?.category ?? null,
     platforms: platformJoins.map((j) => j.platform),
+    narrativeState: narrativeStates.get(s.id) ?? null,
   }));
+}
+
+/** Rôle porté par une série (docs/SPEC_SERIES_ET_ROLES.md §4.2) — `null` si la série n'existe pas
+ *  pour cet utilisateur. Sert à dériver le rôle d'un créneau ou d'un script à partir de sa série
+ *  au lieu de le demander à l'appelant. */
+export async function findSeriesCategoryId(userId: string, seriesId: string): Promise<string | null> {
+  const found = await db.query.contentSeries.findFirst({
+    where: and(eq(contentSeries.id, seriesId), eq(contentSeries.userId, userId)),
+    columns: { id: true },
+    with: { contentSeriesCategories: { columns: { categoryId: true }, limit: 1 } },
+  });
+  return found?.contentSeriesCategories[0]?.categoryId ?? null;
+}
+
+/**
+ * Résolution du rôle pour toute porte de génération/import/édition de créneau
+ * (docs/SPEC_SERIES_ET_ROLES.md §4.2) : la série impose son rôle ; sans série, le rôle doit être
+ * fourni explicitement (post libre). Un `contentCategoryId` contradictoire avec la série est ignoré
+ * et journalisé plutôt que refusé — le client d'avant le recadrage envoyait toujours les deux.
+ */
+export async function resolveCategoryForGeneration(
+  userId: string,
+  input: { seriesId?: string | null; contentCategoryId?: string | null }
+): Promise<string> {
+  if (input.seriesId) {
+    const seriesCategoryId = await findSeriesCategoryId(userId, input.seriesId);
+    if (!seriesCategoryId) {
+      throw new ApiError(404, "Série introuvable ou sans rôle.");
+    }
+    if (input.contentCategoryId && input.contentCategoryId !== seriesCategoryId) {
+      logger.warn("Rôle contradictoire avec la série, rôle de la série retenu", {
+        seriesId: input.seriesId,
+        requested: input.contentCategoryId,
+        resolved: seriesCategoryId,
+      });
+    }
+    return seriesCategoryId;
+  }
+  if (!input.contentCategoryId) {
+    throw new ApiError(400, "Un post libre doit avoir un rôle (contentCategoryId).");
+  }
+  return input.contentCategoryId;
+}
+
+/** Bascule de mode et/ou changement du sujet lié (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — n'affecte
+ *  jamais l'état narratif existant : ni la bascule de mode (rendez_vous conserve les beats, masque
+ *  seulement la planification côté UI), ni le changement de sujet (l'état d'un plan déjà en cours
+ *  n'est pas migré — nouvelle matière lue à la prochaine planification/génération, cf.
+ *  narrativeDirector.ts::resolveSubject qui lit `ContentSeries.productId` à chaque appel, jamais
+ *  une valeur figée sur NarrativeState). */
+export async function updateSeriesFields(
+  userId: string,
+  seriesId: string,
+  fields: { mode?: (typeof contentSeries.$inferInsert)["mode"]; productId?: string | null }
+) {
+  if (fields.productId) {
+    const product = await db.query.products.findFirst({ where: and(eq(products.id, fields.productId), eq(products.userId, userId)) });
+    if (!product) {
+      throw new ApiError(404, "Sujet introuvable.");
+    }
+  }
+  const [updated] = await db
+    .update(contentSeries)
+    .set({
+      ...(fields.mode !== undefined && { mode: fields.mode }),
+      ...(fields.productId !== undefined && { productId: fields.productId }),
+    })
+    .where(and(eq(contentSeries.id, seriesId), eq(contentSeries.userId, userId)))
+    .returning();
+  if (!updated) {
+    throw new ApiError(404, "Série introuvable.");
+  }
+  return updated;
 }
 
 /** Génère un nouveau jeu de séries via l'IA à partir des catégories actives de l'utilisateur.
@@ -35,7 +125,7 @@ export async function generateSeriesForUser(userId: string) {
   const productList = await db.query.products.findMany({ where: eq(products.userId, userId) });
   const activeCategories = await listActiveCategoriesForUser(userId);
   if (activeCategories.length === 0) {
-    throw new ApiError(400, "Configure d'abord tes catégories de contenu avant de générer les séries.");
+    throw new ApiError(400, "Configure d'abord tes rôles éditoriaux avant de générer les séries.");
   }
 
   const suggested = await suggestContentSeries({
@@ -49,13 +139,10 @@ export async function generateSeriesForUser(userId: string) {
 
   logger.debug("Réponse brute LLM (suggestion de séries)", { suggested });
 
-  // Résout categoryLabels -> categoryId ; ignore une série suggérée dont aucune catégorie ne matche.
+  // Résout categoryLabel -> categoryId ; ignore une série suggérée dont le rôle ne matche pas.
   const resolved = suggested
-    .map((s) => ({
-      ...s,
-      categoryIds: resolveCategoryLabelsToIds(s.categoryLabels, activeCategories),
-    }))
-    .filter((s) => s.categoryIds.length > 0);
+    .map((s) => ({ ...s, categoryId: resolveCategoryLabelToId(s.categoryLabel, activeCategories) }))
+    .filter((s): s is typeof s & { categoryId: string } => s.categoryId !== null);
 
   return db.transaction(async (tx) => {
     await tx
@@ -67,27 +154,26 @@ export async function generateSeriesForUser(userId: string) {
 
     const inserted = await tx
       .insert(contentSeries)
-      .values(resolved.map((s) => ({ userId, label: s.label, description: s.description, weight: s.weight })))
+      .values(resolved.map((s) => ({ userId, label: s.label, description: s.description, weight: s.weight, mode: s.mode })))
       .returning();
 
-    const joinRows = inserted.flatMap((series, i) =>
-      resolved[i].categoryIds.map((categoryId) => ({ seriesId: series.id, categoryId }))
-    );
-    if (joinRows.length > 0) {
-      await tx.insert(contentSeriesCategories).values(joinRows);
-    }
+    await tx.insert(contentSeriesCategories).values(inserted.map((series, i) => ({ seriesId: series.id, categoryId: resolved[i].categoryId })));
 
-    return inserted.map((s, i) => ({
-      ...s,
-      categories: resolved[i].categoryIds.map((id) => {
-        const category = activeCategories.find((c) => c.id === id)!;
-        return { id: category.id, label: category.label };
-      }),
-      // La génération IA ne propose pas de ciblage plateforme — même valeur par défaut que
-      // "aucune ligne ContentSeriesPlatforms" (visible sur tous les réseaux), pour que la forme
-      // renvoyée reste identique à listActiveSeriesForUser/saveSeriesForUser.
-      platforms: [] as string[],
-    }));
+    return inserted.map((s, i) => {
+      const category = activeCategories.find((c) => c.id === resolved[i].categoryId)!;
+      return {
+        ...s,
+        category: { id: category.id, label: category.label },
+        // La génération IA ne propose pas de ciblage plateforme — même valeur par défaut que
+        // "aucune ligne ContentSeriesPlatforms" (visible sur tous les réseaux), pour que la forme
+        // renvoyée reste identique à listActiveSeriesForUser/saveSeriesForUser.
+        platforms: [] as string[],
+        // Toujours null : ce sont des lignes fraîchement insérées, un état narratif ne peut exister
+        // que pour un seriesId déjà connu, et la génération IA ne propose pas de sujet lié.
+        narrativeState: null,
+        product: null,
+      };
+    });
   });
 }
 
@@ -96,11 +182,11 @@ interface SeriesInput {
   label: string;
   description: string;
   weight: number;
-  categoryIds: string[];
+  categoryId: string;
   platforms: string[];
 }
 
-/** Insère ou met à jour UNE série et resynchronise ses liens catégories/plateformes, dans la transaction fournie.
+/** Insère ou met à jour UNE série et resynchronise son rôle et ses plateformes, dans la transaction fournie.
  *  Ne touche aucune autre ligne — contrairement à saveSeriesForUser, n'archive rien.
  *  Retourne null si un id est fourni mais ne correspond à aucune série de cet utilisateur. */
 export async function upsertSeriesItem(tx: Tx, userId: string, item: SeriesInput): Promise<string | null> {
@@ -122,9 +208,7 @@ export async function upsertSeriesItem(tx: Tx, userId: string, item: SeriesInput
       .returning();
     seriesId = inserted.id;
   }
-  if (item.categoryIds.length > 0) {
-    await tx.insert(contentSeriesCategories).values(item.categoryIds.map((categoryId) => ({ seriesId, categoryId })));
-  }
+  await tx.insert(contentSeriesCategories).values({ seriesId, categoryId: item.categoryId });
   if (item.platforms.length > 0) {
     await tx.insert(contentSeriesPlatforms).values(item.platforms.map((platform) => ({ seriesId, platform })));
   }
@@ -132,7 +216,7 @@ export async function upsertSeriesItem(tx: Tx, userId: string, item: SeriesInput
 }
 
 /** Enregistrement manuel : diffe contre le jeu actif (même logique que saveCategoriesForUser),
- *  et resynchronise les liens vers les catégories à chaque mise à jour. */
+ *  et resynchronise le rôle à chaque mise à jour. */
 export async function saveSeriesForUser(userId: string, items: SeriesInput[]) {
   const active = await listActiveSeriesForUser(userId);
   const keptIds = new Set(items.filter((s) => s.id).map((s) => s.id as string));

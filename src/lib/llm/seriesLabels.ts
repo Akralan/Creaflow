@@ -6,7 +6,10 @@ export const seriesEntrySchema = z.object({
   label: z.string().min(1),
   description: z.string().min(1),
   weight: z.number().int().min(0).max(60),
-  categoryLabels: z.array(z.string().min(1)).min(1),
+  // Un rôle unique par série (docs/SPEC_SERIES_ET_ROLES.md §1) — libellé exact d'un rôle actif.
+  categoryLabel: z.string().min(1),
+  // docs/SPEC_REDACTEUR_EN_CHEF.md §4.5, Annexe B.8 — inférence à la création, éditable ensuite.
+  mode: z.enum(["feuilleton", "rendez_vous"]),
 });
 
 export type SeriesEntry = z.infer<typeof seriesEntrySchema>;
@@ -17,13 +20,13 @@ export const suggestedSeriesSchema = z.object({
 
 const SUGGEST_CONTENT_SERIES_TOOL_NAME = "suggest_content_series";
 
-/** L'enum sur categoryLabels force le modèle à choisir parmi les libellés existants tels
+/** L'enum sur categoryLabel force le modèle à choisir parmi les libellés existants tels
  *  quels, au lieu de recopier le bloc "Label — Description" fourni en contexte. */
 function buildSuggestContentSeriesTool(categoryLabels: string[]): LlmToolDefinition {
   return {
     name: SUGGEST_CONTENT_SERIES_TOOL_NAME,
     description:
-      "Propose entre 0 et 5 séries de contenu récurrentes (formats nommés, reconnaissables) adaptées au métier du créateur, chacune rattachée à une ou plusieurs de ses catégories de contenu actives.",
+      "Propose entre 0 et 5 séries de contenu récurrentes (formats nommés, reconnaissables) adaptées au métier du créateur, chacune servant UN rôle éditorial actif.",
     input_schema: {
       type: "object",
       properties: {
@@ -45,13 +48,19 @@ function buildSuggestContentSeriesTool(categoryLabels: string[]): LlmToolDefinit
                 type: "integer",
                 description: "Pourcentage approximatif des créneaux mensuels que cette série devrait occuper (0 à 60, pas besoin de sommer à 100 avec les autres séries).",
               },
-              categoryLabels: {
-                type: "array",
-                description: "Une ou plusieurs catégories de contenu actives auxquelles cette série appartient.",
-                items: { type: "string", enum: categoryLabels },
+              categoryLabel: {
+                type: "string",
+                description: "Le rôle éditorial (unique) que sert cette série. Si tu hésites entre deux rôles, ce sont deux séries.",
+                enum: categoryLabels,
+              },
+              mode: {
+                type: "string",
+                enum: ["feuilleton", "rendez_vous"],
+                description:
+                  'Détermine le mode de la série : "feuilleton" si les épisodes se suivent et construisent une progression (devlog, coulisses d\'un projet, avancement d\'un chantier) ; "rendez_vous" si les épisodes sont autonomes et ne partagent qu\'un format (news de la semaine, sélection, FAQ, top). En cas de doute, choisis "rendez_vous".',
               },
             },
-            required: ["label", "description", "weight", "categoryLabels"],
+            required: ["label", "description", "weight", "categoryLabel", "mode"],
           },
         },
       },
@@ -62,7 +71,7 @@ function buildSuggestContentSeriesTool(categoryLabels: string[]): LlmToolDefinit
 
 const SYSTEM_PROMPT = `Tu conçois la direction éditoriale d'un créateur ou d'une entreprise, adaptée précisément à son activité.
 
-Propose entre 0 et 5 "séries" : des formats de contenu récurrents et nommés (ex: pour un coach sportif : "Le mythe du mercredi" en éducatif, "Transformation du mois" en témoignage ; pour un freelance produit web : "Build in public hebdo" en coulisses). Une série donne une identité reconnaissable (même angle, même structure, même ton à chaque publication) et peut piocher dans une ou plusieurs catégories de contenu déjà définies par l'utilisateur — utilise leurs libellés EXACTS tels que fournis. N'invente pas de série artificielle si le métier ne s'y prête pas : une liste vide est un résultat parfaitement valide. Le poids de chaque série est un pourcentage approximatif des créneaux mensuels (0 à 60), sans obligation de sommer à 100 — une partie du calendrier reste hors série.`;
+Propose entre 0 et 5 "séries" : des formats de contenu récurrents et nommés (ex: pour un coach sportif : "Le mythe du mercredi" en éducatif, "Transformation du mois" en témoignage ; pour un freelance produit web : "Build in public hebdo" en coulisses). Une série donne une identité reconnaissable (même angle, même structure, même ton à chaque publication) et sert UN SEUL rôle éditorial parmi ceux déjà définis pour l'utilisateur — utilise leur libellé EXACT tel que fourni. Si une idée de série hésite entre deux rôles, c'est qu'il y a deux séries : découpe-la. N'invente pas de série artificielle si le métier ne s'y prête pas : une liste vide est un résultat parfaitement valide. Le poids de chaque série est un pourcentage approximatif des créneaux mensuels (0 à 60), sans obligation de sommer à 100 — une partie du calendrier reste hors série.`;
 
 export interface SeriesLabelsContext {
   brandName: string;
@@ -81,7 +90,7 @@ export async function suggestContentSeries(context: SeriesLabelsContext): Promis
     context.products.length > 0
       ? `Produits/projets : ${context.products.map((p) => p.name + (p.description ? ` — ${p.description}` : "")).join(" ; ")}`
       : "Aucun produit renseigné.",
-    `Catégories de contenu actives : ${context.categories.map((c) => `${c.label} — ${c.description}`).join(" ; ")}`,
+    `Rôles éditoriaux actifs : ${context.categories.map((c) => `${c.label} — ${c.description}`).join(" ; ")}`,
   ].filter(Boolean);
 
   const args = await callStructured({

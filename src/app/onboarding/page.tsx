@@ -9,7 +9,6 @@ import ProductCatalogue from "@/components/ProductCatalogue";
 import ConnectionRow from "@/components/ConnectionRow";
 import EquipmentPicker from "@/components/EquipmentPicker";
 import StyleAnalysisPanel from "@/components/StyleAnalysisPanel";
-import CategoryLabelsPanel from "@/components/CategoryLabelsPanel";
 import OnboardingChat from "@/components/OnboardingChat";
 import { api, ApiClientError, type Connection } from "@/lib/apiClient";
 import { accent, accentAlpha, color, fontHeading } from "@/lib/design/tokens";
@@ -316,7 +315,6 @@ function OnboardingContent() {
               </div>
 
               <div style={{ marginTop: 20, display: "grid", gap: 16 }}>
-                <CategoryLabelsPanel />
                 <StyleAnalysisPanel />
               </div>
             </div>

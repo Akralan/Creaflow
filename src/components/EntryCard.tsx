@@ -34,7 +34,7 @@ export default function EntryCard({ data, children, style, ...rest }: EntryCardP
       <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
         <PlatformBadge platform={data.platform} size={17} />
         <span style={{ fontSize: 10, fontWeight: 700, color: cat.fg, textTransform: "uppercase", letterSpacing: "0.03em" }}>
-          {cat.label}
+          {data.series ? data.series.label : `Post libre · ${cat.label}`}
         </span>
       </div>
       {data.series && (
@@ -42,14 +42,15 @@ export default function EntryCard({ data, children, style, ...rest }: EntryCardP
           style={{
             fontSize: 9,
             fontWeight: 700,
-            color: "oklch(0.47 0.2 292)",
-            background: "oklch(0.55 0.2 292 / 0.12)",
+            color: cat.fg,
+            background: "transparent",
+            border: `1px solid ${cat.border}`,
             borderRadius: 20,
-            padding: "2px 7px",
+            padding: "1px 7px",
             alignSelf: "flex-start",
           }}
         >
-          ◈ {data.series.label}
+          {cat.label}
         </span>
       )}
       {data.title && <div style={{ fontSize: 11, lineHeight: 1.2, color: "#2a2521", fontWeight: 500 }}>{data.title}</div>}

@@ -7,6 +7,7 @@ import { requireUserId } from "@/lib/auth/session";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 import { getObjectStorage } from "@/lib/storage";
 import { deleteScriptForUser, patchScriptContent } from "@/lib/services/scriptService";
+import { findBeatContext } from "@/lib/services/narrativeDirector";
 import { storyboardStepSchema } from "@/lib/llm/scriptSchema";
 
 // Statut ET contenu (docs/SPEC_MATIERE_EDITEUR.md §4.5) — catégorie/angle/série volontairement
@@ -52,10 +53,21 @@ export async function GET(
       throw new ApiError(404, "Script introuvable.");
     }
 
+    // Bloc de contexte éditorial (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — résolu à la lecture plutôt
+    // que stocké (le titre et la direction d'un beat peuvent changer à la replanification, on veut
+    // toujours l'état courant du plan).
+    const beat = script.beatId
+      ? await findBeatContext(userId, script.productId, script.seriesId, script.beatId)
+      : null;
+
     const { generatedImage, citations, ...rest } = script;
     return NextResponse.json({
       script: {
         ...rest,
+        beatTitle: beat?.title ?? null,
+        beatRationale: beat?.rationale ?? null,
+        beatAngleHint: beat?.angleHint ?? null,
+        seriesCallbacks: beat?.callbacks ?? [],
         generatedImage: generatedImage
           ? { ...generatedImage, url: getObjectStorage().getPublicUrl(generatedImage.storageKey) }
           : null,

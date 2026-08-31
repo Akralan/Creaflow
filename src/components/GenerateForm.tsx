@@ -29,6 +29,7 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
   const [categoryId, setCategoryId] = useState<string>("");
   const [seriesId, setSeriesId] = useState<string>("");
   const [productId, setProductId] = useState<string>("");
+  const [directive, setDirective] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,16 +38,21 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
     api.getProducts().then(({ products }) => setProducts(products));
   }, []);
 
+  // Série d'abord (docs/SPEC_SERIES_ET_ROLES.md §5.5) : la série choisie impose son rôle ;
+  // le sélecteur de rôle n'apparaît qu'en post libre.
   const availableCategories = categories.filter((c) => c.platforms.length === 0 || c.platforms.includes(platform));
-  const selectedCategoryId = availableCategories.some((c) => c.id === categoryId)
-    ? categoryId
-    : availableCategories[0]?.id || "";
-  const availableSeries = series.filter(
-    (s) =>
-      s.categories.some((c) => c.id === selectedCategoryId) &&
-      (s.platforms.length === 0 || s.platforms.includes(platform))
-  );
+  const availableSeries = series.filter((s) => s.platforms.length === 0 || s.platforms.includes(platform));
   const selectedSeriesId = availableSeries.some((s) => s.id === seriesId) ? seriesId : "";
+  const selectedSeries = availableSeries.find((s) => s.id === selectedSeriesId);
+  const selectedCategoryId = selectedSeries
+    ? (selectedSeries.category?.id ?? "")
+    : availableCategories.some((c) => c.id === categoryId)
+      ? categoryId
+      : availableCategories[0]?.id || "";
+  // Prochain épisode encore à écrire du plan de la série choisie — même règle que le choix du jour
+  // côté serveur (premier beat "planned"), affichée ici à titre indicatif.
+  const nextEpisodeTitle =
+    selectedSeries?.narrativeState?.beats.find((b) => b.status === "planned")?.title ?? null;
 
   async function handleGenerate() {
     if (!selectedCategoryId) return;
@@ -55,11 +61,13 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
     try {
       const { script } = await api.generateFreeformScript({
         platform,
-        contentCategoryId: selectedCategoryId,
+        // Avec une série, le serveur dérive le rôle (§4.2).
+        contentCategoryId: selectedSeriesId ? undefined : selectedCategoryId,
         contentType,
         productId: productId || undefined,
         seriesId: selectedSeriesId || undefined,
         scheduledDate,
+        directive: directive.trim() || undefined,
       });
       onGenerated(script);
     } catch (err) {
@@ -105,47 +113,10 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
         </div>
       </div>
 
-      <div style={{ marginBottom: 26 }}>
-        <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: color.text3, marginBottom: 12 }}>
-          Catégorie de contenu
-        </label>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {availableCategories.length === 0 && (
-            <p style={{ fontSize: 13, color: color.textMuted, margin: 0 }}>
-              Aucune catégorie de contenu configurée pour cette plateforme.
-            </p>
-          )}
-          {availableCategories.map((c) => {
-            const active = c.id === selectedCategoryId;
-            const meta = resolveCategoryMeta(c);
-            return (
-              <button
-                key={c.id}
-                onClick={() => setCategoryId(c.id)}
-                style={{
-                  flex: 1,
-                  minWidth: 120,
-                  border: `1.5px solid ${active ? meta.base : color.border}`,
-                  background: active ? meta.bg : color.inputBg,
-                  borderRadius: 12,
-                  padding: 14,
-                  textAlign: "center",
-                  fontWeight: active ? 600 : 500,
-                  color: active ? meta.fg : color.textMuted,
-                  cursor: "pointer",
-                }}
-              >
-                {meta.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {availableSeries.length > 0 && (
         <div style={{ marginBottom: 26 }}>
           <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: color.text3, marginBottom: 12 }}>
-            Série <span style={{ color: color.textFaint, fontWeight: 400 }}>— optionnel</span>
+            Série
           </label>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button
@@ -160,7 +131,7 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
                 cursor: "pointer",
               }}
             >
-              Aucune série
+              Post libre
             </button>
             {availableSeries.map((s) => {
               const active = s.id === selectedSeriesId;
@@ -183,8 +154,70 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
               );
             })}
           </div>
+          {/* Le rédacteur en chef pioche dans le plan de la série : on annonce l'épisode qu'il
+              prendra, pour que le geste « générer » ne soit pas une boîte noire (maquette 1d). */}
+          {nextEpisodeTitle && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginTop: 12,
+                fontSize: 13,
+                color: color.textMuted,
+                background: accentAlpha(0.06),
+                border: `1px solid ${accentAlpha(0.2)}`,
+                borderRadius: 10,
+                padding: "9px 12px",
+              }}
+            >
+              <span style={{ color: "oklch(0.5 0.2 292)" }}>◈</span>
+              Le rédacteur en chef choisira l&apos;épisode : prochain prévu —{" "}
+              <span style={{ fontWeight: 600, color: color.text2 }}>{nextEpisodeTitle}</span>
+            </div>
+          )}
         </div>
       )}
+
+      <div style={{ marginBottom: 26 }}>
+        <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: color.text3, marginBottom: 12 }}>
+          Rôle
+          {selectedSeries && <span style={{ color: color.textFaint, fontWeight: 400 }}> — imposé par la série</span>}
+        </label>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {availableCategories.length === 0 && (
+            <p style={{ fontSize: 13, color: color.textMuted, margin: 0 }}>
+              Aucun rôle configuré pour cette plateforme.
+            </p>
+          )}
+          {availableCategories.map((c) => {
+            const active = c.id === selectedCategoryId;
+            const meta = resolveCategoryMeta(c);
+            if (selectedSeries && !active) return null;
+            return (
+              <button
+                key={c.id}
+                onClick={() => !selectedSeries && setCategoryId(c.id)}
+                disabled={!!selectedSeries}
+                style={{
+                  flex: 1,
+                  minWidth: 120,
+                  border: `1.5px solid ${active ? meta.base : color.border}`,
+                  background: active ? meta.bg : color.inputBg,
+                  borderRadius: 12,
+                  padding: 14,
+                  textAlign: "center",
+                  fontWeight: active ? 600 : 500,
+                  color: active ? meta.fg : color.textMuted,
+                  cursor: selectedSeries ? "default" : "pointer",
+                }}
+              >
+                {meta.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <div style={{ marginBottom: 26 }}>
         <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: color.text3, marginBottom: 12 }}>
@@ -241,6 +274,31 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
             </option>
           ))}
         </select>
+      </div>
+
+      <div style={{ marginBottom: 26 }}>
+        <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: color.text3, marginBottom: 6 }}>
+          Une idée en tête ? <span style={{ color: color.textFaint, fontWeight: 400 }}>— optionnel</span>
+        </label>
+        <textarea
+          value={directive}
+          onChange={(e) => setDirective(e.target.value)}
+          placeholder="Une piste à interpréter, pas un texte à recopier..."
+          rows={2}
+          maxLength={500}
+          style={{
+            width: "100%",
+            border: `1px solid ${color.inputBorder}`,
+            borderRadius: 11,
+            padding: "13px 14px",
+            fontSize: 15,
+            lineHeight: 1.4,
+            fontFamily: "inherit",
+            background: color.inputBg,
+            color: color.text,
+            resize: "vertical",
+          }}
+        />
       </div>
 
       {error && <p style={{ color: color.danger, fontSize: 13, marginBottom: 16 }}>{error}</p>}

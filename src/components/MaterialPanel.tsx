@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import GenerateSeriesFromMaterialModal from "@/components/GenerateSeriesFromMaterialModal";
@@ -42,12 +42,84 @@ function renderHighlighted(text: string, citations: Citation[]): ReactNode[] {
 }
 
 /**
+ * Résumé orienté potentiel narratif sous chaque document (docs/SPEC_REDACTEUR_EN_CHEF.md §7) —
+ * "résumé en cours..." tant que `summary` est null (généré à l'ingestion, backfill paresseux sinon) ;
+ * une fois présent, éditable directement (`onBlur`) et l'édition devient la source de vérité, jamais
+ * regénérée automatiquement ensuite.
+ */
+function MaterialSummaryField({ summary, onSave }: { summary: string | null; onSave: (next: string) => void }) {
+  const [draft, setDraft] = useState(summary ?? "");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Même garde que EditableField (docs/SPEC_MATIERE_EDITEUR.md §4.4) : ne pas écraser une édition en
+  // cours si le résumé change ailleurs (backfill qui se termine pendant que l'utilisateur tape).
+  useEffect(() => {
+    if (document.activeElement !== textareaRef.current) {
+      setDraft(summary ?? "");
+    }
+  }, [summary]);
+
+  if (summary === null) {
+    return (
+      <div style={{ marginTop: 6, fontSize: 12, fontStyle: "italic", color: color.textFaint }}>
+        Résumé en cours...
+      </div>
+    );
+  }
+
+  return (
+    <textarea
+      ref={textareaRef}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        const trimmed = draft.trim();
+        if (trimmed && trimmed !== summary) onSave(trimmed);
+      }}
+      rows={2}
+      maxLength={300}
+      style={{
+        width: "100%",
+        marginTop: 6,
+        border: `1px solid ${color.inputBorder}`,
+        borderRadius: 8,
+        padding: "6px 8px",
+        fontSize: 12,
+        fontStyle: "italic",
+        lineHeight: 1.4,
+        fontFamily: "inherit",
+        background: color.inputBg,
+        color: color.textMuted,
+        resize: "vertical",
+      }}
+    />
+  );
+}
+
+/**
  * Corpus de matière première d'un sujet (docs/SPEC_MATIERE_EDITEUR.md §3) — dépôt gratuit et
  * immédiatement utilisable (coller du texte ou un fichier .md/.txt, §3.2 anti-scope). Le texte brut
  * complet est injecté tel quel à la génération, aucune structuration intermédiaire. La vue dépliée
  * d'un document surligne les passages déjà cités par des générations précédentes.
  * `productId` undefined = matière de niveau marque (pas rattachée à un sujet précis).
  */
+const RECENT_MS = 24 * 60 * 60 * 1000;
+
+/** Un document déposé dans les dernières 24 h porte le badge « Nouveau » (maquette 1c). */
+function isRecent(iso: string): boolean {
+  return Date.now() - new Date(iso).getTime() < RECENT_MS;
+}
+
+/** « il y a 2 h » tant que le dépôt est frais, date courte ensuite. */
+function depositedAgo(iso: string): string {
+  const elapsed = Date.now() - new Date(iso).getTime();
+  if (elapsed < RECENT_MS) {
+    const hours = Math.floor(elapsed / (60 * 60 * 1000));
+    return hours < 1 ? "à l'instant" : `il y a ${hours} h`;
+  }
+  return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+}
+
 export default function MaterialPanel({ productId }: { productId?: string }) {
   const router = useRouter();
   const [materials, setMaterials] = useState<SourceMaterial[]>([]);
@@ -60,6 +132,8 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
   const [tab, setTab] = useState<"paste" | "interview">("paste");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [citationsByMaterial, setCitationsByMaterial] = useState<Record<string, Citation[]>>({});
+  // Où chaque document est consommé dans les plans (« Déjà exploité · Ép. N ») — lecture seule.
+  const [usage, setUsage] = useState<Record<string, { episode: number; beatTitle: string }>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!loaded) {
@@ -68,6 +142,18 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
       setLoaded(true);
     });
   }
+
+  useEffect(() => {
+    if (!productId) return;
+    let cancelled = false;
+    api
+      .getMaterialUsage(productId)
+      .then(({ usage }) => !cancelled && setUsage(usage))
+      .catch(() => !cancelled && setUsage({}));
+    return () => {
+      cancelled = true;
+    };
+  }, [productId]);
 
   async function addMaterial() {
     setError(null);
@@ -105,6 +191,16 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function saveSummary(id: string, summary: string) {
+    setError(null);
+    try {
+      const { material } = await api.updateMaterialSummary(id, summary);
+      setMaterials((prev) => prev.map((m) => (m.id === id ? material : m)));
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement du résumé.");
     }
   }
 
@@ -210,7 +306,7 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
             <div style={{ marginTop: 6 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: color.textSecondary }}>
-                  Documents déposés ({materials.length})
+                  Documents déposés · {materials.length}
                 </div>
                 <button
                   onClick={() => setShowSeriesModal(true)}
@@ -224,6 +320,7 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
                   const expanded = expandedId === m.id;
                   const citations = citationsByMaterial[m.id] ?? [];
                   const matchedCount = citations.filter((c) => c.matchStart != null).length;
+                  const docUsage = usage[m.id];
                   return (
                     <div
                       key={m.id}
@@ -234,16 +331,68 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
                           onClick={() => toggleExpand(m.id)}
                           style={{ flex: 1, minWidth: 0, textAlign: "left", border: "none", background: "none", cursor: "pointer", padding: 0 }}
                         >
-                          {m.title && <div style={{ fontWeight: 600, fontSize: 13, color: color.text, marginBottom: 2 }}>{m.title}</div>}
+                          {/* Ligne d'en-tête (maquette 1c) : nom du document, puis son exploitation
+                              réelle — planifié dans un épisode, déjà cité, ou encore inexploité. */}
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
+                            {m.title && <span style={{ fontWeight: 600, fontSize: 13, color: color.text }}>{m.title}</span>}
+                            {isRecent(m.createdAt) && (
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  color: "oklch(0.47 0.2 292)",
+                                  background: "oklch(0.55 0.2 292 / 0.12)",
+                                  borderRadius: 20,
+                                  padding: "2px 8px",
+                                }}
+                              >
+                                Nouveau
+                              </span>
+                            )}
+                            {docUsage ? (
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  color: "oklch(0.42 0.14 150)",
+                                  background: "oklch(0.62 0.13 150 / 0.16)",
+                                  borderRadius: 20,
+                                  padding: "2px 8px",
+                                }}
+                                title={docUsage.beatTitle}
+                              >
+                                Déjà exploité · Ép. {docUsage.episode}
+                              </span>
+                            ) : (
+                              matchedCount === 0 && (
+                                <span
+                                  style={{
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    color: "oklch(0.5 0.13 60)",
+                                    background: "oklch(0.62 0.13 60 / 0.16)",
+                                    borderRadius: 20,
+                                    padding: "2px 8px",
+                                  }}
+                                >
+                                  Pas encore exploité
+                                </span>
+                              )
+                            )}
+                            {matchedCount > 0 && (
+                              <span style={{ fontSize: 11, color: color.textFaint }}>
+                                {matchedCount} passage{matchedCount > 1 ? "s" : ""} cité{matchedCount > 1 ? "s" : ""}
+                              </span>
+                            )}
+                            <span style={{ fontSize: 11, color: color.textFaint }}>{depositedAgo(m.createdAt)}</span>
+                          </div>
                           {!expanded && (
                             <div style={{ fontSize: 13, color: color.text2 }}>
                               {m.rawText.length > 200 ? `${m.rawText.slice(0, 200)}…` : m.rawText}
                             </div>
                           )}
                           {matchedCount > 0 && !expanded && (
-                            <div style={{ fontSize: 11, color: color.textFaint, marginTop: 4 }}>
-                              {matchedCount} passage{matchedCount > 1 ? "s" : ""} déjà cité{matchedCount > 1 ? "s" : ""} — voir le détail
-                            </div>
+                            <div style={{ fontSize: 11, color: color.textFaint, marginTop: 4 }}>Voir le détail</div>
                           )}
                         </button>
                         <button
@@ -253,6 +402,7 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
                           Supprimer
                         </button>
                       </div>
+                      <MaterialSummaryField summary={m.summary} onSave={(next) => saveSummary(m.id, next)} />
                       {expanded && (
                         <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${color.divider}` }}>
                           <div style={{ fontSize: 13, lineHeight: 1.5, color: color.text2, whiteSpace: "pre-wrap" }}>
@@ -286,8 +436,10 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
         onClose={() => setShowSeriesModal(false)}
         productId={productId}
         onDone={() => {
+          // Le résultat est un plan (NarrativeState), pas des scripts déjà placés (docs/SPEC_REDACTEUR_EN_CHEF.md
+          // §4.4) — direction vers l'écran Direction, où le plan est visible et éditable.
           setShowSeriesModal(false);
-          router.push("/calendar");
+          router.push("/direction");
         }}
       />
     </div>

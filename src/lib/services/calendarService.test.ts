@@ -165,18 +165,18 @@ describe("renormalizeCategoryWeights", () => {
 
 describe("seriesWeightsFromSeries", () => {
   it("convertit des poids 0-100 en fractions", () => {
-    expect(seriesWeightsFromSeries([{ id: "a", weight: 20, categoryIds: ["cat1"] }])).toEqual([
-      { id: "a", weight: 0.2, categoryIds: ["cat1"] },
+    expect(seriesWeightsFromSeries([{ id: "a", weight: 20, categoryId: "cat1" }])).toEqual([
+      { id: "a", weight: 0.2, categoryId: "cat1" },
     ]);
   });
 
-  it("écarte les séries sans catégorie liée", () => {
-    expect(seriesWeightsFromSeries([{ id: "a", weight: 20, categoryIds: [] }])).toEqual([]);
+  it("écarte les séries sans rôle lié", () => {
+    expect(seriesWeightsFromSeries([{ id: "a", weight: 20, categoryId: null }])).toEqual([]);
   });
 });
 
 describe("distributeSeriesOverrides", () => {
-  const ONE_SERIES: SeriesWeight[] = [{ id: "serie-a", weight: 0.3, categoryIds: ["cat1"] }];
+  const ONE_SERIES: SeriesWeight[] = [{ id: "serie-a", weight: 0.3, categoryId: "cat1" }];
 
   it("renvoie une Map vide pour n <= 0", () => {
     expect(distributeSeriesOverrides(0, ONE_SERIES).size).toBe(0);
@@ -195,25 +195,25 @@ describe("distributeSeriesOverrides", () => {
 
   it("plafonne à la baisse (jamais à la hausse) quand la somme des poids dépasse 1", () => {
     const overSubscribed: SeriesWeight[] = [
-      { id: "a", weight: 0.7, categoryIds: ["cat1"] },
-      { id: "b", weight: 0.6, categoryIds: ["cat2"] },
+      { id: "a", weight: 0.7, categoryId: "cat1" },
+      { id: "b", weight: 0.6, categoryId: "cat2" },
     ];
     const result = distributeSeriesOverrides(10, overSubscribed);
     expect(result.size).toBeLessThanOrEqual(10);
   });
 
-  it("alterne entre les catégories liées d'une série qui en couvre plusieurs", () => {
-    const multiCategorySeries: SeriesWeight[] = [{ id: "serie-a", weight: 1, categoryIds: ["cat1", "cat2"] }];
-    const result = distributeSeriesOverrides(10, multiCategorySeries);
-    const categoriesUsed = new Set([...result.values()].map((v) => v.categoryId));
-    expect(categoriesUsed.has("cat1")).toBe(true);
-    expect(categoriesUsed.has("cat2")).toBe(true);
+  it("impose le rôle unique de la série à chaque créneau promu", () => {
+    const result = distributeSeriesOverrides(10, [{ id: "serie-a", weight: 1, categoryId: "cat1" }]);
+    expect(result.size).toBe(10);
+    for (const [, assignment] of result) {
+      expect(assignment.categoryId).toBe("cat1");
+    }
   });
 
   it("n'assigne jamais deux séries au même index", () => {
     const twoSeries: SeriesWeight[] = [
-      { id: "a", weight: 0.5, categoryIds: ["cat1"] },
-      { id: "b", weight: 0.5, categoryIds: ["cat2"] },
+      { id: "a", weight: 0.5, categoryId: "cat1" },
+      { id: "b", weight: 0.5, categoryId: "cat2" },
     ];
     const result = distributeSeriesOverrides(10, twoSeries);
     expect(result.size).toBeLessThanOrEqual(10);

@@ -7,12 +7,13 @@ import { platformSchema, contentCategorySchema, contentTypeSchema } from "@/lib/
 import { handleApiError } from "@/lib/api/errors";
 
 // Import d'un script écrit ailleurs (docs/SPEC_MATIERE_EDITEUR.md §2) — aucun appel LLM, aucun quota.
-// contentCategoryId reste obligatoire (décision §8.2) : la colonne est NOT NULL en base et de
-// nombreux chemins (pondération calendrier, sélection d'angle, filtrage plateforme) en dépendent.
+// Le rôle (contentCategoryId) reste obligatoire en post libre (décision §8.2 : colonne NOT NULL,
+// pondération calendrier, sélection d'angle) ; avec une série, il en est dérivé
+// (docs/SPEC_SERIES_ET_ROLES.md §4.2).
 const schema = z
   .object({
     platform: platformSchema,
-    contentCategoryId: contentCategorySchema,
+    contentCategoryId: contentCategorySchema.optional(),
     contentType: contentTypeSchema,
     productId: z.uuid().optional(),
     seriesId: z.uuid().optional(),

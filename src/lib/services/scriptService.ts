@@ -17,7 +17,10 @@ import { pickAngleForScript } from "@/lib/services/angleService";
 import { findBestBrandAssetForScript } from "@/lib/services/brandAssetService";
 import { getMaterialForSubject } from "@/lib/services/sourceMaterialService";
 import { recordCitations, deleteCitationsForScript } from "@/lib/services/citationService";
+import { resolveDailyDirection, markBeatDrafted, applyPublishSideEffects } from "@/lib/services/narrativeDirector";
+import { resolveCategoryForGeneration } from "@/lib/services/seriesService";
 import { ApiError } from "@/lib/api/errors";
+import { logger } from "@/lib/logger";
 
 const RECENT_TOPICS_LIMIT = 15;
 const SERIES_RECENT_TOPICS_LIMIT = 10;
@@ -48,15 +51,25 @@ async function resolveAngle(
   return angle ? { id: angle.id, label: angle.label, description: angle.description } : null;
 }
 
+/**
+ * `contentCategoryId` : rôle du post libre ; ignoré (avec avertissement) si `seriesId` est fourni,
+ * la série imposant son rôle unique (docs/SPEC_SERIES_ET_ROLES.md §4.2). `null` n'est valide
+ * qu'avec une série — sinon 400.
+ */
 export async function buildGenerationContext(
   userId: string,
   platform: Platform,
-  contentCategoryId: string,
+  requestedCategoryId: string | null,
   contentType: ContentType,
   productId?: string | null,
   excludeScriptId?: string | null,
   seriesId?: string | null,
-  lockedAngleId?: string | null
+  lockedAngleId?: string | null,
+  directive?: string | null,
+  // "Autre idée, même brief" uniquement (docs/SPEC_PROMPT_GENERATION_TECH.md §6.1 point 2) — transmis
+  // au choix du jour du chef pour qu'il propose une direction réellement différente (§3.3), pas
+  // seulement au rédacteur via context.rejectedConcepts (assemblé plus bas, inchangé).
+  rejectedConcepts?: string[]
 ): Promise<ScriptGenerationContext> {
   const profile = await db.query.creatorProfiles.findFirst({
     where: eq(creatorProfiles.userId, userId),
@@ -65,24 +78,16 @@ export async function buildGenerationContext(
     throw new ApiError(400, "Configure d'abord ton profil créateur (Module A) avant de générer un script.");
   }
 
+  const contentCategoryId = await resolveCategoryForGeneration(userId, { seriesId, contentCategoryId: requestedCategoryId });
   const category = await db.query.contentCategories.findFirst({
     where: and(eq(contentCategories.id, contentCategoryId), eq(contentCategories.userId, userId)),
   });
   if (!category) {
-    throw new ApiError(404, "Catégorie de contenu introuvable.");
-  }
-
-  let product = null;
-  if (productId) {
-    product = await db.query.products.findFirst({
-      where: and(eq(products.id, productId), eq(products.userId, userId)),
-    });
-    if (!product) {
-      throw new ApiError(404, "Produit introuvable.");
-    }
+    throw new ApiError(404, "Rôle introuvable.");
   }
 
   let series = null;
+  let seriesProductId: string | null = null;
   if (seriesId) {
     const found = await db.query.contentSeries.findFirst({
       where: and(eq(contentSeries.id, seriesId), eq(contentSeries.userId, userId)),
@@ -91,6 +96,24 @@ export async function buildGenerationContext(
       throw new ApiError(404, "Série introuvable.");
     }
     series = { id: found.id, label: found.label, description: found.description };
+    seriesProductId = found.productId;
+  }
+
+  // Sujet effectif : celui explicitement fourni prime, sinon le sujet lié à la série (sélecteur de
+  // sujet, docs/SPEC_REDACTEUR_EN_CHEF.md) — pour que la matière lue (rédacteur ET chef) et les
+  // citations enregistrées portent sur le bon corpus même quand ce script précis n'a pas lui-même
+  // de sujet choisi. Exposé sur le contexte (`resolvedProductId`) pour que les appelants l'utilisent
+  // à la création du script (Script.productId, citations) au lieu du `productId` brut de la requête.
+  const effectiveProductId = productId ?? seriesProductId ?? null;
+
+  let product = null;
+  if (effectiveProductId) {
+    product = await db.query.products.findFirst({
+      where: and(eq(products.id, effectiveProductId), eq(products.userId, userId)),
+    });
+    if (!product) {
+      throw new ApiError(404, "Produit introuvable.");
+    }
   }
 
   const [recentScripts, performanceSummary, angle, materialDocuments] = await Promise.all([
@@ -109,7 +132,7 @@ export async function buildGenerationContext(
     // Texte brut complet du sujet, annoté des passages déjà cités (docs/SPEC_MATIERE_EDITEUR.md §3)
     // — [] si le sujet n'a pas de corpus déposé. C'est le LLM qui décide quoi utiliser, aucune
     // présélection côté serveur.
-    getMaterialForSubject(userId, productId ?? null),
+    getMaterialForSubject(userId, effectiveProductId),
   ]);
 
   // Uniquement pour "visual" — un appel d'embedding serait un coût inutile sur les 2/3 des
@@ -117,12 +140,35 @@ export async function buildGenerationContext(
   const brandAsset =
     contentType === "visual"
       ? await findBestBrandAssetForScript(userId, {
-          productId,
+          productId: effectiveProductId,
           categoryLabel: category.label,
           categoryDescription: category.description,
           seriesLabel: series?.label ?? null,
         })
       : null;
+
+  // Rédacteur en chef (docs/SPEC_REDACTEUR_EN_CHEF.md §4.1) : jamais bloquant — resolveDailyDirection
+  // ne lève jamais, renvoie null sur toute erreur ou absence d'état (pipeline actuel inchangé dans
+  // ce cas). Flag d'environnement, défaut activé (§1).
+  const direction =
+    process.env.NARRATIVE_DIRECTOR_ENABLED === "false"
+      ? null
+      : await resolveDailyDirection(userId, {
+          productId: effectiveProductId,
+          seriesId: seriesId ?? null,
+          platform,
+          contentCategoryLabel: category.label,
+          contentCategoryDescription: category.description,
+          contentType,
+          directive: directive ?? null,
+          rejectedConcepts,
+        });
+
+  // materialDocuments restreints aux focusDocIds choisis par le chef (§4.1 point 5) — mécanique de
+  // citation inchangée (texte intégral + annotations), juste un sous-ensemble des documents du sujet.
+  const scopedMaterialDocuments = direction
+    ? materialDocuments.filter((d) => direction.focusDocIds.includes(d.id))
+    : materialDocuments;
 
   return {
     creatorProfile: {
@@ -153,8 +199,23 @@ export async function buildGenerationContext(
     angle,
     series,
     brandAsset,
-    materialDocuments: materialDocuments.map((d) => ({ id: d.id, title: d.title, annotatedText: d.annotatedText })),
+    materialDocuments: scopedMaterialDocuments.map((d) => ({ id: d.id, title: d.title, annotatedText: d.annotatedText })),
+    directive: directive ?? null,
+    direction,
+    resolvedProductId: effectiveProductId,
   };
+}
+
+/**
+ * Après génération réussie (docs/SPEC_REDACTEUR_EN_CHEF.md §4.1.6) : le beat choisi par le chef passe
+ * en "drafted" et pointe le script créé. Jamais bloquant — appelé après la création du script,
+ * n'affecte jamais son résultat en cas d'échec (déjà non-throwing, cf. markBeatDrafted).
+ */
+export async function recordBeatDraftedIfNeeded(context: ScriptGenerationContext, scriptId: string): Promise<void> {
+  if (!context.direction?.beatId) return;
+  await markBeatDrafted(context.direction.stateId, context.direction.beatId, scriptId).catch((err) =>
+    logger.error("Mise à jour du beat après génération échouée", err, { scriptId, beatId: context.direction?.beatId })
+  );
 }
 
 /** Traduit le script généré (une des 3 formes selon contentType) en colonnes DB —
@@ -177,6 +238,9 @@ function scriptColumnsFromGenerated(generated: GeneratedScript) {
     hookAudio: "hookAudio" in generated ? generated.hookAudio : null,
     storyboard: "storyboard" in generated ? generated.storyboard : null,
     soundRecommendation: "soundRecommendation" in generated ? generated.soundRecommendation : null,
+    // Annexe B.6 (docs/SPEC_REDACTEUR_EN_CHEF.md Lot B3) — consolidées dans NarrativeState.openPromises
+    // à la publication (§5, Lot B4).
+    promisesMade: generated.promisesMade,
   };
 }
 
@@ -186,7 +250,15 @@ export async function createScriptRecord(
   contentCategory: ContentCategoryContext,
   productId: string | null,
   generated: GeneratedScript,
-  extras?: { angleId?: string | null; seriesId?: string | null; brandAssetId?: string | null }
+  extras?: {
+    angleId?: string | null;
+    seriesId?: string | null;
+    brandAssetId?: string | null;
+    beatId?: string | null;
+    /** Texte exact de la promesse ouverte que ce script honore (direction.promiseToHonor, §3.3) —
+     *  retiré d'openPromises au passage en "published" (§5, narrativeDirector.ts::applyPublishSideEffects). */
+    promiseHonored?: string | null;
+  }
 ) {
   return db.transaction(async (tx) => {
     const columns = scriptColumnsFromGenerated(generated);
@@ -200,6 +272,10 @@ export async function createScriptRecord(
         angleId: extras?.angleId ?? null,
         seriesId: extras?.seriesId ?? null,
         brandAssetId: extras?.brandAssetId ?? null,
+        // Traçabilité vers le plan du chef (docs/SPEC_REDACTEUR_EN_CHEF.md §2/§4.1.6) — null hors
+        // chef ou détour hors plan assumé.
+        beatId: extras?.beatId ?? null,
+        promiseHonored: extras?.promiseHonored ?? null,
         origin: "generated",
         // Gisement de la donnée de voix (§4.7) : capturé une seule fois, au premier jet — jamais
         // réécrit ensuite, y compris par une régénération (updateScriptRecord ne le touche pas).
@@ -222,7 +298,19 @@ export async function updateScriptRecord(
   scriptId: string,
   contentCategory: ContentCategoryContext,
   generated: GeneratedScript,
-  extras?: { angleId?: string | null; brandAssetId?: string | null; rejectedConcepts?: string[] }
+  extras?: {
+    angleId?: string | null;
+    brandAssetId?: string | null;
+    rejectedConcepts?: string[];
+    beatId?: string | null;
+    /** Texte exact de la promesse ouverte que ce script honore — même rôle que sur createScriptRecord. */
+    promiseHonored?: string | null;
+    /** Sujet effectif pour le scoping des citations (`context.resolvedProductId`, scriptService.ts) —
+     *  peut différer de `Script.productId` (jamais réécrit ici, brief verrouillé) quand ce script
+     *  n'a lui-même aucun sujet mais que sa série en a un lié. Défaut : `script.productId` (comportement
+     *  d'avant le sélecteur de sujet, pour le regenerate legacy qui ne le fournit pas). */
+    citationsProductId?: string | null;
+  }
 ) {
   return db.transaction(async (tx) => {
     const [script] = await tx
@@ -233,6 +321,10 @@ export async function updateScriptRecord(
         // "Autre idée, même brief" uniquement (docs/SPEC_PROMPT_GENERATION_TECH.md §6.1 point 2) — le
         // regenerate legacy n'en passe pas, rejectedConcepts reste alors inchangé.
         ...(extras?.rejectedConcepts !== undefined && { rejectedConcepts: extras.rejectedConcepts }),
+        // Mutable comme concept/rejectedConcepts (pas figé comme firstDraftSnapshot) — "autre idée"
+        // peut aussi passer par un nouveau choix du jour du chef (docs/SPEC_REDACTEUR_EN_CHEF.md §4.1).
+        ...(extras?.beatId !== undefined && { beatId: extras.beatId }),
+        ...(extras?.promiseHonored !== undefined && { promiseHonored: extras.promiseHonored }),
         ...scriptColumnsFromGenerated(generated),
         updatedAt: new Date(),
       })
@@ -244,7 +336,7 @@ export async function updateScriptRecord(
     await tx.insert(scriptGenerationEvents).values({ userId, scriptId: script.id });
     // Réécrit à chaque régénération — le brief peut avoir changé, les citations précédentes sont obsolètes.
     await deleteCitationsForScript(tx, script.id);
-    await recordCitations(tx, userId, script.id, script.productId, generated.usedExcerpts ?? []);
+    await recordCitations(tx, userId, script.id, extras?.citationsProductId ?? script.productId, generated.usedExcerpts ?? []);
     return { ...script, contentCategory };
   });
 }
@@ -265,6 +357,8 @@ export interface ScriptContentPatch {
  * PATCH de contenu depuis l'éditeur (docs/SPEC_MATIERE_EDITEUR.md §4.5) — édition directe d'un
  * bloc (`onBlur`) ou naissance paresseuse du premier contenu tapé. Ne touche jamais à
  * `contentCategoryId`/`angleId`/`seriesId` (brief verrouillé, §4.2) ni à `firstDraftSnapshot`.
+ * Passage en "published" (§5, Lot B4) : déclenche les effets de bord du chef (beat -> published,
+ * promesses) — jamais bloquant, une panne ici ne doit jamais faire échouer le changement de statut.
  */
 export async function patchScriptContent(userId: string, scriptId: string, patch: ScriptContentPatch) {
   const [script] = await db
@@ -274,6 +368,11 @@ export async function patchScriptContent(userId: string, scriptId: string, patch
     .returning();
   if (!script) {
     throw new ApiError(404, "Script introuvable.");
+  }
+  if (patch.status === "published") {
+    await applyPublishSideEffects(userId, script).catch((err) =>
+      logger.error("Effets de publication (rédacteur en chef) échoués", err, { scriptId: script.id })
+    );
   }
   return script;
 }

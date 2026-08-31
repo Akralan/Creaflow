@@ -3,6 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { color } from "@/lib/design/tokens";
 
+// Bascule select-all (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A/§7) : une sélection couvrant ce ratio du
+// bloc édité + un commentaire soumis est un geste d'intention ("je veux autre chose"), pas une
+// retouche — le seuil se mesure par rapport au contenu de CE bloc, seul candidat cohérent avec une
+// sélection navigateur qui ne peut pas dépasser un unique <textarea>.
+const SELECT_ALL_RATIO_THRESHOLD = 0.8;
+
 /**
  * Bloc de texte directement éditable (docs/SPEC_MATIERE_EDITEUR.md §4.4) : `onBlur` persiste la
  * valeur, une sélection non vide fait apparaître un champ d'instruction libre qui remplace
@@ -18,7 +24,9 @@ export default function EditableField({
 }: {
   value: string;
   onSave: (next: string) => void;
-  onApplyInstruction: (selectedText: string, instruction: string) => Promise<void>;
+  /** `isMajoritySelection` : sélection ≥80% du bloc (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A) — au
+   *  parent de basculer vers "nouvelle idée" plutôt que d'appeler la retouche par sélection. */
+  onApplyInstruction: (selectedText: string, instruction: string, isMajoritySelection: boolean) => Promise<void>;
   placeholder?: string;
   minRows?: number;
   disabled?: boolean;
@@ -52,7 +60,8 @@ export default function EditableField({
     if (!selection || !instruction.trim()) return;
     setApplying(true);
     try {
-      await onApplyInstruction(selection.text, instruction.trim());
+      const isMajoritySelection = draft.length > 0 && selection.text.length / draft.length >= SELECT_ALL_RATIO_THRESHOLD;
+      await onApplyInstruction(selection.text, instruction.trim(), isMajoritySelection);
       setSelection(null);
       setInstruction("");
     } finally {

@@ -9,18 +9,16 @@ import ProductCatalogue from "@/components/ProductCatalogue";
 import ConnectionRow from "@/components/ConnectionRow";
 import EquipmentPicker from "@/components/EquipmentPicker";
 import StyleAnalysisPanel from "@/components/StyleAnalysisPanel";
-import CategoryLabelsPanel from "@/components/CategoryLabelsPanel";
 import BrandAssetLibrary from "@/components/BrandAssetLibrary/BrandAssetLibrary";
 import BillingPanel from "@/components/BillingPanel";
 import { api, ApiClientError, type Connection } from "@/lib/apiClient";
 import { color } from "@/lib/design/tokens";
 
-type Tab = "identity" | "catalogue" | "categories" | "assets" | "connexions" | "billing";
+type Tab = "identity" | "catalogue" | "assets" | "connexions" | "billing";
 
 const tabs: Array<{ id: Tab; label: string }> = [
   { id: "identity", label: "Identité de marque" },
   { id: "catalogue", label: "Sujets" },
-  { id: "categories", label: "Catégories de contenu" },
   { id: "assets", label: "Ressources visuelles" },
   { id: "connexions", label: "Connexions sociales" },
   { id: "billing", label: "Facturation" },
@@ -175,7 +173,6 @@ function SettingsContent() {
 
       {tab === "identity" && <IdentityTab />}
       {tab === "catalogue" && <ProductCatalogue />}
-      {tab === "categories" && <CategoryLabelsPanel />}
       {tab === "assets" && <BrandAssetLibrary />}
       {tab === "connexions" && <ConnexionsTab />}
       {tab === "billing" && <BillingPanel />}

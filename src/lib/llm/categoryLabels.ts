@@ -19,7 +19,7 @@ const SUGGEST_CONTENT_CATEGORIES_TOOL_NAME = "suggest_content_categories";
 const suggestContentCategoriesTool: LlmToolDefinition = {
   name: SUGGEST_CONTENT_CATEGORIES_TOOL_NAME,
   description:
-    "Propose entre 2 et 6 catégories de contenu adaptées au métier précis du créateur, pour structurer son mix de publication.",
+    "Propose entre 2 et 6 rôles éditoriaux (catégories de contenu) adaptés au métier précis du créateur, pour structurer son mix de publication.",
   input_schema: {
     type: "object",
     properties: {

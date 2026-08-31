@@ -24,7 +24,8 @@ export const seriesProposalSchema = z.object({
   label: z.string().min(1),
   description: z.string().min(1),
   weight: z.number().int().min(0).max(60),
-  categoryLabels: z.array(z.string().min(1)),
+  // Un rôle unique par série (docs/SPEC_SERIES_ET_ROLES.md §1).
+  categoryLabel: z.string().min(1),
   platforms: z.array(z.string()),
 });
 export type SeriesProposal = z.infer<typeof seriesProposalSchema>;
@@ -98,7 +99,7 @@ function buildAssistantTool(context: {
   return {
     name: ASSISTANT_CHAT_TOOL_NAME,
     description:
-      "Répond au message de l'utilisateur et propose, si pertinent, des créations ou modifications de produits, catégories de contenu, angles, séries récurrentes, et objectifs de fréquence par plateforme.",
+      "Répond au message de l'utilisateur et propose, si pertinent, des créations ou modifications de produits, séries récurrentes, rôles éditoriaux, angles, et objectifs de fréquence par plateforme.",
     input_schema: {
       type: "object",
       properties: {
@@ -136,32 +137,31 @@ function buildAssistantTool(context: {
               label: { type: "string", description: "Nom court et mémorable de la série." },
               description: { type: "string", description: "Identité de la série : angle, ton, structure à respecter." },
               weight: { type: "integer", description: "Pourcentage approximatif des créneaux mensuels (0 à 60)." },
-              categoryLabels: {
-                type: "array",
-                description: "Une ou plusieurs catégories de contenu actives auxquelles cette série appartient.",
-                items: enumField(context.categoryLabels, "Libellé exact d'une catégorie de contenu active."),
-              },
+              categoryLabel: enumField(
+                context.categoryLabels,
+                "Libellé exact du rôle éditorial (unique) que sert cette série. Si tu hésites entre deux rôles, propose deux séries."
+              ),
               platforms: platformsField,
             },
-            required: ["action", "label", "description", "weight", "categoryLabels", "platforms"],
+            required: ["action", "label", "description", "weight", "categoryLabel", "platforms"],
           },
         },
         categoryProposals: {
           type: "array",
           description:
-            "0 à 5 propositions de création/modification de catégorie de contenu. La plupart des tours n'en proposent aucune.",
+            "0 à 5 propositions de création/modification de rôle éditorial ('catégorie' côté données). RARE : uniquement sur demande explicite de l'utilisateur ou pour rééquilibrer un mix — la plupart des demandes se traduisent en série, pas en rôle.",
           maxItems: 5,
           items: {
             type: "object",
             properties: {
-              action: { type: "string", enum: ["create", "update"], description: "'create' pour une nouvelle catégorie, 'update' pour modifier une catégorie existante." },
-              targetId: enumField(context.categoryIds, "Id EXACT de la catégorie existante à modifier — uniquement si action='update'."),
-              label: { type: "string", description: "Libellé court de la catégorie." },
-              description: { type: "string", description: "Consigne éditoriale de la catégorie." },
+              action: { type: "string", enum: ["create", "update"], description: "'create' pour un nouveau rôle, 'update' pour modifier un rôle existant." },
+              targetId: enumField(context.categoryIds, "Id EXACT du rôle existant à modifier — uniquement si action='update'."),
+              label: { type: "string", description: "Libellé court du rôle." },
+              description: { type: "string", description: "Consigne éditoriale du rôle." },
               weight: {
                 type: "integer",
                 description:
-                  "Poids de CETTE catégorie uniquement (5 à 90, % approximatif des créneaux). Ne propose JAMAIS le poids des autres catégories — elles seront réajustées automatiquement pour continuer à sommer à 100%.",
+                  "Poids de CE rôle uniquement (5 à 90, % approximatif des créneaux). Ne propose JAMAIS le poids des autres rôles — ils seront réajustés automatiquement pour continuer à sommer à 100%.",
               },
               platforms: platformsField,
             },
@@ -171,7 +171,7 @@ function buildAssistantTool(context: {
         angleProposals: {
           type: "array",
           description:
-            "0 à 5 propositions de création/modification d'angle de contenu (variation de traitement au sein d'une catégorie). La plupart des tours n'en proposent aucune.",
+            "0 à 5 propositions de création/modification d'angle de contenu (variation de traitement au sein d'un rôle). La plupart des tours n'en proposent aucune.",
           maxItems: 5,
           items: {
             type: "object",
@@ -231,17 +231,20 @@ function buildAssistantTool(context: {
   };
 }
 
-const SYSTEM_PROMPT = `Tu es l'assistant éditorial de CreaFlow. Tu discutes avec l'utilisateur de sa direction éditoriale et des paramètres de son calendrier de publication, et tu proposes, quand c'est pertinent, des créations ou modifications de PRODUITS, CATÉGORIES DE CONTENU, ANGLES, SÉRIES récurrentes, OBJECTIFS DE FRÉQUENCE par plateforme, et l'AUDIENCE DE MARQUE.
+const SYSTEM_PROMPT = `Tu es l'assistant éditorial de CreaFlow. Tu discutes avec l'utilisateur de sa direction éditoriale et des paramètres de son calendrier de publication, et tu proposes, quand c'est pertinent, des créations ou modifications de PRODUITS (sujets), SÉRIES récurrentes, RÔLES ÉDITORIAUX (appelés 'catégories' dans les données), ANGLES, OBJECTIFS DE FRÉQUENCE par plateforme, et l'AUDIENCE DE MARQUE.
+
+Vocabulaire : face à l'utilisateur, parle toujours de "rôle" ou "rôle éditorial", jamais de "catégorie". Un rôle dit POURQUOI un post existe (expertise, coulisses, preuve sociale...) ; une série dit À QUOI il ressemble (format nommé, reconnaissable) et sert exactement UN rôle.
 
 Règles :
+- La SÉRIE est l'objet que l'utilisateur manipule. Quand il décrit un format, un rendez-vous, une idée récurrente, propose une SÉRIE (rattachée à un rôle existant) — pas un rôle. Ne propose la création ou la modification d'un rôle que si l'utilisateur le demande explicitement, ou si aucun rôle existant ne peut accueillir la série et qu'il en manque manifestement un. Le poids des rôles évolue surtout à partir des performances réelles : ne le retouche que sur demande claire.
 - Pose une seule question à la fois, de façon conversationnelle.
 - Ne propose une création/modification que quand tu as assez d'info — la plupart des tours ne doivent rien proposer (tableaux vides).
 - Tu ne peux JAMAIS proposer de suppression ou d'archivage — uniquement 'create' ou 'update' (les objectifs de fréquence n'ont qu'une seule forme, sans distinction create/update : la plateforme identifie la cible, la valeur existante est simplement remplacée).
-- Pour 'update', utilise TOUJOURS l'id EXACT fourni dans le contexte (produits/séries/catégories/angles existants) — n'invente jamais d'id, et n'utilise 'update' que si l'utilisateur décrit clairement un élément déjà existant.
-- Pour les séries, utilise les libellés de catégories EXACTS fournis dans le contexte.
-- Pour une catégorie, ne propose QUE le poids de la catégorie concernée (5 à 90) — jamais celui des autres, elles seront réajustées automatiquement pour continuer à sommer à 100%.
-- Pour les plateformes (séries et catégories), utilise UNIQUEMENT les clés du registre fourni. Ne restreins à des plateformes précises que si le contexte de la conversation le justifie clairement (ex. l'utilisateur mentionne un réseau en particulier) — sinon laisse le tableau vide (= toutes les plateformes), ne sur-scope jamais sans raison. Pour une mise à jour, restitue les plateformes actuelles de l'élément sauf changement explicitement demandé.
-- Tu ne proposes JAMAIS d'action sur le calendrier lui-même : pas de génération de mois, pas de création/déplacement/suppression de créneau. Ton rôle s'arrête aux données qui alimentent le calendrier (catégories, angles, séries, objectifs de fréquence) — jamais le calendrier généré.
+- Pour 'update', utilise TOUJOURS l'id EXACT fourni dans le contexte (produits/séries/rôles/angles existants) — n'invente jamais d'id, et n'utilise 'update' que si l'utilisateur décrit clairement un élément déjà existant.
+- Pour une série, utilise le libellé de rôle EXACT fourni dans le contexte (un seul rôle par série ; si une idée hésite entre deux rôles, propose deux séries).
+- Pour un rôle, ne propose QUE le poids du rôle concerné (5 à 90) — jamais celui des autres, ils seront réajustés automatiquement pour continuer à sommer à 100%.
+- Pour les plateformes (séries et rôles), utilise UNIQUEMENT les clés du registre fourni. Ne restreins à des plateformes précises que si le contexte de la conversation le justifie clairement (ex. l'utilisateur mentionne un réseau en particulier) — sinon laisse le tableau vide (= toutes les plateformes), ne sur-scope jamais sans raison. Pour une mise à jour, restitue les plateformes actuelles de l'élément sauf changement explicitement demandé.
+- Tu ne proposes JAMAIS d'action sur le calendrier lui-même : pas de génération de mois, pas de création/déplacement/suppression de créneau. Ta mission s'arrête aux données qui alimentent le calendrier (séries, rôles, angles, objectifs de fréquence) — jamais le calendrier généré.
 - Rien n'est jamais enregistré directement : chaque proposition sera relue, éditée ou refusée par l'utilisateur avant d'être appliquée — tu peux donc proposer dès que c'est raisonnable, sans sur-demander de confirmation.
 - Tu ne dois JAMAIS inventer une information (nom, caractéristique, chiffre, date...) qui ne t'a pas été donnée explicitement par l'utilisateur ou par une source fournie. En cas de doute ou d'info manquante, pose une question de clarification plutôt que de deviner.
 - L'audience de marque (qui achète/lit, ce qui l'intéresse, ce qu'il doit retenir) est une donnée de PROFIL, distincte de l'audience éventuelle d'un sujet précis (ça, c'est une propriété du produit — utilise product_update, pas profileProposals, dans ce cas). Ne propose une mise à jour de l'audience de marque que si elle se précise clairement et diffère de la valeur déjà connue fournie dans le contexte.`;
@@ -254,7 +257,7 @@ export interface AssistantChatContext {
     label: string;
     description: string;
     weight: number;
-    categories: Array<{ label: string }>;
+    category: { label: string } | null;
     platforms: string[];
   }>;
   categories: Array<{ id: string; label: string; description: string; weight: number; platforms: string[] }>;
@@ -278,20 +281,20 @@ export async function runAssistantChatTurn(context: AssistantChatContext): Promi
       ? `Séries existantes : ${context.series
           .map(
             (s) =>
-              `[id:${s.id}] ${s.label} (${s.weight}%) — ${s.description} [catégories : ${s.categories.map((c) => c.label).join(", ")}]${
+              `[id:${s.id}] ${s.label} (${s.weight}%) — ${s.description} [rôle : ${s.category?.label ?? "aucun"}]${
                 s.platforms.length > 0 ? ` [plateformes : ${s.platforms.join(", ")}]` : " [tous réseaux]"
               }`
           )
           .join(" ; ")}`
       : "Aucune série active pour l'instant.",
     context.categories.length > 0
-      ? `Catégories de contenu actives : ${context.categories
+      ? `Rôles éditoriaux actifs : ${context.categories
           .map(
             (c) =>
               `[id:${c.id}] ${c.label} (${c.weight}%)${c.platforms.length > 0 ? ` [plateformes : ${c.platforms.join(", ")}]` : " [tous réseaux]"}`
           )
           .join(" ; ")}`
-      : "Aucune catégorie de contenu active pour l'instant.",
+      : "Aucun rôle éditorial actif pour l'instant.",
     context.angles.length > 0
       ? `Angles actifs : ${context.angles.map((a) => `[id:${a.id}] ${a.label} — ${a.description}`).join(" ; ")}`
       : "Aucun angle actif pour l'instant.",

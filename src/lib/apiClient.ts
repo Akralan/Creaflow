@@ -96,6 +96,41 @@ export interface PostingGoal {
   targetCountPerWeek: number;
 }
 
+/** Un épisode du plan éditorial (docs/SPEC_REDACTEUR_EN_CHEF.md §2, Annexe B.5). */
+export interface NarrativeBeat {
+  id: string;
+  title: string;
+  kind: "material" | "pedagogical" | "personal";
+  angleHint: string | null;
+  focusDocIds: string[];
+  status: "planned" | "drafted" | "published" | "skipped";
+  scriptId: string | null;
+  rationale: string;
+}
+
+export interface NarrativePromise {
+  text: string;
+  scriptId: string;
+  madeAt: string;
+}
+
+/** État narratif du rédacteur en chef pour un sujet (docs/SPEC_REDACTEUR_EN_CHEF.md §2). */
+export interface NarrativeState {
+  id: string;
+  userId: string;
+  productId: string | null;
+  seriesId: string | null;
+  arcSummary: string | null;
+  beats: NarrativeBeat[];
+  openPromises: NarrativePromise[];
+  callbacks: string[];
+  formatContract: string | null;
+  isStale: boolean;
+  lastPlannedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ContentSeries {
   id: string;
   userId: string;
@@ -103,10 +138,20 @@ export interface ContentSeries {
   description: string;
   weight: number;
   archived: boolean;
+  /** feuilleton = épisodes ordonnés (arc + beats) ; rendez_vous = épisodes autonomes, pas de
+   *  planification (docs/SPEC_REDACTEUR_EN_CHEF.md §1). Défaut rendez_vous. */
+  mode: "feuilleton" | "rendez_vous";
   createdAt: string;
-  categories: ContentCategorySummary[];
+  /** Rôle unique de la série (docs/SPEC_SERIES_ET_ROLES.md §1) — null uniquement pour des données
+   *  antérieures à la migration, une telle série est ignorée par le calendrier. */
+  category: ContentCategorySummary | null;
   /** Réseaux auxquels cette série est restreinte ; vide = visible sur tous les réseaux. */
   platforms: Platform[];
+  /** null tant qu'aucune planification n'a eu lieu pour cette série (ou mode rendez_vous). */
+  narrativeState: NarrativeState | null;
+  /** Sujet dont cette série tire sa matière (sélecteur de sujet, docs/SPEC_REDACTEUR_EN_CHEF.md) —
+   *  null si la série n'est rattachée à aucun sujet précis (matière de niveau marque). */
+  product: { id: string; name: string } | null;
 }
 
 export interface StoryboardStep {
@@ -178,6 +223,19 @@ export interface Script {
   generatedImage?: GeneratedImage | null;
   /** Matière utilisée pour ce script — présent uniquement sur la fiche détaillée. */
   citations?: Citation[];
+  /** Id du beat du plan narratif dont ce script est issu (docs/SPEC_REDACTEUR_EN_CHEF.md §2/§4.1.6) —
+   *  null hors chef ou détour hors plan assumé. */
+  beatId: string | null;
+  /** Titre du beat, résolu à la lecture — présent uniquement sur la fiche détaillée (GET /api/scripts/:id). */
+  beatTitle?: string | null;
+  /** Pourquoi le rédacteur en chef a placé ce beat ici — même résolution à la lecture que beatTitle. */
+  beatRationale?: string | null;
+  /** Angle recommandé par le plan pour cet épisode (distinct de l'angle anti-répétition imposé). */
+  beatAngleHint?: string | null;
+  /** Promesse que ce script s'est engagé à honorer, figée à la génération. */
+  promiseHonored?: string | null;
+  /** Callbacks de la série — détails familiers disponibles, pas un ciblage par script. */
+  seriesCallbacks?: string[];
 }
 
 export interface SourceMaterial {
@@ -187,6 +245,9 @@ export interface SourceMaterial {
   kind: "paste" | "file" | "interview";
   title: string | null;
   rawText: string;
+  /** Résumé orienté potentiel narratif (docs/SPEC_REDACTEUR_EN_CHEF.md §2/§3.1) — null tant que le
+   *  résumeur ne l'a pas encore traité (résumé en cours). */
+  summary: string | null;
   createdAt: string;
 }
 
@@ -342,10 +403,37 @@ export const api = {
       label: string;
       description: string;
       weight: number;
-      categoryIds: string[];
+      categoryId: string;
       platforms: string[];
     }>
   ) => post<{ series: ContentSeries[] }>("/api/series", { series }),
+  /** Bascule de mode et/ou sujet lié (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — endpoint dédié plutôt que
+   *  saveContentSeries : ce dernier archive toute série active omise du tableau soumis, inadapté à
+   *  l'édition d'un ou deux champs depuis une carte de la bibliothèque. */
+  updateSeriesFields: (id: string, fields: { mode?: "feuilleton" | "rendez_vous"; productId?: string | null }) =>
+    patch<{ series: ContentSeries }>(`/api/series/${id}`, fields),
+
+  /** Planifie/replanifie l'arc narratif d'un sujet (docs/SPEC_REDACTEUR_EN_CHEF.md §6) — crée l'état
+   *  paresseusement. 409 si la cible est une série en mode rendez_vous. */
+  planNarrative: (data: { productId?: string; seriesId?: string; directive?: string }) =>
+    post<{ state: NarrativeState }>("/api/narrative/plan", data),
+  /** Trouve ou crée un état narratif vide, sans planification (§5/§7, Lot B4) — utilisé pour le mode
+   *  rendez_vous, où /narrative/plan refuse explicitement (409) mais où formatContract/callbacks
+   *  doivent quand même pouvoir être édités à la main. */
+  ensureNarrativeState: (data: { productId?: string; seriesId?: string }) =>
+    post<{ state: NarrativeState }>("/api/narrative/ensure", data),
+  /** Éditions manuelles de l'écran Direction (§6/§7) : arcSummary, formatContract, beats (réordonner/
+   *  éditer/passer skipped), fermeture d'une promesse (closePromiseText), callbacks. */
+  patchNarrativeState: (
+    id: string,
+    data: Partial<{
+      arcSummary: string;
+      formatContract: string | null;
+      beats: NarrativeBeat[];
+      callbacks: string[];
+      closePromiseText: string;
+    }>
+  ) => patch<{ state: NarrativeState }>(`/api/narrative/${id}`, data),
 
   getProducts: () => apiFetch<{ products: Product[] }>("/api/products"),
   createProducts: (
@@ -375,15 +463,18 @@ export const api = {
     patch<{ entry: CalendarEntry }>(`/api/calendar/${id}`, data),
   deleteCalendarEntry: (id: string) => del<{ ok: true }>(`/api/calendar/${id}`),
 
-  generateScriptForEntry: (calendarEntryId: string, contentType?: ContentType, productId?: string) =>
-    post<{ script: Script }>("/api/scripts/generate", { calendarEntryId, contentType, productId }),
+  generateScriptForEntry: (calendarEntryId: string, contentType?: ContentType, productId?: string, directive?: string) =>
+    post<{ script: Script }>("/api/scripts/generate", { calendarEntryId, contentType, productId, directive }),
   generateFreeformScript: (data: {
     platform: Platform;
-    contentCategoryId: string;
+    /** Role du post libre ; omis quand seriesId est fourni - le serveur derive alors le role de la
+     *  serie (docs/SPEC_SERIES_ET_ROLES.md 4.2). */
+    contentCategoryId?: string;
     contentType: ContentType;
     productId?: string;
     scheduledDate?: string;
     seriesId?: string;
+    directive?: string;
   }) => post<{ script: Script }>("/api/scripts", data),
   getScripts: (params?: { seriesId?: string }) =>
     apiFetch<{ scripts: Script[] }>(`/api/scripts${params?.seriesId ? `?seriesId=${params.seriesId}` : ""}`),
@@ -412,11 +503,15 @@ export const api = {
   regenerateScriptBlock: (id: string, block: "hook" | "storyboard" | "caption" | "hashtags") =>
     post<{ script: Script }>(`/api/scripts/${id}/micro-edit`, { action: "block_regenerate", block }),
   /** "Autre idée, même brief" (docs/SPEC_PROMPT_GENERATION_TECH.md §6) — remplace tout le contenu du
-   *  script en place, brief verrouillé. Confirmation à afficher côté appelant avant d'exécuter (§6.3). */
-  newIdea: (id: string) => post<{ script: Script }>(`/api/scripts/${id}/new-idea`),
+   *  script en place, brief verrouillé. Confirmation à afficher côté appelant avant d'exécuter (§6.3).
+   *  `directive` optionnelle (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A) : idée soufflée par le créateur, ou
+   *  commentaire pré-rempli par la bascule select-all ≥80 %. */
+  newIdea: (id: string, data?: { directive?: string }) =>
+    post<{ script: Script }>(`/api/scripts/${id}/new-idea`, data),
   importScript: (data: {
     platform: Platform;
-    contentCategoryId: string;
+    /** Role du post libre ; omis quand seriesId est fourni (docs/SPEC_SERIES_ET_ROLES.md 4.2). */
+    contentCategoryId?: string;
     contentType: ContentType;
     productId?: string;
     seriesId?: string;
@@ -437,7 +532,16 @@ export const api = {
   addPastedMaterial: (data: { productId?: string; title?: string; rawText: string }) =>
     post<{ material: SourceMaterial }>("/api/materials", data),
   deleteMaterial: (id: string) => del<{ ok: true }>(`/api/materials/${id}`),
+  /** Édition manuelle du résumé (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — devient la source de vérité,
+   *  jamais regénérée automatiquement ensuite. `null` remet le document en attente de résumé. */
+  updateMaterialSummary: (id: string, summary: string | null) =>
+    patch<{ material: SourceMaterial }>(`/api/materials/${id}`, { summary }),
   getMaterialCitations: (id: string) => apiFetch<{ citations: Citation[] }>(`/api/materials/${id}/citations`),
+  /** Où chaque document d'un sujet est consommé dans les plans — lecture seule, ne crée aucun état. */
+  getMaterialUsage: (productId: string) =>
+    apiFetch<{ usage: Record<string, { episode: number; beatTitle: string }> }>(
+      `/api/materials/usage?productId=${productId}`
+    ),
   uploadMaterialFile: async (file: File, productId?: string) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -453,15 +557,13 @@ export const api = {
   sendInterviewMessage: (message: string, productId?: string) =>
     post<{ reply: string; extractedMaterial: string | null }>("/api/materials/interview", { message, productId }),
 
+  /** "Série depuis la matière" (docs/SPEC_REDACTEUR_EN_CHEF.md §4.4) — crée le plan (NarrativeState)
+   *  de la série, ne génère plus de scripts synchrones : la génération suit ensuite le flux normal. */
   generateSeriesFromMaterial: (data: {
     productId?: string;
     seriesId?: string;
-    newSeries?: { label: string; description: string; weight?: number };
-    platform: Platform;
-    contentCategoryId: string;
-    contentType: ContentType;
-    episodeCount: number;
-  }) => post<{ series: ContentSeries; scripts: Script[] }>("/api/series/from-material", data),
+    newSeries?: { label: string; description: string; categoryId: string; weight?: number };
+  }) => post<{ series: ContentSeries; state: NarrativeState }>("/api/series/from-material", data),
   saveScriptMetrics: (
     id: string,
     data: Partial<{ views: number; likes: number; comments: number; shares: number }>
