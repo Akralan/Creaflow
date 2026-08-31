@@ -161,7 +161,7 @@ function OnboardingContent() {
             S
           </div>
           <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, letterSpacing: "-0.02em" }}>
-            SocialSkill
+            Creaflow
           </span>
         </div>
         <Button variant="ghost" onClick={() => router.push("/calendar")}>
