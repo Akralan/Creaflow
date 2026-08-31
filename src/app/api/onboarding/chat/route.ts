@@ -2,9 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { onboardingSessions } from "@/db/schema";
+import { onboardingSessions, users } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
-import { runOnboardingChatTurn, type ExtractedOnboardingProfile, type OnboardingMessage } from "@/lib/llm/onboardingChat";
+import {
+  runDevOnboardingChatTurn,
+  runOnboardingChatTurn,
+  type ExtractedOnboardingProfile,
+  type OnboardingMessage,
+} from "@/lib/llm/onboardingChat";
+import { buildDevOnboardingContext } from "@/lib/services/githubSourceService";
 import { finalizeOnboarding, mergeExtractedProfile } from "@/lib/services/onboardingService";
 import { handleApiError } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
@@ -37,7 +43,21 @@ export async function POST(request: NextRequest) {
     const priorMessages = (session?.messages as OnboardingMessage[] | undefined) ?? [];
     const messagesWithUser: OnboardingMessage[] = [...priorMessages, { role: "user", content: message }];
 
-    const result = await runOnboardingChatTurn({ history: messagesWithUser.slice(-MAX_HISTORY_MESSAGES) });
+    // Deux parcours, un seul endpoint : le prompt dev reçoit le profil GitHub et les dépôts déjà
+    // ingérés, et n'a droit qu'à deux ou trois questions. Le contrat de sortie est identique, donc
+    // tout ce qui suit (fusion, finalisation) ne distingue pas les deux.
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+      columns: { onboardingTrack: true },
+    });
+
+    const result =
+      user?.onboardingTrack === "dev"
+        ? await runDevOnboardingChatTurn({
+            history: messagesWithUser.slice(-MAX_HISTORY_MESSAGES),
+            dev: await buildDevOnboardingContext(userId),
+          })
+        : await runOnboardingChatTurn({ history: messagesWithUser.slice(-MAX_HISTORY_MESSAGES) });
 
     const messages: OnboardingMessage[] = [...messagesWithUser, { role: "assistant", content: result.assistantReply }];
     const extractedProfile = mergeExtractedProfile(

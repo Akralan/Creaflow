@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { githubAccounts, materialSources, products, sourceMaterials } from "@/db/schema";
 import { fetchBlobText, fetchTree, listCommits, GithubAuthError, type GithubRepo } from "@/lib/github/client";
 import { buildCommitJournal, COMMITS_EXTERNAL_REF, selectMarkdownFiles } from "@/lib/github/ingest";
+import type { DevOnboardingContext } from "@/lib/llm/onboardingChat";
 import { markStaleForMaterialIngestion } from "@/lib/services/narrativeDirector";
 import { ApiError } from "@/lib/api/errors";
 import { MAX_PRODUCTS } from "@/lib/validation";
@@ -251,6 +252,41 @@ export async function createGithubSources(userId: string, repos: GithubRepo[]): 
   }
 
   return results;
+}
+
+/** Contexte injecté au chat d'onboarding dev : profil GitHub et sujets retenus, avec le début de
+ *  leur README déjà ingéré. Le README est retrouvé par son externalRef, pas par une relecture
+ *  GitHub — la matière est déjà là, inutile de repayer un appel réseau. */
+export async function buildDevOnboardingContext(userId: string): Promise<DevOnboardingContext> {
+  const account = await db.query.githubAccounts.findFirst({ where: eq(githubAccounts.userId, userId) });
+  const sources = await db.query.materialSources.findMany({ where: eq(materialSources.userId, userId) });
+  const productRows = await db.query.products.findMany({ where: eq(products.userId, userId) });
+
+  const subjects: DevOnboardingContext["subjects"] = [];
+  for (const product of productRows) {
+    const source = sources.find((s) => s.productId === product.id);
+    const readme = source
+      ? await db.query.sourceMaterials.findFirst({
+          where: and(eq(sourceMaterials.sourceId, source.id), eq(sourceMaterials.externalRef, "README.md")),
+          columns: { rawText: true },
+        })
+      : null;
+    subjects.push({
+      name: product.name,
+      description: product.description,
+      // Le langage principal n'est pas persisté : il vient de l'API GitHub à la sélection et n'a pas
+      // de colonne. Le nom et la description du dépôt portent déjà l'essentiel.
+      language: null,
+      readmeExcerpt: readme ? readme.rawText.slice(0, 600) : null,
+    });
+  }
+
+  return {
+    login: account?.login ?? "",
+    name: account?.name ?? null,
+    bio: account?.bio ?? null,
+    subjects,
+  };
 }
 
 export async function listSourcesForProduct(userId: string, productId: string) {
