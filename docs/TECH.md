@@ -486,6 +486,39 @@ Self-service, mode `subscription` Stripe Checkout — pas d'intégration Stripe.
 
 ---
 
+## 8. Onboarding dev & sources de matière connectées (GitHub)
+
+Cadrage complet : `docs/superpowers/specs/2026-08-31-onboarding-dev-github-design.md`.
+
+**Deux parcours d'onboarding en parallèle**, aiguillés par `users.onboardingTrack` (`creator` | `dev`), posé au signup et jamais recalculé. Le parcours créateur (chat généraliste → sujets → réseaux) est inchangé. Le parcours dev est : dépôts → discussion courte → réseaux.
+
+**Identité.** OAuth App GitHub, scope `read:user user:email` exactement. `public_repo` est écarté : il accorderait l'écriture sur les dépôts publics, dont l'app n'a aucun usage, alors que leur contenu se lit sans scope dédié. `user:email` est en revanche obligatoire — `users.email` est `NOT NULL UNIQUE` et `GET /user` ne renvoie l'email que s'il est public sur le profil, d'où la lecture de `GET /user/emails`.
+
+- `users.passwordHash` devient **nullable** ; `POST /api/auth/login` refuse explicitement un compte sans hash avec un message qui oriente vers GitHub, plutôt que de répondre « mot de passe incorrect » à quelqu'un qui n'en a jamais eu. Ce message révèle qu'un compte GitHub existe pour l'adresse saisie : compromis assumé pour ne pas laisser l'utilisateur dans une impasse, borné par le rate limit par email déjà en place.
+- **Résolution de compte** (`decideAccountResolution`, `githubAuthService.ts`, fonction pure testée) : identité GitHub déjà liée → connexion ; sinon email **primaire et vérifié** correspondant à un compte existant → rattachement de l'identité ; sinon création. Sans email vérifié → refus (409). Le rattachement n'est jamais fait sur une adresse non vérifiée : n'importe qui pourrait sinon revendiquer l'adresse d'un compte existant et en prendre le contrôle. Un rattachement ne modifie pas `onboardingTrack`.
+- Routes : `GET /api/auth/github/start` (sans session — c'est une porte d'entrée), `GET /api/auth/github/callback` (state CSRF en cookie, rate limit `github-oauth` 10/h par IP), `GET /api/auth/github/status` (`force-dynamic`, dit à `/login` s'il faut afficher le bouton).
+
+**Modèle de données.** Une table `material_sources` (`userId`, `productId`, `type`, `externalId`, `label`, `config`, `syncCursor`, `lastSyncedAt`, `status`, `lastError`), unique sur `(userId, type, externalId)` — pas de colonnes GitHub sur `products`. Un sujet est un objet éditorial, un dépôt une de ses sources : des colonnes de connecteur sur `products` figeraient « un sujet = un dépôt » et pollueraient une table référencée partout. Il n'y a **volontairement pas** d'interface `SourceConnector` ni de registre à la manière de `socialProviders` : un connecteur Obsidian n'a ni branche, ni commits, ni owner, et écrire le contrat à partir d'un seul implémenteur reviendrait à le deviner. Le contrat s'extraira au deuxième connecteur.
+
+`source_materials` gagne `sourceId`, `externalRef` (chemin du fichier, ou `__commits__`) et `externalChecksum` (blob SHA, ou SHA du commit le plus récent), plus un index unique partiel `(sourceId, externalRef) where source_id is not null`. Un document ingéré reste une matière strictement ordinaire : résumé, citations, injection à la génération, rattachement à une série — rien en aval ne le distingue d'un texte collé.
+
+**Deux déviations de convention, assumées et liées :**
+
+- `source_materials.sourceId` est en **CASCADE**, alors que `products.id` est en `SET NULL` depuis `sourceMaterials`, `scripts`, `brandAssets` et `contentSeries`. Un document connecté est le miroir d'une source, pas de la matière rédigée : l'orpheliner à la suppression du sujet le ferait basculer en matière de niveau marque (`productId` null), donc injectée à **chaque** génération sans sujet via `getMaterialForSubject(userId, null)`. Cinquante `.md` d'un projet supprimé empoisonneraient toutes les générations suivantes. Le contenu ne se perd pas : il est dans le dépôt.
+- `source_material_citations.sourceMaterialId` passe donc de `CASCADE` à **`SET NULL`** : sans ça, la cascade ci-dessus effacerait la traçabilité de scripts déjà publiés. `null` y est déjà un état de première classe (`citationService.ts` l'écrit quand aucun document ne matche, `narrativeDirector.ts` le filtre) — la traçabilité se dégrade proprement au lieu de disparaître, et aucun code applicatif n'a eu à changer.
+
+**Ingestion.** Un `sourceMaterial` par `.md` (titre = chemin) plus un document « journal de commits » unique. Plafonds : `MAX_GITHUB_MD_FILES` (50), `MAX_GITHUB_FILE_BYTES` (100 Ko — un fichier au-delà est ignoré, jamais tronqué), `MAX_GITHUB_COMMITS` (100). Sont exclus les répertoires `node_modules`/`dist`/`build`/`vendor`/`.github` et les fichiers `LICENSE`/`CONTRIBUTING`/`CODE_OF_CONDUCT`/`SECURITY` — du boilerplate identique d'un projet à l'autre. `CHANGELOG.md` est gardé : c'est de la matière datée. Le journal retient de chaque commit sa date, son auteur, son **nom** (première ligne du message) et sa **description** (le reste) ; les fichiers touchés ne sont pas ingérés (absents de la réponse de l'endpoint de liste, et sans valeur narrative).
+
+**Aucun appel LLM pendant l'ingestion** — divergence assumée avec `POST /api/materials`, qui résume via `after()` : 50 fichiers feraient 50 appels. Le backfill paresseux (`backfillMaterialSummaries`, déclenché par `POST /api/narrative/plan`) s'en charge. L'ingestion reste donc du fetch et de l'écriture, et tient dans une requête synchrone.
+
+**Re-sync manuel** (`POST /api/material-sources/:id/sync`, pas de cron — même philosophie que le reste de l'app). `diffDocuments` (fonction pure testée) décide : absent → INSERT ; checksum identique → **aucune écriture** ; checksum différent → UPDATE avec `summary` remis à null ; chemin disparu du dépôt → laissé intact (c'est de la matière passée valable, et ses citations pointent dessus). Le passage de `summary` à null rompt volontairement la règle « l'édition manuelle devient la source de vérité » d'`updateMaterialSummary` : pour une source connectée, c'est le dépôt qui fait foi. Une synchro qui écrit appelle `markStaleForMaterialIngestion`, sans quoi le rédacteur en chef ne replanifierait pas.
+
+**Prompt dev** (`runDevOnboardingChatTurn`, `onboardingChat.ts`) : même moteur, même contrat de sortie et même critère de `complete` que le parcours créateur ; seuls changent le prompt système (deux ou trois questions maximum — ton, audience, temps ; matériel de production jamais demandé) et le contexte injecté (profil GitHub, sujets retenus, début de leur README déjà ingéré). Le tool est **dérivé** de `updateOnboardingProfileTool` moins `equipment`, pour qu'un futur champ de profil ne se perde pas dans un seul des deux parcours.
+
+**Hors périmètre** : dépôts privés, GitHub App (accès par dépôt), re-sync automatique, ingestion d'autre chose que du Markdown, organisations (seuls les dépôts en `affiliation=owner` sont listés).
+
+---
+
 ## 9. Monitoring (Sentry, logs structurés)
 
 - **Optionnel par défaut** : sans `SENTRY_DSN`/`NEXT_PUBLIC_SENTRY_DSN`, `Sentry.init()` tourne avec `dsn: undefined` — aucun événement envoyé, aucune erreur, l'app fonctionne normalement (comportement documenté du SDK, pas une branche conditionnelle codée à la main).

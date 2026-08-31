@@ -20,6 +20,8 @@ Le provider LLM utilisé pour la génération de contenu est sélectionné via `
 
 Les credentials OAuth (TikTok/Instagram/LinkedIn) ne sont nécessaires que pour tester la connexion des comptes sociaux (Module A).
 
+L'onboarding développeur (connexion GitHub, dépôts publics comme sujets) demande `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` et `GITHUB_OAUTH_REDIRECT_URI` — une OAuth App créée sur github.com, scope `read:user user:email` uniquement. Optionnel en dev : sans ces variables le bouton « Continuer avec GitHub » n'apparaît pas sur `/login` et le parcours email/mot de passe reste complet. Voir `docs/TECH.md` §8.
+
 La facturation self-service (Stripe) est optionnelle pour faire tourner l'app en dev : sans `STRIPE_SECRET_KEY`/`STRIPE_PRICE_*`/`STRIPE_WEBHOOK_SECRET`, tout utilisateur reste sur l'essai gratuit (5 scripts à vie) et les routes `/api/billing/*` échouent explicitement si sollicitées. Pour tester le flux complet en local : `stripe listen --forward-to localhost:3000/api/billing/webhook` (Stripe CLI) fournit le `STRIPE_WEBHOOK_SECRET` à utiliser. Voir `docs/TECH.md` §6.
 
 ## Documentation projet
@@ -31,3 +33,4 @@ La facturation self-service (Stripe) est optionnelle pour faire tourner l'app en
 - `docs/SPEC_RESSOURCES_VISUELLES.md` — cadrage de la bibliothèque de ressources visuelles / génération d'images, implémentée côté code, pas encore vérifiée en environnement réel.
 - `docs/SETUP_RESSOURCES_VISUELLES.md` — comptes/clés externes à créer (Cloudflare R2, Google Cloud) pour que cette feature fonctionne.
 - `docs/SPEC_ASSISTANT_AGENTIQUE.md` — l'assistant éditorial devient un « rédacteur en chef assistant » outillé : lecture de toute l'app, écriture sur tout sauf scripts et calendrier, toujours via propositions à valider. Suppose une primitive `callAgentic` (multi-tours, N tools) qui n'existe pas encore, écrite pour le seul adaptateur OpenAI — l'assistant sortira donc de `LLM_PROVIDER` et exigera `OPENAI_API_KEY`, comme la génération d'images et le captioning vision le font déjà pour Gemini. Implémenté (lots 0-4), non testé avec une vraie clé.
+- `docs/superpowers/specs/2026-08-31-onboarding-dev-github-design.md` — onboarding développeur : identité GitHub, dépôts publics comme sujets, `.md` et journal de commits ingérés comme matière. Implémenté ; migration `0024` générée mais **pas encore appliquée ni vérifiée en base**, et le trajet OAuth réel reste à valider manuellement (checklist en fin de `docs/superpowers/plans/2026-08-31-onboarding-dev-github.md`).
