@@ -10,12 +10,32 @@ import ConnectionRow from "@/components/ConnectionRow";
 import EquipmentPicker from "@/components/EquipmentPicker";
 import StyleAnalysisPanel from "@/components/StyleAnalysisPanel";
 import OnboardingChat from "@/components/OnboardingChat";
+import RepoPicker from "@/components/RepoPicker";
 import { api, ApiClientError, type Connection } from "@/lib/apiClient";
 import { accent, accentAlpha, color, fontHeading } from "@/lib/design/tokens";
 import { MIN_PRODUCTS } from "@/lib/validation";
 
-function StepTab({ n, step, onClick }: { n: number; step: number; onClick: () => void }) {
-  const labels = ["1 · Discussion", "2 · Sujets", "3 · Réseaux"];
+type OnboardingTrack = "creator" | "dev";
+
+const STEP_LABELS: Record<OnboardingTrack, string[]> = {
+  // Le dev a déjà répondu à « qui es-tu » en connectant GitHub : ses projets viennent en premier,
+  // et la discussion arrive ensuite, nourrie de ce qu'on a lu dans les dépôts.
+  dev: ["1 · Projets", "2 · Discussion", "3 · Réseaux"],
+  creator: ["1 · Discussion", "2 · Sujets", "3 · Réseaux"],
+};
+
+function StepTab({
+  n,
+  step,
+  track,
+  onClick,
+}: {
+  n: number;
+  step: number;
+  track: OnboardingTrack;
+  onClick: () => void;
+}) {
+  const labels = STEP_LABELS[track];
   const base: React.CSSProperties = {
     border: "none",
     fontFamily: "inherit",
@@ -45,6 +65,7 @@ function OnboardingContent() {
   const [step, setStep] = useState(1);
   const [loaded, setLoaded] = useState(false);
   const [useFallbackForm, setUseFallbackForm] = useState(false);
+  const [track, setTrack] = useState<OnboardingTrack>("creator");
 
   const [brandName, setBrandName] = useState("");
   const [activityType, setActivityType] = useState("");
@@ -62,7 +83,11 @@ function OnboardingContent() {
 
   useEffect(() => {
     (async () => {
-      const [{ profile }, { connections }] = await Promise.all([api.getProfile(), api.getConnections()]);
+      const [{ profile, onboardingTrack }, { connections }] = await Promise.all([
+        api.getProfile(),
+        api.getConnections(),
+      ]);
+      setTrack(onboardingTrack);
       if (profile) {
         setBrandName(profile.brandName);
         setActivityType(profile.activityType);
@@ -100,7 +125,9 @@ function OnboardingContent() {
       return;
     }
     if (step === 2) {
-      if (productCount < MIN_PRODUCTS) {
+      // En parcours dev les sujets sont créés par RepoPicker à l'étape 1, et l'étape 2 est la
+      // discussion, qui avance via onComplete — ce garde ne concerne que le catalogue manuel.
+      if (track === "creator" && productCount < MIN_PRODUCTS) {
         setStepError(`Ajoutez au moins ${MIN_PRODUCTS} sujet${MIN_PRODUCTS > 1 ? "s" : ""} avant de continuer.`);
         return;
       }
@@ -126,7 +153,9 @@ function OnboardingContent() {
       setEquipment(profile.equipment || []);
       setWeeklyTimeAvailable(profile.weeklyTimeAvailable || "");
     }
-    setStep(2);
+    // La discussion est l'étape 1 en parcours créateur, la 2 en parcours dev (les projets passent
+    // devant) — dans les deux cas on avance d'un cran.
+    setStep(track === "dev" ? 3 : 2);
   }
 
   if (!loaded) return null;
@@ -193,12 +222,34 @@ function OnboardingContent() {
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 36, flexWrap: "wrap" }}>
           {[1, 2, 3].map((n) => (
-            <StepTab key={n} n={n} step={step} onClick={() => setStep(n)} />
+            <StepTab key={n} n={n} step={step} track={track} onClick={() => setStep(n)} />
           ))}
         </div>
 
         <Card style={{ borderRadius: 22, padding: 36, boxShadow: "0 24px 48px -34px rgba(40,30,60,0.22)" }}>
-          {step === 1 && !useFallbackForm && (
+          {track === "dev" && step === 1 && (
+            <div>
+              <h2 style={heading2Style}>Tes projets</h2>
+              <p style={{ margin: "0 0 24px", color: color.textMuted, fontSize: 15 }}>
+                Choisis les dépôts dont tu veux parler. Chacun devient un sujet, et on récupère ses fichiers .md
+                et son historique de commits comme matière.
+              </p>
+              <RepoPicker onConnected={() => setStep(2)} />
+            </div>
+          )}
+
+          {track === "dev" && step === 2 && (
+            <div>
+              <h2 style={heading2Style}>Deux ou trois questions</h2>
+              <p style={{ margin: "0 0 20px", color: color.textMuted, fontSize: 15 }}>
+                On a lu tes projets. Il reste juste à savoir sur quel ton tu veux écrire, pour qui, et combien de
+                temps tu as par semaine.
+              </p>
+              <OnboardingChat onComplete={handleChatComplete} />
+            </div>
+          )}
+
+          {track === "creator" && step === 1 && !useFallbackForm && (
             <div>
               <h2 style={heading2Style}>Discutons de ton activité</h2>
               <p style={{ margin: "0 0 20px", color: color.textMuted, fontSize: 15 }}>
@@ -224,7 +275,7 @@ function OnboardingContent() {
             </div>
           )}
 
-          {step === 1 && useFallbackForm && (
+          {track === "creator" && step === 1 && useFallbackForm && (
             <div>
               <h2 style={heading2Style}>Votre identité de marque</h2>
               <p style={{ margin: "0 0 28px", color: color.textMuted, fontSize: 15 }}>
@@ -292,7 +343,7 @@ function OnboardingContent() {
             </div>
           )}
 
-          {step === 2 && (
+          {track === "creator" && step === 2 && (
             <div>
               <h2 style={heading2Style}>Vos sujets</h2>
               <p style={{ margin: "0 0 24px", color: color.textMuted, fontSize: 15 }}>
@@ -335,7 +386,9 @@ function OnboardingContent() {
             <Button variant="secondary" onClick={goPrev} disabled={step === 1}>
               Précédent
             </Button>
-            {(step !== 1 || useFallbackForm) && (
+            {/* En parcours dev, les étapes 1 (RepoPicker) et 2 (discussion) portent leur propre
+                déclencheur — un « Continuer » à côté ne ferait que proposer de sauter l'étape. */}
+            {(track === "dev" ? step >= 3 : step !== 1 || useFallbackForm) && (
               <Button onClick={goNext} disabled={saving}>
                 {saving ? "..." : step >= 3 ? "Terminer et ouvrir l'app" : "Continuer"}
               </Button>

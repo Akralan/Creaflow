@@ -431,7 +431,8 @@ export const api = {
   /** Supprime aussi les documents miroir de la source — confirmer côté UI avant d'appeler. */
   deleteMaterialSource: (id: string) => del<{ ok: true }>(`/api/material-sources/${id}`),
 
-  getProfile: () => apiFetch<{ profile: CreatorProfile | null }>("/api/profile"),
+  getProfile: () =>
+    apiFetch<{ profile: CreatorProfile | null; onboardingTrack: "creator" | "dev" }>("/api/profile"),
   saveProfile: (data: {
     brandName: string;
     activityType: string;

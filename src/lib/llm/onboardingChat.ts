@@ -104,7 +104,8 @@ export const devOnboardingProfileTool: LlmToolDefinition = (() => {
     description: string;
     properties: Record<string, unknown>;
   };
-  const { equipment: _equipment, ...properties } = base.properties;
+  const properties = { ...base.properties };
+  delete properties.equipment;
   return {
     ...updateOnboardingProfileTool,
     input_schema: {
