@@ -9,10 +9,11 @@ import {
   real,
   pgEnum,
   unique,
+  uniqueIndex,
   vector,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 export const scriptStatusEnum = pgEnum("script_status", ["draft", "planned", "shot", "published"]);
 export const contentTypeEnum = pgEnum("content_type", ["video", "visual", "text"]);
@@ -61,7 +62,14 @@ export const postMetricsSourceEnum = pgEnum("post_metrics_source", ["manual", "a
 export const postMatchCandidateStatusEnum = pgEnum("post_match_candidate_status", ["pending", "confirmed", "dismissed"]);
 export const scriptOriginEnum = pgEnum("script_origin", ["generated", "imported", "manual"]);
 export const scriptMicroEditKindEnum = pgEnum("script_micro_edit_kind", ["selection_instruction", "block_regenerate"]);
-export const sourceMaterialKindEnum = pgEnum("source_material_kind", ["paste", "file", "interview"]);
+// "connector" = document miroir d'une source externe branchée (dépôt GitHub aujourd'hui), par
+// opposition aux trois portes manuelles. Voir docs/superpowers/specs/2026-08-31-onboarding-dev-github-design.md §3.3.
+export const sourceMaterialKindEnum = pgEnum("source_material_kind", ["paste", "file", "interview", "connector"]);
+// Quel onboarding s'affiche (spec §2) : "creator" = chat généraliste puis saisie des sujets ;
+// "dev" = identité GitHub, choix de dépôts, chat court. Posé au signup, jamais recalculé.
+export const onboardingTrackEnum = pgEnum("onboarding_track", ["creator", "dev"]);
+export const materialSourceTypeEnum = pgEnum("material_source_type", ["github_repo"]);
+export const materialSourceStatusEnum = pgEnum("material_source_status", ["ok", "error", "needs_reconnect"]);
 // Mode d'une série (docs/SPEC_REDACTEUR_EN_CHEF.md §1/§2) : "feuilleton" = épisodes ordonnés, arc +
 // beats maintenus par le rédacteur en chef (devlog, coulisses d'un projet) ; "rendez_vous" = épisodes
 // autonomes partageant un format (news de la semaine) — pas de beats, planification désactivée pour
@@ -85,7 +93,11 @@ export const subscriptionStatusEnum = pgEnum("subscription_status", [
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
+  // Nullable depuis l'arrivée de l'identité GitHub : un compte créé par OAuth n'a pas de mot de
+  // passe. POST /api/auth/login doit donc refuser explicitement un compte sans hash plutôt que de
+  // comparer contre null, ce qui afficherait "mot de passe incorrect" à quelqu'un qui n'en a jamais eu.
+  passwordHash: text("password_hash"),
+  onboardingTrack: onboardingTrackEnum("onboarding_track").notNull().default("creator"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -267,25 +279,74 @@ export const products = pgTable("products", {
   targetAudience: text("target_audience"),
 });
 
+// Source connectée alimentant le corpus d'un sujet (docs/superpowers/specs/2026-08-31-onboarding-dev-github-design.md
+// §3.2). Table séparée plutôt que des colonnes GitHub sur products : un sujet est un objet
+// éditorial, un dépôt une de ses sources — des colonnes de connecteur sur products figeraient
+// "un sujet = un dépôt" et pollueraient une table référencée partout.
+export const materialSources = pgTable(
+  "material_sources",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    // CASCADE, contrairement à sourceMaterials.productId qui est SET NULL : une source sans sujet
+    // n'a pas de sens, on ne saurait plus quoi resynchroniser ni vers où.
+    productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+    type: materialSourceTypeEnum("type").notNull(),
+    externalId: text("external_id").notNull(), // id numérique du dépôt GitHub
+    label: text("label").notNull(), // "owner/repo", affiché tel quel
+    config: jsonb("config").notNull().default({}), // { defaultBranch: string }
+    syncCursor: text("sync_cursor"), // SHA du commit le plus récent vu
+    lastSyncedAt: timestamp("last_synced_at"),
+    status: materialSourceStatusEnum("status").notNull().default("ok"),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  // Porte sur externalId et non productId : le même dépôt ne peut pas être branché deux fois par le
+  // même utilisateur, mais deux utilisateurs peuvent suivre le même dépôt public.
+  (t) => [unique().on(t.userId, t.type, t.externalId)]
+);
+
 // Corpus de matière première par sujet (docs/SPEC_MATIERE_EDITEUR.md §3) — dépôt brut dont la
 // génération de script se nourrit, injecté tel quel (pas de structuration intermédiaire — testé,
 // une passe de découpage en unités typées perdait la richesse narrative du texte et produisait une
 // sélection sans rapport avec le thème du post). productId nullable : une partie du corpus peut être
 // de niveau marque (pas rattachée à un sujet précis), même pattern que brandAssets.productId. Un
 // dépôt est immédiatement utilisable, pas de traitement asynchrone.
-export const sourceMaterials = pgTable("source_materials", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
-  kind: sourceMaterialKindEnum("kind").notNull(),
-  title: text("title"),
-  rawText: text("raw_text").notNull(),
-  // Résumé orienté potentiel narratif (docs/SPEC_REDACTEUR_EN_CHEF.md §2/§3.1) — null = pas encore
-  // résumé (backfill paresseux en cours ou à venir) ; généré une fois à l'ingestion, jamais
-  // regénéré automatiquement après une édition manuelle (l'édition devient la source de vérité).
-  summary: text("summary"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+export const sourceMaterials = pgTable(
+  "source_materials",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
+    kind: sourceMaterialKindEnum("kind").notNull(),
+    title: text("title"),
+    rawText: text("raw_text").notNull(),
+    // Résumé orienté potentiel narratif (docs/SPEC_REDACTEUR_EN_CHEF.md §2/§3.1) — null = pas encore
+    // résumé (backfill paresseux en cours ou à venir) ; généré une fois à l'ingestion, jamais
+    // regénéré automatiquement après une édition manuelle (l'édition devient la source de vérité).
+    // EXCEPTION pour kind="connector" : le re-sync remet summary à null quand le fichier a changé
+    // dans le dépôt, parce que c'est le dépôt qui fait foi, pas une édition locale.
+    summary: text("summary"),
+    // CASCADE, et c'est une déviation assumée de la convention du repo (products.id est en SET NULL
+    // depuis sourceMaterials, scripts, brandAssets, contentSeries). Un document connecté est le
+    // MIROIR d'une source, pas de la matière rédigée : l'orpheliner à la suppression du sujet le
+    // ferait basculer en matière de niveau marque (productId null), donc injectée à CHAQUE
+    // génération sans sujet via getMaterialForSubject(userId, null). Cinquante .md d'un projet
+    // supprimé empoisonneraient toutes les générations suivantes. Le contenu ne se perd pas pour
+    // autant : il est dans le dépôt.
+    sourceId: uuid("source_id").references(() => materialSources.id, { onDelete: "cascade" }),
+    // Identifiant du document DANS sa source : chemin du fichier ("docs/SPEC.md"), ou la valeur
+    // réservée "__commits__" pour le journal. Null pour toute matière non connectée.
+    externalRef: text("external_ref"),
+    // Blob SHA GitHub pour un fichier, SHA du commit le plus récent pour le journal. C'est la
+    // comparaison de cette valeur qui rend le re-sync idempotent sans relire le contenu.
+    externalChecksum: text("external_checksum"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  // Un document par chemin et par source. Partiel : la matière collée à la main a sourceId null et
+  // n'est pas concernée. Deux dépôts branchés sur le même sujet peuvent chacun avoir leur README.md.
+  (t) => [uniqueIndex().on(t.sourceId, t.externalRef).where(sql`${t.sourceId} is not null`)]
+);
 
 // Citation post-génération (docs/SPEC_MATIERE_EDITEUR.md §3 — remplace le découpage en unités) : le
 // LLM rapporte lui-même, dans sa réponse de génération (GeneratedScript.usedExcerpts), les passages
@@ -299,7 +360,12 @@ export const sourceMaterialCitations = pgTable("source_material_citations", {
   scriptId: uuid("script_id").notNull().references(() => scripts.id, { onDelete: "cascade" }),
   // Nullable : aucun document n'a matché avec une confiance suffisante — la citation est quand même
   // conservée (signal de debug : "le modèle a cru citer de la matière, on n'a pas su la localiser").
-  sourceMaterialId: uuid("source_material_id").references(() => sourceMaterials.id, { onDelete: "cascade" }),
+  // SET NULL et non CASCADE : sans ça, la suppression d'un sujet connecté — qui cascade jusqu'aux
+  // documents miroir, cf. sourceMaterials.sourceId — effacerait la traçabilité de scripts déjà
+  // publiés. Null est déjà un état de première classe ici (citationService l'écrit,
+  // narrativeDirector le filtre) : l'extrait cité reste lisible, il n'est simplement plus
+  // rattachable à un document.
+  sourceMaterialId: uuid("source_material_id").references(() => sourceMaterials.id, { onDelete: "set null" }),
   excerpt: text("excerpt").notNull(),
   matchStart: integer("match_start"),
   matchLength: integer("match_length"),
@@ -380,6 +446,24 @@ export const googleDriveConnections = pgTable("google_drive_connections", {
   driveAccountEmail: text("drive_account_email"),
   status: googleDriveConnectionStatusEnum("status").notNull().default("ok"),
   lastCheckedAt: timestamp("last_checked_at"),
+  connectedAt: timestamp("connected_at").notNull().defaultNow(),
+});
+
+// Identité GitHub d'un compte (spec §4). Distincte de socialConnections : GitHub n'est pas une
+// plateforme de publication, c'est un fournisseur d'identité et une source de matière.
+export const githubAccounts = pgTable("github_accounts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+  githubUserId: text("github_user_id").notNull().unique(),
+  login: text("login").notNull(),
+  name: text("name"),
+  bio: text("bio"),
+  avatarUrl: text("avatar_url"),
+  // Token d'OAuth App classique : pas d'expiration, pas de refresh token. Stocké pour le quota
+  // authentifié (5000 req/h contre 60 en anonyme), pas pour un accès privilégié — le scope demandé
+  // (read:user user:email) ne donne accès qu'à ce qui est déjà public.
+  accessToken: text("access_token").notNull(),
+  scope: text("scope").notNull(),
   connectedAt: timestamp("connected_at").notNull().defaultNow(),
 });
 
@@ -629,6 +713,16 @@ export const productsRelations = relations(products, ({ many }) => ({
   sourceMaterials: many(sourceMaterials),
   narrativeStates: many(narrativeState),
   series: many(contentSeries),
+  materialSources: many(materialSources),
+}));
+
+export const materialSourcesRelations = relations(materialSources, ({ one, many }) => ({
+  product: one(products, { fields: [materialSources.productId], references: [products.id] }),
+  documents: many(sourceMaterials),
+}));
+
+export const githubAccountsRelations = relations(githubAccounts, ({ one }) => ({
+  user: one(users, { fields: [githubAccounts.userId], references: [users.id] }),
 }));
 
 export const narrativeStateRelations = relations(narrativeState, ({ one }) => ({
@@ -642,6 +736,7 @@ export const brandAssetsRelations = relations(brandAssets, ({ one }) => ({
 
 export const sourceMaterialsRelations = relations(sourceMaterials, ({ one, many }) => ({
   product: one(products, { fields: [sourceMaterials.productId], references: [products.id] }),
+  source: one(materialSources, { fields: [sourceMaterials.sourceId], references: [materialSources.id] }),
   citations: many(sourceMaterialCitations),
 }));
 
