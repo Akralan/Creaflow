@@ -65,7 +65,7 @@ describe("fetchViewer", () => {
 });
 
 describe("listPublicRepos", () => {
-  it("demande explicitement les dépôts publics dont l'utilisateur est propriétaire, triés par push", async () => {
+  it("demande les dépôts publics possédés, en collaboration ou d'organisation, triés par push", async () => {
     fetchMock.mockResolvedValue(
       jsonOk([
         {
@@ -95,7 +95,7 @@ describe("listPublicRepos", () => {
     ]);
     const [url] = fetchMock.mock.calls[0];
     expect(url).toContain("visibility=public");
-    expect(url).toContain("affiliation=owner");
+    expect(url).toContain("affiliation=owner,collaborator,organization_member");
     expect(url).toContain("sort=pushed");
   });
 });

@@ -7,8 +7,10 @@ const API = "https://api.github.com";
 /** Scope minimal. `public_repo` est délibérément écarté : il accorderait l'ÉCRITURE sur les dépôts
  *  publics, dont on n'a aucun usage — le contenu public se lit sans scope dédié. `user:email` est en
  *  revanche obligatoire : users.email est NOT NULL UNIQUE et GET /user ne renvoie l'email que s'il
- *  est public sur le profil. */
-export const GITHUB_OAUTH_SCOPE = "read:user user:email";
+ *  est public sur le profil. `read:org` (lecture seule) l'est aussi : sans lui, GitHub refuse de
+ *  révéler les appartenances aux organisations et `affiliation=organization_member` renvoie []
+ *  (vérifié empiriquement — /user/orgs répond 403 « You need at least read:org scope »). */
+export const GITHUB_OAUTH_SCOPE = "read:user user:email read:org";
 
 export class GithubRateLimitError extends Error {
   retryAfterMinutes: number;
@@ -144,6 +146,12 @@ export interface GithubRepo {
   pushedAt: string;
 }
 
+/** `affiliation=owner,collaborator,organization_member` : les dépôts publics sur lesquels
+ *  l'utilisateur travaille — les siens, ceux où il est collaborateur direct, ceux des organisations
+ *  dont il est membre — comptent tous comme sujets de contenu. Le volet organisation exige le scope
+ *  `read:org` (cf. GITHUB_OAUTH_SCOPE). Limite connue : une organisation qui a activé les « OAuth
+ *  App access restrictions » masque ses dépôts à l'app tant qu'elle ne l'a pas approuvée — réglage
+ *  côté GitHub, invisible d'ici. */
 export async function listPublicRepos(token: string): Promise<GithubRepo[]> {
   const repos = await apiGet<
     Array<{
@@ -155,7 +163,7 @@ export async function listPublicRepos(token: string): Promise<GithubRepo[]> {
       language: string | null;
       pushed_at: string;
     }>
-  >(token, "/user/repos?visibility=public&affiliation=owner&sort=pushed&per_page=100");
+  >(token, "/user/repos?visibility=public&affiliation=owner,collaborator,organization_member&sort=pushed&per_page=100");
 
   return repos.map((r) => ({
     externalId: String(r.id),
