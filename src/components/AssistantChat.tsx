@@ -1,18 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Link } from "lucide-react";
-import { api, ApiClientError, type AssistantProposal, type OnboardingMessage, type SourceFetchError } from "@/lib/apiClient";
+import { Paperclip, X } from "lucide-react";
+import { api, ApiClientError, type AssistantAttachment, type AssistantProposal, type OnboardingMessage } from "@/lib/apiClient";
 import Button from "@/components/ui/Button";
 import IconActionButton from "@/components/ui/IconActionButton";
-import { accent, color } from "@/lib/design/tokens";
-
-const MAX_SOURCE_URLS = 3;
+import { accent, accentAlpha, color } from "@/lib/design/tokens";
 
 const GREETING: OnboardingMessage = {
   role: "assistant",
   content:
-    "Salut ! Dis-moi ce qui change dans ton activité (nouveau produit, mise à jour d'un projet, retour client...) et je te proposerai des mises à jour de ton catalogue ou de ta direction éditoriale.",
+    "Salut ! Dis-moi ce qui change dans ton activité (nouveau produit, mise à jour d'un projet, retour client...) et je te proposerai des mises à jour de ton catalogue ou de ta direction éditoriale. Tu peux aussi glisser un fichier .md ou .txt ici pour l'ajouter à ta matière.",
 };
 
 export default function AssistantChat({ onProposalsChange }: { onProposalsChange: (proposals: AssistantProposal[]) => void }) {
@@ -21,16 +19,18 @@ export default function AssistantChat({ onProposalsChange }: { onProposalsChange
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showUrlInput, setShowUrlInput] = useState(false);
-  const [urlsText, setUrlsText] = useState("");
-  const [sourceErrors, setSourceErrors] = useState<SourceFetchError[]>([]);
+  const [attachments, setAttachments] = useState<AssistantAttachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     (async () => {
-      const { messages: history, proposals } = await api.getAssistantChat();
+      const { messages: history, proposals, attachments: pending } = await api.getAssistantChat();
       setMessages(history.length > 0 ? history : [GREETING]);
       onProposalsChange(proposals);
+      setAttachments(pending);
       setLoading(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -40,26 +40,45 @@ export default function AssistantChat({ onProposalsChange }: { onProposalsChange
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  /** Le fichier est déposé tout de suite mais n'entre pas dans la matière : il attend qu'une
+   *  proposition de rangement soit validée (docs/SPEC_ASSISTANT_AGENTIQUE.md §5.1). */
+  async function uploadFiles(files: File[]) {
+    if (files.length === 0) return;
+    setError(null);
+    setUploading(true);
+    try {
+      for (const file of files) {
+        const { attachment } = await api.uploadAssistantAttachment(file);
+        setAttachments((a) => [...a, attachment]);
+      }
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "Fichier refusé, réessaie.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function discard(id: string) {
+    setAttachments((a) => a.filter((x) => x.id !== id));
+    try {
+      await api.discardAssistantAttachment(id);
+    } catch {
+      // Le fichier a pu être rangé entre-temps : la liste se resynchronise au prochain message.
+    }
+  }
+
   async function handleSend() {
     const content = input.trim();
     if (!content || sending) return;
-    const urls = urlsText
-      .split("\n")
-      .map((u) => u.trim())
-      .filter(Boolean)
-      .slice(0, MAX_SOURCE_URLS);
     setInput("");
-    setUrlsText("");
-    setShowUrlInput(false);
     setError(null);
-    setSourceErrors([]);
     setMessages((m) => [...m, { role: "user", content }]);
     setSending(true);
     try {
-      const { reply, proposals, sourceErrors } = await api.sendAssistantMessage(content, urls.length > 0 ? urls : undefined);
+      const { reply, proposals, attachments: pending } = await api.sendAssistantMessage(content);
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
       onProposalsChange(proposals);
-      setSourceErrors(sourceErrors ?? []);
+      setAttachments(pending);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Erreur, réessaie.");
     } finally {
@@ -70,7 +89,31 @@ export default function AssistantChat({ onProposalsChange }: { onProposalsChange
   if (loading) return null;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", border: `1px solid ${color.border}`, borderRadius: 14, background: color.inputBg }}>
+    <div
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={(e) => {
+        // Ne pas éteindre la surbrillance en survolant un enfant de la zone.
+        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+        setDragging(false);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragging(false);
+        uploadFiles(Array.from(e.dataTransfer.files));
+      }}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        border: `1px solid ${dragging ? accent : color.border}`,
+        borderRadius: 14,
+        background: dragging ? accentAlpha(0.06) : color.inputBg,
+        transition: "background 120ms, border-color 120ms",
+      }}
+    >
       <div style={{ flex: 1, overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 10 }}>
         {messages.map((m, i) => (
           <div
@@ -91,41 +134,61 @@ export default function AssistantChat({ onProposalsChange }: { onProposalsChange
             {m.content}
           </div>
         ))}
-        {sending && (
-          <div style={{ alignSelf: "flex-start", fontSize: 13, color: color.textFaint, padding: "0 4px" }}>...</div>
-        )}
+        {sending && <div style={{ alignSelf: "flex-start", fontSize: 13, color: color.textFaint, padding: "0 4px" }}>...</div>}
         <div ref={bottomRef} />
       </div>
+
       {error && <p style={{ color: color.danger, fontSize: 12, margin: "0 16px" }}>{error}</p>}
-      {sourceErrors.length > 0 && (
-        <p style={{ color: color.danger, fontSize: 12, margin: "0 16px" }}>
-          {sourceErrors.map((s) => `${s.url} : ${s.reason}`).join(" — ")}
-        </p>
-      )}
+
       <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 14, borderTop: `1px solid ${color.dividerAlt}` }}>
-        {showUrlInput && (
-          <textarea
-            value={urlsText}
-            onChange={(e) => setUrlsText(e.target.value)}
-            placeholder="Une URL par ligne (3 max)"
-            rows={2}
-            style={{
-              border: `1px solid ${color.inputBorder}`,
-              borderRadius: 10,
-              padding: "10px 14px",
-              fontSize: 14,
-              fontFamily: "inherit",
-              background: color.cardBg,
-              resize: "vertical",
-            }}
-          />
+        {attachments.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {attachments.map((a) => (
+              <span
+                key={a.id}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 12,
+                  color: color.textMuted,
+                  background: color.cardBg,
+                  border: `1px solid ${color.border}`,
+                  borderRadius: 20,
+                  padding: "4px 6px 4px 10px",
+                }}
+              >
+                <Paperclip size={12} />
+                {a.filename}
+                <button
+                  onClick={() => discard(a.id)}
+                  title="Retirer ce fichier"
+                  style={{ display: "flex", border: "none", background: "none", cursor: "pointer", color: color.textFaint, padding: 2 }}
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            ))}
+          </div>
         )}
         <div style={{ display: "flex", gap: 8 }}>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".md,.txt"
+            multiple
+            style={{ display: "none" }}
+            onChange={(e) => {
+              uploadFiles(Array.from(e.target.files ?? []));
+              e.target.value = "";
+            }}
+          />
           <IconActionButton
-            icon={Link}
-            variant={showUrlInput ? "primary" : "neutral"}
-            title="Ajouter des liens"
-            onClick={() => setShowUrlInput((v) => !v)}
+            icon={Paperclip}
+            variant="neutral"
+            title="Joindre un fichier .md ou .txt"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
             size={40}
           />
           <input
@@ -134,7 +197,9 @@ export default function AssistantChat({ onProposalsChange }: { onProposalsChange
             onKeyDown={(e) => {
               if (e.key === "Enter") handleSend();
             }}
-            placeholder="Écris ton message..."
+            placeholder={
+              attachments.length > 0 ? "Dis-lui quoi faire de ce fichier..." : "Écris ton message..."
+            }
             style={{
               flex: 1,
               border: `1px solid ${color.inputBorder}`,

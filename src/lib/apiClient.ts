@@ -285,9 +285,12 @@ export interface OnboardingMessage {
   content: string;
 }
 
-export interface SourceFetchError {
-  url: string;
-  reason: string;
+/** Fichier déposé dans la conversation de l'assistant, en attente d'être rangé en matière
+ *  (docs/SPEC_ASSISTANT_AGENTIQUE.md §5.1). Le contenu ne remonte jamais côté client. */
+export interface AssistantAttachment {
+  id: string;
+  filename: string;
+  createdAt: string;
 }
 
 export interface AssistantProposal {
@@ -303,6 +306,12 @@ export interface AssistantProposal {
     | "angle_create"
     | "angle_update"
     | "posting_goal_update"
+    | "material_create"
+    | "material_update"
+    | "material_delete"
+    | "series_archive"
+    | "category_archive"
+    | "angle_archive"
     | "category_reweight"
     | "profile_update";
   targetId: string | null;
@@ -574,12 +583,26 @@ export const api = {
     post<{ reply: string; complete: boolean }>("/api/onboarding/chat", { message }),
 
   getAssistantChat: () =>
-    apiFetch<{ messages: OnboardingMessage[]; proposals: AssistantProposal[] }>("/api/assistant/chat"),
-  sendAssistantMessage: (message: string, urls?: string[]) =>
-    post<{ reply: string; proposals: AssistantProposal[]; sourceErrors?: SourceFetchError[] }>(
-      "/api/assistant/chat",
-      urls && urls.length > 0 ? { message, urls } : { message }
+    apiFetch<{ messages: OnboardingMessage[]; proposals: AssistantProposal[]; attachments: AssistantAttachment[] }>(
+      "/api/assistant/chat"
     ),
+  sendAssistantMessage: (message: string) =>
+    post<{ reply: string; proposals: AssistantProposal[]; attachments: AssistantAttachment[] }>("/api/assistant/chat", {
+      message,
+    }),
+  uploadAssistantAttachment: async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    // Pas d'en-tête Content-Type explicite : le navigateur doit fixer lui-même la frontière
+    // multipart, ce que le helper `apiFetch` (JSON par défaut) ne permet pas.
+    const res = await fetch("/api/assistant/attachments", { method: "POST", body: formData });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new ApiClientError(body?.error || `Erreur ${res.status}`);
+    }
+    return body as { attachment: AssistantAttachment };
+  },
+  discardAssistantAttachment: (id: string) => del<{ ok: true }>(`/api/assistant/attachments/${id}`),
   resolveAssistantProposal: (id: string, action: "accept" | "reject", fields?: Record<string, unknown>) =>
     post<{ proposals: AssistantProposal[] }>(`/api/assistant/proposals/${id}/resolve`, { action, fields }),
 

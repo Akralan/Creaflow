@@ -48,10 +48,11 @@ export function createFileMaterial(
   return insertSourceMaterial(userId, "file", params);
 }
 
-/** Matière extraite d'une réponse d'interview-chat (§3.7). */
+/** Matière extraite d'une conversation — interview-chat (§3.7) ou assistant éditorial
+ *  (docs/SPEC_ASSISTANT_AGENTIQUE.md §5.2). */
 export function createInterviewMaterial(
   userId: string,
-  params: { productId?: string | null; rawText: string }
+  params: { productId?: string | null; title?: string | null; rawText: string }
 ) {
   return insertSourceMaterial(userId, "interview", params);
 }
@@ -74,6 +75,47 @@ export async function getMaterialForUser(userId: string, materialId: string) {
     throw new ApiError(404, "Matière introuvable.");
   }
   return material;
+}
+
+/**
+ * Édition d'un document existant (docs/SPEC_ASSISTANT_AGENTIQUE.md §3.2) — titre, rattachement au
+ * sujet, et texte. Distinct de {@link updateMaterialSummary}, qui ne touche que le résumé.
+ *
+ * Deux effets de bord traités ici parce qu'ils seraient silencieux autrement, quand `rawText` change :
+ * les positions des citations (matchStart/matchLength) désignent des offsets dans l'ancien texte et
+ * surligneraient n'importe quoi — on les efface en gardant l'extrait, forme déjà prévue par la table ;
+ * et le résumé décrit l'ancien texte — on le remet à null pour le rendre au backfill paresseux.
+ */
+export async function updateMaterialForUser(
+  userId: string,
+  materialId: string,
+  fields: { title?: string | null; rawText?: string; productId?: string | null }
+) {
+  const existing = await getMaterialForUser(userId, materialId);
+  const nextText = fields.rawText?.trim();
+  if (fields.rawText !== undefined && !nextText) {
+    throw new ApiError(400, "La matière ne peut pas être vide.");
+  }
+  const textChanged = nextText !== undefined && nextText !== existing.rawText;
+
+  const [updated] = await db
+    .update(sourceMaterials)
+    .set({
+      ...(fields.title !== undefined && { title: fields.title?.trim() || null }),
+      ...(fields.productId !== undefined && { productId: fields.productId }),
+      ...(textChanged && { rawText: nextText, summary: null }),
+    })
+    .where(and(eq(sourceMaterials.id, materialId), eq(sourceMaterials.userId, userId)))
+    .returning();
+
+  if (textChanged) {
+    await db
+      .update(sourceMaterialCitations)
+      .set({ matchStart: null, matchLength: null })
+      .where(eq(sourceMaterialCitations.sourceMaterialId, materialId));
+  }
+
+  return updated;
 }
 
 export async function deleteMaterialForUser(userId: string, materialId: string) {

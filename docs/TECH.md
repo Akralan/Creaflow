@@ -43,11 +43,22 @@ AssistantSession (1:1 avec User)
 - messages (jsonb — historique du chat assistant éditorial)
 - createdAt, updatedAt
 
+AssistantAttachment (fichier déposé dans la conversation, en attente d'être rangé en matière)
+- id, userId
+- filename, rawText (texte extrait au dépôt — .md/.txt, 2 Mo max)
+- createdAt, consumedAt (nullable — posé au rangement)
+— rawText ne sort JAMAIS vers le modèle : l'assistant ne reçoit que { id, filename }, donc un gros
+  document ne coûte rien au contexte et le modèle ne peut pas prétendre savoir ce qu'il contient.
+  Une pièce non consommée reste proposée tour après tour : elle peut être rangée plusieurs messages
+  plus tard. Devient un SourceMaterial(kind="file") à l'acceptation d'un material_create qui la cite.
+
 AssistantProposal (une ligne par proposition émise par l'assistant)
 - id, userId
 - kind (product_create / product_update / series_create / series_update /
         category_create / category_update / angle_create / angle_update / posting_goal_update /
-        category_reweight / profile_update)
+        category_reweight / profile_update /
+        material_create / material_update / material_delete /
+        series_archive / category_archive / angle_archive)
 - targetId (nullable — id de l'entité ciblée si action="update", pas de FK typée : la cible dépend de `kind`.
   Toujours null pour category_reweight, qui porte plusieurs catégories dans son payload, comme posting_goal_update
   et profile_update — une seule cible possible pour ce dernier, le CreatorProfile de l'utilisateur.)
@@ -267,10 +278,17 @@ Aucune contrainte `NOT NULL` ne force l'un ou l'autre sens.
 - Les angles n'ont pas d'endpoint dédié exposé séparément dans ce document — gérés via `src/lib/services/angleService.ts` (`generateAnglesForUser`, `upsertAngleItem`), appelés à l'onboarding et depuis l'écran Direction.
 - `GET/POST /api/posting-goals` — objectifs de fréquence hebdomadaire par plateforme.
 
+- `POST /api/assets/reembed` — maintenance : recalcule les embeddings des ressources `ready` à partir de leur `aiDescription` déjà stockée (aucun appel vision). À lancer une fois après un changement de modèle d'embedding — deux modèles ne produisent pas des vecteurs comparables (`docs/SPEC_RESSOURCES_VISUELLES.md` §8.4). Pas d'écran dédié, appel manuel.
+
 ### Assistant éditorial (Module E) — écran `/assistant`
-- `GET /api/assistant/chat` — historique des messages + propositions en attente.
-- `POST /api/assistant/chat` `{ message, urls? }` (jusqu'à 3 URLs) — fait tourner l'IA (`runAssistantChatTurn`) avec en contexte l'état actuel complet (produits, catégories, angles, séries, objectifs, audience de marque) et le contenu des URLs fournies (`urlFetchService`) ; peut renvoyer jusqu'à 5 propositions par type (produit, catégorie, angle, série, objectif) et jusqu'à 1 proposition d'audience de marque (`profile_update`, `docs/SPEC_PROMPT_GENERATION_TECH.md` §5), jamais de suppression, jamais d'action sur le calendrier lui-même.
-- `POST /api/assistant/proposals/:id/resolve` `{ action: "accept"|"reject", fields? }` — applique (avec édition optionnelle des champs) ou rejette une proposition individuelle.
+Assistant **agentique** (`docs/SPEC_ASSISTANT_AGENTIQUE.md`) : il lit tout l'espace de travail via des outils, ne modifie jamais scripts ni calendrier, et toute écriture passe par une proposition à valider.
+- `GET /api/assistant/chat` — historique des messages, propositions en attente, fichiers déposés non rangés.
+- `POST /api/assistant/chat` `{ message }` — fait tourner la boucle agentique (`runAssistantChatTurn` → `callAgentic`, §5.4). Contexte pré-injecté : état éditorial complet (produits avec proposition de valeur et audience par sujet, séries avec mode et sujet lié, rôles avec consigne et `materialHungry`, angles, objectifs, audience de marque) + les fichiers déposés (nom seul). Le reste se lit à la demande via 8 outils (§5.13). Renvoie la réponse conversationnelle, les propositions en attente et les fichiers non rangés.
+- `POST /api/assistant/attachments` (multipart, `.md`/`.txt`, 2 Mo) — dépose un fichier dans la conversation. Il n'entre PAS dans la matière : le `SourceMaterial` ne naît qu'à l'acceptation d'une proposition `material_create` qui le référence. L'assistant n'en voit que le nom, jamais le contenu.
+- `DELETE /api/assistant/attachments/:id` — retire un fichier déposé mais pas encore rangé.
+- `POST /api/assistant/proposals/:id/resolve` `{ action: "accept"|"reject", fields? }` — applique (avec édition optionnelle des champs) ou rejette une proposition individuelle. Une acceptation de matière déclenche le résumé du document via `after()`.
+- Rate limit : 10 tours/minute (un tour agentique = plusieurs appels LLM).
+- Le champ « URLs » et `urlFetchService` ont été retirés (§5.3 de la spec) — le dépôt de fichier prend leur place.
 
 ### Calendrier mensuel (Module D) — vue principale `/calendar`
 - `GET /api/calendar?month=YYYY-MM` — endpoint agrégé : `CalendarEntry` du mois avec script lié (`{id, title, status}` ou `null`), catégorie et série jointes, + `PostingGoal` par plateforme. Un seul appel.
@@ -332,8 +350,25 @@ Cœur du mécanisme : `pickAngleForScript(userId, contentCategoryId, excludeScri
 ### 5.3 Chat d'onboarding — `src/lib/llm/onboardingChat.ts`
 Un seul tool (`update_onboarding_profile`) renvoie à la fois la réponse conversationnelle (`assistantReply`), les champs de profil déduits **cumulés depuis le début de la conversation** (pas seulement les nouveaux), et un booléen `complete` (vrai dès que nom/activité, temps disponible et au moins une plateforme suggérée sont connus). Une question à la fois, jamais de formulaire déguisé, aucune hypothèse sur le type d'activité (vidéo/produit physique). Cherche aussi à connaître l'**audience visée** (`targetAudience`, `docs/SPEC_PROMPT_GENERATION_TECH.md` §5) — question skippable, n'entre jamais dans les critères de `complete`.
 
+### 5.13 Boucle agentique — `callAgentic` (`src/lib/llm/provider.ts`, `providers/openai.ts`)
+Primitive multi-tours à N outils non imposés (`tool_choice: "auto"`), à côté de `callStructured` qui reste mono-tool et inchangée pour tout le reste. **Implémentée pour le seul provider OpenAI** et appelée en dur, indépendamment de `LLM_PROVIDER` — même parti pris que la génération d'images et le captioning vision, câblés sur Gemini pour la même raison (les embeddings, eux, sont passés à OpenAI — `docs/SPEC_RESSOURCES_VISUELLES.md` §8.4). Sans `OPENAI_API_KEY`, l'assistant échoue explicitement ; le reste de l'app tourne normalement.
+
+Garde-fous : `maxTurns` (défaut 8) puis un appel de clôture sans outils pour ne jamais rendre la main sans réponse ; retours d'outils tronqués à 20 000 caractères ; un outil qui échoue renvoie son erreur au modèle au lieu d'interrompre la boucle (il peut corriger son appel ou l'expliquer).
+
+**Outils de lecture** (`src/lib/services/assistantReadTools.ts`, aucun effet de bord) : `list_materials`, `read_material`, `list_scripts`, `read_script`, `read_calendar`, `read_performance`, `read_narrative_state`, `read_profile`. Les listes renvoient des résumés et des projections courtes ; le texte intégral n'arrive que sur un `read_*` explicite, tronqué à 12 000 caractères.
+
 ### 5.4 Chat assistant éditorial — `src/lib/llm/assistantChat.ts`
-Un seul tool (`update_assistant_conversation`) renvoie la réponse conversationnelle + jusqu'à 5 propositions par type (produits, catégories, angles, séries, objectifs de fréquence) et jusqu'à 1 proposition d'**audience de marque** (`profileProposals`, `kind="profile_update"`, §3 — distincte de l'audience par sujet, qui passe par `product_update`), chacune `create` ou `update` (jamais `delete`, l'audience de marque n'a qu'une seule forme comme les objectifs de fréquence). Le contexte injecté inclut l'état complet actuel (ids exacts pour les cibles d'`update`, libellé exact du rôle unique de chaque série, audience de marque actuelle) et, si fournies, des sources web extraites (`urlFetchService`, jusqu'à 3 URLs). Contrainte explicite : ne jamais inventer d'info non fournie, ne jamais agir sur le calendrier lui-même.
+La réponse à l'utilisateur est le **texte libre** du modèle, plus le champ d'un outil. Trois outils d'écriture, tous producteurs de propositions à valider, jamais d'écriture directe :
+
+- `propose_changes` — jusqu'à 5 propositions par type (produits, séries, rôles, angles, objectifs de fréquence) et jusqu'à 1 d'**audience de marque** (`profile_update`, distincte de l'audience par sujet, portée par le champ `targetAudience` d'une proposition de produit). Chacune `create` ou `update`. Appelable plusieurs fois dans un même tour : les propositions s'accumulent.
+- `propose_material` — ajout, modification ou retrait d'un document de matière. Deux sources : le texte rapporté par le modèle (extraction conversationnelle) ou un `attachmentId` désignant un fichier déposé, dont le contenu n'a jamais transité par le prompt.
+- `propose_archive` — archivage d'une série, d'un rôle ou d'un angle. Jamais de suppression : l'objet archivé reste référencé par les scripts et créneaux déjà produits.
+
+Le contexte injecté inclut l'état complet actuel — ids exacts pour les cibles d'`update`, libellé exact du rôle unique de chaque série, mode et sujet lié de chaque série, consigne et `materialHungry` de chaque rôle, proposition de valeur et audience de chaque sujet, audience de marque. Tout champ proposable est montré : proposer un `update` sur un champ invisible reviendrait à l'écraser à l'aveugle.
+
+Contraintes explicites du prompt : ne jamais inventer d'info non fournie ; ne jamais modifier scripts ni calendrier (les lire est en revanche encouragé) ; ne jamais dire qu'une modification est faite, seulement qu'elle est proposée ; ne jamais prétendre connaître le contenu d'un fichier déposé.
+
+Fenêtre d'historique bornée par le volume (24 000 caractères, minimum 6 messages) et non par un nombre fixe de messages, qui coupait le début d'une conversation longue en silence.
 
 ### 5.5 Analyse de style — `src/lib/llm/styleProfile.ts`
 Un appel dédié (`analyzeStyle`) résume les légendes des `InspirationVideo` récupérées après connexion OAuth en un `StyleProfile` structuré (ton, longueur de phrase, usage d'emojis, vocabulaire, résumé de 2-3 phrases). Déclenché automatiquement au callback OAuth (si des posts sont récupérés) et manuellement via `POST /api/profile/style-analysis`. Le résumé (pas le texte brut) est réinjecté à chaque génération de script — coût réduit, cohérence de ton stable.
@@ -441,7 +476,8 @@ Self-service, mode `subscription` Stripe Checkout — pas d'intégration Stripe.
   - `POST /api/auth/login` : 10/15min par IP + 5/15min par email (double limite : IP contre le spam générique, email contre le credential stuffing ciblé depuis plusieurs IP).
   - `POST /api/auth/signup` : 5/heure par IP (anti-création massive de comptes).
   - Génération de script (`POST /api/scripts`, `POST /api/scripts/generate`, `POST /api/scripts/:id/regenerate`, `POST /api/scripts/:id/new-idea`) : 20/min par utilisateur, scope `"script-generate"` partagé entre les 4 routes (sinon la limite se contournerait en alternant entre elles).
-  - Chats IA (`POST /api/onboarding/chat`, `POST /api/assistant/chat`) : 20/min par utilisateur.
+  - Chat d'onboarding (`POST /api/onboarding/chat`) : 20/min par utilisateur.
+  - Chat assistant (`POST /api/assistant/chat`) : **10/min** — le plafond compte des tours de conversation, mais un tour agentique vaut désormais plusieurs appels LLM (`docs/SPEC_ASSISTANT_AGENTIQUE.md` §2.3).
   - `POST /api/profile/style-analysis` : 5/min par utilisateur (déclenchement manuel, usage rare).
   - `POST /api/assets/generate-image` : 10/min par utilisateur.
   - `POST /api/profile/content-categories` et `POST /api/series` (branche régénération IA uniquement, pas l'édition manuelle) : 5/min par utilisateur chacun.

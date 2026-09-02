@@ -255,6 +255,16 @@ export async function findBestBrandAssetForScript(
   userId: string,
   params: Omit<AssetSearchContext, "productName"> & { productId?: string | null }
 ): Promise<SelectedBrandAsset | null> {
+  // Aucune image exploitable : on sort avant l'embedding. C'était l'ordre inverse, et comme rien
+  // n'attrapait l'erreur, une génération "visual" échouait en 500 même pour un utilisateur qui
+  // n'avait jamais déposé la moindre image (docs/SPEC_RESSOURCES_VISUELLES.md §8.4).
+  const [anyReadyAsset] = await db
+    .select({ id: brandAssets.id })
+    .from(brandAssets)
+    .where(and(eq(brandAssets.userId, userId), eq(brandAssets.status, "ready"), eq(brandAssets.archived, false)))
+    .limit(1);
+  if (!anyReadyAsset) return null;
+
   const productName = params.productId
     ? (await db.query.products.findFirst({ where: eq(products.id, params.productId) }))?.name ?? null
     : null;
@@ -265,7 +275,19 @@ export async function findBestBrandAssetForScript(
     productName,
     seriesLabel: params.seriesLabel,
   });
-  const queryEmbedding = await embedText(queryText);
+
+  // Une image de référence est un bonus, jamais une condition pour écrire un script : un embedding
+  // indisponible dégrade la génération (pas d'image proposée), il ne l'interrompt pas.
+  let queryEmbedding: number[];
+  try {
+    queryEmbedding = await embedText(queryText);
+  } catch (err) {
+    logger.warn("Embedding de recherche d'image indisponible, génération sans image de référence", {
+      userId,
+      err: String(err),
+    });
+    return null;
+  }
   const vectorParam = `[${queryEmbedding.join(",")}]`;
 
   const search = (filterByProduct: boolean) => {
@@ -284,6 +306,36 @@ export async function findBestBrandAssetForScript(
   const primary = params.productId ? await search(true) : [];
   const [best] = primary.length > 0 ? primary : await search(false);
   return best ? { id: best.id, aiDescription: best.aiDescription!, tags: best.tags } : null;
+}
+
+/**
+ * Recalcule l'embedding de toutes les ressources `ready` d'un utilisateur à partir de leur
+ * `aiDescription` déjà stockée — pas de re-captioning, donc pas de nouvel appel vision.
+ *
+ * À lancer une fois après un changement de modèle d'embedding : deux modèles ne produisent pas des
+ * vecteurs comparables, et les mélanger dans le même index donne des résultats de recherche faux
+ * sans qu'aucune erreur ne le signale.
+ */
+export async function recomputeAssetEmbeddingsForUser(userId: string): Promise<{ updated: number; failed: number }> {
+  const assets = await db
+    .select({ id: brandAssets.id, aiDescription: brandAssets.aiDescription })
+    .from(brandAssets)
+    .where(and(eq(brandAssets.userId, userId), eq(brandAssets.status, "ready"), eq(brandAssets.archived, false)));
+
+  let updated = 0;
+  let failed = 0;
+  for (const asset of assets) {
+    if (!asset.aiDescription) continue; // rien à vectoriser : l'asset n'a jamais été décrit
+    try {
+      const embedding = await embedText(asset.aiDescription);
+      await db.update(brandAssets).set({ embedding }).where(eq(brandAssets.id, asset.id));
+      updated += 1;
+    } catch (err) {
+      logger.error("Recalcul d'embedding échoué", err, { assetId: asset.id });
+      failed += 1;
+    }
+  }
+  return { updated, failed };
 }
 
 export async function archiveAssetForUser(userId: string, assetId: string) {

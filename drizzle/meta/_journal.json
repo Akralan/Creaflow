@@ -169,6 +169,20 @@
       "when": 1787695153429,
       "tag": "0023_redundant_arclight",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1787766340588,
+      "tag": "0024_numerous_marvel_zombies",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1787766777676,
+      "tag": "0025_pretty_mastermind",
+      "breakpoints": true
     }
   ]
 }

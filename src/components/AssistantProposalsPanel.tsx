@@ -19,6 +19,12 @@ const KIND_LABEL: Record<AssistantProposal["kind"], string> = {
   angle_create: "Nouvel angle",
   angle_update: "Modifier l'angle",
   posting_goal_update: "Objectif de fréquence",
+  material_create: "Ajouter à la matière",
+  material_update: "Modifier la matière",
+  material_delete: "Retirer de la matière",
+  series_archive: "Archiver la série",
+  category_archive: "Archiver le rôle",
+  angle_archive: "Archiver l'angle",
   category_reweight: "Rééquilibrage des rôles",
   profile_update: "Audience de la marque",
 };
@@ -46,7 +52,16 @@ function pillStyle(active: boolean): React.CSSProperties {
   };
 }
 
-type ProposalGroup = "product" | "series" | "category" | "angle" | "postingGoal" | "categoryReweight" | "profile";
+type ProposalGroup =
+  | "product"
+  | "series"
+  | "category"
+  | "angle"
+  | "postingGoal"
+  | "categoryReweight"
+  | "profile"
+  | "material"
+  | "archive";
 
 function proposalGroup(kind: AssistantProposal["kind"]): ProposalGroup {
   switch (kind) {
@@ -64,6 +79,14 @@ function proposalGroup(kind: AssistantProposal["kind"]): ProposalGroup {
       return "angle";
     case "posting_goal_update":
       return "postingGoal";
+    case "material_create":
+    case "material_update":
+    case "material_delete":
+      return "material";
+    case "series_archive":
+    case "category_archive":
+    case "angle_archive":
+      return "archive";
     case "category_reweight":
       return "categoryReweight";
     case "profile_update":
@@ -75,6 +98,7 @@ interface ProductDraft {
   name: string;
   description: string;
   valueProposition: string;
+  targetAudience: string;
 }
 
 interface SeriesDraft {
@@ -83,6 +107,7 @@ interface SeriesDraft {
   weight: number;
   categoryId: string;
   platforms: string[];
+  mode: "feuilleton" | "rendez_vous";
 }
 
 interface CategoryDraft {
@@ -90,6 +115,10 @@ interface CategoryDraft {
   description: string;
   weight: number;
   platforms: string[];
+  /** `undefined` = non touché par l'utilisateur : la clé est alors absente du JSON envoyé et
+   *  `resolveProposal` conserve la valeur actuelle du rôle. Ne jamais initialiser à `false`
+   *  d'après le contexte, qui peut ne pas être encore chargé au premier rendu. */
+  materialHungry?: boolean;
 }
 
 interface AngleDraft {
@@ -118,11 +147,17 @@ interface ProfileDraft {
   targetAudience: string;
 }
 
+interface MaterialDraft {
+  title: string;
+  text: string;
+}
+
 function toProductDraft(payload: Record<string, unknown>): ProductDraft {
   return {
     name: typeof payload.name === "string" ? payload.name : "",
     description: typeof payload.description === "string" ? payload.description : "",
     valueProposition: typeof payload.valueProposition === "string" ? payload.valueProposition : "",
+    targetAudience: typeof payload.targetAudience === "string" ? payload.targetAudience : "",
   };
 }
 
@@ -133,6 +168,7 @@ function toSeriesDraft(payload: Record<string, unknown>): SeriesDraft {
     weight: typeof payload.weight === "number" ? payload.weight : 0,
     categoryId: typeof payload.categoryId === "string" ? payload.categoryId : "",
     platforms: Array.isArray(payload.platforms) ? (payload.platforms as string[]) : [],
+    mode: payload.mode === "feuilleton" ? "feuilleton" : "rendez_vous",
   };
 }
 
@@ -142,6 +178,7 @@ function toCategoryDraft(payload: Record<string, unknown>): CategoryDraft {
     description: typeof payload.description === "string" ? payload.description : "",
     weight: typeof payload.weight === "number" ? payload.weight : 0,
     platforms: Array.isArray(payload.platforms) ? (payload.platforms as string[]) : [],
+    materialHungry: typeof payload.materialHungry === "boolean" ? payload.materialHungry : undefined,
   };
 }
 
@@ -156,6 +193,13 @@ function toPostingGoalDraft(payload: Record<string, unknown>): PostingGoalDraft 
   return {
     platform: typeof payload.platform === "string" ? payload.platform : "",
     targetCountPerWeek: typeof payload.targetCountPerWeek === "number" ? payload.targetCountPerWeek : 0,
+  };
+}
+
+function toMaterialDraft(payload: Record<string, unknown>): MaterialDraft {
+  return {
+    title: typeof payload.title === "string" ? payload.title : "",
+    text: typeof payload.text === "string" ? payload.text : "",
   };
 }
 
@@ -185,6 +229,9 @@ function ProposalCard({
 }) {
   const categories = useContentCategories();
   const group = proposalGroup(proposal.kind);
+  // Valeur actuelle du rôle ciblé : sert uniquement à AFFICHER la case dans son bon état tant que
+  // l'utilisateur n'y a pas touché — jamais à composer le payload envoyé (cf. CategoryDraft).
+  const currentMaterialHungry = categories.find((c) => c.id === proposal.targetId)?.materialHungry ?? false;
   const [editing, setEditing] = useState(false);
   const [productDraft, setProductDraft] = useState<ProductDraft>(() => toProductDraft(proposal.payload));
   const [seriesDraft, setSeriesDraft] = useState<SeriesDraft>(() => toSeriesDraft(proposal.payload));
@@ -195,6 +242,7 @@ function ProposalCard({
     toCategoryReweightDraft(proposal.payload)
   );
   const [profileDraft, setProfileDraft] = useState<ProfileDraft>(() => toProfileDraft(proposal.payload));
+  const [materialDraft, setMaterialDraft] = useState<MaterialDraft>(() => toMaterialDraft(proposal.payload));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -215,7 +263,12 @@ function ProposalCard({
                   ? { items: categoryReweightDraft.items }
                   : group === "profile"
                     ? profileDraft
-                    : productDraft;
+                    : group === "material"
+                      ? materialDraft
+                      : // Un archivage n'a rien d'éditable : accepter, c'est archiver la cible.
+                        group === "archive"
+                        ? {}
+                        : productDraft;
       const fields: Record<string, unknown> | undefined = action === "accept" && editing ? { ...draft } : undefined;
       const { proposals } = await api.resolveAssistantProposal(proposal.id, action, fields);
       onResolved(proposals);
@@ -258,7 +311,13 @@ function ProposalCard({
               ? "Rééquilibrage des rôles"
               : group === "profile"
                 ? "Audience de marque"
-                : productDraft.name;
+                : group === "material"
+                  ? materialDraft.title || "Matière"
+                  : group === "archive"
+                    ? typeof proposal.payload.label === "string"
+                      ? proposal.payload.label
+                      : "Élément à archiver"
+                    : productDraft.name;
 
   const description =
     group === "series"
@@ -273,7 +332,13 @@ function ProposalCard({
               ? categoryReweightDraft.reasonSummary
               : group === "profile"
                 ? profileDraft.targetAudience
-                : productDraft.description;
+                : group === "material"
+                  ? materialDraft.text
+                  : group === "archive"
+                    ? typeof proposal.payload.reason === "string"
+                      ? proposal.payload.reason
+                      : ""
+                    : productDraft.description;
 
   return (
     <Card style={{ padding: 16 }}>
@@ -311,6 +376,19 @@ function ProposalCard({
                 </button>
               ))}
             </div>
+            <select
+              style={inputStyle}
+              value={seriesDraft.mode}
+              onChange={(e) => setSeriesDraft((d) => ({ ...d, mode: e.target.value as SeriesDraft["mode"] }))}
+            >
+              <option value="rendez_vous">Rendez-vous — épisodes autonomes, même format</option>
+              <option value="feuilleton">Feuilleton — les épisodes se suivent</option>
+            </select>
+            {/* Sujet lié : appliqué à l'acceptation mais non éditable ici — le rattachement se change
+                depuis l'écran Direction, qui a le sélecteur de sujet complet. */}
+            {typeof proposal.payload.productName === "string" && (
+              <span style={{ fontSize: 11, color: color.textFaint }}>Matière tirée du sujet : {proposal.payload.productName}</span>
+            )}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
               <span style={{ fontSize: 11, color: color.textFaint, marginRight: 2 }}>
                 {seriesDraft.platforms.length === 0 ? "Tous les réseaux" : "Réseaux :"}
@@ -344,6 +422,14 @@ function ProposalCard({
                 </button>
               ))}
             </div>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: color.textMuted }}>
+              <input
+                type="checkbox"
+                checked={categoryDraft.materialHungry ?? currentMaterialHungry}
+                onChange={(e) => setCategoryDraft((d) => ({ ...d, materialHungry: e.target.checked }))}
+              />
+              Ne tourne pas sans matière documentée
+            </label>
           </div>
         ) : group === "angle" ? (
           <div style={{ display: "grid", gap: 8 }}>
@@ -408,6 +494,35 @@ function ProposalCard({
               placeholder="Qui achète ou lit, ce qui l'intéresse, ce qu'il doit retenir de la marque"
             />
           </div>
+        ) : group === "material" ? (
+          <div style={{ display: "grid", gap: 8 }}>
+            <input
+              style={inputStyle}
+              value={materialDraft.title}
+              onChange={(e) => setMaterialDraft((d) => ({ ...d, title: e.target.value }))}
+              placeholder="Titre du document"
+            />
+            {/* Le texte reste éditable avant enregistrement : c'est le dernier filet contre une
+                information mal rapportée par l'assistant. Vide pour une suppression. */}
+            {proposal.kind !== "material_delete" && (
+              <textarea
+                style={{ ...inputStyle, minHeight: 110, resize: "vertical" }}
+                value={materialDraft.text}
+                onChange={(e) => setMaterialDraft((d) => ({ ...d, text: e.target.value }))}
+                placeholder="Contenu du document"
+              />
+            )}
+            <span style={{ fontSize: 11, color: color.textFaint }}>
+              {typeof proposal.payload.productName === "string"
+                ? `Sujet : ${proposal.payload.productName}`
+                : "Matière de niveau marque (aucun sujet)"}
+            </span>
+          </div>
+        ) : group === "archive" ? (
+          <p style={{ margin: 0, fontSize: 12, color: color.textMuted }}>
+            Rien à éditer : accepter archive l&apos;élément. Il disparaît de la circulation, mais les scripts et créneaux
+            déjà produits le conservent.
+          </p>
         ) : (
           <div style={{ display: "grid", gap: 8 }}>
             <input style={inputStyle} value={productDraft.name} onChange={(e) => setProductDraft((d) => ({ ...d, name: e.target.value }))} placeholder="Nom du sujet" />
@@ -417,6 +532,12 @@ function ProposalCard({
               value={productDraft.valueProposition}
               onChange={(e) => setProductDraft((d) => ({ ...d, valueProposition: e.target.value }))}
               placeholder="Proposition de valeur"
+            />
+            <input
+              style={inputStyle}
+              value={productDraft.targetAudience}
+              onChange={(e) => setProductDraft((d) => ({ ...d, targetAudience: e.target.value }))}
+              placeholder="Audience de ce sujet (vide = audience de la marque)"
             />
           </div>
         )
