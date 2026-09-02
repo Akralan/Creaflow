@@ -6,6 +6,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { TextField, TextAreaField, heading1Style } from "@/components/ui/TextField";
 import ProductCatalogue from "@/components/ProductCatalogue";
+import RepoPicker from "@/components/RepoPicker";
 import ConnectionRow from "@/components/ConnectionRow";
 import EquipmentPicker from "@/components/EquipmentPicker";
 import StyleAnalysisPanel from "@/components/StyleAnalysisPanel";
@@ -152,6 +153,46 @@ function ConnexionsTab() {
   );
 }
 
+/** Onglet Sujets : le catalogue manuel, précédé — quand un compte GitHub est connecté — du même
+ *  sélecteur de dépôts que l'onboarding dev, pour intégrer de nouveaux dépôts comme sujets sans
+ *  refaire le parcours. Le catalogue est remonté (clé) après chaque connexion pour refléter les
+ *  sujets fraîchement créés. */
+function CatalogueTab() {
+  const [githubConnected, setGithubConnected] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+  const [catalogueKey, setCatalogueKey] = useState(0);
+
+  useEffect(() => {
+    api.getProfile().then(({ githubConnected }) => setGithubConnected(githubConnected));
+  }, []);
+
+  return (
+    <div>
+      {githubConnected && (
+        <Card style={{ padding: 20, marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 15 }}>Ajouter depuis GitHub</div>
+              <div style={{ fontSize: 13, color: color.textMuted, marginTop: 2 }}>
+                Chaque dépôt choisi devient un sujet, avec ses fichiers .md et son journal de commits comme matière.
+              </div>
+            </div>
+            <Button variant="secondary" onClick={() => setShowPicker((v) => !v)}>
+              {showPicker ? "Masquer" : "Choisir des dépôts"}
+            </Button>
+          </div>
+          {showPicker && (
+            <div style={{ marginTop: 18 }}>
+              <RepoPicker variant="settings" onConnected={() => setCatalogueKey((k) => k + 1)} />
+            </div>
+          )}
+        </Card>
+      )}
+      <ProductCatalogue key={catalogueKey} />
+    </div>
+  );
+}
+
 function SettingsContent() {
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>(() => {
@@ -172,7 +213,7 @@ function SettingsContent() {
       </div>
 
       {tab === "identity" && <IdentityTab />}
-      {tab === "catalogue" && <ProductCatalogue />}
+      {tab === "catalogue" && <CatalogueTab />}
       {tab === "assets" && <BrandAssetLibrary />}
       {tab === "connexions" && <ConnexionsTab />}
       {tab === "billing" && <BillingPanel />}

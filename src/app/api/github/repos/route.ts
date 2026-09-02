@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { githubAccounts } from "@/db/schema";
+import { githubAccounts, materialSources } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
 import { listPublicRepos, GithubRateLimitError } from "@/lib/github/client";
 import { createGithubSources } from "@/lib/services/githubSourceService";
@@ -38,7 +38,19 @@ export async function GET() {
   try {
     const userId = await requireUserId();
     const token = await requireGithubToken(userId);
-    return NextResponse.json({ repos: await listPublicRepos(token) });
+    // `alreadyConnected` : le picker est aussi proposé dans les paramètres, après l'onboarding —
+    // reconnecter un dépôt déjà source créerait un sujet doublon (et violerait l'unicité de
+    // material_sources), donc l'UI grise ces dépôts au lieu de laisser l'erreur arriver.
+    const connected = await db.query.materialSources.findMany({
+      where: and(eq(materialSources.userId, userId), eq(materialSources.type, "github_repo")),
+      columns: { externalId: true },
+    });
+    const connectedIds = new Set(connected.map((s) => s.externalId));
+    const repos = (await listPublicRepos(token)).map((r) => ({
+      ...r,
+      alreadyConnected: connectedIds.has(r.externalId),
+    }));
+    return NextResponse.json({ repos });
   } catch (error) {
     // Le quota atteint n'est pas une panne : 429 et message daté, pas un 500 "Erreur serveur".
     if (error instanceof GithubRateLimitError) {

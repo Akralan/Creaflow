@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { creatorProfiles, users } from "@/db/schema";
+import { creatorProfiles, githubAccounts, users } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
 import { handleApiError } from "@/lib/api/errors";
 
@@ -28,7 +28,17 @@ export async function GET() {
       where: eq(users.id, userId),
       columns: { onboardingTrack: true },
     });
-    return NextResponse.json({ profile: profile ?? null, onboardingTrack: user?.onboardingTrack ?? "creator" });
+    // Exposé ici pour la même raison que le track : les écrans qui en ont besoin (paramètres >
+    // Sujets, pour proposer le sélecteur de dépôts) appellent déjà getProfile.
+    const github = await db.query.githubAccounts.findFirst({
+      where: eq(githubAccounts.userId, userId),
+      columns: { userId: true },
+    });
+    return NextResponse.json({
+      profile: profile ?? null,
+      onboardingTrack: user?.onboardingTrack ?? "creator",
+      githubConnected: Boolean(github),
+    });
   } catch (error) {
     return handleApiError(error);
   }

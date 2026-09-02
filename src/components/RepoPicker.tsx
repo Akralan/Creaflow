@@ -6,7 +6,16 @@ import { api, ApiClientError, type ConnectRepoResult, type GithubRepoOption } fr
 import { accent, accentAlpha, color } from "@/lib/design/tokens";
 import { MAX_PRODUCTS } from "@/lib/validation";
 
-export default function RepoPicker({ onConnected }: { onConnected: () => void }) {
+/** Sélecteur de dépôts publics : étape « Projets » de l'onboarding dev, et paramètres > Sujets
+ *  (`variant="settings"`) pour connecter de nouveaux dépôts après coup. En variante settings, pas
+ *  de bouton d'échappement « Décrire mes sujets à la main » — le catalogue manuel est juste à côté. */
+export default function RepoPicker({
+  onConnected,
+  variant = "onboarding",
+}: {
+  onConnected: () => void;
+  variant?: "onboarding" | "settings";
+}) {
   const [repos, setRepos] = useState<GithubRepoOption[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,16 +57,24 @@ export default function RepoPicker({ onConnected }: { onConnected: () => void })
 
   if (loading) return <p style={{ color: color.textMuted, fontSize: 14 }}>Lecture de tes dépôts…</p>;
 
-  // Jamais un cul-de-sac : sans dépôt public, on renvoie vers la saisie manuelle de sujets.
-  if (repos.length === 0) {
+  const selectable = repos.filter((r) => !r.alreadyConnected);
+
+  // Jamais un cul-de-sac : sans dépôt disponible, l'onboarding renvoie vers la saisie manuelle de
+  // sujets ; dans les paramètres, le catalogue manuel est déjà sous les yeux — un message suffit.
+  if (selectable.length === 0) {
+    const message =
+      repos.length > 0
+        ? "Tous tes dépôts publics sont déjà connectés comme sujets."
+        : "Aucun dépôt public trouvé sur ton compte GitHub.";
     return (
       <div>
         <p style={{ color: color.textMuted, fontSize: 15, margin: "0 0 16px" }}>
-          Aucun dépôt public trouvé sur ton compte GitHub. Tu peux décrire tes sujets à la main — la matière se
-          colle ensuite depuis l&apos;écran du sujet.
+          {message}
+          {variant === "onboarding" &&
+            " Tu peux décrire tes sujets à la main — la matière se colle ensuite depuis l'écran du sujet."}
         </p>
         {error && <p style={{ color: color.danger, fontSize: 13, marginBottom: 12 }}>{error}</p>}
-        <Button onClick={onConnected}>Décrire mes sujets à la main</Button>
+        {variant === "onboarding" && <Button onClick={onConnected}>Décrire mes sujets à la main</Button>}
       </div>
     );
   }
@@ -84,21 +101,41 @@ export default function RepoPicker({ onConnected }: { onConnected: () => void })
       <div style={{ display: "grid", gap: 10, marginBottom: 20 }}>
         {repos.map((repo) => {
           const isSelected = selected.includes(repo.externalId);
+          const disabled = repo.alreadyConnected;
           return (
             <button
               key={repo.externalId}
-              onClick={() => toggle(repo.externalId)}
+              onClick={() => !disabled && toggle(repo.externalId)}
+              disabled={disabled}
               style={{
                 textAlign: "left",
                 padding: "14px 16px",
                 borderRadius: 12,
                 border: `1px solid ${isSelected ? accent : color.border}`,
                 background: isSelected ? accentAlpha(0.08) : color.cardBg,
-                cursor: "pointer",
+                cursor: disabled ? "default" : "pointer",
+                opacity: disabled ? 0.55 : 1,
                 fontFamily: "inherit",
               }}
             >
-              <div style={{ fontWeight: 600, fontSize: 15 }}>{repo.name}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontWeight: 600, fontSize: 15, flex: 1 }}>{repo.name}</span>
+                {disabled && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      padding: "3px 8px",
+                      borderRadius: 12,
+                      background: color.chipBg,
+                      color: color.textMuted,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Déjà un sujet
+                  </span>
+                )}
+              </div>
               {repo.description && (
                 <div style={{ fontSize: 13, color: color.textMuted, marginTop: 4 }}>{repo.description}</div>
               )}
