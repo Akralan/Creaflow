@@ -187,10 +187,10 @@ function OnboardingContent() {
               fontSize: 17,
             }}
           >
-            S
+            C
           </div>
           <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, letterSpacing: "-0.02em" }}>
-            Creaflow
+            CreaFlow
           </span>
         </div>
         <Button variant="ghost" onClick={() => router.push("/calendar")}>
