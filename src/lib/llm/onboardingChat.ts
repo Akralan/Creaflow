@@ -95,6 +95,17 @@ export interface OnboardingChatContext {
   history: OnboardingMessage[];
 }
 
+/** Séries générées à la fin de l'onboarding, sous la forme que le composant de sélection affiche :
+ *  l'utilisateur choisit celles qu'il garde avant de continuer (le reste est archivé), au lieu de
+ *  découvrir une direction éditoriale imposée en silence. */
+export interface OnboardingSeriesProposal {
+  id: string;
+  label: string;
+  description: string;
+  mode: "feuilleton" | "rendez_vous";
+  categoryLabel: string | null;
+}
+
 /** Même contrat de sortie que le tool généraliste, moins `equipment` : hors sujet pour du contenu de
  *  dev, majoritairement textuel. Dérivé plutôt que recopié pour qu'une évolution du schéma partagé
  *  (nouveau champ de profil) ne se perde pas dans un seul des deux parcours. */

@@ -9,6 +9,7 @@ import {
   runOnboardingChatTurn,
   type ExtractedOnboardingProfile,
   type OnboardingMessage,
+  type OnboardingSeriesProposal,
 } from "@/lib/llm/onboardingChat";
 import { buildDevOnboardingContext } from "@/lib/services/githubSourceService";
 import { finalizeOnboarding, mergeExtractedProfile } from "@/lib/services/onboardingService";
@@ -59,12 +60,29 @@ export async function POST(request: NextRequest) {
           })
         : await runOnboardingChatTurn({ history: messagesWithUser.slice(-MAX_HISTORY_MESSAGES) });
 
-    const messages: OnboardingMessage[] = [...messagesWithUser, { role: "assistant", content: result.assistantReply }];
     const extractedProfile = mergeExtractedProfile(
       (session?.extractedProfile as ExtractedOnboardingProfile | null) ?? {},
       result.extractedFields
     );
     const status = result.complete ? "complete" : "in_progress";
+
+    // La finalisation (profil, rôles, séries) précède la persistance du fil : un échec de
+    // finalisation laisse la session en l'état — l'utilisateur peut simplement renvoyer un message.
+    // Les séries générées sont renvoyées structurées : l'UI les affiche en composant de sélection
+    // (POST /api/onboarding/series-selection) plutôt que de les créer en silence.
+    let series: OnboardingSeriesProposal[] = [];
+    if (result.complete) {
+      const finalized = await finalizeOnboarding(userId, extractedProfile);
+      series = finalized.map((s) => ({
+        id: s.id,
+        label: s.label,
+        description: s.description,
+        mode: s.mode,
+        categoryLabel: s.category?.label ?? null,
+      }));
+    }
+
+    const messages: OnboardingMessage[] = [...messagesWithUser, { role: "assistant", content: result.assistantReply }];
 
     if (session) {
       await db
@@ -75,11 +93,7 @@ export async function POST(request: NextRequest) {
       await db.insert(onboardingSessions).values({ userId, messages, extractedProfile, status });
     }
 
-    if (result.complete) {
-      await finalizeOnboarding(userId, extractedProfile);
-    }
-
-    return NextResponse.json({ reply: result.assistantReply, complete: result.complete, extractedProfile });
+    return NextResponse.json({ reply: result.assistantReply, complete: result.complete, series, extractedProfile });
   } catch (error) {
     return handleApiError(error);
   }

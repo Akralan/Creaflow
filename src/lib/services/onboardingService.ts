@@ -35,8 +35,13 @@ export function mergeExtractedProfile(
 
 /** Déclenché quand le chat d'onboarding marque complete=true : persiste le profil,
  *  génère les catégories de contenu (si aucune n'existe déjà) et pré-remplit les
- *  objectifs de publication pour les plateformes suggérées. */
-export async function finalizeOnboarding(userId: string, extracted: ExtractedOnboardingProfile): Promise<void> {
+ *  objectifs de publication pour les plateformes suggérées.
+ *  Renvoie les séries actives (fraîchement générées ou préexistantes) pour que l'appelant
+ *  puisse expliquer cette direction éditoriale au lieu de la créer en silence. */
+export async function finalizeOnboarding(
+  userId: string,
+  extracted: ExtractedOnboardingProfile
+): Promise<Awaited<ReturnType<typeof listActiveSeriesForUser>>> {
   if (!extracted.brandName || !extracted.activityType) {
     throw new ApiError(400, "Profil incomplet : impossible de finaliser l'onboarding.");
   }
@@ -68,9 +73,10 @@ export async function finalizeOnboarding(userId: string, extracted: ExtractedOnb
   }
 
   const existingSeries = await listActiveSeriesForUser(userId);
-  if (existingSeries.length === 0) {
-    await generateSeriesForUser(userId); // dépend des catégories, générées juste au-dessus
-  }
+  const series =
+    existingSeries.length === 0
+      ? await generateSeriesForUser(userId) // dépend des catégories, générées juste au-dessus
+      : existingSeries;
 
   const platforms = (extracted.suggestedPlatforms ?? []).filter(isKnownPlatform);
   for (const platform of platforms) {
@@ -81,4 +87,6 @@ export async function finalizeOnboarding(userId: string, extracted: ExtractedOnb
       await db.insert(postingGoals).values({ userId, platform, targetCountPerWeek: DEFAULT_WEEKLY_TARGET });
     }
   }
+
+  return series;
 }
