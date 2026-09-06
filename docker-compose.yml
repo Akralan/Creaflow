@@ -1,0 +1,30 @@
+# Base Postgres de développement pour CreaFlow.
+#
+# L'image est `pgvector/pgvector` et non `postgres` : la migration 0007 exécute
+# `CREATE EXTENSION vector` (embeddings de la bibliothèque visuelle), qui échoue sur une image
+# Postgres nue. Le port hôte est 5433 et non 5432 pour cohabiter avec un Postgres déjà installé
+# sur la machine.
+#
+# Démarrage : `docker compose up -d` (ou `npm run setup` qui fait ça et applique les migrations).
+# Arrêt : `docker compose down`. Remise à zéro complète : `docker compose down -v`.
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: creaflow
+      POSTGRES_PASSWORD: creaflow
+      POSTGRES_DB: creaflow_poc
+    ports:
+      - "5433:5432"
+    volumes:
+      - creaflow-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U creaflow -d creaflow_poc"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  creaflow-pgdata:

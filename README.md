@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CreaFlow
 
-## Getting Started
+Application Next.js de production éditoriale pour les réseaux sociaux : l'onboarding cerne la marque
+et ses sujets, un « rédacteur en chef » planifie des séries de contenus, et l'app génère les scripts
+puis les place dans un calendrier.
 
-First, run the development server:
+## Démarrage rapide
+
+Prérequis : **Node 20+** et **Docker Desktop** (démarré).
 
 ```bash
+npm install
+npm run setup
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`npm run setup` fait tout le reste : il crée le `.env` à partir de `.env.example` (avec un
+`AUTH_SECRET` généré), démarre la base Postgres du `docker-compose.yml`, attend qu'elle réponde et
+applique les migrations. Il est relançable sans risque — un `.env` existant n'est jamais écrasé.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+L'app tourne ensuite sur http://localhost:3000.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Une clé LLM est nécessaire
 
-## Learn More
+Sans clé, l'app démarre mais l'onboarding ne peut rien générer — donc rien à tester. Renseigner
+**une** de ces clés dans `.env` (`npm run setup` le rappelle s'il n'en trouve aucune) :
 
-To learn more about Next.js, take a look at the following resources:
+| Clé | Remarque |
+| --- | --- |
+| `GEMINI_API_KEY` | Provider par défaut, quota gratuit — https://aistudio.google.com/apikey |
+| `GROQ_API_KEY` | Quota gratuit plus généreux, mais faible débit ; mettre aussi `LLM_PROVIDER=groq` |
+| `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | Payantes ; mettre `LLM_PROVIDER` en conséquence |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Tout le reste de `.env.example` est optionnel : sans les clés OAuth (TikTok, Instagram, LinkedIn,
+GitHub), sans Stripe, sans stockage R2, l'app fonctionne — seules les fonctionnalités concernées sont
+inactives ou masquées. Deux exceptions à connaître : l'écran `/assistant` exige `OPENAI_API_KEY` quel
+que soit `LLM_PROVIDER`, et la bibliothèque de ressources visuelles exige R2 + Google Cloud
+(`docs/SETUP_RESSOURCES_VISUELLES.md`).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## La base de données
 
-## Deploy on Vercel
+Le `docker-compose.yml` lance l'image **`pgvector/pgvector:pg17`**, et non une image Postgres nue :
+la migration `0007` crée l'extension `vector` (embeddings de la bibliothèque visuelle). Le port hôte
+est **5433** pour cohabiter avec un Postgres déjà installé sur la machine.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+docker compose up -d     # démarrer la base
+docker compose down      # l'arrêter (les données sont conservées dans un volume)
+docker compose down -v   # tout supprimer, y compris les données
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Pour utiliser un Postgres déjà installé plutôt que Docker : il lui faut l'extension pgvector (voir
+`drizzle/README_PGVECTOR.md`), puis il suffit de pointer `DATABASE_URL` dessus et de lancer
+`npm run db:migrate`.
+
+## Commandes
+
+| Commande | Effet |
+| --- | --- |
+| `npm run setup` | Premier lancement : `.env`, base Docker, migrations |
+| `npm run dev` | Serveur de développement |
+| `npm run build` / `npm run start` | Build de production / lancement |
+| `npm run lint` | ESLint |
+| `npm run test` | Suite Vitest (logique pure, appels LLM mockés, aucune base requise) |
+| `npm run db:generate` | Génère une migration SQL à partir de `src/db/schema.ts` |
+| `npm run db:migrate` | Applique les migrations en attente sur `DATABASE_URL` |
+| `npm run db:studio` | Ouvre Drizzle Studio pour inspecter la base |
+
+## Documentation
+
+- `docs/PRODUCT.md` — vision produit et fonctionnalités.
+- `docs/TECH.md` — stack, modèle de données, endpoints, architecture des prompts.
+- `docs/` — les specs par chantier (séries et rôles, rédacteur en chef, assistant agentique,
+  ressources visuelles, onboarding développeur).
