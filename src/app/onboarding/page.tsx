@@ -134,7 +134,9 @@ function OnboardingContent() {
       setStep(3);
       return;
     }
-    router.push("/calendar");
+    // Fin de la création de compte : on ouvre Direction, où l'utilisateur retrouve les séries
+    // issues de l'onboarding, plutôt que le calendrier encore vide.
+    router.push("/direction");
   }
 
   function goPrev() {
@@ -193,9 +195,6 @@ function OnboardingContent() {
             CreaFlow
           </span>
         </div>
-        <Button variant="ghost" onClick={() => router.push("/calendar")}>
-          Passer la configuration →
-        </Button>
       </div>
 
       <div style={{ maxWidth: 720, width: "100%", margin: "0 auto", padding: "40px 32px 64px" }}>
