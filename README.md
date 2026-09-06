@@ -20,21 +20,23 @@ applique les migrations. Il est relançable sans risque — un `.env` existant n
 
 L'app tourne ensuite sur http://localhost:3000.
 
-### Une clé LLM est nécessaire
+### Une clé LLM est nécessaire — OpenAI pour l'instant
 
-Sans clé, l'app démarre mais l'onboarding ne peut rien générer — donc rien à tester. Renseigner
-**une** de ces clés dans `.env` (`npm run setup` le rappelle s'il n'en trouve aucune) :
+Sans clé, l'app démarre mais l'onboarding ne peut rien générer — donc rien à tester. Deux lignes à
+renseigner dans `.env` :
 
-| Clé | Remarque |
-| --- | --- |
-| `GEMINI_API_KEY` | Provider par défaut, quota gratuit — https://aistudio.google.com/apikey |
-| `GROQ_API_KEY` | Quota gratuit plus généreux, mais faible débit ; mettre aussi `LLM_PROVIDER=groq` |
-| `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | Payantes ; mettre `LLM_PROVIDER` en conséquence |
+```
+LLM_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+```
+
+> **Seul OpenAI fonctionne aujourd'hui.** `.env.example` propose aussi `gemini` (valeur par défaut),
+> `anthropic` et `groq` : ces providers existent dans le code mais ne sont pas opérationnels, ne pas
+> compter dessus pour faire tourner l'app.
 
 Tout le reste de `.env.example` est optionnel : sans les clés OAuth (TikTok, Instagram, LinkedIn,
 GitHub), sans Stripe, sans stockage R2, l'app fonctionne — seules les fonctionnalités concernées sont
-inactives ou masquées. Deux exceptions à connaître : l'écran `/assistant` exige `OPENAI_API_KEY` quel
-que soit `LLM_PROVIDER`, et la bibliothèque de ressources visuelles exige R2 + Google Cloud
+inactives ou masquées. La bibliothèque de ressources visuelles, elle, exige R2 + Google Cloud
 (`docs/SETUP_RESSOURCES_VISUELLES.md`).
 
 ## La base de données
