@@ -1,4 +1,5 @@
 import { MAX_GITHUB_COMMITS } from "@/lib/validation";
+import { ConnectorRateLimitError } from "@/lib/connectors/errors";
 
 const OAUTH_TOKEN_ENDPOINT = "https://github.com/login/oauth/access_token";
 const OAUTH_AUTHORIZE_ENDPOINT = "https://github.com/login/oauth/authorize";
@@ -12,12 +13,10 @@ const API = "https://api.github.com";
  *  (vérifié empiriquement — /user/orgs répond 403 « You need at least read:org scope »). */
 export const GITHUB_OAUTH_SCOPE = "read:user user:email read:org";
 
-export class GithubRateLimitError extends Error {
-  retryAfterMinutes: number;
+export class GithubRateLimitError extends ConnectorRateLimitError {
   constructor(retryAfterMinutes: number) {
-    super(`Quota GitHub atteint. Réessaie dans ${retryAfterMinutes} minute(s).`);
+    super(`Quota GitHub atteint. Réessaie dans ${retryAfterMinutes} minute(s).`, retryAfterMinutes);
     this.name = "GithubRateLimitError";
-    this.retryAfterMinutes = retryAfterMinutes;
   }
 }
 

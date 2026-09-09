@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diffDocuments } from "./githubSourceService";
+import { diffDocuments } from "./sourceConnectorService";
 
 const incoming = (externalRef: string, externalChecksum: string) => ({
   externalRef,

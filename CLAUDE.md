@@ -27,6 +27,7 @@ La facturation self-service (Stripe) est optionnelle pour faire tourner l'app en
 ## Documentation projet
 
 - `docs/PRODUCT.md` — vision produit et fonctionnalités, à jour.
+- `docs/ARCHITECTURE_VERTICALES.md` — comment le cœur se décline en verticales métier (dev, artisan, entrepreneur) : options tranchées, registre de connecteurs de matière et onboarding déclaratif. Chantiers 1 et 2 implémentés, 3 et 4 à faire.
 - `docs/TECH.md` — scope technique à jour : stack, modèle de données, endpoints, architecture des prompts.
 - `docs/BRIEF.md` / `docs/SPEC_POC.md` — cadrage initial de la phase POC, conservés comme archive historique (ne plus mettre à jour).
 - `docs/SPEC_SERIES_ET_ROLES.md` — la série est le seul objet éditorial manipulé, la catégorie est un « rôle » (unique par série, ou porté par un post libre). Modèle de données inchangé, UX recadrée. Implémenté (Lots 0-4), migration de données appliquée en dev.

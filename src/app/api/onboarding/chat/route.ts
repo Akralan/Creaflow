@@ -11,7 +11,7 @@ import {
   type OnboardingMessage,
   type OnboardingSeriesProposal,
 } from "@/lib/llm/onboardingChat";
-import { buildDevOnboardingContext } from "@/lib/services/githubSourceService";
+import { buildDevOnboardingContext } from "@/lib/services/devOnboardingContext";
 import { finalizeOnboarding, mergeExtractedProfile } from "@/lib/services/onboardingService";
 import { handleApiError } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";

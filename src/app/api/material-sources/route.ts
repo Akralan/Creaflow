@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUserId } from "@/lib/auth/session";
-import { listSourcesForProduct } from "@/lib/services/githubSourceService";
+import { listSourcesForProduct } from "@/lib/services/sourceConnectorService";
 import { handleApiError } from "@/lib/api/errors";
 
 const listSchema = z.object({ productId: z.uuid() });

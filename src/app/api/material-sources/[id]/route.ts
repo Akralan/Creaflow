@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUserId } from "@/lib/auth/session";
-import { deleteSource } from "@/lib/services/githubSourceService";
+import { deleteSource } from "@/lib/services/sourceConnectorService";
 import { handleApiError } from "@/lib/api/errors";
 
 /** Supprime la source ET ses documents miroir (cascade). La confirmation est portée par l'UI, qui

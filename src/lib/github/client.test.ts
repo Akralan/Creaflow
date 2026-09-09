@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { exchangeCode, fetchViewer, listPublicRepos, fetchTree, listCommits, GithubRateLimitError } from "./client";
+import { ConnectorRateLimitError } from "@/lib/connectors/errors";
 
 const fetchMock = vi.fn();
 
@@ -145,6 +146,22 @@ describe("quota", () => {
     });
 
     await expect(listPublicRepos("tok")).rejects.toBeInstanceOf(GithubRateLimitError);
+  });
+
+  // Les routes /api/github/repos et /api/material-sources/[id]/sync répondent 429 en testant la
+  // classe de BASE, pour ne pas connaître le fournisseur. Casser cet héritage les ferait
+  // silencieusement retomber en 500 "Erreur serveur".
+  it("hérite de ConnectorRateLimitError, ce sur quoi les routes s'appuient pour répondre 429", async () => {
+    const reset = Math.floor(Date.now() / 1000) + 600;
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 403,
+      headers: new Headers({ "x-ratelimit-remaining": "0", "x-ratelimit-reset": String(reset) }),
+      json: async () => ({}),
+      text: async () => "rate limited",
+    });
+
+    await expect(listPublicRepos("tok")).rejects.toBeInstanceOf(ConnectorRateLimitError);
   });
 
   it("laisse passer un 403 ordinaire comme erreur générique", async () => {
