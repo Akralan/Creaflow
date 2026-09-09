@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import { TextField, TextAreaField, heading1Style } from "@/components/ui/TextField";
 import ProductCatalogue from "@/components/ProductCatalogue";
 import RepoPicker from "@/components/RepoPicker";
+import SourcePicker from "@/components/SourcePicker";
 import ConnectionRow from "@/components/ConnectionRow";
 import EquipmentPicker from "@/components/EquipmentPicker";
 import StyleAnalysisPanel from "@/components/StyleAnalysisPanel";
@@ -153,41 +154,62 @@ function ConnexionsTab() {
   );
 }
 
-/** Onglet Sujets : le catalogue manuel, précédé — quand un compte GitHub est connecté — du même
- *  sélecteur de dépôts que l'onboarding dev, pour intégrer de nouveaux dépôts comme sujets sans
- *  refaire le parcours. Le catalogue est remonté (clé) après chaque connexion pour refléter les
- *  sujets fraîchement créés. */
-function CatalogueTab() {
-  const [githubConnected, setGithubConnected] = useState(false);
+/** Une carte par fournisseur connecté, au-dessus du catalogue manuel : brancher de nouvelles
+ *  sources comme sujets sans refaire l'onboarding. Le catalogue est remonté (clé) après chaque
+ *  connexion pour refléter les sujets fraîchement créés. */
+function ConnectorCard({
+  provider,
+  onConnected,
+}: {
+  provider: { id: string; displayName: string };
+  onConnected: () => void;
+}) {
   const [showPicker, setShowPicker] = useState(false);
+  const isGithub = provider.id === "github";
+  const label = provider.displayName;
+
+  return (
+    <Card style={{ padding: 20, marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>Ajouter depuis {label}</div>
+          <div style={{ fontSize: 13, color: color.textMuted, marginTop: 2 }}>
+            Chaque élément choisi devient un sujet, avec son contenu comme matière.
+          </div>
+        </div>
+        <Button variant="secondary" onClick={() => setShowPicker((v) => !v)}>
+          {showPicker ? "Masquer" : "Choisir"}
+        </Button>
+      </div>
+      {showPicker && (
+        <div style={{ marginTop: 18 }}>
+          {/* GitHub garde son sélecteur historique : sa route porte la forme « dépôt », testée à part. */}
+          {isGithub ? (
+            <RepoPicker variant="settings" onConnected={onConnected} />
+          ) : (
+            <SourcePicker key={provider.id} provider={provider.id} variant="settings" onConnected={onConnected} />
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function CatalogueTab() {
+  const [providers, setProviders] = useState<Array<{ id: string; displayName: string }>>([]);
   const [catalogueKey, setCatalogueKey] = useState(0);
 
   useEffect(() => {
-    api.getProfile().then(({ githubConnected }) => setGithubConnected(githubConnected));
+    // Les fournisseurs réellement reliés au compte, et non la verticale : "dev" couvre GitHub
+    // comme Linear (docs/SPEC_CONNECTEURS_ET_SUJETS.md §7.2).
+    api.getProfile().then(({ connectedProviders }) => setProviders(connectedProviders));
   }, []);
 
   return (
     <div>
-      {githubConnected && (
-        <Card style={{ padding: 20, marginBottom: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 15 }}>Ajouter depuis GitHub</div>
-              <div style={{ fontSize: 13, color: color.textMuted, marginTop: 2 }}>
-                Chaque dépôt choisi devient un sujet, avec ses fichiers .md et son journal de commits comme matière.
-              </div>
-            </div>
-            <Button variant="secondary" onClick={() => setShowPicker((v) => !v)}>
-              {showPicker ? "Masquer" : "Choisir des dépôts"}
-            </Button>
-          </div>
-          {showPicker && (
-            <div style={{ marginTop: 18 }}>
-              <RepoPicker variant="settings" onConnected={() => setCatalogueKey((k) => k + 1)} />
-            </div>
-          )}
-        </Card>
-      )}
+      {providers.map((provider) => (
+        <ConnectorCard key={provider.id} provider={provider} onConnected={() => setCatalogueKey((k) => k + 1)} />
+      ))}
       <ProductCatalogue key={catalogueKey} />
     </div>
   );

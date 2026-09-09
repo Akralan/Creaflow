@@ -106,10 +106,13 @@ export interface OnboardingSeriesProposal {
   categoryLabel: string | null;
 }
 
-/** Même contrat de sortie que le tool généraliste, moins `equipment` : hors sujet pour du contenu de
- *  dev, majoritairement textuel. Dérivé plutôt que recopié pour qu'une évolution du schéma partagé
- *  (nouveau champ de profil) ne se perde pas dans un seul des deux parcours. */
-export const devOnboardingProfileTool: LlmToolDefinition = (() => {
+/** Même contrat de sortie que le tool généraliste, moins `equipment` : hors sujet pour du contenu
+ *  majoritairement textuel (GitHub, Notion, Linear). Dérivé plutôt que recopié pour qu'une évolution
+ *  du schéma partagé (nouveau champ de profil) ne se perde pas dans un seul des deux parcours.
+ *
+ *  Le jour où Etsy et Shopify arrivent, ce tool ne conviendra plus tel quel : un artisan filme ses
+ *  pièces, la question du matériel a du sens pour lui. C'est le seul endroit à rouvrir. */
+export const connectedOnboardingProfileTool: LlmToolDefinition = (() => {
   const base = updateOnboardingProfileTool.input_schema.properties.extractedFields as {
     type: string;
     description: string;
@@ -129,59 +132,67 @@ export const devOnboardingProfileTool: LlmToolDefinition = (() => {
   };
 })();
 
-export const DEV_SYSTEM_PROMPT = `Tu es l'assistant d'onboarding de CreaFlow. La personne en face de toi est développeuse : elle vient de connecter son compte GitHub et de choisir les projets dont elle veut parler. Tu connais déjà son identité et ses projets, ils te sont donnés en contexte.
+export function buildConnectedSystemPrompt(providerLabel: string): string {
+  const provider = providerLabel || "son compte";
+  return `Tu es l'assistant d'onboarding de CreaFlow. La personne en face de toi vient de connecter ${provider} et de choisir ce dont elle veut parler. Tu connais déjà son identité et ses sujets, ils te sont donnés en contexte.
 
 Règles :
-- Tu as déjà de quoi déduire brandName et activityType depuis le profil GitHub et les projets. Ne les demande PAS à froid : propose-les en récapitulatif court, et laisse corriger.
+- Tu as déjà de quoi déduire brandName et activityType depuis le profil et les sujets. Ne les demande PAS à froid : propose-les en récapitulatif court, et laisse corriger.
 - Tu n'as droit qu'à DEUX ou TROIS questions au total, une à la fois : le ton de communication souhaité, l'audience visée, et le temps disponible par semaine. Rien d'autre.
-- Ne demande JAMAIS le matériel de production (caméra, micro, lumière) : le contenu d'un développeur est essentiellement écrit, la question serait absurde.
+- Ne demande JAMAIS le matériel de production (caméra, micro, lumière) : ce contenu-là est essentiellement écrit, la question serait absurde.
 - Ne suppose pas qu'il s'agit de vidéo. Suggère en priorité les réseaux où l'écrit et le technique fonctionnent, mais uniquement parmi : ${KNOWN_PLATFORM_KEYS.join(", ")}.
 - L'audience visée est utile mais optionnelle : si la personne ne sait pas répondre ou préfère passer, n'insiste pas.
 - Marque complete=true dès que brandName, activityType, weeklyTimeAvailable et au moins une plateforme sont connus, et termine par un récapitulatif court.`;
+}
 
-export interface DevOnboardingContext {
+export interface ConnectedOnboardingContext {
+  /** "GitHub", "Notion", "Linear" — nommer la plateforme évite au modèle de parler de « ton
+   *  compte » quand il peut dire « ton espace Notion ». */
+  providerLabel: string;
   login: string;
   name: string | null;
   bio: string | null;
   subjects: Array<{
     name: string;
     description: string | null;
-    language: string | null;
-    readmeExcerpt: string | null;
+    /** Début de la matière déjà ingérée pour ce sujet, quelle qu'en soit la source. */
+    excerpt: string | null;
   }>;
 }
 
-/** Bloc de contexte préfixé à la transcription — c'est ce qui permet au modèle de ne pas reposer les
- *  questions dont GitHub a déjà la réponse. */
-export function buildDevContext(input: DevOnboardingContext): string {
-  const lines: string[] = ["Profil GitHub :", `- identifiant : ${input.login}`];
+/** Bloc de contexte préfixé à la transcription — c'est ce qui permet au modèle de ne pas reposer
+ *  les questions dont le compte connecté a déjà la réponse. */
+export function buildConnectedContext(input: ConnectedOnboardingContext): string {
+  const lines: string[] = [
+    `Profil ${input.providerLabel || "du compte connecté"} :`,
+    `- identifiant : ${input.login}`,
+  ];
   if (input.name) lines.push(`- nom : ${input.name}`);
   if (input.bio) lines.push(`- bio : ${input.bio}`);
 
-  lines.push("", "Projets retenus comme sujets :");
+  lines.push("", "Sujets retenus :");
   for (const subject of input.subjects) {
-    const details = [subject.language, subject.description].filter(Boolean).join(" · ");
-    lines.push(`- ${subject.name}${details ? ` (${details})` : ""}`);
-    if (subject.readmeExcerpt) {
-      lines.push(`  extrait du README : ${subject.readmeExcerpt}`);
+    lines.push(`- ${subject.name}${subject.description ? ` (${subject.description})` : ""}`);
+    if (subject.excerpt) {
+      lines.push(`  extrait de sa matière : ${subject.excerpt}`);
     }
   }
 
   return lines.join("\n");
 }
 
-export async function runDevOnboardingChatTurn(context: {
+export async function runConnectedOnboardingChatTurn(context: {
   history: OnboardingMessage[];
-  dev: DevOnboardingContext;
+  connected: ConnectedOnboardingContext;
 }): Promise<OnboardingChatResult> {
   const transcript = context.history
     .map((m) => `${m.role === "user" ? "Utilisateur" : "Assistant"} : ${m.content}`)
     .join("\n");
 
   const args = await callStructured({
-    system: DEV_SYSTEM_PROMPT,
-    userMessage: `${buildDevContext(context.dev)}\n\n---\n\n${transcript}`,
-    tool: devOnboardingProfileTool,
+    system: buildConnectedSystemPrompt(context.connected.providerLabel),
+    userMessage: `${buildConnectedContext(context.connected)}\n\n---\n\n${transcript}`,
+    tool: connectedOnboardingProfileTool,
     maxTokens: 1024,
   });
 

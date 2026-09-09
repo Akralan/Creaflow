@@ -67,15 +67,24 @@ export const scriptMicroEditKindEnum = pgEnum("script_micro_edit_kind", ["select
 export const sourceMaterialKindEnum = pgEnum("source_material_kind", ["paste", "file", "interview", "connector"]);
 // Verticale métier de l'utilisateur (docs/ARCHITECTURE_VERTICALES.md) : elle choisit le parcours
 // d'onboarding, le prompt du chat, et demain le connecteur de matière proposé. Posée au signup,
-// jamais recalculée. "creator" = chat généraliste puis saisie des sujets ; "dev" = identité GitHub,
-// choix de dépôts, chat court.
+// jamais recalculée. "creator" = chat généraliste puis saisie des sujets ; les autres valeurs
+// désignent un compte né d'un fournisseur d'identité tiers et qui suit le parcours « source
+// d'abord » (choix des sujets, chat court, réseaux) : "dev" pour GitHub et Linear, "artisan" pour
+// Etsy et Shopify, "entrepreneur" pour Notion.
+//
+// La verticale ne dit PAS quel sélecteur afficher : "dev" couvre GitHub comme Linear. L'écran lit
+// le fournisseur réellement connecté (oauthAccounts.provider) — docs/SPEC_CONNECTEURS_ET_SUJETS.md §7.2.
 //
 // N'apparaît QUE sur users. Une verticale ne partitionne pas le modèle de données : une deuxième
 // colonne `vertical` ailleurs voudrait dire des lignes, des index puis des tables qui divergent par
 // verticale — le point de non-retour du chantier 4 (docs/ARCHITECTURE_VERTICALES.md). Garde-fou
 // exécutable : src/db/schemaInvariants.test.ts.
-export const verticalEnum = pgEnum("vertical", ["creator", "dev"]);
-export const materialSourceTypeEnum = pgEnum("material_source_type", ["github_repo"]);
+export const verticalEnum = pgEnum("vertical", ["creator", "dev", "artisan", "entrepreneur"]);
+export const materialSourceTypeEnum = pgEnum("material_source_type", [
+  "github_repo",
+  "notion_page",
+  "linear_project",
+]);
 export const materialSourceStatusEnum = pgEnum("material_source_status", ["ok", "error", "needs_reconnect"]);
 // Mode d'une série (docs/SPEC_REDACTEUR_EN_CHEF.md §1/§2) : "feuilleton" = épisodes ordonnés, arc +
 // beats maintenus par le rédacteur en chef (devlog, coulisses d'un projet) ; "rendez_vous" = épisodes
@@ -460,23 +469,38 @@ export const googleDriveConnections = pgTable("google_drive_connections", {
   connectedAt: timestamp("connected_at").notNull().defaultNow(),
 });
 
-// Identité GitHub d'un compte (spec §4). Distincte de socialConnections : GitHub n'est pas une
-// plateforme de publication, c'est un fournisseur d'identité et une source de matière.
-export const githubAccounts = pgTable("github_accounts", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
-  githubUserId: text("github_user_id").notNull().unique(),
-  login: text("login").notNull(),
-  name: text("name"),
-  bio: text("bio"),
-  avatarUrl: text("avatar_url"),
-  // Token d'OAuth App classique : pas d'expiration, pas de refresh token. Stocké pour le quota
-  // authentifié (5000 req/h contre 60 en anonyme), pas pour un accès privilégié — le scope demandé
-  // (read:user user:email) ne donne accès qu'à ce qui est déjà public.
-  accessToken: text("access_token").notNull(),
-  scope: text("scope").notNull(),
-  connectedAt: timestamp("connected_at").notNull().defaultNow(),
-});
+// Identité tierce d'un compte (docs/SPEC_CONNECTEURS_ET_SUJETS.md §7). Distincte de
+// socialConnections : ces fournisseurs ne publient rien, ils authentifient et alimentent le corpus.
+// Une seule table pour tous, ex-github_accounts — un fournisseur de plus ne doit coûter ni une
+// table, ni une valeur d'enum (d'où provider en text).
+export const oauthAccounts = pgTable(
+  "oauth_accounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    // La liste des fournisseurs fait foi dans src/lib/oauth/registry.ts, pas ici.
+    provider: text("provider").notNull(),
+    providerUserId: text("provider_user_id").notNull(),
+    login: text("login").notNull(),
+    name: text("name"),
+    bio: text("bio"),
+    avatarUrl: text("avatar_url"),
+    accessToken: text("access_token").notNull(),
+    // Nuls pour GitHub, dont le token d'OAuth App classique ne périme pas. Renseignés pour Notion
+    // et Linear, dont les tokens expirent (Linear : 24 h) — sans eux tout casserait le lendemain.
+    // Aucun appel ne lit accessToken directement : tout passe par getValidProviderAccessToken.
+    refreshToken: text("refresh_token"),
+    accessTokenExpiresAt: timestamp("access_token_expires_at"),
+    scope: text("scope").notNull(),
+    // Spécifique fournisseur : workspaceId Notion, domaine de boutique Shopify demain. Même rôle
+    // que materialSources.config, et même raison — le cœur ne connaît aucun fournisseur.
+    config: jsonb("config").notNull().default({}),
+    connectedAt: timestamp("connected_at").notNull().defaultNow(),
+  },
+  // L'unicité portait sur user_id seul du temps de github_accounts. Un compte peut désormais
+  // cumuler plusieurs identités, mais une seule par fournisseur.
+  (t) => [unique().on(t.provider, t.providerUserId), unique().on(t.userId, t.provider)]
+);
 
 export const socialConnections = pgTable("social_connections", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -732,8 +756,8 @@ export const materialSourcesRelations = relations(materialSources, ({ one, many 
   documents: many(sourceMaterials),
 }));
 
-export const githubAccountsRelations = relations(githubAccounts, ({ one }) => ({
-  user: one(users, { fields: [githubAccounts.userId], references: [users.id] }),
+export const oauthAccountsRelations = relations(oauthAccounts, ({ one }) => ({
+  user: one(users, { fields: [oauthAccounts.userId], references: [users.id] }),
 }));
 
 export const narrativeStateRelations = relations(narrativeState, ({ one }) => ({

@@ -197,6 +197,13 @@
       "when": 1788963140500,
       "tag": "0027_flowery_ultron",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1788967341552,
+      "tag": "0028_lucky_stepford_cuckoos",
+      "breakpoints": true
     }
   ]
 }

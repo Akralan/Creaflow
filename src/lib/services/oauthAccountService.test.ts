@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { decideAccountResolution } from "./githubAuthService";
+import { decideAccountResolution } from "./oauthAccountService";
 
 describe("decideAccountResolution", () => {
-  it("connecte sur le compte déjà lié à cette identité GitHub", () => {
+  it("connecte sur le compte déjà lié à cette identité tierce", () => {
     expect(decideAccountResolution({ identityUserId: "u1", hasVerifiedEmail: true, userIdWithSameEmail: "u2" })).toEqual(
       { action: "login", userId: "u1" }
     );

@@ -1,6 +1,3 @@
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import { githubAccounts } from "@/db/schema";
 import {
   fetchBlobText,
   fetchTree,
@@ -9,17 +6,13 @@ import {
   GithubAuthError,
 } from "@/lib/github/client";
 import { buildCommitJournal, COMMITS_EXTERNAL_REF, selectMarkdownFiles } from "@/lib/github/ingest";
-import { ApiError } from "@/lib/api/errors";
+import { getValidProviderAccessToken } from "@/lib/services/oauthAccountService";
 import { toCandidate, type GithubCandidateMeta } from "./githubMapping";
 import type { FetchedDocuments, IncomingDoc, MaterialSourceRow, SourceConnector } from "./types";
 
-async function getAccessToken(userId: string): Promise<string> {
-  const account = await db.query.githubAccounts.findFirst({ where: eq(githubAccounts.userId, userId) });
-  if (!account) {
-    throw new ApiError(400, "Aucun compte GitHub connecté.");
-  }
-  return account.accessToken;
-}
+/** Passe par le service commun plutôt que de lire la ligne : GitHub n'a rien à rafraîchir, mais
+ *  c'est la règle pour tous les connecteurs, et une exception ici serait recopiée par le suivant. */
+const getAccessToken = (userId: string) => getValidProviderAccessToken(userId, "github");
 
 async function collectDocs(token: string, fullName: string, branch: string): Promise<FetchedDocuments> {
   const { entries, truncated } = await fetchTree(token, fullName, branch);

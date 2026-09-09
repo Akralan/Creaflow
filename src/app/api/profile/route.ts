@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { creatorProfiles, githubAccounts, users } from "@/db/schema";
+import { creatorProfiles, users } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
+import { listConnectedProviders } from "@/lib/services/oauthAccountService";
 import { handleApiError } from "@/lib/api/errors";
 
 const profileSchema = z.object({
@@ -28,16 +29,18 @@ export async function GET() {
       where: eq(users.id, userId),
       columns: { vertical: true },
     });
-    // Exposé ici pour la même raison que le track : les écrans qui en ont besoin (paramètres >
-    // Sujets, pour proposer le sélecteur de dépôts) appellent déjà getProfile.
-    const github = await db.query.githubAccounts.findFirst({
-      where: eq(githubAccounts.userId, userId),
-      columns: { userId: true },
-    });
+    // Exposé ici pour la même raison que la verticale : les écrans qui en ont besoin (paramètres >
+    // Sujets, l'onboarding) appellent déjà getProfile. C'est CETTE liste, et non la verticale, qui
+    // dit quel sélecteur afficher — "dev" couvre GitHub comme Linear
+    // (docs/SPEC_CONNECTEURS_ET_SUJETS.md §7.2).
+    const connectedProviders = await listConnectedProviders(userId);
     return NextResponse.json({
       profile: profile ?? null,
       vertical: user?.vertical ?? "creator",
-      githubConnected: Boolean(github),
+      connectedProviders,
+      // Conservé pour ne pas casser les appelants existants tant qu'ils n'ont pas basculé sur
+      // connectedProviders.
+      githubConnected: connectedProviders.some((provider) => provider.id === "github"),
     });
   } catch (error) {
     return handleApiError(error);

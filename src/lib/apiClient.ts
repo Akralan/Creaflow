@@ -40,11 +40,31 @@ export interface GithubRepoOption {
   alreadyConnected: boolean;
 }
 
-/** Source connectée alimentant le corpus d'un sujet (un dépôt GitHub à ce stade). */
+/** Candidat proposé par un connecteur, sous la forme générique que rend
+ *  /api/connectors/[provider]/candidates. `hint` est composé par le connecteur : l'écran de
+ *  sélection l'affiche sans jamais savoir de quel fournisseur il vient. */
+export interface SourceCandidate {
+  externalId: string;
+  label: string;
+  subjectName: string;
+  subjectDescription: string | null;
+  config: Record<string, unknown>;
+  hint: string | null;
+  alreadyConnected: boolean;
+}
+
+export interface SourceCandidateList {
+  displayName: string;
+  emptyMessage: string;
+  footnote: string;
+  candidates: SourceCandidate[];
+}
+
+/** Source connectée alimentant le corpus d'un sujet. */
 export interface MaterialSource {
   id: string;
   productId: string;
-  type: "github_repo";
+  type: "github_repo" | "notion_page" | "linear_project";
   /** Nom lisible du fournisseur, fourni par le connecteur — l'UI ne le déduit pas de `type`. */
   connectorLabel: string;
   externalId: string;
@@ -439,6 +459,22 @@ export const api = {
   connectGithubRepos: (repos: GithubRepoOption[]) =>
     post<{ results: ConnectRepoResult[] }>("/api/github/repos", { repos }),
 
+  /** Fournisseurs d'identité configurés sur cet environnement — /login n'affiche que ceux-là. */
+  getOAuthProviders: () => apiFetch<{ providers: Array<{ id: string; displayName: string }> }>("/api/auth/oauth/providers"),
+
+  getSourceCandidates: (provider: string) =>
+    apiFetch<SourceCandidateList>(`/api/connectors/${provider}/candidates`),
+  connectSources: (provider: string, candidates: SourceCandidate[]) =>
+    post<{ results: ConnectRepoResult[] }>(`/api/connectors/${provider}/candidates`, {
+      candidates: candidates.map(({ externalId, label, subjectName, subjectDescription, config }) => ({
+        externalId,
+        label,
+        subjectName,
+        subjectDescription,
+        config,
+      })),
+    }),
+
   getMaterialSources: (productId: string) =>
     apiFetch<{ sources: MaterialSource[] }>(`/api/material-sources?productId=${productId}`),
   syncMaterialSource: (id: string) => post<{ report: SyncReport }>(`/api/material-sources/${id}/sync`),
@@ -446,9 +482,14 @@ export const api = {
   deleteMaterialSource: (id: string) => del<{ ok: true }>(`/api/material-sources/${id}`),
 
   getProfile: () =>
-    apiFetch<{ profile: CreatorProfile | null; vertical: "creator" | "dev"; githubConnected: boolean }>(
-      "/api/profile"
-    ),
+    apiFetch<{
+      profile: CreatorProfile | null;
+      vertical: "creator" | "dev" | "artisan" | "entrepreneur";
+      /** Fournisseurs auxquels ce compte est relié. C'est CETTE liste qui dit quel sélecteur
+       *  afficher, pas la verticale — "dev" couvre GitHub comme Linear. */
+      connectedProviders: Array<{ id: string; displayName: string }>;
+      githubConnected: boolean;
+    }>("/api/profile"),
   saveProfile: (data: {
     brandName: string;
     activityType: string;

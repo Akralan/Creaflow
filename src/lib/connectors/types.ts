@@ -72,4 +72,19 @@ export interface SourceConnector<Meta = Record<string, unknown>> {
    *  parlent de SA source ("ce dépôt", "cette boutique"), pas d'une source abstraite. */
   emptyMessage: string;
   truncatedMessage: string;
+
+  /** Ligne de contexte affichée sous un candidat dans l'écran de sélection ("TypeScript · mis à
+   *  jour le …"). C'est ce qui permet à cet écran de rester générique : il affiche une chaîne, il
+   *  ne lit jamais `meta`, dont lui seul connaîtrait la forme. Absent = pas de ligne. */
+  candidateHint?(meta: Meta): string | null;
+
+  /** Textes de l'écran de sélection, portés par le connecteur pour la même raison que
+   *  `emptyMessage` : ils parlent de SA source. */
+  picker?: {
+    /** Affiché quand le fournisseur ne propose rien — le cas Notion sans page partagée, où il faut
+     *  expliquer le partage plutôt que montrer une liste vide. */
+    emptyMessage: string;
+    /** Bas de l'écran : ce que l'ingestion va récupérer. */
+    footnote: string;
+  };
 }

@@ -26,5 +26,19 @@ export const MAX_GITHUB_MD_FILES = 50;
 // trompeuse, ce que tout le produit s'interdit.
 export const MAX_GITHUB_FILE_BYTES = 100 * 1024;
 export const MAX_GITHUB_COMMITS = 100;
+
+// Ingestion Notion (docs/SPEC_CONNECTEURS_ET_SUJETS.md §4). Une page Notion vivante n'a pas de
+// fond : le plafond porte sur les blocs lus en tout, sous-pages comprises. Au-delà, l'ingestion est
+// marquée tronquée — signalée à l'utilisateur, sans passer la source en erreur.
+export const MAX_NOTION_BLOCKS = 2000;
+// Profondeur de descente dans les sous-pages. 3 couvre le rangement usuel (espace > projet > note)
+// sans risquer de remonter un workspace entier par un sujet unique.
+export const MAX_NOTION_DEPTH = 3;
+
+// Ingestion Linear (docs/SPEC_CONNECTEURS_ET_SUJETS.md §5). Les project updates sont la meilleure
+// matière du connecteur — déjà écrites pour être lues — d'où un plafond plus généreux que sur les
+// issues, dont on ne garde que les terminées.
+export const MAX_LINEAR_UPDATES = 50;
+export const MAX_LINEAR_ISSUES = 100;
 // Nano Banana en édition conditionnée fonctionne mieux avec peu d'images de référence.
 export const MAX_GENERATE_IMAGE_SOURCE_ASSETS = 4;

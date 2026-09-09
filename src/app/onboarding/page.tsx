@@ -47,6 +47,9 @@ function OnboardingContent() {
   const [vertical, setVertical] = useState<VerticalId>("creator");
   const [productCount, setProductCount] = useState(0);
   const [connections, setConnections] = useState<Connection[]>([]);
+  // Le fournisseur avec lequel le compte a été créé, et non la verticale : c'est lui qui décide du
+  // sélecteur de sources (docs/SPEC_CONNECTEURS_ET_SUJETS.md §7.2).
+  const [connectedProvider, setConnectedProvider] = useState<string | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
 
   const steps: OnboardingStep[] = useMemo(() => getVertical(vertical).onboarding, [vertical]);
@@ -55,8 +58,12 @@ function OnboardingContent() {
 
   useEffect(() => {
     (async () => {
-      const [{ vertical }, { connections }] = await Promise.all([api.getProfile(), api.getConnections()]);
+      const [{ vertical, connectedProviders }, { connections }] = await Promise.all([
+        api.getProfile(),
+        api.getConnections(),
+      ]);
       setVertical(vertical);
+      setConnectedProvider(connectedProviders[0]?.id ?? null);
       setConnections(connections);
       // Retour d'un OAuth réseau social : on revient sur l'étape des connexions, la dernière quelle
       // que soit la verticale.
@@ -81,6 +88,7 @@ function OnboardingContent() {
 
   const ctx: OnboardingStepContext = {
     advance,
+    connectedProvider,
     connections,
     productCount,
     onProductCountChange: setProductCount,
