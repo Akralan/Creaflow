@@ -19,5 +19,12 @@ export const MAX_PRODUCTS = 5;
 // 40 images" comme ordre de grandeur de référence).
 export const MAX_ASSETS_PER_INGESTION = 40;
 export const MAX_ASSET_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
+// Ingestion d'un dépôt GitHub (docs/superpowers/specs/2026-08-31-onboarding-dev-github-design.md §6.1).
+export const MAX_GITHUB_MD_FILES = 50;
+// Un fichier au-delà est IGNORÉ, jamais tronqué : un .md coupé au milieu produirait de la matière
+// trompeuse, ce que tout le produit s'interdit.
+export const MAX_GITHUB_FILE_BYTES = 100 * 1024;
+export const MAX_GITHUB_COMMITS = 100;
 // Nano Banana en édition conditionnée fonctionne mieux avec peu d'images de référence.
 export const MAX_GENERATE_IMAGE_SOURCE_ASSETS = 4;

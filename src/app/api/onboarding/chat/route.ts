@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { onboardingSessions } from "@/db/schema";
+import { onboardingSessions, users } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
-import { runOnboardingChatTurn, type ExtractedOnboardingProfile, type OnboardingMessage } from "@/lib/llm/onboardingChat";
+import {
+  type ExtractedOnboardingProfile,
+  type OnboardingMessage,
+  type OnboardingSeriesProposal,
+} from "@/lib/llm/onboardingChat";
+import { getServerVertical } from "@/lib/verticals/server";
 import { finalizeOnboarding, mergeExtractedProfile } from "@/lib/services/onboardingService";
 import { handleApiError } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
@@ -37,14 +42,42 @@ export async function POST(request: NextRequest) {
     const priorMessages = (session?.messages as OnboardingMessage[] | undefined) ?? [];
     const messagesWithUser: OnboardingMessage[] = [...priorMessages, { role: "user", content: message }];
 
-    const result = await runOnboardingChatTurn({ history: messagesWithUser.slice(-MAX_HISTORY_MESSAGES) });
+    // Un seul endpoint pour toutes les verticales : chacune choisit son prompt et le contexte
+    // qu'elle y injecte, mais le contrat de sortie est identique — tout ce qui suit (fusion,
+    // finalisation, persistance) ne les distingue pas.
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+      columns: { vertical: true },
+    });
 
-    const messages: OnboardingMessage[] = [...messagesWithUser, { role: "assistant", content: result.assistantReply }];
+    const result = await getServerVertical(user?.vertical ?? "creator").runOnboardingChatTurn(
+      userId,
+      messagesWithUser.slice(-MAX_HISTORY_MESSAGES)
+    );
+
     const extractedProfile = mergeExtractedProfile(
       (session?.extractedProfile as ExtractedOnboardingProfile | null) ?? {},
       result.extractedFields
     );
     const status = result.complete ? "complete" : "in_progress";
+
+    // La finalisation (profil, rôles, séries) précède la persistance du fil : un échec de
+    // finalisation laisse la session en l'état — l'utilisateur peut simplement renvoyer un message.
+    // Les séries générées sont renvoyées structurées : l'UI les affiche en composant de sélection
+    // (POST /api/onboarding/series-selection) plutôt que de les créer en silence.
+    let series: OnboardingSeriesProposal[] = [];
+    if (result.complete) {
+      const finalized = await finalizeOnboarding(userId, extractedProfile);
+      series = finalized.map((s) => ({
+        id: s.id,
+        label: s.label,
+        description: s.description,
+        mode: s.mode,
+        categoryLabel: s.category?.label ?? null,
+      }));
+    }
+
+    const messages: OnboardingMessage[] = [...messagesWithUser, { role: "assistant", content: result.assistantReply }];
 
     if (session) {
       await db
@@ -55,11 +88,7 @@ export async function POST(request: NextRequest) {
       await db.insert(onboardingSessions).values({ userId, messages, extractedProfile, status });
     }
 
-    if (result.complete) {
-      await finalizeOnboarding(userId, extractedProfile);
-    }
-
-    return NextResponse.json({ reply: result.assistantReply, complete: result.complete, extractedProfile });
+    return NextResponse.json({ reply: result.assistantReply, complete: result.complete, series, extractedProfile });
   } catch (error) {
     return handleApiError(error);
   }

@@ -86,10 +86,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               fontSize: 18,
             }}
           >
-            S
+            C
           </div>
           <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 19, letterSpacing: "-0.02em" }}>
-            SocialSkill
+            CreaFlow
           </span>
         </div>
 

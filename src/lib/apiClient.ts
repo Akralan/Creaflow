@@ -27,6 +27,50 @@ export interface User {
   email: string;
 }
 
+/** Dépôt public proposé à l'étape « Projets » de l'onboarding dev et dans paramètres > Sujets.
+ *  `alreadyConnected` : déjà source d'un sujet — affiché grisé, non re-sélectionnable. */
+export interface GithubRepoOption {
+  externalId: string;
+  fullName: string;
+  name: string;
+  description: string | null;
+  defaultBranch: string;
+  language: string | null;
+  pushedAt: string;
+  alreadyConnected: boolean;
+}
+
+/** Source connectée alimentant le corpus d'un sujet (un dépôt GitHub à ce stade). */
+export interface MaterialSource {
+  id: string;
+  productId: string;
+  type: "github_repo";
+  /** Nom lisible du fournisseur, fourni par le connecteur — l'UI ne le déduit pas de `type`. */
+  connectorLabel: string;
+  externalId: string;
+  label: string;
+  syncCursor: string | null;
+  lastSyncedAt: string | null;
+  status: "ok" | "error" | "needs_reconnect";
+  lastError: string | null;
+  createdAt: string;
+}
+
+export interface SyncReport {
+  added: number;
+  updated: number;
+  unchanged: number;
+  truncated: boolean;
+}
+
+export interface ConnectRepoResult {
+  productId: string;
+  sourceId: string;
+  label: string;
+  report: SyncReport | null;
+  error: string | null;
+}
+
 export interface ContentCategory {
   id: string;
   userId: string;
@@ -285,6 +329,16 @@ export interface OnboardingMessage {
   content: string;
 }
 
+/** Séries générées à la fin du chat d'onboarding — l'utilisateur coche celles qu'il garde
+ *  (composant SeriesPicker) avant de continuer, le reste est archivé via series-selection. */
+export interface OnboardingSeriesProposal {
+  id: string;
+  label: string;
+  description: string;
+  mode: "feuilleton" | "rendez_vous";
+  categoryLabel: string | null;
+}
+
 /** Fichier déposé dans la conversation de l'assistant, en attente d'être rangé en matière
  *  (docs/SPEC_ASSISTANT_AGENTIQUE.md §5.1). Le contenu ne remonte jamais côté client. */
 export interface AssistantAttachment {
@@ -378,8 +432,23 @@ export const api = {
   login: (email: string, password: string) => post<{ user: User }>("/api/auth/login", { email, password }),
   logout: () => post<{ ok: true }>("/api/auth/logout"),
   me: () => apiFetch<{ user: User | null }>("/api/auth/me"),
+  /** Le bouton GitHub de /login n'est rendu que si les variables d'environnement sont présentes. */
+  getGithubStatus: () => apiFetch<{ configured: boolean }>("/api/auth/github/status"),
 
-  getProfile: () => apiFetch<{ profile: CreatorProfile | null }>("/api/profile"),
+  getGithubRepos: () => apiFetch<{ repos: GithubRepoOption[] }>("/api/github/repos"),
+  connectGithubRepos: (repos: GithubRepoOption[]) =>
+    post<{ results: ConnectRepoResult[] }>("/api/github/repos", { repos }),
+
+  getMaterialSources: (productId: string) =>
+    apiFetch<{ sources: MaterialSource[] }>(`/api/material-sources?productId=${productId}`),
+  syncMaterialSource: (id: string) => post<{ report: SyncReport }>(`/api/material-sources/${id}/sync`),
+  /** Supprime aussi les documents miroir de la source — confirmer côté UI avant d'appeler. */
+  deleteMaterialSource: (id: string) => del<{ ok: true }>(`/api/material-sources/${id}`),
+
+  getProfile: () =>
+    apiFetch<{ profile: CreatorProfile | null; vertical: "creator" | "dev"; githubConnected: boolean }>(
+      "/api/profile"
+    ),
   saveProfile: (data: {
     brandName: string;
     activityType: string;
@@ -580,7 +649,11 @@ export const api = {
 
   getOnboardingChat: () => apiFetch<{ messages: OnboardingMessage[]; complete: boolean }>("/api/onboarding/chat"),
   sendOnboardingMessage: (message: string) =>
-    post<{ reply: string; complete: boolean }>("/api/onboarding/chat", { message }),
+    post<{ reply: string; complete: boolean; series: OnboardingSeriesProposal[] }>("/api/onboarding/chat", {
+      message,
+    }),
+  applyOnboardingSeriesSelection: (keptIds: string[]) =>
+    post<{ series: unknown[] }>("/api/onboarding/series-selection", { keptIds }),
 
   getAssistantChat: () =>
     apiFetch<{ messages: OnboardingMessage[]; proposals: AssistantProposal[]; attachments: AssistantAttachment[] }>(

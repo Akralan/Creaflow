@@ -28,7 +28,21 @@ export async function POST(request: NextRequest) {
     await enforceRateLimit("login-email", email, 5, 15 * 60);
 
     const user = await db.query.users.findFirst({ where: eq(users.email, email) });
-    if (!user || !(await verifyPassword(body.password, user.passwordHash))) {
+    // Message et comportement inchangés pour un email inconnu : la vérification du mot de passe
+    // n'était déjà pas exécutée dans ce cas (court-circuit du `||`), pas de nouvelle différence de
+    // timing exploitable.
+    if (!user) {
+      throw new ApiError(401, "Email ou mot de passe incorrect.");
+    }
+    // passwordHash est nullable depuis l'arrivée de l'identité GitHub. Sans ce garde, on répondrait
+    // "mot de passe incorrect" à quelqu'un qui n'en a simplement jamais eu, ce qui l'enverrait vers
+    // un formulaire d'oubli de mot de passe inutile. Ce message révèle qu'un compte GitHub existe
+    // pour cette adresse : compromis assumé pour ne pas laisser l'utilisateur dans une impasse, et
+    // borné par le rate limit par email juste au-dessus.
+    if (!user.passwordHash) {
+      throw new ApiError(400, "Ce compte se connecte avec GitHub. Utilise le bouton « Continuer avec GitHub ».");
+    }
+    if (!(await verifyPassword(body.password, user.passwordHash))) {
       throw new ApiError(401, "Email ou mot de passe incorrect.");
     }
 

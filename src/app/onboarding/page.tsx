@@ -1,21 +1,21 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import { TextField, TextAreaField, heading2Style } from "@/components/ui/TextField";
-import ProductCatalogue from "@/components/ProductCatalogue";
-import ConnectionRow from "@/components/ConnectionRow";
-import EquipmentPicker from "@/components/EquipmentPicker";
-import StyleAnalysisPanel from "@/components/StyleAnalysisPanel";
-import OnboardingChat from "@/components/OnboardingChat";
-import { api, ApiClientError, type Connection } from "@/lib/apiClient";
+import { api, type Connection } from "@/lib/apiClient";
+import { getVertical } from "@/lib/verticals/registry";
+import type { OnboardingStep, OnboardingStepContext, VerticalId } from "@/lib/verticals/types";
 import { accent, accentAlpha, color, fontHeading } from "@/lib/design/tokens";
-import { MIN_PRODUCTS } from "@/lib/validation";
 
-function StepTab({ n, step, onClick }: { n: number; step: number; onClick: () => void }) {
-  const labels = ["1 · Discussion", "2 · Sujets", "3 · Réseaux"];
+/**
+ * Coquille de l'onboarding : progression, onglets, navigation. Elle ne connaît AUCUNE verticale —
+ * elle rend la liste d'étapes que la verticale de l'utilisateur déclare
+ * (docs/ARCHITECTURE_VERTICALES.md §4, chantier 2).
+ */
+
+function StepTab({ n, step, label, onClick }: { n: number; step: number; label: string; onClick: () => void }) {
   const base: React.CSSProperties = {
     border: "none",
     fontFamily: "inherit",
@@ -33,7 +33,7 @@ function StepTab({ n, step, onClick }: { n: number; step: number; onClick: () =>
         : { ...base, background: color.chipBg, color: color.textFaint };
   return (
     <button onClick={onClick} style={style}>
-      {labels[n - 1]}
+      {`${n} · ${label}`}
     </button>
   );
 }
@@ -44,89 +44,57 @@ function OnboardingContent() {
 
   const [step, setStep] = useState(1);
   const [loaded, setLoaded] = useState(false);
-  const [useFallbackForm, setUseFallbackForm] = useState(false);
-
-  const [brandName, setBrandName] = useState("");
-  const [activityType, setActivityType] = useState("");
-  const [values, setValues] = useState("");
-  const [tone, setTone] = useState("");
-  const [equipment, setEquipment] = useState<string[]>([]);
-  const [weeklyTimeAvailable, setWeeklyTimeAvailable] = useState("");
-
+  const [vertical, setVertical] = useState<VerticalId>("creator");
   const [productCount, setProductCount] = useState(0);
-
   const [connections, setConnections] = useState<Connection[]>([]);
-
   const [stepError, setStepError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+
+  const steps: OnboardingStep[] = useMemo(() => getVertical(vertical).onboarding, [vertical]);
+  const current = steps[step - 1] ?? steps[0];
+  const isLastStep = step >= steps.length;
 
   useEffect(() => {
     (async () => {
-      const [{ profile }, { connections }] = await Promise.all([api.getProfile(), api.getConnections()]);
-      if (profile) {
-        setBrandName(profile.brandName);
-        setActivityType(profile.activityType);
-        setValues(profile.values || "");
-        setTone(profile.tone || "");
-        setEquipment(profile.equipment || []);
-        setWeeklyTimeAvailable(profile.weeklyTimeAvailable || "");
-      }
+      const [{ vertical }, { connections }] = await Promise.all([api.getProfile(), api.getConnections()]);
+      setVertical(vertical);
       setConnections(connections);
+      // Retour d'un OAuth réseau social : on revient sur l'étape des connexions, la dernière quelle
+      // que soit la verticale.
       if (searchParams.get("connected")) {
-        setStep(3);
+        setStep(getVertical(vertical).onboarding.length);
       }
       setLoaded(true);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function goNext() {
+  function advance() {
     setStepError(null);
-    if (step === 1) {
-      // Uniquement atteignable en mode formulaire de repli — la discussion avance via onComplete.
-      if (!brandName.trim() || !activityType.trim()) {
-        setStepError("Le nom de la marque et le type d'activité sont obligatoires.");
-        return;
-      }
-      setSaving(true);
-      try {
-        await api.saveProfile({ brandName, activityType, tone, values, equipment, weeklyTimeAvailable });
-        setStep(2);
-      } catch (err) {
-        setStepError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement du profil.");
-      } finally {
-        setSaving(false);
-      }
+    if (isLastStep) {
+      // Fin de la création de compte : on ouvre Direction, où l'utilisateur retrouve les séries
+      // issues de l'onboarding, plutôt que le calendrier encore vide.
+      router.push("/direction");
       return;
     }
-    if (step === 2) {
-      if (productCount < MIN_PRODUCTS) {
-        setStepError(`Ajoutez au moins ${MIN_PRODUCTS} sujet${MIN_PRODUCTS > 1 ? "s" : ""} avant de continuer.`);
-        return;
-      }
-      setStep(3);
-      return;
-    }
-    router.push("/calendar");
+    setStep((s) => s + 1);
+  }
+
+  const ctx: OnboardingStepContext = {
+    advance,
+    connections,
+    productCount,
+    onProductCountChange: setProductCount,
+  };
+
+  function goNext() {
+    const error = current.validate?.(ctx) ?? null;
+    setStepError(error);
+    if (!error) advance();
   }
 
   function goPrev() {
     setStepError(null);
     setStep((s) => Math.max(1, s - 1));
-  }
-
-  async function handleChatComplete() {
-    // Le profil, les catégories et les objectifs par plateforme sont déjà persistés côté serveur.
-    const { profile } = await api.getProfile();
-    if (profile) {
-      setBrandName(profile.brandName);
-      setActivityType(profile.activityType);
-      setValues(profile.values || "");
-      setTone(profile.tone || "");
-      setEquipment(profile.equipment || []);
-      setWeeklyTimeAvailable(profile.weeklyTimeAvailable || "");
-    }
-    setStep(2);
   }
 
   if (!loaded) return null;
@@ -158,15 +126,12 @@ function OnboardingContent() {
               fontSize: 17,
             }}
           >
-            S
+            C
           </div>
           <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, letterSpacing: "-0.02em" }}>
-            SocialSkill
+            CreaFlow
           </span>
         </div>
-        <Button variant="ghost" onClick={() => router.push("/calendar")}>
-          Passer la configuration →
-        </Button>
       </div>
 
       <div style={{ maxWidth: 720, width: "100%", margin: "0 auto", padding: "40px 32px 64px" }}>
@@ -181,144 +146,24 @@ function OnboardingContent() {
             textTransform: "uppercase",
           }}
         >
-          Configuration · Étape {step} sur 3
+          Configuration · Étape {step} sur {steps.length}
         </div>
         <div style={{ display: "flex", gap: 8, margin: "20px auto 8px", maxWidth: 520 }}>
-          {[1, 2, 3].map((n) => (
+          {steps.map((s, i) => (
             <div
-              key={n}
-              style={{ flex: 1, height: 5, borderRadius: 20, background: n <= step ? accent : color.border }}
+              key={s.id}
+              style={{ flex: 1, height: 5, borderRadius: 20, background: i + 1 <= step ? accent : color.border }}
             />
           ))}
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 36, flexWrap: "wrap" }}>
-          {[1, 2, 3].map((n) => (
-            <StepTab key={n} n={n} step={step} onClick={() => setStep(n)} />
+          {steps.map((s, i) => (
+            <StepTab key={s.id} n={i + 1} step={step} label={s.label} onClick={() => setStep(i + 1)} />
           ))}
         </div>
 
         <Card style={{ borderRadius: 22, padding: 36, boxShadow: "0 24px 48px -34px rgba(40,30,60,0.22)" }}>
-          {step === 1 && !useFallbackForm && (
-            <div>
-              <h2 style={heading2Style}>Discutons de ton activité</h2>
-              <p style={{ margin: "0 0 20px", color: color.textMuted, fontSize: 15 }}>
-                Quelques questions pour comprendre ton activité et te recommander les bons réseaux — pas de formulaire, juste une conversation.
-              </p>
-              <OnboardingChat onComplete={handleChatComplete} />
-              <button
-                onClick={() => setUseFallbackForm(true)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: color.textMuted,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  cursor: "pointer",
-                  marginTop: 14,
-                  padding: 0,
-                  textDecoration: "underline",
-                }}
-              >
-                Remplir un formulaire à la place
-              </button>
-            </div>
-          )}
-
-          {step === 1 && useFallbackForm && (
-            <div>
-              <h2 style={heading2Style}>Votre identité de marque</h2>
-              <p style={{ margin: "0 0 28px", color: color.textMuted, fontSize: 15 }}>
-                Ces informations donnent le ton de tous vos scripts.
-              </p>
-              <div style={{ display: "grid", gap: 20, marginBottom: 28 }}>
-                <TextField
-                  label="Nom de la marque"
-                  required
-                  value={brandName}
-                  onChange={(e) => setBrandName(e.target.value)}
-                  placeholder="Atelier Lumen"
-                />
-                <TextField
-                  label="Type d'activité"
-                  required
-                  value={activityType}
-                  onChange={(e) => setActivityType(e.target.value)}
-                  placeholder="Bijoux artisanaux en argent"
-                />
-                <TextAreaField
-                  label="Valeurs de la marque"
-                  optional
-                  value={values}
-                  onChange={(e) => setValues(e.target.value)}
-                  placeholder="Fait main, matériaux nobles, démarche éthique et locale."
-                />
-                <TextField
-                  label="Ton de communication"
-                  value={tone}
-                  onChange={(e) => setTone(e.target.value)}
-                  placeholder="Esthétique / ASMR, chaleureux et posé"
-                  helper="Décrivez librement — humoristique, éducatif, ASMR, institutionnel…"
-                />
-              </div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 12 }}>
-                Matériel disponible <span style={{ color: color.textFaint, fontWeight: 400 }}>— optionnel</span>
-              </label>
-              <div style={{ marginBottom: 28 }}>
-                <EquipmentPicker value={equipment} onChange={setEquipment} />
-              </div>
-              <TextField
-                label="Temps disponible par semaine"
-                value={weeklyTimeAvailable}
-                onChange={(e) => setWeeklyTimeAvailable(e.target.value)}
-                placeholder="2h le week-end"
-                style={{ maxWidth: 340 }}
-              />
-              <button
-                onClick={() => setUseFallbackForm(false)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: color.textMuted,
-                  fontFamily: "inherit",
-                  fontSize: 13,
-                  cursor: "pointer",
-                  marginTop: 20,
-                  padding: 0,
-                  textDecoration: "underline",
-                }}
-              >
-                ← Revenir à la discussion
-              </button>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div>
-              <h2 style={heading2Style}>Vos sujets</h2>
-              <p style={{ margin: "0 0 24px", color: color.textMuted, fontSize: 15 }}>
-                Ce dont vous allez parler. Ajoutez-en au moins {MIN_PRODUCTS}, jusqu&apos;à 5.
-              </p>
-              <ProductCatalogue onCountChange={setProductCount} />
-            </div>
-          )}
-
-          {step === 3 && (
-            <div>
-              <h2 style={heading2Style}>Connectez vos réseaux</h2>
-              <p style={{ margin: "0 0 24px", color: color.textMuted, fontSize: 15 }}>
-                L&apos;IA analyse votre style déjà en place. Étape facultative — vous pourrez la faire plus tard.
-              </p>
-              <div style={{ display: "grid", gap: 12 }}>
-                {connections.map((c) => (
-                  <ConnectionRow key={c.platform} connection={c} returnTo="/onboarding" />
-                ))}
-              </div>
-
-              <div style={{ marginTop: 20, display: "grid", gap: 16 }}>
-                <StyleAnalysisPanel />
-              </div>
-            </div>
-          )}
+          {current.render(ctx)}
 
           {stepError && <p style={{ color: color.danger, fontSize: 13, marginTop: 20 }}>{stepError}</p>}
 
@@ -335,10 +180,10 @@ function OnboardingContent() {
             <Button variant="secondary" onClick={goPrev} disabled={step === 1}>
               Précédent
             </Button>
-            {(step !== 1 || useFallbackForm) && (
-              <Button onClick={goNext} disabled={saving}>
-                {saving ? "..." : step >= 3 ? "Terminer et ouvrir l'app" : "Continuer"}
-              </Button>
+            {/* Une étape auto-portée a déjà son déclencheur : un « Continuer » à côté ne ferait que
+                proposer de la sauter. */}
+            {!current.selfAdvancing && (
+              <Button onClick={goNext}>{isLastStep ? "Terminer et ouvrir l'app" : "Continuer"}</Button>
             )}
           </div>
         </Card>

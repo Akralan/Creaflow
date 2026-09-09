@@ -50,7 +50,7 @@ Registre de plateformes extensible côté code (`src/lib/social/types.ts`) ; à 
 - **Suivies sans OAuth** (calendrier + objectifs de fréquence, contenu généré manuellement, métriques saisies à la main) : Newsletter, Blog / site perso, Slack, Autre.
 
 ### 2.3 Modules livrés
-- **Module A** — Onboarding & Profiling, sous forme de chat conversationnel avec l'IA.
+- **Module A** — Onboarding & Profiling, sous forme de chat conversationnel avec l'IA ; parcours dédié aux développeurs via connexion GitHub (les dépôts deviennent des sujets et alimentent le corpus).
 - **Module B** — Moteur d'Idées & Scripts, avec système anti-répétition par angles.
 - **Module D** — Calendrier Intelligent, mix éditorial personnalisé par IA.
 - **Module E** — Direction éditoriale & Assistant IA conversationnel *(ajouté en cours de route, non prévu au cadrage initial)*.
@@ -70,6 +70,9 @@ Registre de plateformes extensible côté code (`src/lib/social/types.ts`) ; à 
 ```
 
 ### Module A : Onboarding & Profiling d'Activité
+
+**Deux parcours, selon d'où vient la matière.** Un développeur crée son compte avec GitHub, choisit jusqu'à 5 dépôts publics qui deviennent ses sujets — leurs fichiers `.md` et leur journal de commits entrent directement dans le corpus — puis ne répond qu'à deux ou trois questions (ton, audience, temps disponible) : le reste est déduit de son profil et de ses projets. Tout le monde d'autre suit le parcours conversationnel décrit ci-dessous, inchangé. Détail technique en `docs/TECH.md` §8.
+
 L'utilisateur configure son espace via un **chat conversationnel avec l'IA** (pas un formulaire classique) : l'assistant pose une question à la fois, adaptée à l'activité décrite, et en déduit progressivement :
 - **Identité de marque :** nom, type d'activité, ton, valeurs.
 - **Audience visée :** qui achète ou lit, ce qui l'intéresse, ce qu'il doit retenir de la marque — question posée mais **skippable**, jamais un critère bloquant pour terminer l'onboarding. Éditable ensuite en paramètres, avec un override possible par sujet pour les profils multi-sujets (ex. personal branding : l'audience d'un projet technique diffère de celle d'un produit grand public).
@@ -141,7 +144,7 @@ Non implémentée. Voir §2.4.
 | :--- | :--- | :--- |
 | **Plateformes** | TikTok, Instagram, LinkedIn, YouTube, X (OAuth) + Newsletter, Blog, Slack, Autre (suivies manuellement) | Pinterest, Facebook, connexions OAuth supplémentaires ; débloquer les métriques LinkedIn/X (validation externe, compte de facturation) |
 | **Génération de Contenu** | Scripts vidéo/visuel/texte, storyboards, légendes, hashtags, angles anti-répétition, séries récurrentes | Génération de visualisations d'images IA, voix-off générées par IA |
-| **Corpus & Éditeur** | Matière par sujet (collage/fichier/interview-chat), structuration en unités typées + rotation LRU, import de scripts écrits ailleurs, éditeur de blocs (édition directe, sélection→instruction, régénération par bloc), génération de série depuis la matière, concept d'intention gelé par script, "autre idée, même brief" (régénération complète dirigée) | **Sources de matière connectées** pour la cible prioritaire (dossier de notes synchronisé, Obsidian, dépôt git) afin que le corpus se mette à jour sans collage manuel ; passe d'apprentissage `style_profile` à partir de l'écart premier jet/version finale (gisement déjà stocké) ; proposition multi-voix au premier jet ; angles enrichis (squelette de hook + condition de réussite par angle, `docs/SPEC_PROMPT_GENERATION_TECH.md` §7) |
+| **Corpus & Éditeur** | Matière par sujet (collage/fichier/interview-chat), **dépôt GitHub connecté** (les `.md` et le journal de commits d'un dépôt public deviennent de la matière, resynchronisable), structuration en unités typées + rotation LRU, import de scripts écrits ailleurs, éditeur de blocs (édition directe, sélection→instruction, régénération par bloc), génération de série depuis la matière, concept d'intention gelé par script, "autre idée, même brief" (régénération complète dirigée) | Étendre les **sources de matière connectées** au-delà de git (dossier de notes synchronisé, Obsidian) ; dépôts privés ; passe d'apprentissage `style_profile` à partir de l'écart premier jet/version finale (gisement déjà stocké) ; proposition multi-voix au premier jet ; angles enrichis (squelette de hook + condition de réussite par angle, `docs/SPEC_PROMPT_GENERATION_TECH.md` §7) |
 | **Diffusion / Planification** | Calendrier visuel, mix rôles/séries personnalisé par IA, statuts manuels, aiguillage matière×rôle (réoriente les rôles gourmands en matière un jour sec) | Rappels/notifications, auto-publication directe via API officielles |
 | **Analytics** | Automatique (TikTok, YouTube, Instagram Creator) + saisie manuelle en complément (LinkedIn/X en attente de déblocage, Newsletter/Blog/Slack/Autre) ; historique daté par post | Dashboard Analytics agrégé, au-delà de l'écran "Performance" post par post |
 | **Direction éditoriale** | Série = seul objet manipulé, avec un rôle unique ; rôles/angles/séries personnalisés par IA, assistant conversationnel à propositions, rééquilibrage des rôles proposé automatiquement à partir des métriques réelles | Étendre le rééquilibrage aux angles et aux séries |
@@ -162,7 +165,7 @@ Le détail technique (stack, modèle de données, endpoints, architecture des pr
 ## 6. Prochaines étapes
 
 1. Valider la cible prioritaire (§2.1) avec quelques utilisateurs externes qui ont déjà de la matière écrite : mesurer s'ils remplissent le corpus sans accompagnement et à quel point le script généré est publié tel quel ou réécrit.
-2. Sources de matière connectées (dossier de notes, Obsidian, dépôt git) pour supprimer le collage manuel chez la cible prioritaire.
+2. Étendre les sources de matière connectées au-delà du dépôt git déjà livré (dossier de notes, Obsidian, dépôts privés) pour supprimer le collage manuel chez le reste de la cible prioritaire.
 3. Notifications/rappels de tournage et de publication (Module D).
 4. Dashboard analytics agrégé à partir des métriques désormais collectées automatiquement (TikTok/YouTube/Instagram) et manuellement (autres plateformes).
 5. Débloquer la récupération automatique des métriques LinkedIn (validation Community Management API) et X (ouverture d'un compte de facturation).

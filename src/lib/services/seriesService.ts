@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { contentSeries, contentSeriesCategories, contentSeriesPlatforms, creatorProfiles, products } from "@/db/schema";
 import { suggestContentSeries } from "@/lib/llm/seriesLabels";
@@ -127,6 +127,25 @@ export async function archiveSeriesForUser(userId: string, seriesId: string) {
     throw new ApiError(404, "Série introuvable.");
   }
   return archived;
+}
+
+/** Sélection de fin d'onboarding : archive toutes les séries actives SAUF celles listées.
+ *  Refuse un id inconnu ou déjà archivé plutôt que de l'ignorer — un décalage entre ce que
+ *  l'utilisateur a vu et ce que le serveur connaît doit se voir, pas s'absorber. */
+export async function keepOnlySeries(userId: string, keptIds: string[]) {
+  const active = await listActiveSeriesForUser(userId);
+  const activeIds = new Set(active.map((s) => s.id));
+  if (!keptIds.every((id) => activeIds.has(id))) {
+    throw new ApiError(404, "Série introuvable.");
+  }
+  const toArchive = active.filter((s) => !keptIds.includes(s.id)).map((s) => s.id);
+  if (toArchive.length > 0) {
+    await db
+      .update(contentSeries)
+      .set({ archived: true })
+      .where(and(eq(contentSeries.userId, userId), inArray(contentSeries.id, toArchive)));
+  }
+  return listActiveSeriesForUser(userId);
 }
 
 /** Génère un nouveau jeu de séries via l'IA à partir des catégories actives de l'utilisateur.
