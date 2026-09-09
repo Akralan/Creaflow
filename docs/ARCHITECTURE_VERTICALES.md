@@ -146,7 +146,8 @@ src/lib/verticals/
   types.ts       — VerticalId, OnboardingStep, OnboardingStepContext
   shared.tsx     — les étapes fournies par le cœur (réseaux sociaux)
   creator.tsx    — parcours créateur
-  dev.tsx        — parcours développeur
+  sourceFirst.tsx — fabrique du parcours « source d'abord » (ex-dev.tsx), partagée par les
+                    verticales nées d'un fournisseur d'identité tiers
   registry.ts    — VerticalId → VerticalDefinition
 ```
 
@@ -187,8 +188,8 @@ Une verticale a deux registres, et il faut savoir lequel on touche :
 maintenant son tour de chat et le contexte qu'elle y injecte ; le contrat de sortie étant identique,
 tout ce qui suit dans la route (fusion du profil, finalisation, persistance) ne les distingue pas.
 
-`buildDevOnboardingContext`, qui lit la base, vit pour la même raison dans
-`src/lib/services/devOnboardingContext.ts` et non dans `verticals/dev.tsx`.
+`buildConnectedOnboardingContext`, qui lit la base, vit pour la même raison dans
+`src/lib/services/connectedOnboardingContext.ts` et non dans `verticals/sourceFirst.tsx`.
 
 Ajouter une verticale : écrire son module d'étapes, l'enregistrer. La page ne bouge pas.
 
@@ -250,9 +251,12 @@ posée à deux endroits en plus d'ici :
   `config`, c'est-à-dire sous les yeux de qui s'apprêterait à enfreindre la règle.
 
 Ce que le test NE peut pas dire : si une nouvelle table est « spécifique à une verticale ». La
-frontière est un jugement — `github_accounts` est légitime, parce que c'est une table d'identité
+frontière est un jugement — `oauth_accounts` est légitime, parce que c'est une table d'identité
 tierce (§2, point 3), pas une table de verticale. Le test attrape la dérive mécanique ; la revue
 garde le jugement.
+
+Et c'est bien une SEULE table pour tous les fournisseurs, pas une par verticale : c'est ce qui a
+permis d'ajouter Notion et Linear sans migration structurelle au-delà du renommage.
 
 ## 5. Garde-fou
 

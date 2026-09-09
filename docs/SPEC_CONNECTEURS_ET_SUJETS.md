@@ -142,8 +142,8 @@ qui n'appartient à rien ne saurait de toute façon pas dans quel corpus aller.
 
 `users.email` est `NOT NULL UNIQUE`, et le rattachement à un compte existant ne se fait **jamais**
 sur un email non vérifié — sinon n'importe qui revendiquerait l'adresse d'un compte existant
-(`src/lib/services/githubAuthService.ts`, `decideAccountResolution`). Cette règle vaut telle quelle
-pour les quatre nouveaux fournisseurs.
+(`decideAccountResolution`, aujourd'hui dans `src/lib/services/oauthAccountService.ts`). Cette règle
+vaut telle quelle pour les quatre nouveaux fournisseurs.
 
 Vérifié le 2026-09-09, aucun des quatre ne bloque sur ce point (détail et sources en §10) :
 
