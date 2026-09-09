@@ -1,8 +1,8 @@
 # Connecteurs Etsy, Shopify, Notion, Linear — et ce qu'est un « sujet » chez chacun
 
-Statut : **partiellement tranché** (2026-09-09). Rien n'est implémenté. Le découpage en sujets et
-l'ordre de livraison sont arbitrés ; il reste le §7.2. Les API des quatre plateformes ont été
-vérifiées (§10).
+Statut : **Notion et Linear implémentés** (2026-09-09), non testés avec de vraies clés. Tout est
+arbitré. Etsy et Shopify restent bloqués derrière une validation manuelle de leur plateforme
+(§10) — démarches dans `docs/DEMANDES_ETSY_SHOPIFY.md`.
 
 | Plateforme | Un sujet = | La matière = |
 |---|---|---|
@@ -323,10 +323,28 @@ C'est ce dernier point qui bloque : un SaaS qui sert des vendeurs quelconques a 
 |---|---|---|
 | 1 | §6 — découpage en sujets d'Etsy et Shopify | **tranché** : la section, la collection |
 | 2 | §8 — ordre de livraison | **tranché** : Notion et Linear d'abord, contrainte externe |
-| 3 | §7.2 — nouvelles valeurs de verticale, ou tout le monde sur `dev` | **ouvert** |
+| 3 | §7.2 — nouvelles valeurs de verticale | **tranché** : `artisan` et `entrepreneur` ajoutées, même parcours |
 
-Le point 3 ne bloque ni le plan Notion/Linear ni les démarches Etsy/Shopify : il se tranche au
-moment d'écrire la migration.
+### Ce qui est fait
+
+Notion et Linear sont implémentés (plan : `docs/superpowers/plans/2026-09-09-connecteurs-notion-linear.md`).
+Migration `0028` écrite à la main, appliquée et vérifiée en base de dev — la ligne GitHub existante
+a survécu avec `provider = 'github'`, ce qui prouve un renommage et non un `DROP` suivi d'un
+`CREATE`.
+
+Ce que le cadrage n'avait pas vu, et qui vaut d'être noté pour Etsy et Shopify :
+
+- **le contrat de connecteur a dû s'élargir** de deux champs optionnels, `candidateHint` et
+  `picker` — les textes qu'un écran de sélection générique ne peut pas inventer. Portés par le
+  connecteur pour la même raison que `emptyMessage` : ils parlent de SA source ;
+- **`ConnectorCandidate<Meta>` exige un alias de type, pas une `interface`.** Seul un alias porte la
+  signature d'index implicite qui le rend assignable au `Record<string, unknown>` du registre. Le
+  piège se voit à la compilation, pas à la relecture ;
+- **la verticale ne suffit pas à choisir le sélecteur**, puisque `dev` couvre GitHub et Linear.
+  C'est `connectedProviders` qui décide. Le §7.2 le pressentait, l'implémentation l'a confirmé.
+
+Reste à vérifier manuellement, avec de vraies clés : le trajet OAuth complet des deux fournisseurs,
+et le rafraîchissement du token Linear après 24 h (liste complète en fin de plan).
 
 ## 12. Documents liés
 
