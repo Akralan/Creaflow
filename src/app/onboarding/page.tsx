@@ -55,13 +55,13 @@ function OnboardingContent() {
 
   useEffect(() => {
     (async () => {
-      const [{ onboardingTrack }, { connections }] = await Promise.all([api.getProfile(), api.getConnections()]);
-      setVertical(onboardingTrack);
+      const [{ vertical }, { connections }] = await Promise.all([api.getProfile(), api.getConnections()]);
+      setVertical(vertical);
       setConnections(connections);
       // Retour d'un OAuth réseau social : on revient sur l'étape des connexions, la dernière quelle
       // que soit la verticale.
       if (searchParams.get("connected")) {
-        setStep(getVertical(onboardingTrack).onboarding.length);
+        setStep(getVertical(vertical).onboarding.length);
       }
       setLoaded(true);
     })();

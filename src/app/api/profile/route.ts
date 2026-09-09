@@ -26,7 +26,7 @@ export async function GET() {
     // que /onboarding et /login appellent déjà getProfile au montage.
     const user = await db.query.users.findFirst({
       where: eq(users.id, userId),
-      columns: { onboardingTrack: true },
+      columns: { vertical: true },
     });
     // Exposé ici pour la même raison que le track : les écrans qui en ont besoin (paramètres >
     // Sujets, pour proposer le sélecteur de dépôts) appellent déjà getProfile.
@@ -36,7 +36,7 @@ export async function GET() {
     });
     return NextResponse.json({
       profile: profile ?? null,
-      onboardingTrack: user?.onboardingTrack ?? "creator",
+      vertical: user?.vertical ?? "creator",
       githubConnected: Boolean(github),
     });
   } catch (error) {

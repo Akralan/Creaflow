@@ -75,7 +75,7 @@ export async function resolveGithubAccount(
   }
 
   if (decision.action === "link") {
-    // onboardingTrack délibérément NON modifié : un compte créateur qui se connecte via GitHub
+    // vertical délibérément NON modifiée : un compte créateur qui se connecte via GitHub
     // reste en parcours créateur (spec §10).
     await db.insert(githubAccounts).values({ userId: decision.userId, githubUserId: viewer.githubUserId, ...profile });
     return { userId: decision.userId, isNew: false };
@@ -83,7 +83,7 @@ export async function resolveGithubAccount(
 
   const [user] = await db
     .insert(users)
-    .values({ email: email!, passwordHash: null, onboardingTrack: "dev" })
+    .values({ email: email!, passwordHash: null, vertical: "dev" })
     .returning({ id: users.id });
   await db.insert(githubAccounts).values({ userId: user.id, githubUserId: viewer.githubUserId, ...profile });
   return { userId: user.id, isNew: true };

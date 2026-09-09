@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
 import type { Connection } from "@/lib/apiClient";
 
-/** Alias de `users.onboardingTrack` en attendant le renommage de la colonne
- *  (docs/ARCHITECTURE_VERTICALES.md §4, chantier 3). */
+/** Miroir de `users.vertical` (docs/ARCHITECTURE_VERTICALES.md). */
 export type VerticalId = "creator" | "dev";
 
 /**

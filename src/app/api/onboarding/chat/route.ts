@@ -49,11 +49,11 @@ export async function POST(request: NextRequest) {
     // tout ce qui suit (fusion, finalisation) ne distingue pas les deux.
     const user = await db.query.users.findFirst({
       where: eq(users.id, userId),
-      columns: { onboardingTrack: true },
+      columns: { vertical: true },
     });
 
     const result =
-      user?.onboardingTrack === "dev"
+      user?.vertical === "dev"
         ? await runDevOnboardingChatTurn({
             history: messagesWithUser.slice(-MAX_HISTORY_MESSAGES),
             dev: await buildDevOnboardingContext(userId),

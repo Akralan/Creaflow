@@ -444,7 +444,7 @@ export const api = {
   deleteMaterialSource: (id: string) => del<{ ok: true }>(`/api/material-sources/${id}`),
 
   getProfile: () =>
-    apiFetch<{ profile: CreatorProfile | null; onboardingTrack: "creator" | "dev"; githubConnected: boolean }>(
+    apiFetch<{ profile: CreatorProfile | null; vertical: "creator" | "dev"; githubConnected: boolean }>(
       "/api/profile"
     ),
   saveProfile: (data: {

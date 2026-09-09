@@ -65,9 +65,11 @@ export const scriptMicroEditKindEnum = pgEnum("script_micro_edit_kind", ["select
 // "connector" = document miroir d'une source externe branchée (dépôt GitHub aujourd'hui), par
 // opposition aux trois portes manuelles. Voir docs/superpowers/specs/2026-08-31-onboarding-dev-github-design.md §3.3.
 export const sourceMaterialKindEnum = pgEnum("source_material_kind", ["paste", "file", "interview", "connector"]);
-// Quel onboarding s'affiche (spec §2) : "creator" = chat généraliste puis saisie des sujets ;
-// "dev" = identité GitHub, choix de dépôts, chat court. Posé au signup, jamais recalculé.
-export const onboardingTrackEnum = pgEnum("onboarding_track", ["creator", "dev"]);
+// Verticale métier de l'utilisateur (docs/ARCHITECTURE_VERTICALES.md) : elle choisit le parcours
+// d'onboarding, le prompt du chat, et demain le connecteur de matière proposé. Posée au signup,
+// jamais recalculée. "creator" = chat généraliste puis saisie des sujets ; "dev" = identité GitHub,
+// choix de dépôts, chat court.
+export const verticalEnum = pgEnum("vertical", ["creator", "dev"]);
 export const materialSourceTypeEnum = pgEnum("material_source_type", ["github_repo"]);
 export const materialSourceStatusEnum = pgEnum("material_source_status", ["ok", "error", "needs_reconnect"]);
 // Mode d'une série (docs/SPEC_REDACTEUR_EN_CHEF.md §1/§2) : "feuilleton" = épisodes ordonnés, arc +
@@ -97,7 +99,7 @@ export const users = pgTable("users", {
   // passe. POST /api/auth/login doit donc refuser explicitement un compte sans hash plutôt que de
   // comparer contre null, ce qui afficherait "mot de passe incorrect" à quelqu'un qui n'en a jamais eu.
   passwordHash: text("password_hash"),
-  onboardingTrack: onboardingTrackEnum("onboarding_track").notNull().default("creator"),
+  vertical: verticalEnum("vertical").notNull().default("creator"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

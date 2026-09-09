@@ -1,6 +1,7 @@
 # Architecture — un cœur, plusieurs verticales
 
-Statut : décision prise le 2026-09-09. Chantiers 1 et 2 implémentés, 3 et 4 à faire.
+Statut : décision prise le 2026-09-09. Chantiers 1, 2 et 3 implémentés ; le 4 est une règle
+permanente, pas un chantier.
 
 ## 1. Le problème
 
@@ -68,7 +69,7 @@ faisable plus tard. L'inverse n'est pas vrai.
 |---|---|---|
 | 1 | Registre de connecteurs de matière | ✅ fait |
 | 2 | Onboarding déclaratif par verticale | ✅ fait |
-| 3 | `users.onboardingTrack` → `users.vertical` | à faire |
+| 3 | `users.onboardingTrack` → `users.vertical` | ✅ fait |
 | 4 | Règle : une verticale n'ajoute pas de table | ⚠️ règle à tenir |
 
 ### Chantier 1 — Registre de connecteurs
@@ -158,9 +159,32 @@ Ajouter une verticale : écrire son module d'étapes, l'enregistrer. La page ne 
 
 ### Chantier 3 — `onboardingTrack` → `vertical`
 
-Le nom ment déjà : la colonne pilote autre chose que l'onboarding (le prompt de chat, et demain le
-choix du connecteur). Renommage `users.onboarding_track` → `users.vertical`, avec migration.
-Reporté pour garder les chantiers 1 et 2 relisibles isolément.
+Le nom mentait : la colonne pilote autre chose que l'onboarding (le prompt de chat, et demain le
+choix du connecteur). Renommés ensemble, le type enum PostgreSQL et la colonne :
+`onboarding_track` → `vertical`.
+
+Deux choses à savoir pour le prochain renommage dans ce dépôt, parce qu'aucune migration n'en
+contenait avant celle-ci :
+
+- **`drizzle-kit generate` exige un TTY** pour demander « renommage, ou drop puis create ? ». Il
+  échoue franchement dans un shell non interactif — donc pas de migration générée en CI ni depuis
+  un agent. Il faut la lancer à la main, ou écrire la migration soi-même.
+- La migration `0027` a donc été **écrite à la main** (SQL, snapshot et entrée de journal). La
+  vérification qui compte : relancer `npm run db:generate` ensuite doit répondre « No schema
+  changes, nothing to migrate ». Si le snapshot écrit à la main divergeait du schéma, c'est la
+  migration SUIVANTE qui partirait en vrille, pas celle-ci.
+
+Le choix d'une migration de renommage plutôt que de corriger `0026` — qui crée la colonne, et que
+`CLAUDE.md` annonçait comme jamais appliquée — s'est révélé être le bon : **`0026` était en fait
+déjà appliquée** sur la base de dev. Réécrire une migration commitée n'est sûr que si elle n'a été
+appliquée nulle part ; ici, la base aurait divergé en silence. Leçon générale : un `ALTER ...
+RENAME` est correct que la migration précédente ait été appliquée ou non, l'édition en place ne
+l'est que dans un cas — et l'annotation « pas encore appliquée » d'un document n'est pas une
+vérification.
+
+Vérifié en base après `npm run db:migrate` : colonne `vertical` de type `vertical`, ancien nom et
+ancien type disparus, et l'utilisateur `dev` existant toujours `dev` — c'est ce dernier point qui
+prouve un vrai renommage plutôt qu'un `DROP` suivi d'un `ADD`, qui l'aurait remis au défaut.
 
 ### Chantier 4 — Une verticale n'ajoute pas de table
 
