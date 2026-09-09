@@ -69,6 +69,11 @@ export const sourceMaterialKindEnum = pgEnum("source_material_kind", ["paste", "
 // d'onboarding, le prompt du chat, et demain le connecteur de matière proposé. Posée au signup,
 // jamais recalculée. "creator" = chat généraliste puis saisie des sujets ; "dev" = identité GitHub,
 // choix de dépôts, chat court.
+//
+// N'apparaît QUE sur users. Une verticale ne partitionne pas le modèle de données : une deuxième
+// colonne `vertical` ailleurs voudrait dire des lignes, des index puis des tables qui divergent par
+// verticale — le point de non-retour du chantier 4 (docs/ARCHITECTURE_VERTICALES.md). Garde-fou
+// exécutable : src/db/schemaInvariants.test.ts.
 export const verticalEnum = pgEnum("vertical", ["creator", "dev"]);
 export const materialSourceTypeEnum = pgEnum("material_source_type", ["github_repo"]);
 export const materialSourceStatusEnum = pgEnum("material_source_status", ["ok", "error", "needs_reconnect"]);
@@ -296,7 +301,11 @@ export const materialSources = pgTable(
     type: materialSourceTypeEnum("type").notNull(),
     externalId: text("external_id").notNull(), // id numérique du dépôt GitHub
     label: text("label").notNull(), // "owner/repo", affiché tel quel
-    config: jsonb("config").notNull().default({}), // { defaultBranch: string }
+    // POINT D'EXTENSION des connecteurs : tout ce qu'un fournisseur a de spécifique passe par ce
+    // jsonb ({ defaultBranch } pour GitHub), jamais par des colonnes dédiées ni par une table à
+    // lui. C'est ce qui garde un seul jeu de migrations quand les verticales se multiplient
+    // (docs/ARCHITECTURE_VERTICALES.md, chantier 4).
+    config: jsonb("config").notNull().default({}),
     syncCursor: text("sync_cursor"), // SHA du commit le plus récent vu
     lastSyncedAt: timestamp("last_synced_at"),
     status: materialSourceStatusEnum("status").notNull().default("ok"),

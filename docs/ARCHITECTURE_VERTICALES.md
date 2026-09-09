@@ -1,7 +1,7 @@
 # Architecture — un cœur, plusieurs verticales
 
-Statut : décision prise le 2026-09-09. Chantiers 1, 2 et 3 implémentés ; le 4 est une règle
-permanente, pas un chantier.
+Statut : décision prise le 2026-09-09. Les quatre chantiers sont faits ; le 4 reste une règle
+permanente, mais elle est désormais gardée par un test.
 
 ## 1. Le problème
 
@@ -70,7 +70,7 @@ faisable plus tard. L'inverse n'est pas vrai.
 | 1 | Registre de connecteurs de matière | ✅ fait |
 | 2 | Onboarding déclaratif par verticale | ✅ fait |
 | 3 | `users.onboardingTrack` → `users.vertical` | ✅ fait |
-| 4 | Règle : une verticale n'ajoute pas de table | ⚠️ règle à tenir |
+| 4 | Règle : une verticale n'ajoute pas de table | ✅ gardée par un test |
 
 ### Chantier 1 — Registre de connecteurs
 
@@ -208,6 +208,21 @@ prouve un vrai renommage plutôt qu'un `DROP` suivi d'un `ADD`, qui l'aurait rem
 **Un seul schéma Drizzle, toujours.** Les spécificités d'une verticale passent par
 `materialSources.config` (jsonb). Deux jeux de migrations divergents sont le vrai point de
 non-retour : c'est ce qui transformerait l'option A en option C sans qu'on l'ait décidé.
+
+Une règle qui ne vit que dans un document se fait enfreindre, et celle-ci ne se voit pas dans une
+revue ligne à ligne — ajouter une colonne `vertical` à une table paraît anodin. Elle est donc
+posée à deux endroits en plus d'ici :
+
+- **`src/db/schemaInvariants.test.ts`**, qui introspecte le schéma Drizzle et vérifie que le type
+  enum `vertical` n'est porté que par `users.vertical`, et que `materialSources.config` reste un
+  `jsonb` ;
+- **`src/db/schema.ts`**, en commentaire au point de tentation : sur `verticalEnum` et sur
+  `config`, c'est-à-dire sous les yeux de qui s'apprêterait à enfreindre la règle.
+
+Ce que le test NE peut pas dire : si une nouvelle table est « spécifique à une verticale ». La
+frontière est un jugement — `github_accounts` est légitime, parce que c'est une table d'identité
+tierce (§2, point 3), pas une table de verticale. Le test attrape la dérive mécanique ; la revue
+garde le jugement.
 
 ## 5. Garde-fou
 
