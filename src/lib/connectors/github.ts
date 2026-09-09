@@ -10,14 +10,8 @@ import {
 } from "@/lib/github/client";
 import { buildCommitJournal, COMMITS_EXTERNAL_REF, selectMarkdownFiles } from "@/lib/github/ingest";
 import { ApiError } from "@/lib/api/errors";
+import { toCandidate, type GithubCandidateMeta } from "./githubMapping";
 import type { FetchedDocuments, IncomingDoc, MaterialSourceRow, SourceConnector } from "./types";
-
-/** `type` et non `interface` : une interface n'est pas assignable à `Record<string, unknown>`, ce
- *  que le registre exige pour stocker des connecteurs aux métadonnées hétérogènes. */
-export type GithubCandidateMeta = {
-  language: string | null;
-  pushedAt: string;
-};
 
 async function getAccessToken(userId: string): Promise<string> {
   const account = await db.query.githubAccounts.findFirst({ where: eq(githubAccounts.userId, userId) });
@@ -57,6 +51,7 @@ async function collectDocs(token: string, fullName: string, branch: string): Pro
 
 export const githubConnector: SourceConnector<GithubCandidateMeta> = {
   type: "github_repo",
+  displayName: "GitHub",
 
   emptyMessage: "Ce dépôt ne contient ni fichier .md ni commit exploitable.",
   truncatedMessage: "Dépôt volumineux : l'arbre GitHub a été tronqué, ingestion partielle.",
@@ -70,14 +65,7 @@ export const githubConnector: SourceConnector<GithubCandidateMeta> = {
 
   async listCandidates(userId) {
     const token = await getAccessToken(userId);
-    return (await listPublicRepos(token)).map((repo) => ({
-      externalId: repo.externalId,
-      label: repo.fullName,
-      subjectName: repo.name,
-      subjectDescription: repo.description,
-      config: { defaultBranch: repo.defaultBranch },
-      meta: { language: repo.language, pushedAt: repo.pushedAt },
-    }));
+    return (await listPublicRepos(token)).map(toCandidate);
   },
 
   async fetchDocuments(userId, source: MaterialSourceRow) {

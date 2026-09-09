@@ -50,6 +50,10 @@ export interface FetchedDocuments {
 export interface SourceConnector<Meta = Record<string, unknown>> {
   type: MaterialSourceType;
 
+  /** Nom du fournisseur tel qu'on le montre à l'utilisateur ("GitHub", "Notion"). Remonté par
+   *  l'API avec chaque source, pour que l'UI générique n'ait pas à coder le nom en dur. */
+  displayName: string;
+
   /** Lève si le compte tiers n'est pas connecté. Permet d'échouer AVANT de créer des sujets :
    *  sans ça, l'erreur d'accès n'apparaîtrait qu'au premier fetch, une fois les sujets déjà écrits. */
   assertReady(userId: string): Promise<void>;

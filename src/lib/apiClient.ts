@@ -45,6 +45,8 @@ export interface MaterialSource {
   id: string;
   productId: string;
   type: "github_repo";
+  /** Nom lisible du fournisseur, fourni par le connecteur — l'UI ne le déduit pas de `type`. */
+  connectorLabel: string;
   externalId: string;
   label: string;
   syncCursor: string | null;

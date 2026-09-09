@@ -222,10 +222,13 @@ export async function listConnectedExternalIds(userId: string, type: MaterialSou
   return new Set(rows.map((row) => row.externalId));
 }
 
+/** Les sources sont renvoyées enrichies du nom lisible de leur fournisseur : sans ça, l'UI
+ *  générique qui les affiche devrait coder "GitHub" en dur et redeviendrait spécifique. */
 export async function listSourcesForProduct(userId: string, productId: string) {
-  return db.query.materialSources.findMany({
+  const rows = await db.query.materialSources.findMany({
     where: and(eq(materialSources.userId, userId), eq(materialSources.productId, productId)),
   });
+  return rows.map((row) => ({ ...row, connectorLabel: getConnector(row.type).displayName }));
 }
 
 /** Supprime la source ET ses documents miroir (cascade sur sourceMaterials.sourceId). */

@@ -21,5 +21,8 @@ describe("getConnector", () => {
     // savoir pourquoi.
     expect(connector.emptyMessage).toBeTruthy();
     expect(connector.truncatedMessage).toBeTruthy();
+    // Remonté par l'API avec chaque source : c'est ce qui permet à ConnectedSources de dire
+    // « reconnecte GitHub » sans coder le nom en dur.
+    expect(connector.displayName).toBeTruthy();
   });
 });

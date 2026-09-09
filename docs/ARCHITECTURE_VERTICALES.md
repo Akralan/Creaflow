@@ -79,9 +79,11 @@ faisable plus tard. L'inverse n'est pas vrai.
 
 ```
 src/lib/connectors/
-  types.ts       — le contrat SourceConnector
-  github.ts      — l'implémentation GitHub
-  registry.ts    — type de source → connecteur
+  types.ts          — le contrat SourceConnector
+  errors.ts         — ConnectorRateLimitError, dont héritent les erreurs de quota
+  github.ts         — l'implémentation GitHub
+  githubMapping.ts  — traductions dépôt ↔ candidat, pures et testées à part
+  registry.ts       — type de source → connecteur
 src/lib/services/sourceConnectorService.ts   (ex-githubSourceService)
 ```
 
@@ -90,6 +92,8 @@ Le contrat :
 ```ts
 interface SourceConnector<Meta> {
   type: MaterialSourceType;
+  displayName: string;                                          // "GitHub" — remonté par l'API
+  assertReady(userId): Promise<void>;                           // échoue AVANT de créer des sujets
   listCandidates(userId): Promise<ConnectorCandidate<Meta>[]>;  // ce qu'on peut brancher
   fetchDocuments(userId, source): Promise<FetchedDocuments>;    // ce que la source produit
   isAuthError(error): boolean;                                  // → status "needs_reconnect"
@@ -105,6 +109,10 @@ jour du statut et le `markStaleForMaterialIngestion` restent dans le service —
 Ce qui reste GitHub, et c'est normal : `src/lib/github/` (client HTTP, sélection des `.md`, journal
 de commits), la route `/api/github/repos`, et `RepoPicker`. Un connecteur a le droit d'avoir sa
 route et son UI de sélection ; il ne doit pas avoir sa logique de synchronisation.
+
+`displayName` existe pour une raison précise : `ConnectedSources` affichait « accès perdu,
+reconnecte GitHub » en dur dans un composant censé être générique. L'API renvoie désormais
+`connectorLabel` avec chaque source, et l'UI n'a plus à déduire le fournisseur de `type`.
 
 Ajouter Notion : écrire `src/lib/connectors/notion.ts`, l'enregistrer dans le registre, ajouter la
 valeur à `materialSourceTypeEnum`. Aucun fichier du cœur à modifier.
@@ -150,10 +158,19 @@ créateur (chat + formulaire de repli) est devenue
 enregistrement. Seule conséquence visible : en mode formulaire de repli, le bouton « Continuer »
 est dans la carte plutôt que dans le pied de page.
 
-Contrainte à respecter : `src/lib/verticals/` est du code **client** (il rend du JSX). Il ne doit
-jamais importer de module serveur — c'est pourquoi `buildDevOnboardingContext`, qui lit la base,
-vit dans `src/lib/services/devOnboardingContext.ts` et non dans `verticals/dev.tsx`. La verticale
-dev est donc à cheval sur deux dossiers ; c'est assumé tant qu'il n'y en a qu'une.
+Une verticale a deux registres, et il faut savoir lequel on touche :
+
+- **`registry.ts` est client** — il rend du JSX. Il ne doit jamais importer de module serveur.
+- **`server.ts` est serveur** — il lit la base. Il ne doit jamais être importé d'un composant, et
+  ne doit pas importer `registry.ts`, ce qui tirerait l'arbre React dans le bundle serveur.
+
+`server.ts` porte ce qui était le dernier branchement en dur sur la verticale : la route
+`/api/onboarding/chat` choisissait le prompt avec un `vertical === "dev"`. Chaque verticale déclare
+maintenant son tour de chat et le contexte qu'elle y injecte ; le contrat de sortie étant identique,
+tout ce qui suit dans la route (fusion du profil, finalisation, persistance) ne les distingue pas.
+
+`buildDevOnboardingContext`, qui lit la base, vit pour la même raison dans
+`src/lib/services/devOnboardingContext.ts` et non dans `verticals/dev.tsx`.
 
 Ajouter une verticale : écrire son module d'étapes, l'enregistrer. La page ne bouge pas.
 

@@ -6,9 +6,10 @@ import { api, ApiClientError, type MaterialSource, type SyncReport } from "@/lib
 import { color } from "@/lib/design/tokens";
 
 /**
- * Sources connectées d'un sujet (dépôts GitHub à ce stade) : état de la dernière synchro, bouton de
- * resynchronisation et débranchement. Se rend nul quand le sujet n'a aucune source, donc l'appelant
- * n'a aucune condition à poser.
+ * Sources connectées d'un sujet, quel que soit le fournisseur : état de la dernière synchro, bouton
+ * de resynchronisation et débranchement. Se rend nul quand le sujet n'a aucune source, donc
+ * l'appelant n'a aucune condition à poser. Le nom du fournisseur vient de `connectorLabel`, jamais
+ * d'une chaîne en dur ici.
  */
 export default function ConnectedSources({ productId }: { productId: string }) {
   const [sources, setSources] = useState<MaterialSource[]>([]);
@@ -44,7 +45,11 @@ export default function ConnectedSources({ productId }: { productId: string }) {
 
   async function unlink(source: MaterialSource) {
     // Confirmation explicite : débrancher supprime les documents miroir de cette source.
-    if (!window.confirm(`Débrancher ${source.label} supprimera les documents récupérés depuis ce dépôt. Continuer ?`)) {
+    if (
+      !window.confirm(
+        `Débrancher ${source.label} supprimera les documents récupérés depuis cette source. Continuer ?`
+      )
+    ) {
       return;
     }
     setError(null);
@@ -84,7 +89,7 @@ export default function ConnectedSources({ productId }: { productId: string }) {
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{source.label}</div>
                 <div style={{ fontSize: 12, color: color.textFaint, marginTop: 3 }}>
                   {source.lastSyncedAt ? `Synchronisé le ${source.lastSyncedAt.slice(0, 10)}` : "Jamais synchronisé"}
-                  {source.status === "needs_reconnect" && " · accès perdu, reconnecte GitHub"}
+                  {source.status === "needs_reconnect" && ` · accès perdu, reconnecte ${source.connectorLabel}`}
                 </div>
                 {/* Dire ce qui a bougé : sans ça l'utilisateur reclique par doute. */}
                 {report && (
