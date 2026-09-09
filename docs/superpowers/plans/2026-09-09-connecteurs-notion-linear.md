@@ -1,6 +1,6 @@
 # Connecteurs Notion et Linear — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Quelqu'un crée son compte avec Notion ou avec Linear depuis `/login`, choisit jusqu'à 5 pages Notion ou projets Linear qui deviennent ses sujets, et leur contenu entre dans le corpus comme matière ordinaire — exactement le parcours GitHub existant, avec sa plateforme.
 
@@ -34,7 +34,7 @@
 - Consumes: rien.
 - Produces: table `oauthAccounts` ; `materialSourceTypeEnum` gagne `notion_page` et `linear_project`.
 
-- [ ] **Step 1 : Remplacer `githubAccounts` par `oauthAccounts` dans `src/db/schema.ts`**
+- [x] **Step 1 : Remplacer `githubAccounts` par `oauthAccounts` dans `src/db/schema.ts`**
 
 ```ts
 export const oauthAccounts = pgTable(
@@ -66,7 +66,7 @@ export const oauthAccounts = pgTable(
 );
 ```
 
-- [ ] **Step 2 : Ajouter les deux types de source**
+- [x] **Step 2 : Ajouter les deux types de source**
 
 ```ts
 export const materialSourceTypeEnum = pgEnum("material_source_type", [
@@ -76,7 +76,7 @@ export const materialSourceTypeEnum = pgEnum("material_source_type", [
 ]);
 ```
 
-- [ ] **Step 3 : Écrire la migration `0028` à la main**
+- [x] **Step 3 : Écrire la migration `0028` à la main**
 
 `drizzle-kit generate` **exige un TTY** pour arbitrer un renommage et échoue dans un shell non
 interactif (`ARCHITECTURE_VERTICALES.md` chantier 3). Écrire le `.sql`, le snapshot et l'entrée de
@@ -103,7 +103,7 @@ ALTER TYPE "public"."material_source_type" ADD VALUE 'linear_project';
 Vérifier les **noms réels des contraintes** en base avant d'écrire les `DROP` — ils sont générés par
 Drizzle et le plan les suppose.
 
-- [ ] **Step 4 : Vérifier la migration**
+- [x] **Step 4 : Vérifier la migration**
 
 `npm run db:migrate`, puis `npm run db:generate` doit répondre « No schema changes, nothing to
 migrate ». Un snapshot écrit à la main qui diverge du schéma ne casse pas cette migration-ci mais la
@@ -122,7 +122,7 @@ migrate ». Un snapshot écrit à la main qui diverge du schéma ne casse pas ce
 - Consumes: `src/lib/github/client.ts`.
 - Produces: `OAuthIdentityProvider`, `OAuthIdentity`, `ProviderTokens`, `getIdentityProvider`, `listConfiguredProviders`.
 
-- [ ] **Step 1 : Écrire le contrat dans `types.ts`**
+- [x] **Step 1 : Écrire le contrat dans `types.ts`**
 
 Calqué sur `SourceConnector` : ce qui est spécifique à un fournisseur vit dans son module, le cœur
 ne connaît que ce contrat.
@@ -159,13 +159,13 @@ export interface OAuthIdentityProvider {
 }
 ```
 
-- [ ] **Step 2 : `github.ts` — adaptateur autour de l'existant**
+- [x] **Step 2 : `github.ts` — adaptateur autour de l'existant**
 
 Ne réécrit rien : appelle `buildAuthorizeUrl`, `exchangeCode` et `fetchViewer` de
 `src/lib/github/client.ts` et traduit `GithubViewer` en `OAuthIdentity`. Pas de `refreshTokens`.
 `isConfigured` délègue à `isGithubConfigured`.
 
-- [ ] **Step 3 : `registry.ts` + son test**
+- [x] **Step 3 : `registry.ts` + son test**
 
 ```ts
 const providers: Record<string, OAuthIdentityProvider> = { github: githubIdentityProvider, notion: ..., linear: ... };
@@ -189,18 +189,18 @@ n'en renvoie aucun quand l'environnement est vide.
 - Consumes: `oauthAccounts`, registre de Task 2.
 - Produces: `decideAccountResolution` (inchangée), `resolveOAuthAccount`, `getValidProviderAccessToken`, `getConnectedProvider`.
 
-- [ ] **Step 1 : Déplacer `decideAccountResolution` telle quelle**
+- [x] **Step 1 : Déplacer `decideAccountResolution` telle quelle**
 
 La fonction pure et son test migrent sans modification : la règle de résolution ne dépend pas du
 fournisseur. Seul le message d'email non vérifié devient paramétré par le nom du fournisseur.
 
-- [ ] **Step 2 : `resolveOAuthAccount(providerId, identity, tokens)`**
+- [x] **Step 2 : `resolveOAuthAccount(providerId, identity, tokens)`**
 
 Généralise `resolveGithubAccount` : même ordre de décision, `eq(oauthAccounts.providerUserId, ...)`
 devient `and(eq(provider), eq(providerUserId))`. La branche `create` pose `vertical` selon le
 fournisseur (voir Task 8) ; la branche `link` ne touche **jamais** à `vertical`.
 
-- [ ] **Step 3 : `getValidProviderAccessToken(userId, providerId)`**
+- [x] **Step 3 : `getValidProviderAccessToken(userId, providerId)`**
 
 Réplique explicite de `getValidSocialAccessToken` (`socialConnectionService.ts`), marge
 d'expiration identique (60 s). Sans `refreshTokens` ou sans jeton de rafraîchissement, lève une
@@ -218,7 +218,7 @@ d'expiration identique (60 s). Sans `refreshTokens` ou sans jeton de rafraîchis
 - Consumes: Tasks 2 et 3.
 - Produces: `GET /api/auth/oauth/[provider]/start|callback`, `GET /api/auth/oauth/providers`.
 
-- [ ] **Step 1 : Extraire les deux handlers dans des fonctions paramétrées par `providerId`**
+- [x] **Step 1 : Extraire les deux handlers dans des fonctions paramétrées par `providerId`**
 
 Reprendre à l'identique la logique de `src/app/api/auth/github/*` : cookie de state
 (`oauth_state_<provider>`, 32 octets, `httpOnly`, `sameSite: lax`, 600 s), garde-fou de
@@ -228,7 +228,7 @@ sinon `/calendar`.
 
 Pas de `requireUserId()` : ce sont des portes d'entrée.
 
-- [ ] **Step 2 : Les routes GitHub deviennent des enveloppes**
+- [x] **Step 2 : Les routes GitHub deviennent des enveloppes**
 
 Les URL de callback GitHub sont déjà déposées côté GitHub, elles ne doivent pas bouger :
 
@@ -239,7 +239,7 @@ export const GET = (request: NextRequest) => handleOAuthCallback(request, "githu
 `GITHUB_OAUTH_REDIRECT_URI` reste la source de vérité pour GitHub ; les autres fournisseurs
 dérivent `${APP_URL}/api/auth/oauth/<provider>/callback`.
 
-- [ ] **Step 3 : `/api/auth/oauth/providers`**
+- [x] **Step 3 : `/api/auth/oauth/providers`**
 
 Remplace `/api/auth/github/status` en généralisant : renvoie `listConfiguredProviders()`.
 `export const dynamic = "force-dynamic"` — la route ne lit que `process.env` et serait sinon figée
@@ -257,7 +257,7 @@ au build. Conserver `/api/auth/github/status` en alias tant que `/login` n'est p
 - Consumes: contrats de Tasks 2 et 3.
 - Produces: `notionConnector` (`type: "notion_page"`), `notionIdentityProvider`.
 
-- [ ] **Step 1 : Client HTTP**
+- [x] **Step 1 : Client HTTP**
 
 Autorisation : `https://api.notion.com/v1/oauth/authorize` avec `client_id`, `response_type=code`,
 `owner=user`, `redirect_uri`, `state`. Échange : `POST https://api.notion.com/v1/oauth/token`, en
@@ -269,7 +269,7 @@ Toute requête API porte `Authorization: Bearer`, `Notion-Version: <version à c
 Traduire le 401 en `NotionAuthError` (→ `needs_reconnect`) et le 429 en `ConnectorRateLimitError`,
 sur le modèle de `GithubAuthError` / `GithubRateLimitError`.
 
-- [ ] **Step 2 : Candidats**
+- [x] **Step 2 : Candidats**
 
 `POST /v1/search` avec `filter: { property: "object", value: "page" }`, puis la même chose pour
 `"database"`. Ne garder que les objets **sans parent de type page** — ce sont les racines. Le titre
@@ -278,14 +278,14 @@ vient de `properties.title`. `externalId` = id de la page, `config` = `{ objectT
 Si la liste est vide, `listCandidates` renvoie un tableau vide et l'écran affiche le message dédié
 au partage d'intégration (`SPEC_CONNECTEURS_ET_SUJETS.md` §4) — pas une page blanche.
 
-- [ ] **Step 3 : Documents**
+- [x] **Step 3 : Documents**
 
 Pour une page : `GET /v1/blocks/{id}/children` en paginant, récursivement sur les blocs `child_page`,
 plafonné par une nouvelle constante `MAX_NOTION_BLOCKS` dans `src/lib/validation.ts` (mettre
 `truncated: true` au-delà, comme l'arbre GitHub tronqué). Pour une base : une entrée = un document.
 `externalRef` = id du bloc ou de la page, `externalChecksum` = `last_edited_time`.
 
-- [ ] **Step 4 : Rendu en texte, fonction pure et testée**
+- [x] **Step 4 : Rendu en texte, fonction pure et testée**
 
 `notionMapping.ts` porte la traduction blocs → texte (paragraphes, titres, listes, `to_do`, code)
 et `toCandidate`. C'est la seule partie testable sans réseau, donc la seule testée.
@@ -301,7 +301,7 @@ et `toCandidate`. C'est la seule partie testable sans réseau, donc la seule tes
 **Interfaces:**
 - Produces: `linearConnector` (`type: "linear_project"`), `linearIdentityProvider`.
 
-- [ ] **Step 1 : Client GraphQL**
+- [x] **Step 1 : Client GraphQL**
 
 Autorisation : `https://linear.app/oauth/authorize`, `scope=read`. Échange :
 `POST https://api.linear.app/oauth/token` en form-encoded. **Le jeton vaut 24 heures** — renseigner
@@ -310,11 +310,11 @@ Autorisation : `https://linear.app/oauth/authorize`, `scope=read`. Échange :
 API : `POST https://api.linear.app/graphql`, `Authorization: Bearer`. Un seul helper `gql<T>()` qui
 lève sur `errors[]` non vide — une réponse GraphQL en erreur a un statut 200.
 
-- [ ] **Step 2 : Identité**
+- [x] **Step 2 : Identité**
 
 `viewer { id name email displayName avatarUrl }`. `login` = `displayName`.
 
-- [ ] **Step 3 : Candidats et documents**
+- [x] **Step 3 : Candidats et documents**
 
 Candidats : `projects { nodes { id name description updatedAt } }`.
 
@@ -329,7 +329,7 @@ Documents d'un projet, trois familles, chacune un document distinct :
 **Les noms exacts des champs GraphQL sont à vérifier contre le schéma Linear** avant d'écrire :
 ce plan les donne de mémoire.
 
-- [ ] **Step 4 : Fonction pure et testée**
+- [x] **Step 4 : Fonction pure et testée**
 
 `linearMapping.ts` : construction du journal d'updates et `toCandidate`. Le reste n'est pas testé.
 
@@ -345,7 +345,7 @@ ce plan les donne de mémoire.
 - Consumes: `listCandidates`, `createSourcesFromCandidates`, `listConnectedExternalIds` (tous existants).
 - Produces: `GET|POST /api/connectors/[provider]/candidates`, `<SourcePicker provider=... />`.
 
-- [ ] **Step 1 : La route**
+- [x] **Step 1 : La route**
 
 Transposition directe de `/api/github/repos`, en résolvant le connecteur par le registre au lieu de
 l'importer. `GET` renvoie `{ candidates: [{ externalId, label, subjectName, subjectDescription, hint, alreadyConnected }] }`
@@ -355,7 +355,7 @@ où `hint` est une ligne de contexte que le connecteur compose depuis son `meta`
 `POST` appelle `assertReady` **avant** toute écriture, puis `createSourcesFromCandidates`.
 Traduire `ConnectorRateLimitError` en 429, comme la route GitHub.
 
-- [ ] **Step 2 : Le sélecteur**
+- [x] **Step 2 : Le sélecteur**
 
 `SourcePicker` est `RepoPicker` débarrassé de GitHub : mêmes états (chargement, liste, résultats,
 vide), mêmes plafonds `MAX_PRODUCTS`, mais libellés reçus en props (`emptyMessage`, `connectLabel`,
@@ -365,7 +365,7 @@ vide), mêmes plafonds `MAX_PRODUCTS`, mais libellés reçus en props (`emptyMes
 ce que l'architecture autorise explicitement (chantier 1). Les migrer serait un refactor à risque
 sans gain fonctionnel — à faire plus tard, séparément, si les deux écrans divergent.
 
-- [ ] **Step 3 : Paramètres > Sujets**
+- [x] **Step 3 : Paramètres > Sujets**
 
 `CatalogueTab` affiche aujourd'hui une carte « Ajouter depuis GitHub » conditionnée à
 `githubConnected`. Généraliser : une carte par fournisseur connecté, alimentée par un
@@ -384,13 +384,13 @@ sans gain fonctionnel — à faire plus tard, séparément, si les deux écrans 
 - Consumes: Tasks 2, 3, 7.
 - Produces: parcours d'onboarding paramétré par le fournisseur connecté.
 
-- [ ] **Step 1 : Trancher le §7.2 de la spec**
+- [x] **Step 1 : Trancher le §7.2 de la spec**
 
 Point resté ouvert : ajouter `artisan` et `entrepreneur` à `verticalEnum`, ou laisser tout le monde
 sur `dev`. **Recommandation du document** : les ajouter, les trois verticales pointant vers le même
 parcours. À faire dans la migration de Task 1 si la décision est prise avant.
 
-- [ ] **Step 2 : Le parcours devient une fabrique**
+- [x] **Step 2 : Le parcours devient une fabrique**
 
 `dev.tsx` devient `sourceFirst.tsx` : mêmes trois étapes (sélection, chat, réseaux), mais le
 sélecteur est choisi d'après le **fournisseur réellement connecté**, pas d'après la verticale — un
@@ -399,7 +399,7 @@ compte `dev` peut venir de GitHub ou de Linear. Le `OnboardingStepContext` gagne
 
 L'étape GitHub continue de rendre `RepoPicker` ; Notion et Linear rendent `SourcePicker`.
 
-- [ ] **Step 3 : Généraliser le contexte de chat**
+- [x] **Step 3 : Généraliser le contexte de chat**
 
 `buildDevOnboardingContext` devient `buildConnectedOnboardingContext` : lit `oauthAccounts` au lieu
 de `githubAccounts`, et prend le **premier document ingéré** de chaque source au lieu de chercher
@@ -410,7 +410,7 @@ matériel de production. Le paramétrer par le fournisseur : le nom de la platef
 indicateur porté par le fournisseur disant si la question du matériel a du sens (non pour GitHub,
 Notion et Linear ; **oui** pour Etsy et Shopify demain — un artisan filme ses pièces).
 
-- [ ] **Step 4 : `/login`**
+- [x] **Step 4 : `/login`**
 
 Le bouton GitHub en dur devient une boucle sur `GET /api/auth/oauth/providers`, chaque fournisseur
 portant son libellé et son icône. Le séparateur « ou » ne s'affiche que s'il y a au moins un
@@ -423,7 +423,7 @@ fournisseur configuré — comportement actuel préservé.
 **Files:**
 - Modify: `.env.example`, `CLAUDE.md`, `docs/TECH.md`, `docs/ARCHITECTURE_VERTICALES.md`, `docs/PRODUCT.md`, `docs/SPEC_CONNECTEURS_ET_SUJETS.md`
 
-- [ ] **Step 1 : Variables d'environnement**
+- [x] **Step 1 : Variables d'environnement**
 
 ```
 # Notion (intégration publique) — https://www.notion.so/my-integrations
@@ -437,7 +437,7 @@ LINEAR_CLIENT_SECRET=
 Même philosophie que GitHub et Stripe : **absentes, le bouton n'apparaît pas** et le reste de l'app
 fonctionne. Redirect URI à déposer des deux côtés : `${APP_URL}/api/auth/oauth/<provider>/callback`.
 
-- [ ] **Step 2 : Documentation**
+- [x] **Step 2 : Documentation**
 
 - `CLAUDE.md` : la section Configuration mentionne les deux nouvelles paires de variables.
 - `docs/TECH.md` §8 : `github_accounts` n'existe plus, décrire `oauth_accounts` et le registre.
@@ -451,9 +451,9 @@ fonctionne. Redirect URI à déposer des deux côtés : `${APP_URL}/api/auth/oau
 
 Aucune de ces vérifications n'est couverte par `npm run test`, qui ne touche ni base ni réseau.
 
-- [ ] `npm run test` et `npm run lint` passent.
-- [ ] `npm run db:generate` répond « No schema changes » après la migration de Task 1.
-- [ ] L'utilisateur GitHub existant en base de dev a survécu avec `provider = 'github'`.
+- [x] `npm run test` et `npm run lint` passent.
+- [x] `npm run db:generate` répond « No schema changes » après la migration de Task 1.
+- [x] L'utilisateur GitHub existant en base de dev a survécu avec `provider = 'github'`.
 - [ ] **Parcours GitHub inchangé** : connexion, sélection de dépôts, resynchronisation. C'est la
       régression la plus probable de ce chantier.
 - [ ] Inscription Notion depuis `/login` sur un compte neuf → onboarding → sélection de pages →
