@@ -1,10 +1,10 @@
 import {
-  runDevOnboardingChatTurn,
+  runConnectedOnboardingChatTurn,
   runOnboardingChatTurn,
   type OnboardingChatResult,
   type OnboardingMessage,
 } from "@/lib/llm/onboardingChat";
-import { buildDevOnboardingContext } from "@/lib/services/devOnboardingContext";
+import { buildConnectedOnboardingContext } from "@/lib/services/connectedOnboardingContext";
 import type { VerticalId } from "./types";
 
 /**
@@ -24,16 +24,22 @@ export interface VerticalServerDefinition {
   runOnboardingChatTurn(userId: string, history: OnboardingMessage[]): Promise<OnboardingChatResult>;
 }
 
+/** Le prompt reçoit le profil du compte tiers et les sujets déjà ingérés, et n'a droit qu'à deux ou
+ *  trois questions — la personne a déjà dit qui elle est en connectant son compte. */
+const connected: VerticalServerDefinition = {
+  runOnboardingChatTurn: async (userId, history) =>
+    runConnectedOnboardingChatTurn({ history, connected: await buildConnectedOnboardingContext(userId) }),
+};
+
 const serverVerticals: Record<VerticalId, VerticalServerDefinition> = {
   creator: {
     runOnboardingChatTurn: (_userId, history) => runOnboardingChatTurn({ history }),
   },
-  dev: {
-    // Le prompt dev reçoit le profil GitHub et les dépôts déjà ingérés, et n'a droit qu'à deux ou
-    // trois questions — l'utilisateur a déjà dit qui il est en connectant GitHub.
-    runOnboardingChatTurn: async (userId, history) =>
-      runDevOnboardingChatTurn({ history, dev: await buildDevOnboardingContext(userId) }),
-  },
+  // Les trois verticales nées d'un fournisseur tiers partagent le même tour de chat : ce qui les
+  // distingue est le nom de la plateforme, et il vient du contexte, pas d'un prompt par verticale.
+  dev: connected,
+  artisan: connected,
+  entrepreneur: connected,
 };
 
 export function getServerVertical(id: VerticalId): VerticalServerDefinition {

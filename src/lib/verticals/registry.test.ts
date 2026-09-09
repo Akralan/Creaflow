@@ -3,11 +3,12 @@ import { getVertical } from "./registry";
 import type { OnboardingStepContext, VerticalId } from "./types";
 import { MIN_PRODUCTS } from "@/lib/validation";
 
-const VERTICALS: VerticalId[] = ["creator", "dev"];
+const VERTICALS: VerticalId[] = ["creator", "dev", "artisan", "entrepreneur"];
 
 function context(overrides: Partial<OnboardingStepContext> = {}): OnboardingStepContext {
   return {
     advance: () => {},
+    connectedProvider: null,
     connections: [],
     productCount: 0,
     onProductCountChange: () => {},
@@ -39,11 +40,19 @@ describe.each(VERTICALS)("invariants du parcours %s", (id) => {
 
 describe("getVertical", () => {
   it("retombe sur le parcours créateur pour une valeur inconnue, plutôt que de rendre une page vide", () => {
-    expect(getVertical("artisan" as VerticalId).id).toBe("creator");
+    expect(getVertical("pâtissier" as VerticalId).id).toBe("creator");
   });
 
-  it("donne au dev les projets avant la discussion — la discussion se nourrit des dépôts lus", () => {
-    expect(getVertical("dev").onboarding.map((s) => s.id)).toEqual(["repos", "chat", "connections"]);
+  it("met les sujets avant la discussion — la discussion se nourrit de ce qui a été lu", () => {
+    expect(getVertical("dev").onboarding.map((s) => s.id)).toEqual(["sources", "chat", "connections"]);
+  });
+
+  it("donne le même parcours aux trois verticales nées d'un fournisseur tiers", () => {
+    // Elles ne diffèrent aujourd'hui que par leur nom (SPEC_CONNECTEURS_ET_SUJETS.md §7.2) : si ce
+    // test casse, c'est qu'une différenciation a été introduite — délibérément ou par accident.
+    const ids = (v: VerticalId) => getVertical(v).onboarding.map((s) => s.id);
+    expect(ids("artisan")).toEqual(ids("dev"));
+    expect(ids("entrepreneur")).toEqual(ids("dev"));
   });
 });
 

@@ -117,6 +117,24 @@ reconnecte GitHub » en dur dans un composant censé être générique. L'API re
 Ajouter Notion : écrire `src/lib/connectors/notion.ts`, l'enregistrer dans le registre, ajouter la
 valeur à `materialSourceTypeEnum`. Aucun fichier du cœur à modifier.
 
+**Fait le 2026-09-09** (Notion et Linear, `docs/SPEC_CONNECTEURS_ET_SUJETS.md`), et la prédiction
+tenait pour la partie matière : les deux connecteurs se sont écrits sans toucher à `syncSource` ni
+à `createSourcesFromCandidates`. Ce que le chantier 1 n'avait PAS prévu, en revanche :
+
+- **l'identité.** Ces fournisseurs ne sont pas que des sources, ce sont des portes d'entrée. Il a
+  fallu généraliser `github_accounts` en `oauth_accounts` et écrire un contrat
+  `OAuthIdentityProvider` à côté de `SourceConnector` — deux rôles distincts, deux registres.
+- **l'expiration des tokens.** GitHub était l'exception, pas la règle : son token ne périme jamais,
+  ceux de Notion et Linear si (24 h côté Linear). Le rafraîchissement paresseux est devenu de la
+  plomberie obligatoire.
+- **l'écran de sélection.** `listCandidates` existait, mais aucune route ni écran générique ne s'y
+  adossait. `RepoPicker` restant en place pour GitHub, il a fallu écrire `SourcePicker` et
+  `/api/connectors/[provider]/candidates` à côté.
+
+Le contrat gagne au passage `candidateHint` et `picker`, tous deux optionnels : ce sont les textes
+qu'un écran générique ne peut pas inventer, portés par le connecteur pour la même raison que
+`emptyMessage`.
+
 ### Chantier 2 — Onboarding déclaratif
 
 `src/app/onboarding/page.tsx` branchait sur `track === "dev"` à six endroits : rendu de chaque
@@ -128,7 +146,8 @@ src/lib/verticals/
   types.ts       — VerticalId, OnboardingStep, OnboardingStepContext
   shared.tsx     — les étapes fournies par le cœur (réseaux sociaux)
   creator.tsx    — parcours créateur
-  dev.tsx        — parcours développeur
+  sourceFirst.tsx — fabrique du parcours « source d'abord » (ex-dev.tsx), partagée par les
+                    verticales nées d'un fournisseur d'identité tiers
   registry.ts    — VerticalId → VerticalDefinition
 ```
 
@@ -169,10 +188,22 @@ Une verticale a deux registres, et il faut savoir lequel on touche :
 maintenant son tour de chat et le contexte qu'elle y injecte ; le contrat de sortie étant identique,
 tout ce qui suit dans la route (fusion du profil, finalisation, persistance) ne les distingue pas.
 
-`buildDevOnboardingContext`, qui lit la base, vit pour la même raison dans
-`src/lib/services/devOnboardingContext.ts` et non dans `verticals/dev.tsx`.
+`buildConnectedOnboardingContext`, qui lit la base, vit pour la même raison dans
+`src/lib/services/connectedOnboardingContext.ts` et non dans `verticals/sourceFirst.tsx`.
 
 Ajouter une verticale : écrire son module d'étapes, l'enregistrer. La page ne bouge pas.
+
+**Vérifié le 2026-09-09** : l'ajout d'`artisan` et d'`entrepreneur` n'a effectivement pas touché
+`src/app/onboarding/page.tsx` — hors une ligne, l'ajout de `connectedProvider` au contexte d'étape.
+
+Ce point-là mérite d'être retenu, parce qu'il corrige une intuition du §2 : **la verticale ne suffit
+pas à choisir le connecteur**. `dev` couvre GitHub et Linear ; c'est le fournisseur réellement
+connecté (`oauth_accounts.provider`, remonté par `GET /api/profile`) qui décide du sélecteur. La
+verticale choisit le parcours, pas la source.
+
+Et les trois verticales issues d'un fournisseur tiers pointent délibérément vers la **même**
+fabrique d'étapes (`sourceFirstVertical`) : écrire trois jeux de textes avant d'avoir un utilisateur
+de chaque métier serait exactement l'abstraction devinée que le §5 met en garde contre.
 
 ### Chantier 3 — `onboardingTrack` → `vertical`
 
@@ -220,9 +251,12 @@ posée à deux endroits en plus d'ici :
   `config`, c'est-à-dire sous les yeux de qui s'apprêterait à enfreindre la règle.
 
 Ce que le test NE peut pas dire : si une nouvelle table est « spécifique à une verticale ». La
-frontière est un jugement — `github_accounts` est légitime, parce que c'est une table d'identité
+frontière est un jugement — `oauth_accounts` est légitime, parce que c'est une table d'identité
 tierce (§2, point 3), pas une table de verticale. Le test attrape la dérive mécanique ; la revue
 garde le jugement.
+
+Et c'est bien une SEULE table pour tous les fournisseurs, pas une par verticale : c'est ce qui a
+permis d'ajouter Notion et Linear sans migration structurelle au-delà du renommage.
 
 ## 5. Garde-fou
 

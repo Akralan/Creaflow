@@ -50,7 +50,7 @@ Registre de plateformes extensible côté code (`src/lib/social/types.ts`) ; à 
 - **Suivies sans OAuth** (calendrier + objectifs de fréquence, contenu généré manuellement, métriques saisies à la main) : Newsletter, Blog / site perso, Slack, Autre.
 
 ### 2.3 Modules livrés
-- **Module A** — Onboarding & Profiling, sous forme de chat conversationnel avec l'IA ; parcours dédié aux développeurs via connexion GitHub (les dépôts deviennent des sujets et alimentent le corpus).
+- **Module A** — Onboarding & Profiling, sous forme de chat conversationnel avec l'IA ; parcours « source d'abord » via connexion GitHub, Notion ou Linear (dépôts, pages et projets deviennent des sujets et alimentent le corpus).
 - **Module B** — Moteur d'Idées & Scripts, avec système anti-répétition par angles.
 - **Module D** — Calendrier Intelligent, mix éditorial personnalisé par IA.
 - **Module E** — Direction éditoriale & Assistant IA conversationnel *(ajouté en cours de route, non prévu au cadrage initial)*.
@@ -71,7 +71,7 @@ Registre de plateformes extensible côté code (`src/lib/social/types.ts`) ; à 
 
 ### Module A : Onboarding & Profiling d'Activité
 
-**Deux parcours, selon d'où vient la matière.** Un développeur crée son compte avec GitHub, choisit jusqu'à 5 dépôts publics qui deviennent ses sujets — leurs fichiers `.md` et leur journal de commits entrent directement dans le corpus — puis ne répond qu'à deux ou trois questions (ton, audience, temps disponible) : le reste est déduit de son profil et de ses projets. Tout le monde d'autre suit le parcours conversationnel décrit ci-dessous, inchangé. Détail technique en `docs/TECH.md` §8.
+**Deux parcours, selon d'où vient la matière.** Qui crée son compte avec **GitHub**, **Notion** ou **Linear** choisit jusqu'à 5 sources qui deviennent ses sujets — un dépôt public, une page racine ou une base Notion, un projet Linear — dont le contenu entre directement dans le corpus : les `.md` et le journal de commits d'un dépôt, le texte d'une page et de ses sous-pages, la description d'un projet avec son journal d'updates et ses issues terminées. Il ne répond ensuite qu'à deux ou trois questions (ton, audience, temps disponible) : le reste est déduit de son profil et de ses sujets. Tout le monde d'autre suit le parcours conversationnel décrit ci-dessous, inchangé. Ce qui devient un sujet chez chaque plateforme est arbitré dans `docs/SPEC_CONNECTEURS_ET_SUJETS.md` ; détail technique en `docs/TECH.md` §8.
 
 L'utilisateur configure son espace via un **chat conversationnel avec l'IA** (pas un formulaire classique) : l'assistant pose une question à la fois, adaptée à l'activité décrite, et en déduit progressivement :
 - **Identité de marque :** nom, type d'activité, ton, valeurs.

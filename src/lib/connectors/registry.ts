@@ -1,4 +1,6 @@
 import { githubConnector } from "./github";
+import { linearConnector } from "./linear";
+import { notionConnector } from "./notion";
 import type { MaterialSourceType, SourceConnector } from "./types";
 
 /**
@@ -11,6 +13,8 @@ import type { MaterialSourceType, SourceConnector } from "./types";
  */
 const connectors: Record<MaterialSourceType, SourceConnector> = {
   github_repo: githubConnector,
+  notion_page: notionConnector,
+  linear_project: linearConnector,
 };
 
 export function getConnector(type: MaterialSourceType): SourceConnector {
