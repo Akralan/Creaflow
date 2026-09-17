@@ -11,6 +11,7 @@ import { enforceScriptQuota } from "@/lib/services/billingService";
 import { directiveSchema } from "@/lib/validation";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
+import { visualSpecFromScript } from "@/lib/visualDesign/visualFormat";
 
 const schema = z.object({ directive: directiveSchema });
 
@@ -67,7 +68,8 @@ export async function POST(
       existing.seriesId,
       existing.angleId,
       directive,
-      rejectedConcepts
+      rejectedConcepts,
+      visualSpecFromScript(existing)
     );
     context.rejectedConcepts = rejectedConcepts;
 

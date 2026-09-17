@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { visualSpecFromScript } from "@/lib/visualDesign/visualFormat";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { scripts } from "@/db/schema";
@@ -35,7 +36,11 @@ export async function POST(
       existing.contentType,
       existing.productId,
       existing.id,
-      existing.seriesId
+      existing.seriesId,
+      undefined,
+      undefined,
+      undefined,
+      visualSpecFromScript(existing)
     );
     const generated = await generateScript(context);
     const script = await updateScriptRecord(userId, existing.id, context.contentCategory, generated, {

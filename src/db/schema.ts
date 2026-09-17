@@ -68,6 +68,9 @@ export const scriptOriginEnum = pgEnum("script_origin", ["generated", "imported"
 // "design_instruction" = instruction à l'agent sur la maquette d'un post visuel
 // (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2 « Quota ») — même pool que les retouches de texte.
 export const scriptMicroEditKindEnum = pgEnum("script_micro_edit_kind", ["selection_instruction", "block_regenerate", "design_instruction"]);
+// Format d'un post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §1) — propriété du script, pas
+// un type de contenu de plus.
+export const visualFormatEnum = pgEnum("visual_format", ["single", "carousel", "animation"]);
 export const visualDesignBaseKindEnum = pgEnum("visual_design_base_kind", ["generated", "asset", "none"]);
 export const visualDesignStatusEnum = pgEnum("visual_design_status", ["draft", "stale", "exported"]);
 // "connector" = document miroir d'une source externe branchée (dépôt GitHub aujourd'hui), par
@@ -586,6 +589,12 @@ export const scripts = pgTable("scripts", {
   angleId: uuid("angle_id").references(() => contentAngles.id, { onDelete: "set null" }),
   seriesId: uuid("series_id").references(() => contentSeries.id, { onDelete: "set null" }),
   contentType: contentTypeEnum("content_type").notNull().default("video"),
+  // Format du post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §4) : choisi à la génération,
+  // contraint le nombre d'entrées du storyboard et la forme de la maquette. Sans objet hors
+  // contentType="visual" (reste "single"). slideCount : carrousel ; durationMs : animation.
+  visualFormat: visualFormatEnum("visual_format").notNull().default("single"),
+  slideCount: integer("slide_count"),
+  durationMs: integer("duration_ms"),
   status: scriptStatusEnum("status").notNull().default("draft"),
   // Image de marque sélectionnée par recherche sémantique comme référence pour ce script (contentType
   // "visual"), et image effectivement générée à partir d'elle le cas échéant.

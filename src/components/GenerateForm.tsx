@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import { PlatformBadge } from "@/components/ui/Badge";
-import { api, ApiClientError, type ContentType, type Product, type Script } from "@/lib/apiClient";
+import { api, ApiClientError, type ContentType, type Product, type Script, type VisualFormatFields } from "@/lib/apiClient";
+import VisualFormatPicker from "@/components/VisualFormatPicker";
 import { accent, accentAlpha, color, platformMeta, type Platform } from "@/lib/design/tokens";
 import { resolveCategoryMeta } from "@/lib/design/categoryDisplay";
 import { useContentCategories } from "@/contexts/CategoryLabelsContext";
@@ -26,6 +27,7 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
   const series = useContentSeries();
   const [platform, setPlatform] = useState<Platform>("tiktok");
   const [contentType, setContentType] = useState<ContentType>("video");
+  const [visual, setVisual] = useState<VisualFormatFields>({ visualFormat: "single" });
   const [categoryId, setCategoryId] = useState<string>("");
   const [seriesId, setSeriesId] = useState<string>("");
   const [productId, setProductId] = useState<string>("");
@@ -64,6 +66,7 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
         // Avec une série, le serveur dérive le rôle (§4.2).
         contentCategoryId: selectedSeriesId ? undefined : selectedCategoryId,
         contentType,
+        ...(contentType === "visual" ? visual : {}),
         productId: productId || undefined,
         seriesId: selectedSeriesId || undefined,
         scheduledDate,
@@ -248,6 +251,12 @@ export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFor
           })}
         </div>
       </div>
+
+      {contentType === "visual" && (
+        <div style={{ marginBottom: 26 }}>
+          <VisualFormatPicker value={visual} onChange={setVisual} />
+        </div>
+      )}
 
       <div style={{ marginBottom: 30 }}>
         <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: color.text3, marginBottom: 6 }}>

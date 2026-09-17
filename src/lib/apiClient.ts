@@ -289,6 +289,16 @@ export interface StoryboardStep {
 
 export type ContentType = "video" | "visual" | "text";
 
+/** Format d'un post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) — propriété du script. */
+export type VisualFormat = "single" | "carousel" | "animation";
+export interface VisualFormatFields {
+  visualFormat?: VisualFormat;
+  /** Carrousel : 2 à 10. */
+  slideCount?: number;
+  /** Animation : 5 000 à 15 000. */
+  durationMs?: number;
+}
+
 export interface PostMetrics {
   id: string;
   scriptId: string;
@@ -325,6 +335,10 @@ export interface Script {
    *  en V1 (§6.4) ; présent ici seulement pour conditionner l'affichage du bouton "autre idée". */
   concept: string | null;
   contentType: ContentType;
+  /** Format du post visuel — "single" hors contentType "visual". */
+  visualFormat: VisualFormat;
+  slideCount: number | null;
+  durationMs: number | null;
   /** Présents seulement pour contentType "video" (et hookVisual/storyboard aussi pour "visual"). */
   hookVisual: string | null;
   hookText: string | null;
@@ -681,8 +695,8 @@ export const api = {
     patch<{ entry: CalendarEntry }>(`/api/calendar/${id}`, data),
   deleteCalendarEntry: (id: string) => del<{ ok: true }>(`/api/calendar/${id}`),
 
-  generateScriptForEntry: (calendarEntryId: string, contentType?: ContentType, productId?: string, directive?: string) =>
-    post<{ script: Script }>("/api/scripts/generate", { calendarEntryId, contentType, productId, directive }),
+  generateScriptForEntry: (calendarEntryId: string, contentType?: ContentType, productId?: string, directive?: string, visual?: VisualFormatFields) =>
+    post<{ script: Script }>("/api/scripts/generate", { calendarEntryId, contentType, productId, directive, ...visual }),
   generateFreeformScript: (data: {
     platform: Platform;
     /** Role du post libre ; omis quand seriesId est fourni - le serveur derive alors le role de la
@@ -693,7 +707,7 @@ export const api = {
     scheduledDate?: string;
     seriesId?: string;
     directive?: string;
-  }) => post<{ script: Script }>("/api/scripts", data),
+  } & VisualFormatFields) => post<{ script: Script }>("/api/scripts", data),
   getScripts: (params?: { seriesId?: string }) =>
     apiFetch<{ scripts: Script[] }>(`/api/scripts${params?.seriesId ? `?seriesId=${params.seriesId}` : ""}`),
   getScript: (id: string) => apiFetch<{ script: Script }>(`/api/scripts/${id}`),

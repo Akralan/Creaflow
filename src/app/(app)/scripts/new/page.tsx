@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import { PlatformBadge, CategoryPill } from "@/components/ui/Badge";
-import { api, ApiClientError, type CalendarEntry, type ContentType, type Product } from "@/lib/apiClient";
+import { api, ApiClientError, type CalendarEntry, type ContentType, type Product, type VisualFormatFields } from "@/lib/apiClient";
+import VisualFormatPicker from "@/components/VisualFormatPicker";
 import { color, fontHeading, platformMeta } from "@/lib/design/tokens";
 import { defaultContentTypeForPlatform } from "@/lib/llm/prompts";
 
@@ -25,6 +26,7 @@ function NewScriptContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [productId, setProductId] = useState("");
   const [directive, setDirective] = useState("");
+  const [visual, setVisual] = useState<VisualFormatFields>({ visualFormat: "single" });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -55,11 +57,13 @@ function NewScriptContent() {
     setGenerating(true);
     setError(null);
     try {
+      const resolvedContentType = contentTypeParam ?? (entry ? defaultContentTypeForPlatform(entry.platform) : undefined);
       const { script } = await api.generateScriptForEntry(
         calendarEntryId,
         contentTypeParam ?? undefined,
         productId || undefined,
-        directive.trim() || undefined
+        directive.trim() || undefined,
+        resolvedContentType === "visual" ? visual : undefined
       );
       router.replace(`/scripts/${script.id}`);
     } catch (err) {
@@ -158,6 +162,12 @@ function NewScriptContent() {
           ))}
         </select>
       </div>
+
+      {(contentTypeParam ?? defaultContentTypeForPlatform(entry.platform)) === "visual" && (
+        <div style={{ marginBottom: 20 }}>
+          <VisualFormatPicker value={visual} onChange={setVisual} compact />
+        </div>
+      )}
 
       <div style={{ marginBottom: 20 }}>
         <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.text3, marginBottom: 6 }}>
