@@ -6,6 +6,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import BrandAssetLibrary from "@/components/BrandAssetLibrary/BrandAssetLibrary";
+import DesignEditor from "@/components/DesignEditor/DesignEditor";
 import BriefHeader from "@/components/ScriptEditor/BriefHeader";
 import EditableField from "@/components/ScriptEditor/EditableField";
 import TitleField from "@/components/ScriptEditor/TitleField";
@@ -60,6 +61,9 @@ export default function ScriptPage() {
   // Suggestion d'analyse de style après finalisation (docs/SPEC_APPRENTISSAGE_STYLE.md §6.2) :
   // nombre de scripts corrigés non analysés, affiché seulement à partir du seuil, jamais bloquant.
   const [styleSuggestion, setStyleSuggestion] = useState<number | null>(null);
+  // Logo de l'identité de marque (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2) : dit à l'éditeur de
+  // maquette si {{LOGO}} peut être résolu.
+  const [hasLogo, setHasLogo] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -67,6 +71,12 @@ export default function ScriptPage() {
     try {
       const { script } = await api.getScript(params.id);
       setScript(script);
+      if (script.contentType === "visual") {
+        api
+          .getProfile()
+          .then(({ profile }) => setHasLogo(Boolean(profile?.brandKit?.logoAssetId)))
+          .catch(() => {});
+      }
       setMetricsDraft(
         script.metrics
           ? { views: script.metrics.views, likes: script.metrics.likes, comments: script.metrics.comments, shares: script.metrics.shares }
@@ -123,7 +133,14 @@ export default function ScriptPage() {
     setError(null);
     try {
       const { script: updated } = await api.patchScriptContent(script.id, patch);
-      setScript((prev) => (prev ? { ...prev, ...updated } : updated));
+      // Les mots de la maquette viennent du storyboard : le serveur la passe en "stale", on
+      // reflète ce statut sans recharger (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2).
+      const touchesDesign = patch.title !== undefined || patch.hookVisual !== undefined || patch.storyboard !== undefined;
+      setScript((prev) =>
+        prev
+          ? { ...prev, ...updated, visualDesign: prev.visualDesign && touchesDesign ? { ...prev.visualDesign, status: "stale" } : prev.visualDesign }
+          : updated
+      );
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement.");
     }
@@ -475,28 +492,19 @@ export default function ScriptPage() {
 
       {script.contentType === "visual" && (
         <Card style={{ padding: 24, marginBottom: 16 }}>
-          <div style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, marginBottom: 16, display: "flex", alignItems: "center", gap: 9 }}>
-            <span style={{ color: "oklch(0.55 0.2 292)" }}>▧</span>Visuel
-          </div>
-          {script.generatedImage ? (
-            <div>
+          <DesignEditor
+            script={script}
+            hasLogo={hasLogo}
+            onDesignChange={(design) => setScript((prev) => (prev ? { ...prev, visualDesign: design } : prev))}
+            onOpenStagedPhoto={() => setShowAssetLibrary(true)}
+          />
+          {script.generatedImage && (
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 18, paddingTop: 14, borderTop: `1px solid ${color.divider}` }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={script.generatedImage.url}
-                alt={script.title ?? "Visuel généré"}
-                style={{ width: "100%", borderRadius: 12, display: "block", marginBottom: 12 }}
-              />
-              <Button variant="secondary" onClick={() => setShowAssetLibrary(true)} style={{ padding: "8px 16px", fontSize: 13 }}>
+              <img src={script.generatedImage.url} alt="" style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 8 }} />
+              <span style={{ fontSize: 12, color: color.textMuted, flex: 1 }}>Photo mise en scène de ce post.</span>
+              <Button variant="secondary" onClick={() => setShowAssetLibrary(true)} style={{ padding: "6px 12px", fontSize: 12 }}>
                 Regénérer avec d&apos;autres photos
-              </Button>
-            </div>
-          ) : (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-              <p style={{ margin: 0, fontSize: 13, color: color.textMuted }}>
-                Pour produire le visuel, j&apos;ai besoin de photos de ta marque.
-              </p>
-              <Button variant="secondary" onClick={() => setShowAssetLibrary(true)}>
-                Générer le visuel
               </Button>
             </div>
           )}

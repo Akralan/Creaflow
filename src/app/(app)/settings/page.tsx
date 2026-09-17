@@ -13,6 +13,7 @@ import EquipmentPicker from "@/components/EquipmentPicker";
 import StyleAnalysisPanel from "@/components/StyleAnalysisPanel";
 import BrandAssetLibrary from "@/components/BrandAssetLibrary/BrandAssetLibrary";
 import BillingPanel from "@/components/BillingPanel";
+import BrandKitPanel from "@/components/BrandKitPanel";
 import { api, ApiClientError, type Connection } from "@/lib/apiClient";
 import { color } from "@/lib/design/tokens";
 
@@ -93,6 +94,7 @@ function IdentityTab() {
   if (!loaded) return null;
 
   return (
+    <div style={{ display: "grid", gap: 20 }}>
     <Card style={{ padding: 28, display: "grid", gap: 20 }}>
       <TextField label="Nom de la marque" value={brandName} onChange={(e) => setBrandName(e.target.value)} />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -126,6 +128,8 @@ function IdentityTab() {
         {saved && <span style={{ fontSize: 13, color: "oklch(0.5 0.14 150)" }}>Enregistré.</span>}
       </div>
     </Card>
+    <BrandKitPanel />
+    </div>
   );
 }
 
