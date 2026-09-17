@@ -19,6 +19,7 @@ import { getMaterialForSubject } from "@/lib/services/sourceMaterialService";
 import { recordCitations, deleteCitationsForScript } from "@/lib/services/citationService";
 import { resolveDailyDirection, markBeatDrafted, applyPublishSideEffects } from "@/lib/services/narrativeDirector";
 import { resolveCategoryForGeneration } from "@/lib/services/seriesService";
+import { markDesignStale } from "@/lib/services/visualDesignService";
 import { ApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
 
@@ -373,6 +374,11 @@ export async function patchScriptContent(userId: string, scriptId: string, patch
     await applyPublishSideEffects(userId, script).catch((err) =>
       logger.error("Effets de publication (rédacteur en chef) échoués", err, { scriptId: script.id })
     );
+  }
+  // Les mots de la maquette viennent du storyboard (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2) : quand
+  // ils changent, la maquette passe en "stale" — badge côté éditeur, jamais bloquant.
+  if (script.contentType === "visual" && (patch.title !== undefined || patch.hookVisual !== undefined || patch.storyboard !== undefined)) {
+    await markDesignStale(script.id);
   }
   return script;
 }
