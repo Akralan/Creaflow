@@ -5,6 +5,7 @@ import { calendarEntries, creatorProfiles, scripts, sourceMaterials } from "@/db
 import type { LlmToolDefinition } from "@/lib/llm/types";
 import { getMaterialForUser, listMaterialsForSubject } from "@/lib/services/sourceMaterialService";
 import { resolveNarrativeState } from "@/lib/services/narrativeDirector";
+import { getStyleLearningStatus } from "@/lib/services/styleLearningService";
 import { ApiError } from "@/lib/api/errors";
 
 /**
@@ -150,7 +151,7 @@ export const ASSISTANT_READ_TOOLS: LlmToolDefinition[] = [
   {
     name: "read_profile",
     description:
-      "Profil complet du créateur : marque, activité, ton, valeurs, équipement, temps disponible par semaine, audience de marque, et profil de style s'il a été calculé.",
+      "Profil complet du créateur : marque, activité, ton, valeurs, équipement, temps disponible par semaine, audience de marque, profil de style (voix + règles apprises) s'il a été calculé, et styleLearning.pendingScripts = nombre de scripts finalisés dont les corrections n'ont pas encore été analysées (à partir de 5, suggère à l'utilisateur de lancer l'analyse depuis Paramètres — tu ne peux pas la lancer toi-même).",
     input_schema: { type: "object", properties: {}, required: [] },
   },
 ];
@@ -361,6 +362,9 @@ export async function runAssistantReadTool(userId: string, name: string, rawInpu
         targetAudience: profile.targetAudience,
         styleProfile: profile.styleProfile,
         styleProfileUpdatedAt: profile.styleProfileUpdatedAt,
+        // Scripts finalisés non encore lus par la passe d'apprentissage du style — l'assistant peut
+        // suggérer de la lancer (docs/SPEC_APPRENTISSAGE_STYLE.md §6.4), jamais la lancer lui-même.
+        styleLearning: await getStyleLearningStatus(userId),
         brandLevelMaterialCount: brandLevelMaterial.length,
       };
     }

@@ -38,6 +38,9 @@ function RegenerateButton({ onClick, busy }: { onClick: () => void; busy: boolea
   );
 }
 
+/** Même seuil que STYLE_LEARNING_SUGGESTION_THRESHOLD (styleLearningService.ts). */
+const STYLE_SUGGESTION_THRESHOLD = 5;
+
 export default function ScriptPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -54,6 +57,9 @@ export default function ScriptPage() {
   const [metricsDraft, setMetricsDraft] = useState(EMPTY_METRICS_DRAFT);
   const [savingMetrics, setSavingMetrics] = useState(false);
   const [showAssetLibrary, setShowAssetLibrary] = useState(false);
+  // Suggestion d'analyse de style après finalisation (docs/SPEC_APPRENTISSAGE_STYLE.md §6.2) :
+  // nombre de scripts corrigés non analysés, affiché seulement à partir du seuil, jamais bloquant.
+  const [styleSuggestion, setStyleSuggestion] = useState<number | null>(null);
 
   async function load() {
     setLoading(true);
@@ -212,6 +218,16 @@ export default function ScriptPage() {
     setScript({ ...script, status });
     try {
       await api.updateScriptStatus(script.id, status);
+      if (status === "shot" || status === "published") {
+        api
+          .getProfile()
+          .then(({ styleLearning }) => {
+            if (styleLearning.pendingScripts >= STYLE_SUGGESTION_THRESHOLD && !styleLearning.pendingProposalId) {
+              setStyleSuggestion(styleLearning.pendingScripts);
+            }
+          })
+          .catch(() => {});
+      }
     } catch (err) {
       setScript({ ...script, status: previous });
       setError(err instanceof ApiClientError ? err.message : "Erreur lors du changement de statut.");
@@ -324,6 +340,40 @@ export default function ScriptPage() {
       </div>
 
       {error && <p style={{ color: color.danger, fontSize: 13, marginBottom: 16 }}>{error}</p>}
+
+      {styleSuggestion !== null && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 16,
+            padding: "10px 14px",
+            borderRadius: 10,
+            border: `1px solid ${accentAlpha(0.25)}`,
+            background: accentAlpha(0.06),
+            fontSize: 13,
+          }}
+        >
+          <span style={{ flex: 1 }}>
+            Tu as corrigé {styleSuggestion} scripts depuis la dernière analyse de style. L&apos;analyser pour que les prochains
+            demandent moins de retouches ?
+          </span>
+          <button
+            onClick={() => router.push("/settings")}
+            style={{ fontFamily: "inherit", fontSize: 12, fontWeight: 600, color: "oklch(0.48 0.2 292)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+          >
+            Analyser →
+          </button>
+          <button
+            onClick={() => setStyleSuggestion(null)}
+            title="Plus tard"
+            style={{ fontFamily: "inherit", fontSize: 12, color: color.textFaint, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24, flexWrap: "wrap" }}>
         <span style={{ fontSize: 13, color: color.textMuted }}>Statut :</span>

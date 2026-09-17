@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { socialConnections, inspirationVideos } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
 import { socialProviders, hasOAuthProvider } from "@/lib/social";
-import { updateStyleProfileForUser } from "@/lib/services/styleProfileService";
+import { getStyleLearningStatus, runStyleLearningPass } from "@/lib/services/styleLearningService";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
 
@@ -82,7 +82,12 @@ export async function GET(
             metadata: post.metadata,
           }))
         );
-        await updateStyleProfileForUser(userId);
+        // Première voix : sans profil de style existant, la passe écrit directement ; sinon elle
+        // crée une proposition à valider (docs/SPEC_APPRENTISSAGE_STYLE.md §5.2). Jamais quand
+        // une proposition attend déjà : une simple reconnexion ne doit pas la remplacer sous les
+        // yeux de l'utilisateur (une nouvelle passe rejette la précédente).
+        const { pendingProposalId } = await getStyleLearningStatus(userId);
+        if (!pendingProposalId) await runStyleLearningPass(userId);
       }
     } catch (err) {
       logger.error("Récupération des posts échouée (connexion tout de même enregistrée)", err, { platform });

@@ -11,7 +11,7 @@ import {
 } from "@/db/schema";
 import type { GeneratedScript } from "@/lib/llm/scriptSchema";
 import type { ContentCategoryContext, ContentType, Platform, ScriptGenerationContext } from "@/lib/llm/prompts";
-import type { StyleProfile } from "@/lib/llm/styleProfile";
+import { parseStoredStyleProfile } from "@/lib/llm/styleProfile";
 import { buildPerformanceSummary } from "@/lib/services/performanceService";
 import { pickAngleForScript } from "@/lib/services/angleService";
 import { findBestBrandAssetForScript } from "@/lib/services/brandAssetService";
@@ -180,7 +180,7 @@ export async function buildGenerationContext(
       weeklyTimeAvailable: profile.weeklyTimeAvailable,
       targetAudience: profile.targetAudience,
     },
-    styleProfile: (profile.styleProfile as StyleProfile | null) ?? null,
+    styleProfile: parseStoredStyleProfile(profile.styleProfile),
     product: product
       ? {
           name: product.name,

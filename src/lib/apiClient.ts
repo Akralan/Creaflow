@@ -123,14 +123,34 @@ export interface CreatorProfile {
   weeklyTimeAvailable: string | null;
   /** Audience de marque (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — fallback pour Product.targetAudience. */
   targetAudience: string | null;
-  styleProfile: {
-    tone: string;
-    sentenceLength: string;
-    emojiUsage: string;
-    vocabulary: string;
-    summary: string;
-  } | null;
+  styleProfile: StyleProfile | null;
   styleProfileUpdatedAt: string | null;
+}
+
+/** Miroir de styleProfileSchema (src/lib/llm/styleProfile.ts). Les listes peuvent manquer sur un
+ *  profil stocké avant le chantier d'apprentissage — lire avec `?? []`. */
+export interface StyleProfile {
+  tone: string;
+  sentenceLength: string;
+  emojiUsage: string;
+  vocabulary: string;
+  summary: string;
+  rules?: StyleRule[];
+  avoid?: string[];
+  prefer?: string[];
+  evidence?: { scriptCount: number; learnedAt: string | null };
+}
+
+export interface StyleRule {
+  text: string;
+  platform: string | null;
+}
+
+export interface StyleLearningStatus {
+  /** Scripts finalisés (tourné/publié) jamais lus par une passe d'apprentissage. */
+  pendingScripts: number;
+  lastLearnedAt: string | null;
+  pendingProposalId: string | null;
 }
 
 export interface Product {
@@ -387,7 +407,8 @@ export interface AssistantProposal {
     | "category_archive"
     | "angle_archive"
     | "category_reweight"
-    | "profile_update";
+    | "profile_update"
+    | "style_profile_update";
   targetId: string | null;
   payload: Record<string, unknown>;
   status: "pending" | "accepted" | "rejected";
@@ -489,6 +510,7 @@ export const api = {
        *  afficher, pas la verticale — "dev" couvre GitHub comme Linear. */
       connectedProviders: Array<{ id: string; displayName: string }>;
       githubConnected: boolean;
+      styleLearning: StyleLearningStatus;
     }>("/api/profile"),
   saveProfile: (data: {
     brandName: string;
@@ -499,7 +521,19 @@ export const api = {
     weeklyTimeAvailable?: string;
     targetAudience?: string;
   }) => post<{ profile: CreatorProfile }>("/api/profile", data),
-  triggerStyleAnalysis: () => post<{ profile: CreatorProfile }>("/api/profile/style-analysis"),
+  /** Passe d'apprentissage du style (docs/SPEC_APPRENTISSAGE_STYLE.md). `proposalId` null = profil
+   *  écrit directement (première analyse), sinon une proposition à valider a été créée. */
+  triggerStyleAnalysis: (options?: { includeLearned?: boolean }) =>
+    post<{
+      profile: CreatorProfile;
+      styleLearning: StyleLearningStatus;
+      proposalId: string | null;
+      changeNotes: string;
+      proposedStyleProfile: StyleProfile;
+    }>("/api/profile/style-analysis", options ?? {}),
+  updateStyleLists: (data: { rules?: StyleRule[]; avoid?: string[]; prefer?: string[] }) =>
+    patch<{ styleProfile: StyleProfile }>("/api/profile/style", data),
+  listAssistantProposals: () => apiFetch<{ proposals: AssistantProposal[] }>("/api/assistant/proposals"),
 
   getContentCategories: () => apiFetch<{ categories: ContentCategory[] }>("/api/profile/content-categories"),
   generateContentCategories: () => post<{ categories: ContentCategory[] }>("/api/profile/content-categories"),

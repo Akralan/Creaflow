@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { creatorProfiles, users } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
 import { listConnectedProviders } from "@/lib/services/oauthAccountService";
+import { getStyleLearningStatus } from "@/lib/services/styleLearningService";
 import { handleApiError } from "@/lib/api/errors";
 
 const profileSchema = z.object({
@@ -34,8 +35,13 @@ export async function GET() {
     // dit quel sélecteur afficher — "dev" couvre GitHub comme Linear
     // (docs/SPEC_CONNECTEURS_ET_SUJETS.md §7.2).
     const connectedProviders = await listConnectedProviders(userId);
+    // Compteur « scripts corrigés depuis la dernière analyse de style » — exposé ici parce que les
+    // deux écrans qui l'affichent (Paramètres, éditeur) appellent déjà getProfile
+    // (docs/SPEC_APPRENTISSAGE_STYLE.md §5.3).
+    const styleLearning = await getStyleLearningStatus(userId);
     return NextResponse.json({
       profile: profile ?? null,
+      styleLearning,
       vertical: user?.vertical ?? "creator",
       connectedProviders,
       // Conservé pour ne pas casser les appelants existants tant qu'ils n'ont pas basculé sur

@@ -28,6 +28,8 @@ import {
 } from "@/lib/services/sourceMaterialService";
 import { archiveSeriesForUser } from "@/lib/services/seriesService";
 import { archiveAngleForUser } from "@/lib/services/angleService";
+import { applyStyleProfile } from "@/lib/services/styleLearningService";
+import { styleProfileSchema } from "@/lib/llm/styleProfile";
 import { markStaleForMaterialIngestion } from "@/lib/services/narrativeDirector";
 import { ApiError } from "@/lib/api/errors";
 
@@ -322,6 +324,13 @@ const anglePayloadSchema = z.object({
 
 const profilePayloadSchema = z.object({
   targetAudience: z.string().min(1),
+});
+
+// Payload de style_profile_update, produit par la passe d'apprentissage (styleLearningService.ts).
+// `fields` peut porter un styleProfile retouché avant acceptation (règles décochées côté UI).
+const styleProfilePayloadSchema = z.object({
+  styleProfile: styleProfileSchema,
+  changeNotes: z.string().optional(),
 });
 
 const materialPayloadSchema = z.object({
@@ -653,6 +662,9 @@ export async function resolveProposal(
     // Une seule cible possible (le CreatorProfile de l'utilisateur, forcément déjà créé — l'assistant
     // n'est accessible qu'après l'onboarding) : pas d'upsert à gérer, contrairement aux autres kinds.
     await db.update(creatorProfiles).set({ targetAudience: data.targetAudience }).where(eq(creatorProfiles.userId, userId));
+  } else if (proposal.kind === "style_profile_update") {
+    const data = styleProfilePayloadSchema.parse(merged);
+    await applyStyleProfile(userId, data.styleProfile);
   } else {
     // posting_goal_update
     const data = postingGoalPayloadSchema.parse(merged);

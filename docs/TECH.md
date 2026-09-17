@@ -56,12 +56,13 @@ AssistantProposal (une ligne par proposition émise par l'assistant)
 - id, userId
 - kind (product_create / product_update / series_create / series_update /
         category_create / category_update / angle_create / angle_update / posting_goal_update /
-        category_reweight / profile_update /
+        category_reweight / profile_update / style_profile_update /
         material_create / material_update / material_delete /
         series_archive / category_archive / angle_archive)
 - targetId (nullable — id de l'entité ciblée si action="update", pas de FK typée : la cible dépend de `kind`.
   Toujours null pour category_reweight, qui porte plusieurs catégories dans son payload, comme posting_goal_update
-  et profile_update — une seule cible possible pour ce dernier, le CreatorProfile de l'utilisateur.)
+  profile_update et style_profile_update — une seule cible possible pour ces deux derniers, le CreatorProfile de l'utilisateur.
+  style_profile_update porte `{ styleProfile, changeNotes }` ; une seule en attente à la fois, la suivante remplace la précédente.)
 - payload (jsonb — contenu de la proposition)
 - status (pending / accepted / rejected)
 - createdAt, resolvedAt
@@ -79,7 +80,9 @@ CreatorProfile (1:1 avec User)
 - targetAudience (texte libre, nullable — qui achète/lit, ce qui l'intéresse, ce qu'il doit retenir ;
   extrait de l'onboarding ou édité en paramètres, `docs/SPEC_PROMPT_GENERATION_TECH.md` §5. Fallback
   quand Product.targetAudience est absent, cf. §5.1)
-- styleProfile (jsonb, nullable — résumé de style généré par IA à partir des InspirationVideo)
+- styleProfile (jsonb, nullable — `docs/SPEC_APPRENTISSAGE_STYLE.md` §2 : voix `{tone, sentenceLength, emojiUsage, vocabulary, summary}`
+  + corrections apprises `rules[{text, platform|null}]` (≤ 12), `avoid[]`, `prefer[]`, `evidence{scriptCount, learnedAt}`.
+  Un profil antérieur au chantier n'a que la voix : lecture tolérante par `parseStoredStyleProfile`, listes vides par défaut.)
 - styleProfileUpdatedAt
 
 ContentCategory (rôle éditorial, ex: promotionnel / coulisses / éducatif — personnalisé par IA par utilisateur)
@@ -270,8 +273,10 @@ Aucune contrainte `NOT NULL` ne force l'un ou l'autre sens.
 - `POST /api/onboarding/chat` `{ message }` — envoie un message utilisateur, fait tourner l'IA (`runOnboardingChatTurn`), fusionne les champs extraits sur l'état accumulé (`mergeExtractedProfile` — n'écrase jamais un champ connu par une valeur vide), et **si `complete=true`**, déclenche automatiquement `finalizeOnboarding` : persiste `CreatorProfile`, génère catégories + angles + séries (si aucune n'existe déjà), crée les `PostingGoal` par défaut sur les plateformes suggérées. Un seul aller-retour. Les séries générées ne restent pas silencieuses : la réponse porte aussi `series` (id, label, description, mode, rôle), que l'UI affiche en cartes cochables (`SeriesPicker`, tout coché par défaut) — l'utilisateur choisit celles qu'il garde avant de continuer.
 - `POST /api/onboarding/series-selection` `{ keptIds }` — applique ce choix : archive les séries actives non gardées (`keepOnlySeries`, id inconnu → 404). Au moins un id (400 sinon) ; l'UI n'appelle pas la route si tout est gardé.
 - `GET/PUT/DELETE /api/products`, `/api/products/:id` — catalogue produits (3 à 5, bulk POST accepté). `PUT` accepte aussi `targetAudience` (nullable — override d'audience par sujet, `docs/SPEC_PROMPT_GENERATION_TECH.md` §5).
-- `GET /api/auth/:platform/connect` → redirection OAuth (state + returnTo en cookies httpOnly) ; `GET /api/auth/:platform/callback` → crée/rafraîchit la `SocialConnection`, récupère les posts récents (`InspirationVideo`), **puis déclenche automatiquement `updateStyleProfileForUser`** — aucun appel supplémentaire requis depuis le front. Un échec de récupération des posts n'invalide pas la connexion.
-- `POST /api/profile/style-analysis` — force un recalcul manuel du `style_profile`.
+- `GET /api/auth/:platform/connect` → redirection OAuth (state + returnTo en cookies httpOnly) ; `GET /api/auth/:platform/callback` → crée/rafraîchit la `SocialConnection`, récupère les posts récents (`InspirationVideo`), **puis lance une passe d'apprentissage du style** (`runStyleLearningPass`) — aucun appel supplémentaire requis depuis le front. Un échec de récupération des posts n'invalide pas la connexion.
+- `POST /api/profile/style-analysis` — passe d'apprentissage du style (§5.5). Body optionnel `{ includeLearned }`. Renvoie `profile`, `styleLearning` (compteur), `proposalId` (null si écriture directe), `changeNotes`, `proposedStyleProfile`.
+- `PATCH /api/profile/style` — édition manuelle de `rules` / `avoid` / `prefer` (mêmes plafonds que le schéma).
+- `GET /api/assistant/proposals` — propositions en attente, pour les écrans hors `/assistant` (Paramètres affiche celle du style).
 
 ### Direction éditoriale (Module E) — écran `/direction`
 - `GET/POST /api/profile/content-categories` — `GET` liste les catégories actives ; `POST` avec corps régénère intégralement via IA (`generateCategoriesForUser`, archive l'ancien jeu actif) ; `POST` avec corps `{ categories: [...] }` valide et sauvegarde une édition manuelle (`saveCategoriesForUser`, poids renormalisés).
@@ -326,7 +331,7 @@ Assistant **agentique** (`docs/SPEC_ASSISTANT_AGENTIQUE.md`) : il lit tout l'esp
 - `POST /api/performance/match-candidates/:id/resolve` `{ action: "confirm"|"dismiss" }` — `confirm` upsert `PostMetrics` (`source="api"`) depuis les métriques déjà capturées sur le candidat + insère un `PostMetricsSnapshot` ; `dismiss` marque le candidat comme définitivement écarté. Les deux statuts sont terminaux.
 
 ### Paramètres / connexions sociales — écran `/settings`
-- `GET/POST /api/profile` — lecture/écriture du `CreatorProfile` (identité de marque), y compris `targetAudience` (`docs/SPEC_PROMPT_GENERATION_TECH.md` §5).
+- `GET/POST /api/profile` — lecture/écriture du `CreatorProfile` (identité de marque), y compris `targetAudience` (`docs/SPEC_PROMPT_GENERATION_TECH.md` §5). Le `GET` renvoie aussi `styleLearning: { pendingScripts, lastLearnedAt, pendingProposalId }` — le compteur « scripts corrigés depuis la dernière analyse », lu par Paramètres et par l'éditeur (bandeau au passage en tourné/publié, seuil 5).
 - `GET /api/connections` — statut de connexion par plateforme, un seul appel : `connected`, `status` (`ok`/`needs_reconnect`/`null`), `hasMetricsFetch`. Les plateformes affichées sont l'union des `PostingGoal` définis et des `SocialConnection` existantes ; avant tout onboarding, retombe sur les plateformes à OAuth du registre.
 
 ---
@@ -371,8 +376,12 @@ Contraintes explicites du prompt : ne jamais inventer d'info non fournie ; ne ja
 
 Fenêtre d'historique bornée par le volume (24 000 caractères, minimum 6 messages) et non par un nombre fixe de messages, qui coupait le début d'une conversation longue en silence.
 
-### 5.5 Analyse de style — `src/lib/llm/styleProfile.ts`
-Un appel dédié (`analyzeStyle`) résume les légendes des `InspirationVideo` récupérées après connexion OAuth en un `StyleProfile` structuré (ton, longueur de phrase, usage d'emojis, vocabulaire, résumé de 2-3 phrases). Déclenché automatiquement au callback OAuth (si des posts sont récupérés) et manuellement via `POST /api/profile/style-analysis`. Le résumé (pas le texte brut) est réinjecté à chaque génération de script — coût réduit, cohérence de ton stable.
+### 5.5 Apprentissage du style — `src/lib/llm/styleLearning.ts` + `styleProfile.ts` + `styleLearningService.ts`
+Cadrage : `docs/SPEC_APPRENTISSAGE_STYLE.md`. Une passe = un appel `callStructured` (tool `learn_style`) qui reçoit le profil courant, jusqu'à 15 **corrections** (scripts `origin="generated"` finalisés — `shot`/`published` — dont la version finale diffère de `firstDraftSnapshot`, en AVANT/APRÈS bloc par bloc, `diffScript`), jusqu'à 5 **échantillons de voix** (scripts `imported`/`manual` finalisés) et, en repli seulement, les légendes des `InspirationVideo`. Les **statistiques** (emojis retirés, hook raccourci, question d'ouverture supprimée, hashtags, exclamations) sont calculées en TypeScript (`computeEditStats`, testé) : le modèle interprète, il ne compte pas. Il renvoie la voix + des **règles impératives** (≤ 12, plateforme optionnelle), `avoid`, `prefer` et un `changeNotes` lisible.
+
+Sortie : une proposition `style_profile_update` à valider (règles décochables avant acceptation), sauf s'il n'existait aucun profil — écriture directe, rien à protéger. Les scripts lus reçoivent `styleLearnedAt`, que la proposition soit acceptée ou non. Déclenchement paresseux, aucun cron : bouton dans Paramètres, bandeau dans l'éditeur à partir de 5 scripts finalisés non appris, callback OAuth, ou suggestion de l'assistant (qui lit `styleLearning.pendingScripts` via `read_profile` mais ne lance rien).
+
+Injection : `buildStyleBlock(profile, platform)` produit un bloc `=== STYLE ===` (voix, règles globales + celles de la plateforme cible, à bannir, à privilégier), inséré dans `buildScriptUserMessage` (donc génération complète, « autre idée », série depuis la matière, régénération de bloc) **et** dans les deux gestes de micro-retouche (§5.11), qui ignoraient le style auparavant.
 
 ### 5.6 Suggestion de catégories / angles / séries (direction éditoriale initiale)
 - `src/lib/llm/categoryLabels.ts` — 2 à 6 catégories adaptées au métier décrit (pas de triptyque fixe imposé), poids normalisés à 100 après génération.
@@ -437,7 +446,7 @@ Un seul tool (`record_interview_turn`) renvoie la question suivante (`assistantR
 
 ### 5.11 Micro-retouches — `src/lib/llm/microEdit.ts` + `microEditService.ts`
 Deux gestes contraints, jamais une régénération de structure complète (`docs/SPEC_MATIERE_EDITEUR.md` §4.4). Le vrai geste d'édition du corps, en usage réel, c'est le premier — petit bout par petit bout, pas une régénération à l'aveugle en espérant un bon résultat (constat direct, a fait retirer le bouton de régénération du bloc "Texte", cf. plus bas) :
-- **Sélection→instruction** (`rewrite_selection`) — reformule (ou supprime, cf. plus bas) uniquement le passage sélectionné selon l'instruction libre. Reçoit, comme la génération complète, le contexte marque/ton **et la matière du sujet** (`getMaterialForSubject`) — sans elle, une instruction du type « base-toi sur le premier run » ou « parle plutôt de X » serait impossible à honorer, faute de corpus où piocher. Reçoit `EDITORIAL_WRITING_RULES` (§5.1) mais **pas** le `concept` du script ni les règles stratégiques du system prompt complet (`docs/SPEC_PROMPT_GENERATION_TECH.md` §1 tableau "Portée des règles") — geste de mots, pas d'intention. Rapporte `usedExcerpts` (`strict: true`, même garantie qu'en §5.8) ; `microEditService.ts::applySelectionInstruction` appelle ensuite `citationService.ts::reconcileCitationsAfterEdit` (§5.9) pour tenir les citations à jour sans effacer celles qui restent valides ailleurs dans le texte. `rewrittenText` peut être une chaîne **vide** — c'est la façon de supprimer le passage sélectionné ; le prompt interdit explicitement de le reformuler/raccourcir à la place d'une vraie suppression (un champ non-vide obligatoire produisait un rédacteur qui paraphrasait au lieu de supprimer, observé en usage réel).
+- **Sélection→instruction** (`rewrite_selection`) — reformule (ou supprime, cf. plus bas) uniquement le passage sélectionné selon l'instruction libre. Reçoit, comme la génération complète, le contexte marque/ton, le bloc `=== STYLE ===` (§5.5) **et la matière du sujet** (`getMaterialForSubject`) — sans elle, une instruction du type « base-toi sur le premier run » ou « parle plutôt de X » serait impossible à honorer, faute de corpus où piocher. Reçoit `EDITORIAL_WRITING_RULES` (§5.1) mais **pas** le `concept` du script ni les règles stratégiques du system prompt complet (`docs/SPEC_PROMPT_GENERATION_TECH.md` §1 tableau "Portée des règles") — geste de mots, pas d'intention. Rapporte `usedExcerpts` (`strict: true`, même garantie qu'en §5.8) ; `microEditService.ts::applySelectionInstruction` appelle ensuite `citationService.ts::reconcileCitationsAfterEdit` (§5.9) pour tenir les citations à jour sans effacer celles qui restent valides ailleurs dans le texte. `rewrittenText` peut être une chaîne **vide** — c'est la façon de supprimer le passage sélectionné ; le prompt interdit explicitement de le reformuler/raccourcir à la place d'une vraie suppression (un champ non-vide obligatoire produisait un rédacteur qui paraphrasait au lieu de supprimer, observé en usage réel).
 - **Régénération d'un bloc** (`regenerate_hook`/`regenerate_storyboard`/`regenerate_hashtags`, `toolForBlock`) — reconstruit le contexte complet (`buildGenerationContext`, `excludeScriptId`) mais ne demande au LLM que le bloc visé ; hérite du system prompt complet v2 (`SCRIPT_SYSTEM_PROMPT`, donc `EDITORIAL_WRITING_RULES` incluse) plus une ligne de contexte dédiée si `Script.concept` existe : « Intention du script (le bloc régénéré doit rester cohérent avec elle) : … » — le concept n'est jamais réécrit par ce geste (lecture seule), même logique pour `regenerate_caption`. Cas particulier `hook` en `contentType="text"` : l'accroche est la première phrase du texte, donc ce geste reçoit le **texte actuel du script comme référence fixe** (jamais reconstruit à l'aveugle) et ajuste l'accroche en conséquence ; le titre est renvoyé dans le même appel mais seulement modifié **si nécessaire** (le tool peut renvoyer le titre actuel inchangé — champ `required` pour la fiabilité, valeur libre pour la sémantique « si besoin »), pour éviter qu'il reste sur un ancien sujet après plusieurs éditions du corps. `regenerate_caption` existe toujours côté service (fallback générique, contexte reconstruit comme les autres blocs) mais n'a plus de bouton pour `contentType="text"` — jugé inutile en usage réel, retiré pour ne pas garder du code mort en façade.
 
 ### 5.12 Découpage en épisodes de série — `src/lib/llm/materialEpisodes.ts`
@@ -558,4 +567,4 @@ Les sélecteurs ne sont pas réservés à l'onboarding : paramètres > Sujets af
 - `withSentryConfig` (upload de source maps) à ajouter une fois un projet Sentry réel créé — probablement au moment du chantier CI/CD, pour l'intégrer à la pipeline de build plutôt qu'en config locale.
 - Chiffrage du pool micro-retouches (`microEditsPerMonth`, `FREE_TRIAL_MICRO_EDIT_LIMIT`) posé par défaut (x5/x4 le quota scripts) — à recaler une fois les coûts réels par provider observés en usage (`docs/SPEC_MATIERE_EDITEUR.md` §8.5).
 - Seuil de suffisance de matière du générateur de calendrier (`MIN_MATERIAL_UNITS_FOR_SUFFICIENCY=5`, global à l'utilisateur, pas par sujet — le calendrier n'assigne pas encore de sujet par créneau) — heuristique de départ, à affiner avec la télémétrie d'usage.
-- Passe d'apprentissage `style_profile` à partir de `Script.firstDraftSnapshot` — gisement stocké depuis la V1 de l'éditeur (§4.7), non exploité : reste à implémenter (recalcul proposé tous les N scripts finalisés, ou déclenchement manuel).
+- Seuil de suggestion de la passe d'apprentissage du style (5 scripts finalisés non appris, `STYLE_LEARNING_SUGGESTION_THRESHOLD`) — valeur de départ, à ajuster après usage (`docs/SPEC_APPRENTISSAGE_STYLE.md` §10).

@@ -86,6 +86,9 @@ export const rewriteSelectionResultSchema = z.object({
 
 export function buildRewriteSelectionUserMessage(params: {
   brandContext: string;
+  /** Bloc `=== STYLE ===` (buildStyleBlock) — les règles apprises valent aussi pour une retouche
+   *  de phrase (docs/SPEC_APPRENTISSAGE_STYLE.md §5.4). Chaîne vide si aucun profil. */
+  styleBlock?: string;
   selectedText: string;
   instruction: string;
   currentTitle?: string | null;
@@ -93,6 +96,7 @@ export function buildRewriteSelectionUserMessage(params: {
 }): string {
   const lines = [
     params.brandContext,
+    params.styleBlock ?? "",
     params.currentTitle ? `Titre actuel : ${params.currentTitle}` : "",
     `Passage sélectionné à retoucher : "${params.selectedText}"`,
     `Instruction : ${params.instruction}`,
