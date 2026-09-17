@@ -209,9 +209,26 @@ Script (document co-écrit — Module B, docs/SPEC_MATIERE_EDITEUR.md §4)
 - origin (generated / imported / manual, défaut "generated" — "imported" = POST /api/scripts/import,
   écriture ailleurs ; "manual" = naissance paresseuse dans l'éditeur ; n'affecte ni quota ni anti-répétition)
 - firstDraftSnapshot (jsonb, nullable — gisement de la donnée de voix, §4.7 : colonnes de blocs telles
-  que générées, capturées une seule fois si origin="generated", jamais réécrites ensuite ; V1 stocke
-  seulement, n'exploite pas encore)
+  que générées, capturées une seule fois si origin="generated", jamais réécrites ensuite ; exploité
+  par la passe d'apprentissage du style, §5.5)
+- styleLearnedAt (timestamp, nullable — posé par la passe d'apprentissage du style qui a lu ce
+  script ; null = pas encore lu. Le compteur « scripts corrigés depuis la dernière analyse » est une
+  requête sur cette colonne)
 - createdAt, updatedAt (mis à jour explicitement à chaque écriture de contenu, pas de trigger DB)
+
+VisualDesign (`visual_designs` — maquette d'un post visuel, `docs/SPEC_DESIGN_HTML_SUR_IMAGE.md` §4 ;
+une seule version courante par script, la jointure part d'ici)
+- id, userId, scriptId (UNIQUE, cascade)
+- baseKind (generated / asset / none), baseGeneratedImageId (set null), baseAssetId (set null)
+- width, height — format de la slide (`src/lib/visualDesign/formats.ts`)
+- theme (jsonb — { palette[], fontHeading, fontBody, mood })
+- slides (jsonb — [{ planNumber, html, exportKey|null }], html déjà passé par la liste blanche)
+- status (draft / stale / exported — stale quand les mots du storyboard ont changé)
+- lastInstruction, containsAiImagery (vrai si la base est une image générée — AI Act art. 50)
+- createdAt, updatedAt
+
+CreatorProfile.brandKit (jsonb, nullable — identité de marque des maquettes :
+{ primaryColor, secondaryColor, accentColor, fontHeading, fontBody, logoAssetId }, tout optionnel)
 
 ScriptGenerationEvent (une ligne par génération OU régénération — jamais mise à jour, jamais lue
 ailleurs que par le quota de facturation)
@@ -316,6 +333,15 @@ Assistant **agentique** (`docs/SPEC_ASSISTANT_AGENTIQUE.md`) : il lit tout l'esp
 - `POST /api/scripts/import` `{ platform, contentCategoryId, contentType, productId?, seriesId?, scheduledDate? XOR calendarEntryId?, title?, caption?, hashtags, ... }` — crée un script sans appel LLM : `origin="imported"` pour un texte écrit ailleurs (§2), `origin="manual"` (même service, appelé par la page `/scripts/new`) pour la naissance paresseuse d'un créneau — au moins un champ de contenu requis, mais titre et légende peuvent chacun démarrer vides. Aucun `ScriptGenerationEvent`.
 - `GET /api/calendar/:id` — lecture unitaire d'un créneau (nécessaire pour charger le brief avant qu'un Script n'existe, naissance paresseuse) ; seul `GET /api/calendar?month=` existait jusque-là.
 - `PUT /api/scripts/:id/metrics` `{ views?, likes?, comments?, shares? }` — upsert manuel des métriques (`PostMetrics`, `source` forcé à `"manual"`). Cohabite avec la récupération automatique (`source="api"`) — nécessaire pour Newsletter/Blog/Slack/Autre et pour LinkedIn/X tant qu'ils ne sont pas débloqués.
+- **Maquette du post visuel** (`docs/SPEC_DESIGN_HTML_SUR_IMAGE.md`, `visualDesignService.ts`) — `GET /api/scripts/:id` joint `visualDesign` (slides HTML + URLs d'export) :
+  - `POST /api/scripts/:id/design` `{ baseKind: "generated" | "asset" | "none", baseAssetId?, format? }` — composition par l'agent (§5.14), remplace la version courante. Rate limit 10/min, non compté.
+  - `POST /api/scripts/:id/design/instruct` `{ instruction, planNumber? }` — révision par l'agent, une slide ou toutes ; **compte une micro-retouche** (`script_micro_edit_events.kind = "design_instruction"`).
+  - `PATCH /api/scripts/:id/design` `{ slides?: [{ planNumber, html }], theme? }` — retouche manuelle : la liste complète des slides, chaque HTML repassé par la liste blanche (422 avec la liste des problèmes sinon). Une slide inchangée garde son export.
+  - `POST /api/scripts/:id/design/export` (multipart, `slide-<n>`) — PNG rendus par le navigateur, stockés sur R2 `designs/{userId}/{designId}/…` ; statut `exported` quand toutes les slides le sont.
+  - `GET /api/scripts/:id/design/base`, `GET …/design/logo` — octets de l'image de base et du logo, same-origin (le canevas et `html-to-image` les lisent sans CORS).
+  - `DELETE /api/scripts/:id/design`.
+  - `PATCH /api/profile/brand-kit` — identité de marque `{ primaryColor, secondaryColor, accentColor, fontHeading, fontBody, logoAssetId }` (toutes optionnelles).
+  Un `PATCH /api/scripts/:id` qui touche `title`/`hookVisual`/`storyboard` passe la maquette en `stale` (badge, jamais bloquant).
 
 ### Corpus de matière (Module B) — panneau par sujet, `docs/SPEC_MATIERE_EDITEUR.md` §3 (amendement)
 - `GET/POST /api/materials?productId=` — liste / dépôt de texte collé (`SourceMaterial`, `kind="paste"`). Le `POST` insère et répond immédiatement — pas de pipeline asynchrone, un dépôt est utilisable dès sa création.
@@ -448,6 +474,13 @@ Un seul tool (`record_interview_turn`) renvoie la question suivante (`assistantR
 Deux gestes contraints, jamais une régénération de structure complète (`docs/SPEC_MATIERE_EDITEUR.md` §4.4). Le vrai geste d'édition du corps, en usage réel, c'est le premier — petit bout par petit bout, pas une régénération à l'aveugle en espérant un bon résultat (constat direct, a fait retirer le bouton de régénération du bloc "Texte", cf. plus bas) :
 - **Sélection→instruction** (`rewrite_selection`) — reformule (ou supprime, cf. plus bas) uniquement le passage sélectionné selon l'instruction libre. Reçoit, comme la génération complète, le contexte marque/ton, le bloc `=== STYLE ===` (§5.5) **et la matière du sujet** (`getMaterialForSubject`) — sans elle, une instruction du type « base-toi sur le premier run » ou « parle plutôt de X » serait impossible à honorer, faute de corpus où piocher. Reçoit `EDITORIAL_WRITING_RULES` (§5.1) mais **pas** le `concept` du script ni les règles stratégiques du system prompt complet (`docs/SPEC_PROMPT_GENERATION_TECH.md` §1 tableau "Portée des règles") — geste de mots, pas d'intention. Rapporte `usedExcerpts` (`strict: true`, même garantie qu'en §5.8) ; `microEditService.ts::applySelectionInstruction` appelle ensuite `citationService.ts::reconcileCitationsAfterEdit` (§5.9) pour tenir les citations à jour sans effacer celles qui restent valides ailleurs dans le texte. `rewrittenText` peut être une chaîne **vide** — c'est la façon de supprimer le passage sélectionné ; le prompt interdit explicitement de le reformuler/raccourcir à la place d'une vraie suppression (un champ non-vide obligatoire produisait un rédacteur qui paraphrasait au lieu de supprimer, observé en usage réel).
 - **Régénération d'un bloc** (`regenerate_hook`/`regenerate_storyboard`/`regenerate_hashtags`, `toolForBlock`) — reconstruit le contexte complet (`buildGenerationContext`, `excludeScriptId`) mais ne demande au LLM que le bloc visé ; hérite du system prompt complet v2 (`SCRIPT_SYSTEM_PROMPT`, donc `EDITORIAL_WRITING_RULES` incluse) plus une ligne de contexte dédiée si `Script.concept` existe : « Intention du script (le bloc régénéré doit rester cohérent avec elle) : … » — le concept n'est jamais réécrit par ce geste (lecture seule), même logique pour `regenerate_caption`. Cas particulier `hook` en `contentType="text"` : l'accroche est la première phrase du texte, donc ce geste reçoit le **texte actuel du script comme référence fixe** (jamais reconstruit à l'aveugle) et ajuste l'accroche en conséquence ; le titre est renvoyé dans le même appel mais seulement modifié **si nécessaire** (le tool peut renvoyer le titre actuel inchangé — champ `required` pour la fiabilité, valeur libre pour la sémantique « si besoin »), pour éviter qu'il reste sur un ancien sujet après plusieurs éditions du corps. `regenerate_caption` existe toujours côté service (fallback générique, contexte reconstruit comme les autres blocs) mais n'a plus de bouton pour `contentType="text"` — jugé inutile en usage réel, retiré pour ne pas garder du code mort en façade.
+
+### 5.14 Maquette du post visuel — `src/lib/llm/designPrompts.ts` + `src/lib/visualDesign/` + `visualDesignService.ts`
+Cadrage : `docs/SPEC_DESIGN_HTML_SUR_IMAGE.md`. Un tool `design_visual_post` renvoie un thème (palette, deux polices, ambiance) et **une slide HTML par entrée du storyboard**. Contrat imposé par le system prompt et vérifié par la **liste blanche** (`htmlSanitizer.ts`, parseur maison, testé) : un `<div>` racine à la taille du canevas, chaque enfant direct est un calque `position:absolute` avec `data-layer`/`data-type`, balises et propriétés CSS fermées, aucune URL (seuls `{{BASE_IMAGE}}` et `{{LOGO}}`), polices dans la liste de `fonts.ts`, ≤ 12 calques et ≤ 24 Ko par slide. Un refus renvoie le rapport au modèle pour une seconde tentative. La même liste blanche s'applique aux retouches manuelles (`PATCH`). Le HTML stocké est la seule représentation, sous forme canonique.
+
+Contexte du prompt : format par plateforme (`formats.ts`), identité de marque (`brandKit.ts`) ou, à défaut, description IA de l'image de base (`brandAssets.aiDescription` + instruction de mise en scène), verticale de l'utilisateur (phrase d'orientation par verticale, aucune table). Révision : même tool avec l'instruction, la portée et le HTML courant ; les slides hors portée restent celles d'avant quoi que renvoie le modèle.
+
+Rendu et export **dans le navigateur** (`src/components/DesignEditor/`) : le HTML stocké est traduit au rendu (`designDom.ts` — placeholders → routes same-origin, `font-family:Inter` → `var(--font-design-inter)` posé par `next/font` dans `layout.tsx`), injecté dans un canevas mis à l'échelle et manipulé à la main (sélection, déplacement, redimensionnement, texte en place, inspecteur, undo/redo local) ; l'export passe par `html-to-image` sur un clone à taille native, puis `fflate` pour le zip. Ce choix garantit que l'aperçu et le PNG viennent du même moteur ; `next/og` (satori) a été écarté pour cette raison.
 
 ### 5.12 Découpage en épisodes de série — `src/lib/llm/materialEpisodes.ts`
 Un seul tool (`propose_series_episodes`) reçoit le texte brut complet du sujet (concaténation des

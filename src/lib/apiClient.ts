@@ -125,6 +125,50 @@ export interface CreatorProfile {
   targetAudience: string | null;
   styleProfile: StyleProfile | null;
   styleProfileUpdatedAt: string | null;
+  /** Identité de marque des maquettes (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2), null tant que rien n'est défini. */
+  brandKit?: BrandKit | null;
+}
+
+export interface BrandKit {
+  primaryColor: string | null;
+  secondaryColor: string | null;
+  accentColor: string | null;
+  fontHeading: string | null;
+  fontBody: string | null;
+  logoAssetId: string | null;
+}
+
+export interface DesignTheme {
+  palette: string[];
+  fontHeading: string;
+  fontBody: string;
+  mood: string;
+}
+
+export interface DesignSlide {
+  planNumber: number;
+  /** HTML passé par la liste blanche côté serveur — placeholders {{BASE_IMAGE}} / {{LOGO}} non résolus. */
+  html: string;
+  exportKey: string | null;
+  exportUrl: string | null;
+}
+
+/** Maquette d'un post visuel (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §4). */
+export interface VisualDesign {
+  id: string;
+  scriptId: string;
+  baseKind: "generated" | "asset" | "none";
+  baseGeneratedImageId: string | null;
+  baseAssetId: string | null;
+  width: number;
+  height: number;
+  theme: DesignTheme;
+  slides: DesignSlide[];
+  status: "draft" | "stale" | "exported";
+  lastInstruction: string | null;
+  containsAiImagery: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /** Miroir de styleProfileSchema (src/lib/llm/styleProfile.ts). Les listes peuvent manquer sur un
@@ -305,6 +349,8 @@ export interface Script {
   generatedImageId: string | null;
   /** Présent (avec `url`) uniquement sur la fiche script détaillée (GET /api/scripts/:id). */
   generatedImage?: GeneratedImage | null;
+  /** Maquette du post visuel — fiche détaillée uniquement, null tant qu'aucune n'a été composée. */
+  visualDesign?: VisualDesign | null;
   /** Matière utilisée pour ce script — présent uniquement sur la fiche détaillée. */
   citations?: Citation[];
   /** Id du beat du plan narratif dont ce script est issu (docs/SPEC_REDACTEUR_EN_CHEF.md §2/§4.1.6) —
@@ -533,6 +579,25 @@ export const api = {
     }>("/api/profile/style-analysis", options ?? {}),
   updateStyleLists: (data: { rules?: StyleRule[]; avoid?: string[]; prefer?: string[] }) =>
     patch<{ styleProfile: StyleProfile }>("/api/profile/style", data),
+  saveBrandKit: (data: BrandKit) => patch<{ brandKit: BrandKit }>("/api/profile/brand-kit", data),
+
+  // Maquette d'un post visuel (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §5.3)
+  createDesign: (scriptId: string, data: { baseKind: "generated" | "asset" | "none"; baseAssetId?: string | null; format?: string }) =>
+    post<{ design: VisualDesign; rationale: string }>(`/api/scripts/${scriptId}/design`, data),
+  instructDesign: (scriptId: string, data: { instruction: string; planNumber?: number | null }) =>
+    post<{ design: VisualDesign; rationale: string }>(`/api/scripts/${scriptId}/design/instruct`, data),
+  patchDesign: (scriptId: string, data: { slides?: { planNumber: number; html: string }[]; theme?: DesignTheme }) =>
+    patch<{ design: VisualDesign }>(`/api/scripts/${scriptId}/design`, data),
+  deleteDesign: (scriptId: string) => del<{ ok: true }>(`/api/scripts/${scriptId}/design`),
+  exportDesign: async (scriptId: string, files: { planNumber: number; blob: Blob }[]) => {
+    const formData = new FormData();
+    for (const f of files) formData.append(`slide-${f.planNumber}`, f.blob, `slide-${f.planNumber}.png`);
+    // Multipart : le navigateur fixe la frontière lui-même (cf. uploadAssets).
+    const res = await fetch(`/api/scripts/${scriptId}/design/export`, { method: "POST", body: formData });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) throw new ApiClientError(body?.error || `Erreur ${res.status}`);
+    return body as { design: VisualDesign };
+  },
   listAssistantProposals: () => apiFetch<{ proposals: AssistantProposal[] }>("/api/assistant/proposals"),
 
   getContentCategories: () => apiFetch<{ categories: ContentCategory[] }>("/api/profile/content-categories"),

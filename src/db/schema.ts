@@ -65,7 +65,11 @@ export const socialConnectionStatusEnum = pgEnum("social_connection_status", ["o
 export const postMetricsSourceEnum = pgEnum("post_metrics_source", ["manual", "api"]);
 export const postMatchCandidateStatusEnum = pgEnum("post_match_candidate_status", ["pending", "confirmed", "dismissed"]);
 export const scriptOriginEnum = pgEnum("script_origin", ["generated", "imported", "manual"]);
-export const scriptMicroEditKindEnum = pgEnum("script_micro_edit_kind", ["selection_instruction", "block_regenerate"]);
+// "design_instruction" = instruction à l'agent sur la maquette d'un post visuel
+// (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2 « Quota ») — même pool que les retouches de texte.
+export const scriptMicroEditKindEnum = pgEnum("script_micro_edit_kind", ["selection_instruction", "block_regenerate", "design_instruction"]);
+export const visualDesignBaseKindEnum = pgEnum("visual_design_base_kind", ["generated", "asset", "none"]);
+export const visualDesignStatusEnum = pgEnum("visual_design_status", ["draft", "stale", "exported"]);
 // "connector" = document miroir d'une source externe branchée (dépôt GitHub aujourd'hui), par
 // opposition aux trois portes manuelles. Voir docs/superpowers/specs/2026-08-31-onboarding-dev-github-design.md §3.3.
 export const sourceMaterialKindEnum = pgEnum("source_material_kind", ["paste", "file", "interview", "connector"]);
@@ -207,6 +211,10 @@ export const creatorProfiles = pgTable("creator_profiles", {
   targetAudience: text("target_audience"),
   styleProfile: jsonb("style_profile"),
   styleProfileUpdatedAt: timestamp("style_profile_updated_at"),
+  // Identité de marque pour les maquettes (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2) :
+  // { primaryColor, secondaryColor, accentColor, fontHeading, fontBody, logoAssetId }. Optionnel —
+  // sans elle, l'agent compose une palette à partir de la description de l'image de base.
+  brandKit: jsonb("brand_kit"),
 });
 
 export const contentCategories = pgTable("content_categories", {
@@ -624,6 +632,32 @@ export const generatedImages = pgTable("generated_images", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Maquette d'un post visuel (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §4) : une slide HTML par entrée du
+// storyboard, thème commun, rendue en PNG dans le navigateur. Une seule version courante par
+// script (script_id UNIQUE) ; la jointure part d'ici, pas de FK depuis scripts (évite une seconde
+// référence circulaire du type generatedImageId). Objet du cœur, pas d'une verticale.
+export const visualDesigns = pgTable("visual_designs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  scriptId: uuid("script_id").notNull().unique().references(() => scripts.id, { onDelete: "cascade" }),
+  baseKind: visualDesignBaseKindEnum("base_kind").notNull(),
+  baseGeneratedImageId: uuid("base_generated_image_id").references(() => generatedImages.id, { onDelete: "set null" }),
+  baseAssetId: uuid("base_asset_id").references(() => brandAssets.id, { onDelete: "set null" }),
+  width: integer("width").notNull(),
+  height: integer("height").notNull(),
+  // { palette: string[], fontHeading, fontBody, mood }
+  theme: jsonb("theme").notNull(),
+  // [{ planNumber, html, exportKey: string | null }] — html déjà passé par la liste blanche.
+  slides: jsonb("slides").notNull(),
+  status: visualDesignStatusEnum("status").notNull().default("draft"),
+  lastInstruction: text("last_instruction"),
+  // AI Act art. 50 (docs/SPEC_RESSOURCES_VISUELLES.md §6.2) : vrai si la base est une image
+  // générée — le PNG composé dans le navigateur ne conserve pas le marquage du fournisseur.
+  containsAiImagery: boolean("contains_ai_imagery").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Vue courante des métriques d'un post (1:1 avec Script). L'historique daté vit dans
 // postMetricsSnapshots ci-dessous — cette table reste la valeur "actuelle" utilisée partout
 // ailleurs dans le code (buildPerformanceSummary, categoryReweightService, etc.).
@@ -839,11 +873,18 @@ export const scriptsRelations = relations(scripts, ({ one, many }) => ({
   series: one(contentSeries, { fields: [scripts.seriesId], references: [contentSeries.id] }),
   brandAsset: one(brandAssets, { fields: [scripts.brandAssetId], references: [brandAssets.id] }),
   generatedImage: one(generatedImages, { fields: [scripts.generatedImageId], references: [generatedImages.id] }),
+  visualDesign: one(visualDesigns, { fields: [scripts.id], references: [visualDesigns.scriptId] }),
   calendarEntries: many(calendarEntries),
   metrics: one(postMetrics, { fields: [scripts.id], references: [postMetrics.scriptId] }),
   metricsSnapshots: many(postMetricsSnapshots),
   matchCandidates: many(postMatchCandidates),
   citations: many(sourceMaterialCitations),
+}));
+
+export const visualDesignsRelations = relations(visualDesigns, ({ one }) => ({
+  script: one(scripts, { fields: [visualDesigns.scriptId], references: [scripts.id] }),
+  baseGeneratedImage: one(generatedImages, { fields: [visualDesigns.baseGeneratedImageId], references: [generatedImages.id] }),
+  baseAsset: one(brandAssets, { fields: [visualDesigns.baseAssetId], references: [brandAssets.id] }),
 }));
 
 export const postMetricsRelations = relations(postMetrics, ({ one }) => ({

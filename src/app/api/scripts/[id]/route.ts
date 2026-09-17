@@ -8,6 +8,7 @@ import { ApiError, handleApiError } from "@/lib/api/errors";
 import { getObjectStorage } from "@/lib/storage";
 import { deleteScriptForUser, patchScriptContent } from "@/lib/services/scriptService";
 import { findBeatContext } from "@/lib/services/narrativeDirector";
+import { toApiDesign } from "@/lib/services/visualDesignService";
 import { storyboardStepSchema } from "@/lib/llm/scriptSchema";
 
 // Statut ET contenu (docs/SPEC_MATIERE_EDITEUR.md §4.5) — catégorie/angle/série volontairement
@@ -44,6 +45,8 @@ export async function GET(
         series: { columns: { id: true, label: true } },
         metrics: true,
         generatedImage: true,
+        // Maquette du post visuel (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §4) — jointe ici, une route par vue.
+        visualDesign: true,
         // Matière utilisée (docs/SPEC_MATIERE_EDITEUR.md §3) — traçabilité affichée sur la fiche.
         citations: { with: { sourceMaterial: { columns: { title: true } } } },
       },
@@ -60,10 +63,11 @@ export async function GET(
       ? await findBeatContext(userId, script.productId, script.seriesId, script.beatId)
       : null;
 
-    const { generatedImage, citations, ...rest } = script;
+    const { generatedImage, visualDesign, citations, ...rest } = script;
     return NextResponse.json({
       script: {
         ...rest,
+        visualDesign: visualDesign ? toApiDesign(visualDesign) : null,
         beatTitle: beat?.title ?? null,
         beatRationale: beat?.rationale ?? null,
         beatAngleHint: beat?.angleHint ?? null,
