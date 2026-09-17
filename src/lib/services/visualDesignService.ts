@@ -10,6 +10,8 @@ import { brandKitSchema, describeBrandKit, parseStoredBrandKit, type BrandKit } 
 import { DESIGN_FORMATS, defaultFormatForPlatform, type DesignFormatId } from "@/lib/visualDesign/formats";
 import { DesignValidationError, sanitizeSlideHtml } from "@/lib/visualDesign/htmlSanitizer";
 import { fetchAssetBytes, extFromMime } from "@/lib/services/brandAssetService";
+import { durationMsSchema, normalizeTimeline, TimelineValidationError, type Timeline } from "@/lib/visualDesign/timeline";
+import { visualSpecFromScript } from "@/lib/visualDesign/visualFormat";
 import type { VerticalId } from "@/lib/verticals/types";
 
 /**
@@ -28,6 +30,8 @@ type DesignRow = typeof visualDesigns.$inferSelect;
 
 export const MAX_DESIGN_SLIDES = 12;
 export const MAX_EXPORT_BYTES = 4 * 1024 * 1024;
+/** Export vidéo d'une animation (MP4) — docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §5.2. */
+export const MAX_VIDEO_EXPORT_BYTES = 40 * 1024 * 1024;
 
 export function slidesOf(row: DesignRow): DesignSlide[] {
   return (row.slides as DesignSlide[] | null) ?? [];
@@ -39,6 +43,7 @@ export function toApiDesign(row: DesignRow) {
   return {
     ...row,
     theme: row.theme as DesignTheme,
+    timeline: (row.timeline as Timeline | null) ?? null,
     slides: slidesOf(row).map((s) => ({ ...s, exportUrl: s.exportKey ? storage.getPublicUrl(s.exportKey) : null })),
   };
 }
@@ -57,7 +62,12 @@ async function loadOwnedScript(userId: string, scriptId: string) {
   return script;
 }
 
-async function loadPromptContext(userId: string, width: number, height: number): Promise<{ prompt: DesignPromptContext; brandKit: BrandKit | null; profile: typeof creatorProfiles.$inferSelect }> {
+async function loadPromptContext(
+  userId: string,
+  width: number,
+  height: number,
+  animationDurationMs: number | null = null
+): Promise<{ prompt: DesignPromptContext; brandKit: BrandKit | null; profile: typeof creatorProfiles.$inferSelect }> {
   const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
   if (!profile) throw new ApiError(400, "Profil créateur introuvable.");
   const user = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { vertical: true } });
@@ -72,6 +82,7 @@ async function loadPromptContext(userId: string, width: number, height: number):
       hasLogo,
       brandKitDescription: describeBrandKit(brandKit),
       vertical: (user?.vertical ?? "creator") as VerticalId,
+      animationDurationMs,
     },
   };
 }
@@ -84,9 +95,14 @@ export interface CreateDesignParams {
 
 export async function createDesignForScript(userId: string, scriptId: string, params: CreateDesignParams) {
   const script = await loadOwnedScript(userId, scriptId);
-  const formatId = params.format ?? defaultFormatForPlatform(script.platform);
+  // Animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §5.2) : une seule slide, vertical par défaut,
+  // durée reprise du script.
+  const visualSpec = visualSpecFromScript(script);
+  const isAnimation = visualSpec?.format === "animation";
+  const formatId = params.format ?? (isAnimation ? "story" : defaultFormatForPlatform(script.platform));
   const format = DESIGN_FORMATS[formatId];
-  const { prompt, profile } = await loadPromptContext(userId, format.width, format.height);
+  const animationDurationMs = isAnimation ? (visualSpec?.durationMs ?? null) : null;
+  const { prompt, profile } = await loadPromptContext(userId, format.width, format.height, animationDurationMs);
 
   // Base de la slide : photo générée (pipeline existant), photo de la bibliothèque, ou rien.
   let baseGeneratedImageId: string | null = null;
@@ -136,6 +152,8 @@ export async function createDesignForScript(userId: string, scriptId: string, pa
 
   const slides: DesignSlide[] = result.slides.map((s) => ({ ...s, exportKey: null }));
   const values = {
+    durationMs: animationDurationMs,
+    timeline: result.timeline,
     userId,
     scriptId,
     baseKind: params.baseKind,
@@ -162,7 +180,7 @@ export async function createDesignForScript(userId: string, scriptId: string, pa
 export async function instructDesign(userId: string, scriptId: string, params: { instruction: string; planNumber?: number | null }) {
   const design = await getDesignForScript(userId, scriptId);
   if (!design) throw new ApiError(404, "Pas de maquette pour ce script.");
-  const { prompt } = await loadPromptContext(userId, design.width, design.height);
+  const { prompt } = await loadPromptContext(userId, design.width, design.height, design.durationMs);
   const current = slidesOf(design);
   const planNumber = params.planNumber ?? null;
   if (planNumber !== null && !current.some((s) => s.planNumber === planNumber)) {
@@ -174,6 +192,7 @@ export async function instructDesign(userId: string, scriptId: string, params: {
     planNumber,
     theme: design.theme as DesignTheme,
     slides: current.map((s) => ({ planNumber: s.planNumber, html: s.html })),
+    timeline: (design.timeline as Timeline | null) ?? null,
   });
   // Les slides hors portée restent celles d'avant, quoi qu'ait renvoyé le modèle ; les exports des
   // slides modifiées sont invalidés.
@@ -196,6 +215,7 @@ export async function instructDesign(userId: string, scriptId: string, params: {
     .update(visualDesigns)
     .set({
       theme: planNumber === null ? result.theme : design.theme,
+      timeline: design.durationMs ? (result.timeline ?? design.timeline) : null,
       slides,
       lastInstruction: params.instruction,
       status: design.status === "stale" ? "stale" : "draft",
@@ -210,6 +230,9 @@ export async function instructDesign(userId: string, scriptId: string, params: {
 export interface PatchDesignParams {
   slides?: { planNumber: number; html: string }[];
   theme?: unknown;
+  /** Animation : ligne de temps et durée retouchées à la main (§6). */
+  timeline?: unknown;
+  durationMs?: number;
 }
 
 /** Retouche manuelle : le client envoie le HTML des slides touchées, le serveur le repasse par la liste blanche. */
@@ -243,9 +266,23 @@ export async function patchDesign(userId: string, scriptId: string, params: Patc
     if (slides.length === 0) throw new ApiError(400, "Une maquette garde au moins une slide.");
   }
   const theme = params.theme !== undefined ? designThemeSchema.parse(params.theme) : (design.theme as DesignTheme);
+  // Ligne de temps (animation) : revalidée contre les calques de la slide finale et la durée.
+  let durationMs = design.durationMs;
+  let timeline = (design.timeline as Timeline | null) ?? null;
+  if (design.durationMs) {
+    if (params.durationMs !== undefined) durationMs = durationMsSchema.parse(params.durationMs);
+    const raw = params.timeline !== undefined ? params.timeline : timeline;
+    const layerIds = sanitizeSlideHtml(slides[0].html, { width: design.width, height: design.height, hasLogo }).layerIds;
+    try {
+      timeline = normalizeTimeline(raw ?? [], layerIds, durationMs!);
+    } catch (err) {
+      if (err instanceof TimelineValidationError) throw new ApiError(422, `Ligne de temps refusée : ${err.issues.join(" · ")}`);
+      throw err;
+    }
+  }
   const [row] = await db
     .update(visualDesigns)
-    .set({ slides, theme, status: design.status === "stale" ? "stale" : "draft", updatedAt: new Date() })
+    .set({ slides, theme, timeline, durationMs, status: design.status === "stale" ? "stale" : "draft", updatedAt: new Date() })
     .where(eq(visualDesigns.id, design.id))
     .returning();
   return row;
@@ -295,7 +332,8 @@ export async function storeDesignExports(userId: string, scriptId: string, files
   for (const file of files) {
     const slide = slides.find((s) => s.planNumber === file.planNumber);
     if (!slide) throw new ApiError(400, `Slide ${file.planNumber} inconnue.`);
-    if (file.bytes.length > MAX_EXPORT_BYTES) throw new ApiError(413, `Slide ${file.planNumber} : fichier trop lourd.`);
+    const limit = file.mimeType.startsWith("video/") ? MAX_VIDEO_EXPORT_BYTES : MAX_EXPORT_BYTES;
+    if (file.bytes.length > limit) throw new ApiError(413, `Slide ${file.planNumber} : fichier trop lourd.`);
     if (slide.exportKey) await storage.delete(slide.exportKey).catch(() => {});
     const key = `designs/${userId}/${design.id}/${file.planNumber}-${crypto.randomUUID().slice(0, 8)}.${extFromMime(file.mimeType)}`;
     await storage.upload(key, file.bytes, file.mimeType);

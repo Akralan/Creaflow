@@ -101,3 +101,48 @@ describe("reviseDesign", () => {
     expect(userMessage).toContain("Conserve les data-layer existants");
   });
 });
+
+describe("animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md)", () => {
+  const animPrompt: DesignPromptContext = { ...prompt, width: 1080, height: 1920, animationDurationMs: 8000 };
+  const animSlide = `<div style="position:relative;width:1080px;height:1920px"><div data-layer="title" data-type="text" style="position:absolute;top:200px;left:80px;font-family:Inter;font-size:72px;color:#fff">Titre</div><div data-layer="cta" data-type="text" style="position:absolute;top:1500px;left:80px;font-family:Inter;font-size:48px;color:#fff">Commande</div></div>`;
+  const animResult = {
+    ...goodResult,
+    slides: [{ planNumber: 1, html: animSlide }],
+    timeline: [
+      { layerId: "title", enter: "slide-up", startMs: 200, enterMs: 500, exit: "fade", exitAtMs: 4000 },
+      { layerId: "cta", enter: "fade", startMs: 4200, enterMs: 400, exit: null, exitAtMs: null },
+    ],
+  };
+
+  it("ajoute le paragraphe ANIMATION et présente les moments dans le message", async () => {
+    callStructuredMock.mockResolvedValue(animResult);
+    const result = await composeDesign({ prompt: animPrompt, post });
+    const system: string = callStructuredMock.mock.calls[0][0].system;
+    const userMessage: string = callStructuredMock.mock.calls[0][0].userMessage;
+    expect(system).toContain("ANIMATION : cette maquette est une animation de 8000 ms");
+    expect(userMessage).toContain("ANIMATION de 8000 ms sur une seule slide");
+    expect(userMessage).toContain("Moment 1 : Photo produit");
+    expect(result.timeline?.map((t) => t.layerId)).toEqual(["title", "cta"]);
+  });
+
+  it("refuse une timeline qui vise un calque inconnu, puis accepte la seconde tentative", async () => {
+    callStructuredMock
+      .mockResolvedValueOnce({ ...animResult, timeline: [{ layerId: "ghost", enter: "fade", startMs: 0, enterMs: 300, exit: null, exitAtMs: null }] })
+      .mockResolvedValueOnce(animResult);
+    const result = await composeDesign({ prompt: animPrompt, post });
+    expect(callStructuredMock).toHaveBeenCalledTimes(2);
+    expect(callStructuredMock.mock.calls[1][0].userMessage).toContain("ligne de temps : calque « ghost » inconnu");
+    expect(result.timeline).toHaveLength(2);
+  });
+
+  it("refuse plusieurs slides pour une animation", async () => {
+    callStructuredMock.mockResolvedValue({ ...animResult, slides: [{ planNumber: 1, html: animSlide }, { planNumber: 2, html: animSlide }] });
+    await expect(composeDesign({ prompt: animPrompt, post })).rejects.toBeInstanceOf(DesignValidationError);
+  });
+
+  it("une maquette statique n'a pas de timeline même si le modèle en renvoie une", async () => {
+    callStructuredMock.mockResolvedValue({ ...goodResult, timeline: [{ layerId: "t1", enter: "fade", startMs: 0, enterMs: 300, exit: null, exitAtMs: null }] });
+    const result = await composeDesign({ prompt, post });
+    expect(result.timeline).toBeNull();
+  });
+});

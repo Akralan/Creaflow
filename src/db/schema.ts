@@ -663,6 +663,10 @@ export const visualDesigns = pgTable("visual_designs", {
   // AI Act art. 50 (docs/SPEC_RESSOURCES_VISUELLES.md §6.2) : vrai si la base est une image
   // générée — le PNG composé dans le navigateur ne conserve pas le marquage du fournisseur.
   containsAiImagery: boolean("contains_ai_imagery").notNull().default(false),
+  // Animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §4) : durée totale et ligne de temps
+  // [{ layerId, enter, startMs, enterMs, exit, exitAtMs }]. Null pour une maquette statique.
+  durationMs: integer("duration_ms"),
+  timeline: jsonb("timeline"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

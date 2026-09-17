@@ -19,6 +19,9 @@ const patchSchema = z.object({
     .max(MAX_DESIGN_SLIDES)
     .optional(),
   theme: z.unknown().optional(),
+  // Animation : ligne de temps et durée (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §5.2).
+  timeline: z.array(z.unknown()).max(24).optional(),
+  durationMs: z.number().int().optional(),
 });
 
 /** Création de la maquette par l'agent (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §5.3). */

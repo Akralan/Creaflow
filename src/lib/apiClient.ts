@@ -167,8 +167,20 @@ export interface VisualDesign {
   status: "draft" | "stale" | "exported";
   lastInstruction: string | null;
   containsAiImagery: boolean;
+  /** Animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) : null pour une maquette statique. */
+  durationMs: number | null;
+  timeline: TimelineEntry[] | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface TimelineEntry {
+  layerId: string;
+  enter: "fade" | "slide-up" | "slide-left" | "zoom-in" | "typewriter";
+  startMs: number;
+  enterMs: number;
+  exit: "fade" | "slide-down" | "slide-right" | "none" | null;
+  exitAtMs: number | null;
 }
 
 /** Miroir de styleProfileSchema (src/lib/llm/styleProfile.ts). Les listes peuvent manquer sur un
@@ -600,7 +612,7 @@ export const api = {
     post<{ design: VisualDesign; rationale: string }>(`/api/scripts/${scriptId}/design`, data),
   instructDesign: (scriptId: string, data: { instruction: string; planNumber?: number | null }) =>
     post<{ design: VisualDesign; rationale: string }>(`/api/scripts/${scriptId}/design/instruct`, data),
-  patchDesign: (scriptId: string, data: { slides?: { planNumber: number; html: string }[]; theme?: DesignTheme }) =>
+  patchDesign: (scriptId: string, data: { slides?: { planNumber: number; html: string }[]; theme?: DesignTheme; timeline?: TimelineEntry[]; durationMs?: number }) =>
     patch<{ design: VisualDesign }>(`/api/scripts/${scriptId}/design`, data),
   deleteDesign: (scriptId: string) => del<{ ok: true }>(`/api/scripts/${scriptId}/design`),
   exportDesign: async (scriptId: string, files: { planNumber: number; blob: Blob }[]) => {

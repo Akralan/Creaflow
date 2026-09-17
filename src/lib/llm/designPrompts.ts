@@ -3,6 +3,7 @@ import type { LlmToolDefinition } from "./types";
 import { callStructured } from "./provider";
 import { designFontNames } from "@/lib/visualDesign/fonts";
 import { DesignValidationError, MAX_LAYERS_PER_SLIDE, sanitizeSlideHtml } from "@/lib/visualDesign/htmlSanitizer";
+import { describeTimeline, ENTER_EFFECTS, EXIT_EFFECTS, normalizeTimeline, TimelineValidationError, type Timeline } from "@/lib/visualDesign/timeline";
 import type { VerticalId } from "@/lib/verticals/types";
 
 /**
@@ -29,6 +30,8 @@ export const designSlideOutputSchema = z.object({
 export const designResultSchema = z.object({
   theme: designThemeSchema,
   slides: z.array(designSlideOutputSchema).min(1).max(12),
+  // Animation seulement (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md Annexe A.3) ; vide sinon.
+  timeline: z.array(z.unknown()).default([]),
   rationale: z.string().min(1),
 });
 export type DesignResult = z.infer<typeof designResultSchema>;
@@ -65,9 +68,27 @@ export const designVisualPostTool: LlmToolDefinition = {
           additionalProperties: false,
         },
       },
+      timeline: {
+        type: "array",
+        description:
+          "Uniquement pour une ANIMATION : une entrée par calque qui apparaît ou disparaît { layerId, enter, startMs, enterMs, exit, exitAtMs }. Un calque absent est visible du début à la fin. Tableau vide pour une maquette statique.",
+        items: {
+          type: "object",
+          properties: {
+            layerId: { type: "string" },
+            enter: { type: "string", description: `Un de : ${ENTER_EFFECTS.join(", ")}.` },
+            startMs: { type: "integer" },
+            enterMs: { type: "integer", description: "Durée de l'entrée, 300 à 800 ms." },
+            exit: { type: ["string", "null"], description: `Un de : ${EXIT_EFFECTS.join(", ")}, ou null si le calque reste jusqu'à la fin.` },
+            exitAtMs: { type: ["integer", "null"] },
+          },
+          required: ["layerId", "enter", "startMs", "enterMs", "exit", "exitAtMs"],
+          additionalProperties: false,
+        },
+      },
       rationale: { type: "string", description: "2 phrases : le parti pris de composition et pourquoi il sert l'idée du post." },
     },
-    required: ["theme", "slides", "rationale"],
+    required: ["theme", "slides", "timeline", "rationale"],
     additionalProperties: false,
   },
 };
@@ -86,6 +107,8 @@ export interface DesignPromptContext {
   hasLogo: boolean;
   brandKitDescription: string;
   vertical: VerticalId;
+  /** Animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) : durée totale ; null pour une maquette statique. */
+  animationDurationMs?: number | null;
 }
 
 export function buildDesignSystemPrompt(ctx: DesignPromptContext): string {
@@ -102,7 +125,14 @@ Contraintes absolues :
 - Les mots viennent du storyboard fourni : tu choisis QUOI afficher et COMMENT, tu n'inventes pas de contenu et tu ne reformules pas le fond.
 - Cohérence : même thème, mêmes polices, même logique de placement sur toutes les slides d'un carrousel ; la dernière slide porte l'appel à l'action si le storyboard en a un.
 ${ctx.brandKitDescription ? `- Identité de marque à respecter : ${ctx.brandKitDescription}.` : "- Pas d'identité de marque définie : compose une palette à partir de la description de l'image et du ton de la marque."}
-${hint}`.trim();
+${hint}
+${ctx.animationDurationMs ? buildAnimationParagraph(ctx.animationDurationMs) : ""}`.trim();
+}
+
+/** Paragraphe ANIMATION du system prompt (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md Annexe A.2). */
+export function buildAnimationParagraph(durationMs: number): string {
+  return `ANIMATION : cette maquette est une animation de ${durationMs} ms sur UNE SEULE slide (renvoie exactement une slide). En plus du HTML, renvoie \`timeline\` : une entrée par calque qui apparaît ou disparaît, { layerId, enter: ${ENTER_EFFECTS.map((e) => `"${e}"`).join(" | ")}, startMs, enterMs (300 à 800), exit: ${EXIT_EFFECTS.map((e) => `"${e}"`).join(" | ")} ou null, exitAtMs ou null }.
+Règles : chaque moment du storyboard devient un ou plusieurs calques texte rattachés à ce moment, dans l'ordre ; les moments se succèdent (un moment sort avant ou au plus 500 ms après l'entrée du suivant) ; le dernier moment reste jusqu'à la fin ; jamais plus de 2 calques qui entrent en même temps ; le fond et l'image de base ne sont pas dans la timeline (visibles tout du long), sauf un léger zoom-in sur l'image si cela sert le rythme ; typewriter seulement sur un calque texte court.`;
 }
 
 export interface DesignPostContext {
@@ -116,14 +146,19 @@ export interface DesignPostContext {
   baseOrientation: string | null;
 }
 
-export function buildDesignCreateMessage(ctx: DesignPostContext, format: { width: number; height: number }): string {
-  const storyboard = ctx.storyboard.map((s) => `${s.planNumber}. ${s.description}`).join("\n");
+export function buildDesignCreateMessage(ctx: DesignPostContext, format: { width: number; height: number; animationDurationMs?: number | null }): string {
+  const storyboard = ctx.storyboard
+    .map((s) => (format.animationDurationMs ? `Moment ${s.planNumber} : ${s.description}` : `${s.planNumber}. ${s.description}`))
+    .join("\n");
   const base =
     ctx.baseDescription === null
       ? "Aucune : composition typographique."
       : `Description : ${ctx.baseDescription}${ctx.baseOrientation ? ` · Orientation : ${ctx.baseOrientation}` : ""}`;
+  const formatLine = format.animationDurationMs
+    ? `Plateforme : ${ctx.platform} · Format : ${format.width}×${format.height} · ANIMATION de ${format.animationDurationMs} ms sur une seule slide`
+    : `Plateforme : ${ctx.platform} · Format : ${format.width}×${format.height}`;
   return [
-    `=== POST ===\nPlateforme : ${ctx.platform} · Format : ${format.width}×${format.height}\nTitre : ${ctx.title ?? "(sans titre)"}\nAccroche visuelle : ${ctx.hookVisual ?? "(aucune)"}\nStoryboard :\n${storyboard}`,
+    `=== POST ===\n${formatLine}\nTitre : ${ctx.title ?? "(sans titre)"}\nAccroche visuelle : ${ctx.hookVisual ?? "(aucune)"}\n${format.animationDurationMs ? "Moments du texte, dans l'ordre" : "Storyboard"} :\n${storyboard}`,
     `=== MARQUE ===\nNom : ${ctx.brandName}${ctx.tone ? ` · Ton : ${ctx.tone}` : ""}`,
     `=== IMAGE DE BASE ===\n${base}`,
   ].join("\n\n");
@@ -134,27 +169,41 @@ export function buildDesignReviseMessage(params: {
   planNumber: number | null;
   theme: DesignTheme;
   slides: { planNumber: number; html: string }[];
+  timeline?: Timeline | null;
+  durationMs?: number | null;
 }): string {
   const slides = params.slides.map((s) => `--- slide ${s.planNumber} ---\n${s.html}`).join("\n");
+  const timelineSection =
+    params.timeline && params.durationMs
+      ? `=== LIGNE DE TEMPS ACTUELLE (${params.durationMs} ms) ===\n${describeTimeline(params.timeline)}\nRenvoie la ligne de temps complète révisée (les calques non concernés inchangés).`
+      : null;
   return [
     `=== INSTRUCTION DE L'AUTEUR ===\n${params.instruction}\nPortée : ${params.planNumber ? `slide ${params.planNumber} uniquement` : "toutes les slides"}`,
     `=== THÈME (à conserver sauf si l'instruction le change) ===\n${JSON.stringify(params.theme)}`,
+    timelineSection,
     `=== HTML ACTUEL ===\n${slides}\nRenvoie TOUTES les slides (les slides hors portée strictement inchangées). Conserve les data-layer existants quand le calque subsiste : l'auteur a pu le retoucher à la main.`,
-  ].join("\n\n");
+  ]
+    .filter((s): s is string => Boolean(s))
+    .join("\n\n");
 }
 
 export interface SanitizedDesignResult {
   theme: DesignTheme;
   slides: { planNumber: number; html: string }[];
+  /** Null pour une maquette statique. */
+  timeline: Timeline | null;
   rationale: string;
 }
 
-function sanitizeResult(raw: unknown, options: { width: number; height: number; hasLogo: boolean }): SanitizedDesignResult {
+function sanitizeResult(raw: unknown, options: { width: number; height: number; hasLogo: boolean; animationDurationMs?: number | null }): SanitizedDesignResult {
   const parsed = designResultSchema.parse(raw);
   const issues: string[] = [];
+  const layerIdsBySlide = new Map<number, string[]>();
   const slides = parsed.slides.map((slide) => {
     try {
-      return { planNumber: slide.planNumber, html: sanitizeSlideHtml(slide.html, options).html };
+      const sanitized = sanitizeSlideHtml(slide.html, options);
+      layerIdsBySlide.set(slide.planNumber, sanitized.layerIds);
+      return { planNumber: slide.planNumber, html: sanitized.html };
     } catch (err) {
       if (err instanceof DesignValidationError) {
         issues.push(...err.issues.map((i) => `slide ${slide.planNumber} : ${i}`));
@@ -163,15 +212,28 @@ function sanitizeResult(raw: unknown, options: { width: number; height: number; 
       throw err;
     }
   });
+  let timeline: Timeline | null = null;
+  if (options.animationDurationMs) {
+    if (slides.length !== 1) issues.push(`une animation tient sur UNE slide, ${slides.length} renvoyées`);
+    else {
+      try {
+        timeline = normalizeTimeline(parsed.timeline, layerIdsBySlide.get(slides[0].planNumber) ?? [], options.animationDurationMs);
+        if (timeline.length === 0) issues.push("ligne de temps vide : au moins un calque doit apparaître");
+      } catch (err) {
+        if (err instanceof TimelineValidationError) issues.push(...err.issues.map((i) => `ligne de temps : ${i}`));
+        else throw err;
+      }
+    }
+  }
   if (issues.length > 0) throw new DesignValidationError(issues);
-  return { theme: parsed.theme, slides, rationale: parsed.rationale };
+  return { theme: parsed.theme, slides, timeline, rationale: parsed.rationale };
 }
 
 /** Appel + liste blanche, avec une seconde tentative nourrie du rapport d'erreurs. */
 async function callDesignTool(
   system: string,
   userMessage: string,
-  options: { width: number; height: number; hasLogo: boolean }
+  options: { width: number; height: number; hasLogo: boolean; animationDurationMs?: number | null }
 ): Promise<SanitizedDesignResult> {
   const first = await callStructured({ system, userMessage, tool: designVisualPostTool, maxTokens: 8192 });
   try {
@@ -188,11 +250,12 @@ export async function composeDesign(params: {
   prompt: DesignPromptContext;
   post: DesignPostContext;
 }): Promise<SanitizedDesignResult> {
-  const { width, height, hasLogo } = params.prompt;
-  return callDesignTool(buildDesignSystemPrompt(params.prompt), buildDesignCreateMessage(params.post, { width, height }), {
+  const { width, height, hasLogo, animationDurationMs } = params.prompt;
+  return callDesignTool(buildDesignSystemPrompt(params.prompt), buildDesignCreateMessage(params.post, { width, height, animationDurationMs }), {
     width,
     height,
     hasLogo,
+    animationDurationMs,
   });
 }
 
@@ -202,7 +265,12 @@ export async function reviseDesign(params: {
   planNumber: number | null;
   theme: DesignTheme;
   slides: { planNumber: number; html: string }[];
+  timeline?: Timeline | null;
 }): Promise<SanitizedDesignResult> {
-  const { width, height, hasLogo } = params.prompt;
-  return callDesignTool(buildDesignSystemPrompt(params.prompt), buildDesignReviseMessage(params), { width, height, hasLogo });
+  const { width, height, hasLogo, animationDurationMs } = params.prompt;
+  return callDesignTool(
+    buildDesignSystemPrompt(params.prompt),
+    buildDesignReviseMessage({ ...params, durationMs: animationDurationMs ?? null }),
+    { width, height, hasLogo, animationDurationMs }
+  );
 }
