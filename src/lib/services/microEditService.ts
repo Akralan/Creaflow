@@ -4,6 +4,7 @@ import { creatorProfiles, scriptMicroEditEvents, scripts } from "@/db/schema";
 import { callStructured } from "@/lib/llm/provider";
 import { SCRIPT_SYSTEM_PROMPT, buildScriptUserMessage } from "@/lib/llm/prompts";
 import { buildStyleBlock, parseStoredStyleProfile } from "@/lib/llm/styleProfile";
+import { visualSpecFromScript } from "@/lib/visualDesign/visualFormat";
 import {
   REWRITE_SELECTION_SYSTEM_PROMPT,
   buildRewriteSelectionUserMessage,
@@ -152,7 +153,11 @@ export async function regenerateBlock(userId: string, scriptId: string, block: M
     script.contentType,
     script.productId,
     scriptId,
-    script.seriesId
+    script.seriesId,
+    undefined,
+    undefined,
+    undefined,
+    visualSpecFromScript(script)
   );
 
   // Pour un post texte, l'accroche EST la première phrase du texte actuel — donné ci-dessous comme

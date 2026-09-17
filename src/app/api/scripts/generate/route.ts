@@ -11,20 +11,25 @@ import { enforceScriptQuota } from "@/lib/services/billingService";
 import { contentTypeSchema, directiveSchema } from "@/lib/validation";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
+import { normalizeVisualSpec, visualFormatFieldsSchema } from "@/lib/visualDesign/visualFormat";
 
-const schema = z.object({
-  calendarEntryId: z.uuid(),
-  contentType: contentTypeSchema.optional(),
-  productId: z.uuid().optional(),
-  directive: directiveSchema,
-});
+const schema = z
+  .object({
+    calendarEntryId: z.uuid(),
+    contentType: contentTypeSchema.optional(),
+    productId: z.uuid().optional(),
+    directive: directiveSchema,
+  })
+  // Format du post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §2) — ignoré hors "visual".
+  .extend(visualFormatFieldsSchema.shape);
 
 export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId();
     // Chaque génération de script coûte un appel LLM — limite partagée avec les autres routes de génération.
     await enforceRateLimit("script-generate", userId, 20, 60);
-    const { calendarEntryId, contentType, productId, directive } = schema.parse(await request.json());
+    const body = schema.parse(await request.json());
+    const { calendarEntryId, contentType, productId, directive } = body;
     await enforceScriptQuota(userId);
 
     const entry = await db.query.calendarEntries.findFirst({
@@ -47,7 +52,9 @@ export async function POST(request: NextRequest) {
       undefined,
       entry.seriesId,
       undefined,
-      directive
+      directive,
+      undefined,
+      resolvedContentType === "visual" ? normalizeVisualSpec(body) : null
     );
     const generated = await generateScript(context);
     // resolvedProductId (pas productId brut) : hérite du sujet lié à la série quand aucun sujet
@@ -58,6 +65,7 @@ export async function POST(request: NextRequest) {
       brandAssetId: context.brandAsset?.id ?? null,
       beatId: context.direction?.beatId ?? null,
       promiseHonored: context.direction?.promiseToHonor ?? null,
+      visual: context.visual,
     });
     await recordBeatDraftedIfNeeded(context, script.id);
 

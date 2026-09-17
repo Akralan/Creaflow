@@ -141,3 +141,41 @@ describe("bloc STYLE (docs/SPEC_APPRENTISSAGE_STYLE.md §5.4)", () => {
     expect(userMessage).not.toContain("=== STYLE ===");
   });
 });
+
+describe("format du post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §5.1)", () => {
+  const visualInput = (n: number) => ({
+    concept: "Idée",
+    title: "Titre",
+    hookVisual: "Visuel",
+    storyboard: Array.from({ length: n }, (_, i) => ({ planNumber: i + 1, description: `Slide ${i + 1}` })),
+    caption: "Légende",
+    hashtags: ["#test"],
+  });
+  const visualContext: ScriptGenerationContext = {
+    ...baseContext,
+    contentType: "visual",
+    visual: { format: "carousel", slideCount: 3, durationMs: null },
+  };
+
+  it("injecte le bloc FORMAT et accepte un storyboard conforme en un appel", async () => {
+    callStructuredMock.mockResolvedValue(visualInput(3));
+    const result = await generateScript(visualContext);
+    expect(callStructuredMock).toHaveBeenCalledTimes(1);
+    expect(callStructuredMock.mock.calls[0][0].userMessage).toContain("=== FORMAT ===\nCarrousel de 3 slides");
+    expect(result.contentType === "visual" && result.storyboard).toHaveLength(3);
+  });
+
+  it("retente une fois avec un rappel, puis tronque si l'écart persiste", async () => {
+    callStructuredMock.mockResolvedValueOnce(visualInput(5)).mockResolvedValueOnce(visualInput(6));
+    const result = await generateScript(visualContext);
+    expect(callStructuredMock).toHaveBeenCalledTimes(2);
+    expect(callStructuredMock.mock.calls[1][0].userMessage).toContain("Rappel de format : le storyboard doit avoir exactement 3 entrée(s), tu en as renvoyé 5");
+    expect(result.contentType === "visual" && result.storyboard).toHaveLength(3);
+  });
+
+  it("n'émet pas de bloc FORMAT pour une vidéo", async () => {
+    callStructuredMock.mockResolvedValue(validVideoInput);
+    await generateScript(videoContext);
+    expect(callStructuredMock.mock.calls[0][0].userMessage).not.toContain("=== FORMAT ===");
+  });
+});

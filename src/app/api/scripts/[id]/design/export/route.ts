@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUserId } from "@/lib/auth/session";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
-import { MAX_DESIGN_SLIDES, MAX_EXPORT_BYTES, storeDesignExports, toApiDesign, type ExportFile } from "@/lib/services/visualDesignService";
+import { MAX_DESIGN_SLIDES, MAX_EXPORT_BYTES, MAX_VIDEO_EXPORT_BYTES, storeDesignExports, toApiDesign, type ExportFile } from "@/lib/services/visualDesignService";
 
-const ALLOWED_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
+// video/mp4 : export d'une animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §5.2).
+const ALLOWED_MIME = new Set(["image/png", "image/jpeg", "image/webp", "video/mp4"]);
 
 /**
  * Réception des PNG rendus par le navigateur (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2 « Export »).
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const match = /^slide-(\d+)$/.exec(field);
       if (!match || !(value instanceof File)) continue;
       if (!ALLOWED_MIME.has(value.type)) throw new ApiError(415, `Format d'image non supporté : ${value.type || "inconnu"}.`);
-      if (value.size > MAX_EXPORT_BYTES) throw new ApiError(413, `Slide ${match[1]} : fichier trop lourd.`);
+      if (value.size > (value.type === "video/mp4" ? MAX_VIDEO_EXPORT_BYTES : MAX_EXPORT_BYTES)) throw new ApiError(413, `Slide ${match[1]} : fichier trop lourd.`);
       files.push({ planNumber: Number(match[1]), bytes: Buffer.from(await value.arrayBuffer()), mimeType: value.type });
       if (files.length > MAX_DESIGN_SLIDES) throw new ApiError(400, `${MAX_DESIGN_SLIDES} slides maximum.`);
     }

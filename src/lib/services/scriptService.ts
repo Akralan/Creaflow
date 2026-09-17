@@ -20,6 +20,7 @@ import { recordCitations, deleteCitationsForScript } from "@/lib/services/citati
 import { resolveDailyDirection, markBeatDrafted, applyPublishSideEffects } from "@/lib/services/narrativeDirector";
 import { resolveCategoryForGeneration } from "@/lib/services/seriesService";
 import { markDesignStale } from "@/lib/services/visualDesignService";
+import type { VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
 import { ApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
 
@@ -70,7 +71,10 @@ export async function buildGenerationContext(
   // "Autre idée, même brief" uniquement (docs/SPEC_PROMPT_GENERATION_TECH.md §6.1 point 2) — transmis
   // au choix du jour du chef pour qu'il propose une direction réellement différente (§3.3), pas
   // seulement au rédacteur via context.rejectedConcepts (assemblé plus bas, inchangé).
-  rejectedConcepts?: string[]
+  rejectedConcepts?: string[],
+  // Format du post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) — choisi à la génération, relu
+  // depuis le script pour les régénérations. Ignoré hors contentType "visual".
+  visual?: VisualFormatSpec | null
 ): Promise<ScriptGenerationContext> {
   const profile = await db.query.creatorProfiles.findFirst({
     where: eq(creatorProfiles.userId, userId),
@@ -204,6 +208,7 @@ export async function buildGenerationContext(
     directive: directive ?? null,
     direction,
     resolvedProductId: effectiveProductId,
+    visual: contentType === "visual" ? (visual ?? null) : null,
   };
 }
 
@@ -259,6 +264,8 @@ export async function createScriptRecord(
     /** Texte exact de la promesse ouverte que ce script honore (direction.promiseToHonor, §3.3) —
      *  retiré d'openPromises au passage en "published" (§5, narrativeDirector.ts::applyPublishSideEffects). */
     promiseHonored?: string | null;
+    /** Format du post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) — null hors "visual". */
+    visual?: VisualFormatSpec | null;
   }
 ) {
   return db.transaction(async (tx) => {
@@ -277,6 +284,9 @@ export async function createScriptRecord(
         // chef ou détour hors plan assumé.
         beatId: extras?.beatId ?? null,
         promiseHonored: extras?.promiseHonored ?? null,
+        visualFormat: extras?.visual?.format ?? "single",
+        slideCount: extras?.visual?.slideCount ?? null,
+        durationMs: extras?.visual?.durationMs ?? null,
         origin: "generated",
         // Gisement de la donnée de voix (§4.7) : capturé une seule fois, au premier jet — jamais
         // réécrit ensuite, y compris par une régénération (updateScriptRecord ne le touche pas).

@@ -3,6 +3,8 @@
 import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 import { color } from "@/lib/design/tokens";
 import { DESIGN_FONTS } from "@/lib/visualDesign/fonts";
+import { DEFAULT_ENTER_MS, ENTER_EFFECTS, EXIT_EFFECTS, MAX_ENTER_MS, MIN_ENTER_MS } from "@/lib/visualDesign/timeline";
+import type { TimelineEntry } from "@/lib/apiClient";
 import type { LayerInfo } from "./designDom";
 
 const fieldLabel: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: color.textMuted, marginBottom: 4 };
@@ -40,11 +42,15 @@ export default function LayerInspector({
   onStyle,
   onMove,
   onDelete,
+  animation,
 }: {
   layer: LayerInfo;
   onStyle: (styles: Record<string, string | null>) => void;
   onMove: (direction: "up" | "down") => void;
   onDelete: () => void;
+  /** Maquette animée (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §6) : entrée de ce calque dans la
+   *  ligne de temps (null = visible tout du long) et durée totale. Absent pour une maquette statique. */
+  animation?: { entry: TimelineEntry | null; durationMs: number; onChange: (entry: TimelineEntry | null) => void };
 }) {
   const isText = layer.type === "text";
   return (
@@ -170,9 +176,132 @@ export default function LayerInspector({
           />
         </div>
       </div>
+      {animation && (
+        <AnimationSection layerId={layer.id} entry={animation.entry} durationMs={animation.durationMs} onChange={animation.onChange} />
+      )}
       <div>
         <div style={fieldLabel}>Arrondi</div>
         <input style={input} type="number" min={0} max={400} value={px(layer.style["border-radius"])} onChange={(e) => onStyle({ "border-radius": e.target.value ? `${e.target.value}px` : null })} />
+      </div>
+    </div>
+  );
+}
+
+const ENTER_LABELS: Record<TimelineEntry["enter"], string> = {
+  fade: "Fondu",
+  "slide-up": "Monte",
+  "slide-left": "Glisse depuis la droite",
+  "zoom-in": "Zoom",
+  typewriter: "Machine à écrire",
+};
+const EXIT_LABELS: Record<NonNullable<TimelineEntry["exit"]>, string> = {
+  fade: "Fondu",
+  "slide-down": "Descend",
+  "slide-right": "Glisse vers la droite",
+  none: "Reste jusqu'à la fin",
+};
+
+function AnimationSection({
+  layerId,
+  entry,
+  durationMs,
+  onChange,
+}: {
+  layerId: string;
+  entry: TimelineEntry | null;
+  durationMs: number;
+  onChange: (entry: TimelineEntry | null) => void;
+}) {
+  const seconds = (ms: number) => Math.round(ms / 100) / 10;
+  if (!entry) {
+    return (
+      <div style={{ borderTop: `1px solid ${color.divider}`, paddingTop: 10 }}>
+        <div style={fieldLabel}>Animation</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: color.textMuted }}>
+          <span style={{ flex: 1 }}>Visible du début à la fin.</span>
+          <button style={iconBtn} onClick={() => onChange({ layerId, enter: "fade", startMs: 0, enterMs: DEFAULT_ENTER_MS, exit: null, exitAtMs: null })}>
+            Animer
+          </button>
+        </div>
+      </div>
+    );
+  }
+  const update = (patch: Partial<TimelineEntry>) => onChange({ ...entry, ...patch });
+  return (
+    <div style={{ borderTop: `1px solid ${color.divider}`, paddingTop: 10, display: "grid", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ ...fieldLabel, marginBottom: 0 }}>Animation</div>
+        <button style={iconBtn} title="Ce calque reste visible du début à la fin" onClick={() => onChange(null)}>
+          Aucune
+        </button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div>
+          <div style={fieldLabel}>Entrée</div>
+          <select style={input} value={entry.enter} onChange={(e) => update({ enter: e.target.value as TimelineEntry["enter"] })}>
+            {ENTER_EFFECTS.map((e) => (
+              <option key={e} value={e}>
+                {ENTER_LABELS[e]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <div style={fieldLabel}>Apparaît à (s)</div>
+          <input
+            style={input}
+            type="number"
+            min={0}
+            max={seconds(durationMs)}
+            step={0.1}
+            value={seconds(entry.startMs)}
+            onChange={(e) => update({ startMs: Math.min(durationMs - MIN_ENTER_MS, Math.max(0, Math.round(Number(e.target.value) * 1000))) })}
+          />
+        </div>
+        <div>
+          <div style={fieldLabel}>Durée d&apos;entrée (ms)</div>
+          <input
+            style={input}
+            type="number"
+            min={MIN_ENTER_MS}
+            max={MAX_ENTER_MS}
+            step={50}
+            value={entry.enterMs}
+            onChange={(e) => update({ enterMs: Math.min(MAX_ENTER_MS, Math.max(MIN_ENTER_MS, Math.round(Number(e.target.value)))) })}
+          />
+        </div>
+        <div>
+          <div style={fieldLabel}>Sortie</div>
+          <select
+            style={input}
+            value={entry.exit ?? "none"}
+            onChange={(e) => {
+              const exit = e.target.value as NonNullable<TimelineEntry["exit"]>;
+              if (exit === "none") update({ exit: null, exitAtMs: null });
+              else update({ exit, exitAtMs: entry.exitAtMs ?? Math.min(durationMs, entry.startMs + entry.enterMs + 2000) });
+            }}
+          >
+            {EXIT_EFFECTS.map((e) => (
+              <option key={e} value={e}>
+                {EXIT_LABELS[e]}
+              </option>
+            ))}
+          </select>
+        </div>
+        {entry.exit && (
+          <div>
+            <div style={fieldLabel}>Disparaît à (s)</div>
+            <input
+              style={input}
+              type="number"
+              min={seconds(entry.startMs + entry.enterMs)}
+              max={seconds(durationMs)}
+              step={0.1}
+              value={seconds(entry.exitAtMs ?? durationMs)}
+              onChange={(e) => update({ exitAtMs: Math.min(durationMs, Math.max(entry.startMs + entry.enterMs + 1, Math.round(Number(e.target.value) * 1000))) })}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

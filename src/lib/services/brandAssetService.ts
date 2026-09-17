@@ -30,6 +30,8 @@ export function extFromMime(mimeType: string): string {
       return "webp";
     case "image/gif":
       return "gif";
+    case "video/mp4":
+      return "mp4";
     case "image/jpeg":
     default:
       return "jpg";

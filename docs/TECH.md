@@ -205,6 +205,9 @@ Script (document co-écrit — Module B, docs/SPEC_MATIERE_EDITEUR.md §4)
 - angleId (FK nullable, ON DELETE SET NULL vers ContentAngle — angle imposé par l'anti-répétition)
 - seriesId (FK nullable, ON DELETE SET NULL vers ContentSeries)
 - contentType (video / visual / text, défaut "video")
+- visualFormat (single / carousel / animation, défaut "single" — `docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md` :
+  choisi à la génération d'un post visuel, contraint le nombre d'entrées du storyboard), slideCount
+  (carrousel, 2-10), durationMs (animation, 5 000-15 000)
 - status (draft / planned / shot / published)
 - origin (generated / imported / manual, défaut "generated" — "imported" = POST /api/scripts/import,
   écriture ailleurs ; "manual" = naissance paresseuse dans l'éditeur ; n'affecte ni quota ni anti-répétition)
@@ -225,6 +228,8 @@ une seule version courante par script, la jointure part d'ici)
 - slides (jsonb — [{ planNumber, html, exportKey|null }], html déjà passé par la liste blanche)
 - status (draft / stale / exported — stale quand les mots du storyboard ont changé)
 - lastInstruction, containsAiImagery (vrai si la base est une image générée — AI Act art. 50)
+- durationMs, timeline (jsonb — animation uniquement : [{ layerId, enter, startMs, enterMs, exit, exitAtMs }],
+  `docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md` §4 ; null pour une maquette statique)
 - createdAt, updatedAt
 
 CreatorProfile.brandKit (jsonb, nullable — identité de marque des maquettes :
@@ -336,8 +341,9 @@ Assistant **agentique** (`docs/SPEC_ASSISTANT_AGENTIQUE.md`) : il lit tout l'esp
 - **Maquette du post visuel** (`docs/SPEC_DESIGN_HTML_SUR_IMAGE.md`, `visualDesignService.ts`) — `GET /api/scripts/:id` joint `visualDesign` (slides HTML + URLs d'export) :
   - `POST /api/scripts/:id/design` `{ baseKind: "generated" | "asset" | "none", baseAssetId?, format? }` — composition par l'agent (§5.14), remplace la version courante. Rate limit 10/min, non compté.
   - `POST /api/scripts/:id/design/instruct` `{ instruction, planNumber? }` — révision par l'agent, une slide ou toutes ; **compte une micro-retouche** (`script_micro_edit_events.kind = "design_instruction"`).
-  - `PATCH /api/scripts/:id/design` `{ slides?: [{ planNumber, html }], theme? }` — retouche manuelle : la liste complète des slides, chaque HTML repassé par la liste blanche (422 avec la liste des problèmes sinon). Une slide inchangée garde son export.
-  - `POST /api/scripts/:id/design/export` (multipart, `slide-<n>`) — PNG rendus par le navigateur, stockés sur R2 `designs/{userId}/{designId}/…` ; statut `exported` quand toutes les slides le sont.
+  - `PATCH /api/scripts/:id/design` `{ slides?: [{ planNumber, html }], theme?, timeline?, durationMs? }` — retouche manuelle : la liste complète des slides, chaque HTML repassé par la liste blanche (422 avec la liste des problèmes sinon) ; pour une animation, la ligne de temps est revalidée contre les calques (`normalizeTimeline`). Une slide inchangée garde son export.
+  - `POST /api/scripts/:id/design/export` (multipart, `slide-<n>`) — PNG rendus par le navigateur, ou `video/mp4` (≤ 40 Mo) pour une animation, stockés sur R2 `designs/{userId}/{designId}/…` ; statut `exported` quand toutes les slides le sont.
+  Les trois routes de génération (`POST /api/scripts/generate`, `POST /api/scripts`, import) acceptent `visualFormat`, `slideCount`, `durationMs` (`visualFormatFieldsSchema`) ; « autre idée » et la régénération de bloc relisent le format du script.
   - `GET /api/scripts/:id/design/base`, `GET …/design/logo` — octets de l'image de base et du logo, same-origin (le canevas et `html-to-image` les lisent sans CORS).
   - `DELETE /api/scripts/:id/design`.
   - `PATCH /api/profile/brand-kit` — identité de marque `{ primaryColor, secondaryColor, accentColor, fontHeading, fontBody, logoAssetId }` (toutes optionnelles).
@@ -479,6 +485,8 @@ Deux gestes contraints, jamais une régénération de structure complète (`docs
 Cadrage : `docs/SPEC_DESIGN_HTML_SUR_IMAGE.md`. Un tool `design_visual_post` renvoie un thème (palette, deux polices, ambiance) et **une slide HTML par entrée du storyboard**. Contrat imposé par le system prompt et vérifié par la **liste blanche** (`htmlSanitizer.ts`, parseur maison, testé) : un `<div>` racine à la taille du canevas, chaque enfant direct est un calque `position:absolute` avec `data-layer`/`data-type`, balises et propriétés CSS fermées, aucune URL (seuls `{{BASE_IMAGE}}` et `{{LOGO}}`), polices dans la liste de `fonts.ts`, ≤ 12 calques et ≤ 24 Ko par slide. Un refus renvoie le rapport au modèle pour une seconde tentative. La même liste blanche s'applique aux retouches manuelles (`PATCH`). Le HTML stocké est la seule représentation, sous forme canonique.
 
 Contexte du prompt : format par plateforme (`formats.ts`), identité de marque (`brandKit.ts`) ou, à défaut, description IA de l'image de base (`brandAssets.aiDescription` + instruction de mise en scène), verticale de l'utilisateur (phrase d'orientation par verticale, aucune table). Révision : même tool avec l'instruction, la portée et le HTML courant ; les slides hors portée restent celles d'avant quoi que renvoie le modèle.
+
+**Format et animation** (`docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md`, `src/lib/visualDesign/visualFormat.ts` + `timeline.ts`). Le format est choisi à la génération (`VisualFormatPicker`) et injecté au rédacteur en bloc `=== FORMAT ===` ; `generateScript` vérifie le nombre d'entrées du storyboard (`enforceStoryboardCount`), redemande une fois avec rappel, puis tronque. Pour une animation, la maquette tient sur **une slide** (format `story` par défaut, durée reprise du script) et le tool `design_visual_post` renvoie en plus une `timeline` (paragraphe ANIMATION du system prompt), validée par `normalizeTimeline` (calques existants, bornes, sortie après entrée) avec seconde tentative sur rapport d'erreurs. L'aperçu rejoue la ligne de temps par la Web Animations API sur le DOM rendu (`slideAnimations.ts` — opacity/transform/clip-path seulement, le HTML inline reste intact), avec `TimelineBar` (lecture, curseur, durée) et une section Animation dans l'inspecteur. L'export vidéo (`exportAnimation.ts`) ne part que sur le bouton : rendu image par image à 30 i/s (`html-to-image` `toCanvas`, polices résolues une fois), encodage H.264 par WebCodecs, mux MP4 par `mp4-muxer`, progression et annulation — Chrome et Edge, message explicite ailleurs.
 
 Rendu et export **dans le navigateur** (`src/components/DesignEditor/`) : le HTML stocké est traduit au rendu (`designDom.ts` — placeholders → routes same-origin, `font-family:Inter` → `var(--font-design-inter)` posé par `next/font` dans `layout.tsx`), injecté dans un canevas mis à l'échelle et manipulé à la main (sélection, déplacement, redimensionnement, texte en place, inspecteur, undo/redo local) ; l'export passe par `html-to-image` sur un clone à taille native, puis `fflate` pour le zip. Ce choix garantit que l'aperçu et le PNG viennent du même moteur ; `next/og` (satori) a été écarté pour cette raison.
 

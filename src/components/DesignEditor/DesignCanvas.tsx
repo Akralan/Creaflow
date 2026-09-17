@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { accent } from "@/lib/design/tokens";
+import type { TimelineEntry } from "@/lib/apiClient";
 import { layerElements, pastePlainText, scrubEditedTextLayer } from "./designDom";
+import { buildSlideAnimations, type SlideAnimations } from "./slideAnimations";
 
 /**
  * Canevas d'une slide (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §6) : le HTML rendu est injecté tel quel
@@ -19,6 +21,11 @@ export default function DesignCanvas({
   onSelectLayer,
   onCommit,
   readOnly = false,
+  timeline = null,
+  durationMs = null,
+  playheadMs = 0,
+  playing = false,
+  onPlayheadChange,
 }: {
   /** HTML affichable (placeholders résolus, polices traduites). */
   html: string;
@@ -31,6 +38,13 @@ export default function DesignCanvas({
   /** Vrai pendant qu'une instruction ou un export est en vol : aucune retouche manuelle ne doit
    *  entrer en course avec la version qui va arriver. */
   readOnly?: boolean;
+  /** Animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §6) : ligne de temps rejouée par la Web
+   *  Animations API sur le DOM rendu ; null pour une maquette statique. */
+  timeline?: TimelineEntry[] | null;
+  durationMs?: number | null;
+  playheadMs?: number;
+  playing?: boolean;
+  onPlayheadChange?: (ms: number) => void;
 }) {
   const scale = displayWidth / width;
   const displayHeight = Math.round(height * scale);
@@ -50,6 +64,12 @@ export default function DesignCanvas({
     moved: boolean;
   } | null>(null);
 
+  const animsRef = useRef<SlideAnimations | null>(null);
+  const playheadRef = useRef(playheadMs);
+  useLayoutEffect(() => {
+    playheadRef.current = playheadMs;
+  }, [playheadMs]);
+
   const root = useCallback((): HTMLElement | null => {
     const el = hostRef.current?.firstElementChild;
     return el instanceof HTMLElement ? el : null;
@@ -62,6 +82,56 @@ export default function DesignCanvas({
     hostRef.current.innerHTML = html;
     appliedHtmlRef.current = html;
   }, [html]);
+
+  // Reconstruit les animations quand le HTML injecté, la ligne de temps ou la durée changent.
+  const timelineKey = timeline ? JSON.stringify(timeline) : "";
+  useLayoutEffect(() => {
+    animsRef.current?.cancel();
+    animsRef.current = null;
+    const r = root();
+    if (!r || !timeline || !durationMs) return;
+    const anims = buildSlideAnimations(r, timeline, durationMs);
+    anims.seek(playheadRef.current);
+    animsRef.current = anims;
+    return () => {
+      anims.cancel();
+      animsRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [html, timelineKey, durationMs, root]);
+
+  // Curseur : à l'arrêt, chaque changement de playhead positionne les animations.
+  useEffect(() => {
+    if (!playing) animsRef.current?.seek(playheadMs);
+  }, [playheadMs, playing]);
+
+  // Lecture : la Web Animations API avance seule, on remonte le temps courant et on boucle.
+  useEffect(() => {
+    const anims = animsRef.current;
+    if (!anims || !durationMs) return;
+    if (!playing) {
+      anims.pause();
+      return;
+    }
+    if (anims.currentTime() >= durationMs - 1) anims.seek(0);
+    anims.play();
+    let raf = 0;
+    const tick = () => {
+      const t = anims.currentTime();
+      if (t >= durationMs) {
+        anims.seek(0);
+        anims.play();
+      }
+      onPlayheadChange?.(Math.min(durationMs, t));
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(raf);
+      anims.pause();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, durationMs, timelineKey, html]);
 
   const refreshSelBox = useCallback(() => {
     const r = root();
@@ -106,7 +176,7 @@ export default function DesignCanvas({
   }
 
   function beginMove(e: React.MouseEvent) {
-    if (editing || readOnly) return;
+    if (editing || readOnly || playing) return;
     const layer = layerFromEvent(e.target);
     if (!layer) {
       onSelectLayer(null);
@@ -182,7 +252,7 @@ export default function DesignCanvas({
   }, [scale, refreshSelBox]);
 
   function beginTextEdit(e: React.MouseEvent) {
-    if (readOnly) return;
+    if (readOnly || playing) return;
     const layer = layerFromEvent(e.target);
     if (!layer || layer.getAttribute("data-type") !== "text") return;
     e.preventDefault();

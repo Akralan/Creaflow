@@ -356,6 +356,8 @@ export interface SanitizeOptions {
 export interface SanitizedSlide {
   html: string;
   layerCount: number;
+  /** Identifiants data-layer des enfants directs, dans l'ordre — la ligne de temps s'y rattache. */
+  layerIds: string[];
   usesBaseImage: boolean;
 }
 
@@ -475,7 +477,7 @@ export function sanitizeSlideHtml(html: string, options: SanitizeOptions): Sanit
   if (Buffer.byteLength(serialized, "utf8") > MAX_SLIDE_HTML_BYTES) {
     throw new DesignValidationError([`HTML trop volumineux après normalisation (${Math.round(Buffer.byteLength(serialized, "utf8") / 1024)} Ko, max ${MAX_SLIDE_HTML_BYTES / 1024})`]);
   }
-  return { html: serialized, layerCount: layers.length, usesBaseImage };
+  return { html: serialized, layerCount: layers.length, layerIds: [...layerIds], usesBaseImage };
 }
 
 function containsImage(el: DesignElement): boolean {

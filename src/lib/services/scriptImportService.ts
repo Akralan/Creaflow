@@ -112,6 +112,10 @@ export async function importScriptForUser(
         contentCategoryId: category.id,
         seriesId,
         contentType: params.contentType,
+        // Format dérivé du contenu (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §2) : un import ne
+        // choisit pas de format, on lit le storyboard fourni.
+        visualFormat: params.contentType === "visual" && (params.storyboard?.length ?? 0) > 1 ? "carousel" : "single",
+        slideCount: params.contentType === "visual" && (params.storyboard?.length ?? 0) > 1 ? params.storyboard!.length : null,
         origin,
       })
       .returning();

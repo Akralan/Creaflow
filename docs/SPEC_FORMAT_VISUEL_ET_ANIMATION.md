@@ -1,6 +1,6 @@
 # SPEC — FORMAT DU POST VISUEL : IMAGE, CARROUSEL OU ANIMATION
 
-> **Statut : cadrage, à valider avant tout code.** Prolonge `docs/SPEC_DESIGN_HTML_SUR_IMAGE.md` (la maquette). Demande du 2026-09-17 : « quand je fais un script image, choisir le nombre de slides ou si c'est une animation », l'animation étant « une seule slide qui est une animation avec texte, d'une durée de 5 à 10 s ».
+> **Statut : implémenté (Lots 0 à 4) sur `feature/format-visuel-animation`, migrations `0031` (format + données) et `0032` (ligne de temps), non testé avec une vraie clé LLM ni dans un navigateur réel.** Écarts assumés : les scripts importés reçoivent un format dérivé de leur storyboard (pas de sélecteur à l'import) ; la vignette d'une animation est l'état final de la slide ; le repli WebM n'est pas fait. **À vérifier en priorité** : l'export MP4 (WebCodecs + `mp4-muxer`) sur Chrome, puis la lisibilité du fichier par Instagram/TikTok. Prolonge `docs/SPEC_DESIGN_HTML_SUR_IMAGE.md` (la maquette). Demande du 2026-09-17 : « quand je fais un script image, choisir le nombre de slides ou si c'est une animation », l'animation étant « une seule slide qui est une animation avec texte, d'une durée de 5 à 10 s ».
 >
 > **Objectif.** Aujourd'hui, un post visuel est un storyboard dont le modèle décide seul le nombre d'entrées, et une maquette statique (une slide = un PNG). Ce chantier donne à l'auteur **le choix du format au moment de générer** — image unique, carrousel de N slides, ou animation — et fait de l'animation un vrai livrable : **une seule slide dont les calques apparaissent, bougent et disparaissent dans le temps**, exportée en **vidéo** prête à publier en Reel, TikTok ou story.
 >
@@ -87,7 +87,7 @@ Migration de données : `UPDATE scripts SET visual_format = CASE WHEN jsonb_arra
 - Les trois routes de génération acceptent `visualFormat`, `slideCount`, `durationMs` (zod : 2 ≤ N ≤ 10, 5 000 ≤ D ≤ 15 000).
 
 ### 5.2 Maquette (`designPrompts.ts`, `visualDesignService.ts`, `timeline.ts`)
-- `src/lib/visualDesign/timeline.ts` (pur, testé) : schéma zod de la timeline, `validateTimeline(timeline, layerIds, durationMs)` (ids existants, bornes, effets), `normalizeTimeline` (tri par `startMs`, `exitAtMs > startMs + enterMs`).
+- `src/lib/visualDesign/timeline.ts` (pur, testé) : schéma zod de la timeline et `normalizeTimeline(timeline, layerIds, durationMs)`, qui valide (ids existants, bornes, effets, `exitAtMs > startMs + enterMs`) et normalise (tri par `startMs`) en une seule passe.
 - Tool `design_visual_post` : propriété `timeline` optionnelle ; le system prompt reçoit un paragraphe « ANIMATION » quand le format l'exige (Annexe A). Prompt de révision : la timeline courante est jointe au HTML.
 - `createDesignForScript` : format par défaut `story` pour une animation ; une seule slide même si le storyboard a plusieurs moments ; `durationMs` copié du script.
 - `patchDesign` : accepte `timeline` et `durationMs`, revalidés.

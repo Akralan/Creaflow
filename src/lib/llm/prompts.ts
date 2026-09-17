@@ -1,4 +1,5 @@
 import { buildStyleBlock, type StyleProfile } from "./styleProfile";
+import { buildFormatBlock, type VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
 
 export type Platform = string;
 export type ContentType = "video" | "visual" | "text";
@@ -107,6 +108,8 @@ export interface ScriptGenerationContext {
    *  récents sont réellement injectés dans le message (§6.3, tronqué dans buildScriptUserMessage),
    *  ce tableau peut en contenir davantage. */
   rejectedConcepts?: string[];
+  /** Format du post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) — null hors contentType "visual". */
+  visual?: VisualFormatSpec | null;
   /** Angle imposé par le système (mécanisme anti-répétition, invisible pour l'utilisateur). */
   angle?: { id: string; label: string; description: string } | null;
   /** Série récurrente à laquelle ce script appartient, le cas échéant. */
@@ -295,6 +298,13 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
     );
   }
   sections.push(`=== BRIEF ===\n${briefLines.join("\n")}`);
+
+  // === FORMAT === (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md Annexe A.1) : image unique, carrousel
+  // de N, ou animation — contraint le nombre d'entrées du storyboard d'un post visuel.
+  if (contentType === "visual") {
+    const formatBlock = buildFormatBlock(context.visual);
+    if (formatBlock) sections.push(formatBlock);
+  }
 
   // === VARIÉTÉ ===
   const varietyLines: string[] = [];

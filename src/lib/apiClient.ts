@@ -167,8 +167,20 @@ export interface VisualDesign {
   status: "draft" | "stale" | "exported";
   lastInstruction: string | null;
   containsAiImagery: boolean;
+  /** Animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) : null pour une maquette statique. */
+  durationMs: number | null;
+  timeline: TimelineEntry[] | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface TimelineEntry {
+  layerId: string;
+  enter: "fade" | "slide-up" | "slide-left" | "zoom-in" | "typewriter";
+  startMs: number;
+  enterMs: number;
+  exit: "fade" | "slide-down" | "slide-right" | "none" | null;
+  exitAtMs: number | null;
 }
 
 /** Miroir de styleProfileSchema (src/lib/llm/styleProfile.ts). Les listes peuvent manquer sur un
@@ -289,6 +301,16 @@ export interface StoryboardStep {
 
 export type ContentType = "video" | "visual" | "text";
 
+/** Format d'un post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) — propriété du script. */
+export type VisualFormat = "single" | "carousel" | "animation";
+export interface VisualFormatFields {
+  visualFormat?: VisualFormat;
+  /** Carrousel : 2 à 10. */
+  slideCount?: number;
+  /** Animation : 5 000 à 15 000. */
+  durationMs?: number;
+}
+
 export interface PostMetrics {
   id: string;
   scriptId: string;
@@ -325,6 +347,10 @@ export interface Script {
    *  en V1 (§6.4) ; présent ici seulement pour conditionner l'affichage du bouton "autre idée". */
   concept: string | null;
   contentType: ContentType;
+  /** Format du post visuel — "single" hors contentType "visual". */
+  visualFormat: VisualFormat;
+  slideCount: number | null;
+  durationMs: number | null;
   /** Présents seulement pour contentType "video" (et hookVisual/storyboard aussi pour "visual"). */
   hookVisual: string | null;
   hookText: string | null;
@@ -586,7 +612,7 @@ export const api = {
     post<{ design: VisualDesign; rationale: string }>(`/api/scripts/${scriptId}/design`, data),
   instructDesign: (scriptId: string, data: { instruction: string; planNumber?: number | null }) =>
     post<{ design: VisualDesign; rationale: string }>(`/api/scripts/${scriptId}/design/instruct`, data),
-  patchDesign: (scriptId: string, data: { slides?: { planNumber: number; html: string }[]; theme?: DesignTheme }) =>
+  patchDesign: (scriptId: string, data: { slides?: { planNumber: number; html: string }[]; theme?: DesignTheme; timeline?: TimelineEntry[]; durationMs?: number }) =>
     patch<{ design: VisualDesign }>(`/api/scripts/${scriptId}/design`, data),
   deleteDesign: (scriptId: string) => del<{ ok: true }>(`/api/scripts/${scriptId}/design`),
   exportDesign: async (scriptId: string, files: { planNumber: number; blob: Blob }[]) => {
@@ -681,8 +707,8 @@ export const api = {
     patch<{ entry: CalendarEntry }>(`/api/calendar/${id}`, data),
   deleteCalendarEntry: (id: string) => del<{ ok: true }>(`/api/calendar/${id}`),
 
-  generateScriptForEntry: (calendarEntryId: string, contentType?: ContentType, productId?: string, directive?: string) =>
-    post<{ script: Script }>("/api/scripts/generate", { calendarEntryId, contentType, productId, directive }),
+  generateScriptForEntry: (calendarEntryId: string, contentType?: ContentType, productId?: string, directive?: string, visual?: VisualFormatFields) =>
+    post<{ script: Script }>("/api/scripts/generate", { calendarEntryId, contentType, productId, directive, ...visual }),
   generateFreeformScript: (data: {
     platform: Platform;
     /** Role du post libre ; omis quand seriesId est fourni - le serveur derive alors le role de la
@@ -693,7 +719,7 @@ export const api = {
     scheduledDate?: string;
     seriesId?: string;
     directive?: string;
-  }) => post<{ script: Script }>("/api/scripts", data),
+  } & VisualFormatFields) => post<{ script: Script }>("/api/scripts", data),
   getScripts: (params?: { seriesId?: string }) =>
     apiFetch<{ scripts: Script[] }>(`/api/scripts${params?.seriesId ? `?seriesId=${params.seriesId}` : ""}`),
   getScript: (id: string) => apiFetch<{ script: Script }>(`/api/scripts/${id}`),
