@@ -34,6 +34,10 @@ export const assistantProposalKindEnum = pgEnum("assistant_proposal_kind", [
   // pas d'id à référencer). L'override par sujet, lui, réutilise "product_update" (le champ vit sur
   // Product) — pas de kind dédié pour ce cas.
   "profile_update",
+  // Passe d'apprentissage du style (docs/SPEC_APPRENTISSAGE_STYLE.md §2) — payload
+  // { styleProfile, changeNotes }, targetId toujours null (une seule cible : le CreatorProfile).
+  // Une seule proposition de ce kind en attente à la fois : la suivante remplace la précédente.
+  "style_profile_update",
   // Rééquilibrage batch de ContentCategory.weight à partir des métriques auto (docs/SPEC_METRIQUES_AUTO.md
   // §6/§7.4) — généré par un calcul déterministe (categoryReweightService.ts), pas par le LLM. targetId
   // reste null comme posting_goal_update : le payload porte la liste des catégories touchées.
@@ -587,9 +591,14 @@ export const scripts = pgTable("scripts", {
   origin: scriptOriginEnum("origin").notNull().default("generated"),
   // Gisement de la donnée de voix (docs/SPEC_MATIERE_EDITEUR.md §4.7) : les colonnes de blocs telles
   // que générées, capturées une seule fois à la création si origin="generated" — jamais réécrit
-  // ensuite. V1 : stockage seul, pas d'exploitation (comparaison avec la version finale au moment
-  // d'une passe d'apprentissage `style_profile`, hors scope ici).
+  // ensuite. Exploité par la passe d'apprentissage du style (docs/SPEC_APPRENTISSAGE_STYLE.md),
+  // qui le compare à la version finale une fois le script finalisé.
   firstDraftSnapshot: jsonb("first_draft_snapshot"),
+  // Null tant qu'aucune passe d'apprentissage du style n'a lu ce script. Posé par la passe qui l'a
+  // lu, que la proposition qui en résulte soit acceptée ou non (refuser des règles n'est pas une
+  // raison de reproposer les mêmes scripts). Le compteur « scripts corrigés depuis la dernière
+  // analyse » est une requête sur cette colonne, pas une colonne de plus.
+  styleLearnedAt: timestamp("style_learned_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   // Pas de trigger onUpdate dans ce repo — mis à jour explicitement à chaque écriture de contenu
   // (patchScriptContent), même pattern que subscriptions.updatedAt.

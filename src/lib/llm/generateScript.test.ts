@@ -107,3 +107,37 @@ describe("generateScript", () => {
     );
   });
 });
+
+describe("bloc STYLE (docs/SPEC_APPRENTISSAGE_STYLE.md §5.4)", () => {
+  const styleProfile = {
+    tone: "direct",
+    sentenceLength: "courtes",
+    emojiUsage: "aucun",
+    vocabulary: "simple",
+    summary: "Direct, sans emoji.",
+    rules: [
+      { text: "Jamais d'emoji.", platform: null },
+      { text: "Pas de hashtag dans le corps.", platform: "linkedin" },
+    ],
+    avoid: ["découvrez"],
+    prefer: [],
+    evidence: { scriptCount: 3, learnedAt: null },
+  };
+
+  it("injecte la voix et les règles de la plateforme cible dans le message", async () => {
+    callStructuredMock.mockResolvedValue(validVideoInput);
+    await generateScript({ ...videoContext, styleProfile });
+    const userMessage: string = callStructuredMock.mock.calls[0][0].userMessage;
+    expect(userMessage).toContain("=== STYLE ===\nVoix : Direct, sans emoji.");
+    expect(userMessage).toContain("- Jamais d'emoji.");
+    expect(userMessage).not.toContain("Pas de hashtag dans le corps.");
+    expect(userMessage).toContain("À bannir : découvrez");
+  });
+
+  it("n'émet aucun bloc STYLE sans profil", async () => {
+    callStructuredMock.mockResolvedValue(validVideoInput);
+    await generateScript(videoContext);
+    const userMessage: string = callStructuredMock.mock.calls[0][0].userMessage;
+    expect(userMessage).not.toContain("=== STYLE ===");
+  });
+});

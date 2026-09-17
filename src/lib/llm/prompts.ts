@@ -1,4 +1,4 @@
-import type { StyleProfile } from "./styleProfile";
+import { buildStyleBlock, type StyleProfile } from "./styleProfile";
 
 export type Platform = string;
 export type ContentType = "video" | "visual" | "text";
@@ -192,9 +192,6 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
   if (targetAudience) brandLines.push(`Audience visée : ${targetAudience}`);
   if (creatorProfile.tone) brandLines.push(`Ton : ${creatorProfile.tone}`);
   if (creatorProfile.values) brandLines.push(`Valeurs : ${creatorProfile.values}`);
-  if (styleProfile) {
-    brandLines.push(`Style de communication observé (à respecter) : ${styleProfile.summary}`);
-  }
   if (creatorProfile.equipment?.length) {
     brandLines.push(`Matériel disponible : ${creatorProfile.equipment.join(", ")}`);
   }
@@ -202,6 +199,11 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
     brandLines.push(`Temps disponible par semaine : ${creatorProfile.weeklyTimeAvailable}`);
   }
   sections.push(`=== CONTEXTE MARQUE ===\n${brandLines.join("\n")}`);
+
+  // === STYLE === (docs/SPEC_APPRENTISSAGE_STYLE.md §5.4) : voix + règles apprises des corrections
+  // de l'auteur, filtrées sur la plateforme cible. Même bloc que dans les micro-retouches.
+  const styleBlock = buildStyleBlock(styleProfile, platform);
+  if (styleBlock) sections.push(styleBlock);
 
   // === DIRECTION ÉDITORIALE === (Annexe B.3, docs/SPEC_REDACTEUR_EN_CHEF.md §4.1 — entre CONTEXTE
   // MARQUE et MATIÈRE) : le chef a choisi l'épisode du jour, le rédacteur l'exécute plutôt que de

@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { creatorProfiles, scriptMicroEditEvents, scripts } from "@/db/schema";
 import { callStructured } from "@/lib/llm/provider";
 import { SCRIPT_SYSTEM_PROMPT, buildScriptUserMessage } from "@/lib/llm/prompts";
+import { buildStyleBlock, parseStoredStyleProfile } from "@/lib/llm/styleProfile";
 import {
   REWRITE_SELECTION_SYSTEM_PROMPT,
   buildRewriteSelectionUserMessage,
@@ -85,6 +86,9 @@ export async function applySelectionInstruction(
     system: REWRITE_SELECTION_SYSTEM_PROMPT,
     userMessage: buildRewriteSelectionUserMessage({
       brandContext,
+      // Les règles de style apprises valent aussi pour une retouche de phrase — avant ce bloc, la
+      // sélection→instruction ignorait le profil (docs/SPEC_APPRENTISSAGE_STYLE.md §5.4).
+      styleBlock: buildStyleBlock(parseStoredStyleProfile(profile?.styleProfile), script.platform),
       selectedText: params.selectedText,
       instruction: params.instruction,
       currentTitle: includeTitle ? script.title : undefined,
@@ -167,6 +171,7 @@ export async function regenerateBlock(userId: string, scriptId: string, block: M
         "Tu es un rédacteur qui ajuste l'accroche et, si besoin, le titre d'un post existant pour CreaFlow, sans jamais réécrire le texte lui-même — fourni ci-dessous comme référence fixe.\n\nTu ne dois JAMAIS inventer une information factuelle qui ne figure pas dans ce texte.",
       userMessage: [
         brandContext,
+        buildStyleBlock(parseStoredStyleProfile(profile?.styleProfile), script.platform),
         `Titre actuel : ${script.title ?? "(sans titre)"}`,
         `Texte actuel du post (référence fixe, ne pas modifier) :\n${script.caption}`,
         buildConceptContextLine(script.concept),

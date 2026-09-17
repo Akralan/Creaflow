@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Check, SquarePen, X } from "lucide-react";
 import Card from "@/components/ui/Card";
 import IconActionButton from "@/components/ui/IconActionButton";
-import { api, ApiClientError, type AssistantProposal } from "@/lib/apiClient";
+import { api, ApiClientError, type AssistantProposal, type StyleProfile } from "@/lib/apiClient";
 import { accentAlpha, color } from "@/lib/design/tokens";
 import { useContentCategories } from "@/contexts/CategoryLabelsContext";
 import { KNOWN_PLATFORMS, platformLabel } from "@/lib/social/types";
@@ -27,6 +27,7 @@ const KIND_LABEL: Record<AssistantProposal["kind"], string> = {
   angle_archive: "Archiver l'angle",
   category_reweight: "Rééquilibrage des rôles",
   profile_update: "Audience de la marque",
+  style_profile_update: "Style d'écriture",
 };
 
 const inputStyle: React.CSSProperties = {
@@ -60,6 +61,7 @@ type ProposalGroup =
   | "postingGoal"
   | "categoryReweight"
   | "profile"
+  | "style"
   | "material"
   | "archive";
 
@@ -91,7 +93,32 @@ function proposalGroup(kind: AssistantProposal["kind"]): ProposalGroup {
       return "categoryReweight";
     case "profile_update":
       return "profile";
+    case "style_profile_update":
+      return "style";
   }
+}
+
+interface StyleDraft {
+  styleProfile: StyleProfile;
+  changeNotes: string;
+}
+
+function toStyleDraft(payload: Record<string, unknown>): StyleDraft {
+  const raw = (payload.styleProfile ?? {}) as Partial<StyleProfile>;
+  return {
+    styleProfile: {
+      tone: raw.tone ?? "",
+      sentenceLength: raw.sentenceLength ?? "",
+      emojiUsage: raw.emojiUsage ?? "",
+      vocabulary: raw.vocabulary ?? "",
+      summary: raw.summary ?? "",
+      rules: raw.rules ?? [],
+      avoid: raw.avoid ?? [],
+      prefer: raw.prefer ?? [],
+      evidence: raw.evidence,
+    },
+    changeNotes: typeof payload.changeNotes === "string" ? payload.changeNotes : "",
+  };
 }
 
 interface ProductDraft {
@@ -242,6 +269,9 @@ function ProposalCard({
     toCategoryReweightDraft(proposal.payload)
   );
   const [profileDraft, setProfileDraft] = useState<ProfileDraft>(() => toProfileDraft(proposal.payload));
+  // Les règles se décochent avant acceptation : c'est le seul champ éditable d'une proposition de
+  // style (docs/SPEC_APPRENTISSAGE_STYLE.md §6.3) — le reste se retouche ensuite dans Paramètres.
+  const [styleDraft, setStyleDraft] = useState<StyleDraft>(() => toStyleDraft(proposal.payload));
   const [materialDraft, setMaterialDraft] = useState<MaterialDraft>(() => toMaterialDraft(proposal.payload));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -263,6 +293,8 @@ function ProposalCard({
                   ? { items: categoryReweightDraft.items }
                   : group === "profile"
                     ? profileDraft
+                    : group === "style"
+                      ? { styleProfile: styleDraft.styleProfile }
                     : group === "material"
                       ? materialDraft
                       : // Un archivage n'a rien d'éditable : accepter, c'est archiver la cible.
@@ -311,6 +343,8 @@ function ProposalCard({
               ? "Rééquilibrage des rôles"
               : group === "profile"
                 ? "Audience de marque"
+                : group === "style"
+                  ? "Mise à jour de ton style"
                 : group === "material"
                   ? materialDraft.title || "Matière"
                   : group === "archive"
@@ -332,6 +366,8 @@ function ProposalCard({
               ? categoryReweightDraft.reasonSummary
               : group === "profile"
                 ? profileDraft.targetAudience
+                : group === "style"
+                  ? styleDraft.changeNotes
                 : group === "material"
                   ? materialDraft.text
                   : group === "archive"
@@ -494,6 +530,8 @@ function ProposalCard({
               placeholder="Qui achète ou lit, ce qui l'intéresse, ce qu'il doit retenir de la marque"
             />
           </div>
+        ) : group === "style" ? (
+          <StyleRulesPicker draft={styleDraft} onChange={setStyleDraft} />
         ) : group === "material" ? (
           <div style={{ display: "grid", gap: 8 }}>
             <input
@@ -555,12 +593,67 @@ function ProposalCard({
             ))}
           </div>
         </div>
+      ) : group === "style" ? (
+        <div>
+          {description && <p style={{ margin: "0 0 6px", fontSize: 13, color: color.textMuted }}>{description}</p>}
+          <StyleRulesSummary styleProfile={styleDraft.styleProfile} />
+        </div>
       ) : (
         description && <p style={{ margin: 0, fontSize: 13, color: color.textMuted }}>{description}</p>
       )}
 
       {error && <p style={{ margin: "8px 0 0", fontSize: 12, color: color.danger }}>{error}</p>}
     </Card>
+  );
+}
+
+function StyleRulesSummary({ styleProfile }: { styleProfile: StyleProfile }) {
+  const rules = styleProfile.rules ?? [];
+  return (
+    <div style={{ display: "grid", gap: 4, fontSize: 12, color: color.textMuted }}>
+      <span>Voix : {styleProfile.summary}</span>
+      {rules.length > 0 && (
+        <div style={{ display: "grid", gap: 2 }}>
+          {rules.map((r, i) => (
+            <span key={`${r.text}-${i}`}>
+              · {r.text}
+              {r.platform ? ` (${platformLabel(r.platform)})` : ""}
+            </span>
+          ))}
+        </div>
+      )}
+      {(styleProfile.avoid?.length ?? 0) > 0 && <span>À bannir : {styleProfile.avoid!.join(", ")}</span>}
+      {(styleProfile.prefer?.length ?? 0) > 0 && <span>À privilégier : {styleProfile.prefer!.join(", ")}</span>}
+    </div>
+  );
+}
+
+/** Mode édition d'une proposition de style : décocher les règles qu'on ne veut pas garder. */
+function StyleRulesPicker({ draft, onChange }: { draft: StyleDraft; onChange: (d: StyleDraft) => void }) {
+  const rules = draft.styleProfile.rules ?? [];
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      <span style={{ fontSize: 12, color: color.textFaint }}>Décoche les règles que tu ne veux pas garder :</span>
+      {rules.map((r, i) => (
+        <label key={`${r.text}-${i}`} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13, cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked
+            onChange={() =>
+              onChange({
+                ...draft,
+                styleProfile: { ...draft.styleProfile, rules: rules.filter((_, j) => j !== i) },
+              })
+            }
+          />
+          <span>
+            {r.text}
+            {r.platform ? <span style={{ color: color.textFaint }}> ({platformLabel(r.platform)})</span> : null}
+          </span>
+        </label>
+      ))}
+      {rules.length === 0 && <span style={{ fontSize: 12, color: color.textFaint }}>Aucune règle dans cette proposition.</span>}
+    </div>
   );
 }
 

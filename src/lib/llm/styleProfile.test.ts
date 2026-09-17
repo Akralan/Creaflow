@@ -1,14 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
+import { buildStyleBlock, parseStoredStyleProfile, styleProfileSchema } from "./styleProfile";
 
-const { callStructuredMock } = vi.hoisted(() => ({ callStructuredMock: vi.fn() }));
-
-vi.mock("./provider", () => ({
-  callStructured: callStructuredMock,
-}));
-
-import { analyzeStyle, styleProfileSchema } from "./styleProfile";
-
-const validProfile = {
+const legacyProfile = {
   tone: "direct et chaleureux",
   sentenceLength: "phrases courtes",
   emojiUsage: "quelques emojis, avec parcimonie",
@@ -17,40 +10,70 @@ const validProfile = {
 };
 
 describe("styleProfileSchema", () => {
-  it("accepte un profil de style complet", () => {
-    expect(() => styleProfileSchema.parse(validProfile)).not.toThrow();
+  it("accepte un profil ancien (sans règles) et le complète avec des listes vides", () => {
+    const parsed = styleProfileSchema.parse(legacyProfile);
+    expect(parsed.rules).toEqual([]);
+    expect(parsed.avoid).toEqual([]);
+    expect(parsed.prefer).toEqual([]);
+    expect(parsed.evidence).toEqual({ scriptCount: 0, learnedAt: null });
   });
 
   it("rejette un profil sans summary", () => {
-    const withoutSummary: Partial<typeof validProfile> = { ...validProfile };
+    const withoutSummary: Partial<typeof legacyProfile> = { ...legacyProfile };
     delete withoutSummary.summary;
     expect(() => styleProfileSchema.parse(withoutSummary)).toThrow();
   });
 
-  it("rejette une valeur vide pour un champ requis", () => {
-    expect(() => styleProfileSchema.parse({ ...validProfile, tone: "" })).toThrow();
+  it("plafonne le nombre de règles à 12", () => {
+    const rules = Array.from({ length: 13 }, (_, i) => ({ text: `Règle ${i}`, platform: null }));
+    expect(() => styleProfileSchema.parse({ ...legacyProfile, rules })).toThrow();
+  });
+
+  it("parseStoredStyleProfile renvoie null sur un jsonb illisible", () => {
+    expect(parseStoredStyleProfile(null)).toBeNull();
+    expect(parseStoredStyleProfile("texte")).toBeNull();
+    expect(parseStoredStyleProfile({ tone: "seul" })).toBeNull();
+    expect(parseStoredStyleProfile(legacyProfile)?.summary).toBe(legacyProfile.summary);
   });
 });
 
-describe("analyzeStyle", () => {
-  beforeEach(() => {
-    callStructuredMock.mockReset();
+describe("buildStyleBlock", () => {
+  const profile = styleProfileSchema.parse({
+    ...legacyProfile,
+    rules: [
+      { text: "Jamais d'emoji.", platform: null },
+      { text: "Pas de hashtag dans le corps.", platform: "linkedin" },
+      { text: "Le hook tient en une phrase.", platform: "tiktok" },
+    ],
+    avoid: ["découvrez", "n'hésitez pas"],
+    prefer: ["regarde", "on teste"],
   });
 
-  it("renvoie le profil de style structuré renvoyé par le provider", async () => {
-    callStructuredMock.mockResolvedValue(validProfile);
-
-    const result = await analyzeStyle(["Légende 1", "Légende 2"]);
-    expect(result).toEqual(validProfile);
+  it("renvoie une chaîne vide sans profil", () => {
+    expect(buildStyleBlock(null, "tiktok")).toBe("");
+    expect(buildStyleBlock(undefined, "tiktok")).toBe("");
   });
 
-  it("propage l'erreur si le provider ne renvoie pas de réponse structurée", async () => {
-    callStructuredMock.mockRejectedValue(new Error("Le modèle n'a pas renvoyé de réponse structurée."));
-    await expect(analyzeStyle(["Légende 1"])).rejects.toThrow("n'a pas renvoyé de réponse structurée");
+  it("injecte la voix, les règles globales et celles de la plateforme cible seulement", () => {
+    const block = buildStyleBlock(profile, "linkedin");
+    expect(block.startsWith("=== STYLE ===")).toBe(true);
+    expect(block).toContain(`Voix : ${legacyProfile.summary}`);
+    expect(block).toContain("- Jamais d'emoji.");
+    expect(block).toContain("- Pas de hashtag dans le corps.");
+    expect(block).not.toContain("Le hook tient en une phrase.");
+    expect(block).toContain("À bannir : découvrez, n'hésitez pas");
+    expect(block).toContain("À privilégier : regarde, on teste");
   });
 
-  it("lève une erreur si le contenu renvoyé ne respecte pas le schéma attendu", async () => {
-    callStructuredMock.mockResolvedValue({ tone: "direct" });
-    await expect(analyzeStyle(["Légende 1"])).rejects.toThrow();
+  it("n'injecte aucune règle de plateforme quand la plateforme est inconnue", () => {
+    const block = buildStyleBlock(profile, null);
+    expect(block).toContain("- Jamais d'emoji.");
+    expect(block).not.toContain("linkedin");
+    expect(block).not.toContain("Le hook tient en une phrase.");
+  });
+
+  it("se limite à la voix pour un profil ancien sans règles", () => {
+    const block = buildStyleBlock(styleProfileSchema.parse(legacyProfile), "tiktok");
+    expect(block).toBe(`=== STYLE ===\nVoix : ${legacyProfile.summary}`);
   });
 });
