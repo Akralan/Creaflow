@@ -87,7 +87,7 @@ Migration de données : `UPDATE scripts SET visual_format = CASE WHEN jsonb_arra
 - Les trois routes de génération acceptent `visualFormat`, `slideCount`, `durationMs` (zod : 2 ≤ N ≤ 10, 5 000 ≤ D ≤ 15 000).
 
 ### 5.2 Maquette (`designPrompts.ts`, `visualDesignService.ts`, `timeline.ts`)
-- `src/lib/visualDesign/timeline.ts` (pur, testé) : schéma zod de la timeline, `validateTimeline(timeline, layerIds, durationMs)` (ids existants, bornes, effets), `normalizeTimeline` (tri par `startMs`, `exitAtMs > startMs + enterMs`).
+- `src/lib/visualDesign/timeline.ts` (pur, testé) : schéma zod de la timeline et `normalizeTimeline(timeline, layerIds, durationMs)`, qui valide (ids existants, bornes, effets, `exitAtMs > startMs + enterMs`) et normalise (tri par `startMs`) en une seule passe.
 - Tool `design_visual_post` : propriété `timeline` optionnelle ; le system prompt reçoit un paragraphe « ANIMATION » quand le format l'exige (Annexe A). Prompt de révision : la timeline courante est jointe au HTML.
 - `createDesignForScript` : format par défaut `story` pour une animation ; une seule slide même si le storyboard a plusieurs moments ; `durationMs` copié du script.
 - `patchDesign` : accepte `timeline` et `durationMs`, revalidés.

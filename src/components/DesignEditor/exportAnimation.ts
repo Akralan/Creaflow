@@ -91,7 +91,7 @@ export async function renderAnimationToMp4(params: ExportAnimationParams): Promi
       frame.close();
       params.onProgress?.(i + 1, total);
       // Laisse l'encodeur respirer : sans ça, la file grossit et la page se fige.
-      if (encoder.encodeQueueSize > 4) await new Promise((r) => setTimeout(r, 0));
+      while (encoder.encodeQueueSize > 4) await new Promise((r) => setTimeout(r, 5));
     }
     await encoder.flush();
     if (encodeError) throw encodeError;

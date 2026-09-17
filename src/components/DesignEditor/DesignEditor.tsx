@@ -187,11 +187,13 @@ export default function DesignEditor({
     setDurationMs(next);
     setPlayheadMs((p) => Math.min(p, next));
     // Les instants au-delà de la nouvelle durée sont ramenés dedans (le serveur ferait pareil).
-    const clamped = timeline.map((t) => ({
-      ...t,
-      startMs: Math.min(t.startMs, Math.max(0, next - t.enterMs)),
-      exitAtMs: t.exitAtMs === null ? null : Math.min(t.exitAtMs, next),
-    }));
+    // Même invariant que normalizeTimeline côté serveur : la sortie reste strictement après la fin
+    // de l'entrée, sinon la sauvegarde partirait en 422.
+    const clamped = timeline.map((t) => {
+      const startMs = Math.min(t.startMs, Math.max(0, next - t.enterMs));
+      const exitAtMs = t.exit && t.exitAtMs !== null ? Math.max(startMs + t.enterMs + 1, Math.min(t.exitAtMs, next)) : null;
+      return { ...t, startMs, exitAtMs, exit: exitAtMs === null ? null : t.exit };
+    });
     setTimeline(clamped);
     scheduleSave({ slides, timeline: clamped }, next);
   }
