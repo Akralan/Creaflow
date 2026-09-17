@@ -315,7 +315,9 @@ export function parseStyle(style: string, issues: string[], where: string): Styl
       issues.push(`${where} : valeur trop longue pour « ${prop} »`);
       continue;
     }
-    if ((prop === "background-image" || prop === "background") && /gradient|image/i.test(value) && !GRADIENT_RE.test(value) && !value.includes(BASE_IMAGE_PLACEHOLDER)) {
+    // Une image de fond passe par <img src="{{BASE_IMAGE}}"> (url() est banni plus haut, placeholder
+    // compris) : ici seuls une couleur ou un gradient sont acceptés.
+    if ((prop === "background-image" || prop === "background") && /gradient|image/i.test(value) && !GRADIENT_RE.test(value)) {
       issues.push(`${where} : « ${prop} » n'accepte qu'une couleur ou un gradient`);
       continue;
     }
@@ -410,11 +412,7 @@ export function sanitizeSlideHtml(html: string, options: SanitizeOptions): Sanit
       delete node.attrs.src;
     }
     if (node.attrs.style !== undefined) {
-      const parsed = parseStyle(node.attrs.style, issues, path);
-      if (parsed["background-image"]?.includes(BASE_IMAGE_PLACEHOLDER) || parsed.background?.includes(BASE_IMAGE_PLACEHOLDER)) {
-        usesBaseImage = true;
-      }
-      node.attrs.style = serializeStyle(parsed);
+      node.attrs.style = serializeStyle(parseStyle(node.attrs.style, issues, path));
     }
   });
 
@@ -482,7 +480,6 @@ export function sanitizeSlideHtml(html: string, options: SanitizeOptions): Sanit
 
 function containsImage(el: DesignElement): boolean {
   if (el.tag === "img") return true;
-  if (el.attrs.style?.includes(BASE_IMAGE_PLACEHOLDER)) return true;
   return el.children.some((c) => "tag" in c && containsImage(c));
 }
 

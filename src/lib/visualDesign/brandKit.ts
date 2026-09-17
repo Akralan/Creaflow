@@ -24,7 +24,7 @@ export const brandKitSchema = z.object({
   accentColor: hexColor.default(null),
   fontHeading: designFontName.default(null),
   fontBody: designFontName.default(null),
-  logoAssetId: z.string().uuid().nullable().default(null),
+  logoAssetId: z.uuid().nullable().default(null),
 });
 
 export type BrandKit = z.infer<typeof brandKitSchema>;

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { accent } from "@/lib/design/tokens";
-import { layerElements } from "./designDom";
+import { layerElements, pastePlainText, scrubEditedTextLayer } from "./designDom";
 
 /**
  * Canevas d'une slide (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §6) : le HTML rendu est injecté tel quel
@@ -18,6 +18,7 @@ export default function DesignCanvas({
   selectedLayerId,
   onSelectLayer,
   onCommit,
+  readOnly = false,
 }: {
   /** HTML affichable (placeholders résolus, polices traduites). */
   html: string;
@@ -27,6 +28,9 @@ export default function DesignCanvas({
   selectedLayerId: string | null;
   onSelectLayer: (id: string | null) => void;
   onCommit: (renderedHtml: string) => void;
+  /** Vrai pendant qu'une instruction ou un export est en vol : aucune retouche manuelle ne doit
+   *  entrer en course avec la version qui va arriver. */
+  readOnly?: boolean;
 }) {
   const scale = displayWidth / width;
   const displayHeight = Math.round(height * scale);
@@ -102,7 +106,7 @@ export default function DesignCanvas({
   }
 
   function beginMove(e: React.MouseEvent) {
-    if (editing) return;
+    if (editing || readOnly) return;
     const layer = layerFromEvent(e.target);
     if (!layer) {
       onSelectLayer(null);
@@ -126,7 +130,7 @@ export default function DesignCanvas({
 
   function beginResize(e: React.MouseEvent) {
     const r = root();
-    if (!r || !selectedLayerId) return;
+    if (!r || !selectedLayerId || readOnly) return;
     const layer = layerElements(r).find((l) => l.getAttribute("data-layer") === selectedLayerId);
     if (!layer) return;
     e.preventDefault();
@@ -178,6 +182,7 @@ export default function DesignCanvas({
   }, [scale, refreshSelBox]);
 
   function beginTextEdit(e: React.MouseEvent) {
+    if (readOnly) return;
     const layer = layerFromEvent(e.target);
     if (!layer || layer.getAttribute("data-type") !== "text") return;
     e.preventDefault();
@@ -186,10 +191,14 @@ export default function DesignCanvas({
     layer.style.outline = "none";
     layer.focus();
     setEditing(true);
+    // Un collage n'apporte que du texte : jamais de HTML riche dans un calque.
+    layer.addEventListener("paste", pastePlainText);
     const finish = () => {
       layer.removeEventListener("blur", finish);
+      layer.removeEventListener("paste", pastePlainText);
       layer.removeAttribute("contenteditable");
       layer.style.removeProperty("outline");
+      scrubEditedTextLayer(layer);
       setEditing(false);
       commit();
     };
@@ -207,6 +216,8 @@ export default function DesignCanvas({
         boxShadow: "0 2px 12px rgba(28,25,23,0.12)",
         background: "#fff",
         userSelect: editing ? "text" : "none",
+        opacity: readOnly ? 0.7 : 1,
+        cursor: readOnly ? "progress" : undefined,
       }}
       onMouseDown={beginMove}
       onDoubleClick={beginTextEdit}

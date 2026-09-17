@@ -68,12 +68,22 @@ export default function DesignEditor({
   const [confirmRefresh, setConfirmRefresh] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = useRef(false);
+  // Jeton de version : incrémenté à chaque nouvelle version de la maquette venue du serveur. Une
+  // sauvegarde différée armée avant un tel changement ne doit ni partir ni s'appliquer — sinon elle
+  // repousserait un HTML antérieur à une révision de l'agent (course signalée en revue).
+  const generationRef = useRef(0);
 
   // Resynchronise l'état local quand la maquette change de version (création, instruction,
   // recomposition) — ajustement d'état pendant le rendu, pattern React « adjusting state when a
   // prop changes », plutôt qu'un effet.
   const designVersion = design ? `${design.id}:${design.updatedAt}` : null;
   const [syncedVersion, setSyncedVersion] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    // Toute nouvelle version venue du serveur périme la sauvegarde différée en attente.
+    generationRef.current += 1;
+    dirtyRef.current = false;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+  }, [designVersion]);
   if (syncedVersion !== designVersion) {
     setSyncedVersion(designVersion);
     if (!design) {
@@ -104,11 +114,15 @@ export default function DesignEditor({
     (next: LocalSlide[]) => {
       dirtyRef.current = true;
       if (saveTimer.current) clearTimeout(saveTimer.current);
+      const generation = generationRef.current;
       saveTimer.current = setTimeout(async () => {
-        if (!dirtyRef.current) return;
+        if (!dirtyRef.current || generation !== generationRef.current) return;
         dirtyRef.current = false;
         try {
           const { design: saved } = await api.patchDesign(script.id, { slides: next });
+          // Une version plus récente (instruction, recomposition) est arrivée entre-temps : la
+          // réponse de cette sauvegarde est périmée, on ne l'applique pas.
+          if (generation !== generationRef.current) return;
           onDesignChange(saved);
         } catch (err) {
           setError(err instanceof ApiClientError ? err.message : "Enregistrement de la maquette impossible.");
@@ -119,6 +133,7 @@ export default function DesignEditor({
   );
 
   function applySlides(next: LocalSlide[], options: { record?: boolean } = {}) {
+    if (busy !== null) return;
     if (options.record !== false) {
       setUndoStack((u) => [...u.slice(-29), slides]);
       setRedoStack([]);
@@ -134,7 +149,7 @@ export default function DesignEditor({
 
   function undo() {
     const prev = undoStack[undoStack.length - 1];
-    if (!prev) return;
+    if (!prev || busy !== null) return;
     setUndoStack((u) => u.slice(0, -1));
     setRedoStack((r) => [...r, slides]);
     setSlides(prev);
@@ -143,7 +158,7 @@ export default function DesignEditor({
 
   function redo() {
     const next = redoStack[redoStack.length - 1];
-    if (!next) return;
+    if (!next || busy !== null) return;
     setRedoStack((r) => r.slice(0, -1));
     setUndoStack((u) => [...u, slides]);
     setSlides(next);
@@ -167,7 +182,7 @@ export default function DesignEditor({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [undoStack, redoStack, slides, selectedLayerId, current]);
+  }, [undoStack, redoStack, slides, selectedLayerId, current, busy]);
 
   // --- Création ---
   async function create(baseKind: "generated" | "asset" | "none", baseAssetId?: string) {
@@ -392,6 +407,7 @@ export default function DesignEditor({
               selectedLayerId={selectedLayerId}
               onSelectLayer={setSelectedLayerId}
               onCommit={(rendered) => updateCurrent(fromRenderedHtml(rendered, urls))}
+              readOnly={busy !== null}
             />
           )}
           <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center", overflowX: "auto", paddingBottom: 4 }}>
@@ -438,7 +454,11 @@ export default function DesignEditor({
 
         <div style={{ display: "grid", gap: 14 }}>
           <div style={{ border: `1px solid ${color.border}`, borderRadius: 12, padding: 14, background: color.listItemBg }}>
-            {layerInfo ? (
+            {busy !== null ? (
+              <p style={{ margin: 0, fontSize: 13, color: color.textMuted }}>
+                {busy === "instruct" ? "L'agent révise la maquette…" : busy === "export" ? "Export en cours…" : "Composition en cours…"} Les retouches manuelles reprendront ensuite.
+              </p>
+            ) : layerInfo ? (
               <LayerInspector
                 layer={layerInfo}
                 onStyle={(styles) => current && updateCurrent(updateLayerStyle(current.html, layerInfo.id, styles))}

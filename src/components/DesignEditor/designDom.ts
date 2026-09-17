@@ -152,3 +152,43 @@ export function describeLayer(html: string, layerId: string): LayerInfo | null {
 export function nextPlanNumber(slides: { planNumber: number }[]): number {
   return slides.reduce((max, s) => Math.max(max, s.planNumber), 0) + 1;
 }
+
+const EDIT_ALLOWED_TAGS = new Set(["DIV", "SPAN", "P", "H1", "H2", "H3", "H4", "STRONG", "EM", "BR"]);
+
+/**
+ * Nettoyage local d'un calque texte après édition en place (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §8) :
+ * un collage peut y déposer du HTML riche (images, attributs d'événement). Le serveur refera passer
+ * la liste blanche, mais ce HTML est réinjecté par innerHTML avant même la sauvegarde — on ne garde
+ * donc que la structure textuelle, sans attribut autre que style. Le vrai garde-fou reste côté
+ * serveur.
+ */
+export function scrubEditedTextLayer(layer: HTMLElement): void {
+  for (const el of Array.from(layer.querySelectorAll("*"))) {
+    if (!EDIT_ALLOWED_TAGS.has(el.tagName)) {
+      el.replaceWith(document.createTextNode(el.textContent ?? ""));
+      continue;
+    }
+    for (const attr of Array.from(el.attributes)) {
+      if (attr.name !== "style") el.removeAttribute(attr.name);
+    }
+  }
+  for (const attr of Array.from(layer.attributes)) {
+    if (!["style", "data-layer", "data-type"].includes(attr.name)) layer.removeAttribute(attr.name);
+  }
+}
+
+/** Collage en texte brut dans un calque en édition. */
+export function pastePlainText(e: ClipboardEvent): void {
+  e.preventDefault();
+  const text = e.clipboardData?.getData("text/plain") ?? "";
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+  const range = selection.getRangeAt(0);
+  range.deleteContents();
+  const node = document.createTextNode(text);
+  range.insertNode(node);
+  range.setStartAfter(node);
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}

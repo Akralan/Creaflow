@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUserId } from "@/lib/auth/session";
 import { ApiError, handleApiError } from "@/lib/api/errors";
+import { enforceRateLimit } from "@/lib/services/rateLimitService";
 import { MAX_DESIGN_SLIDES, MAX_EXPORT_BYTES, storeDesignExports, toApiDesign, type ExportFile } from "@/lib/services/visualDesignService";
 
 const ALLOWED_MIME = new Set(["image/png", "image/jpeg", "image/webp"]);
@@ -13,6 +14,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     const userId = await requireUserId();
     const { id } = await params;
+    // Jusqu'à 12 × 4 Mo vers R2 par appel — même limite que la composition (spec §2 « Quota »).
+    await enforceRateLimit("design-export", userId, 10, 60);
     const form = await request.formData();
     const files: ExportFile[] = [];
     for (const [field, value] of form.entries()) {
