@@ -5,7 +5,7 @@ import { Download, Plus, Redo2, RefreshCw, Trash2, Undo2 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import AssetGrid from "@/components/BrandAssetLibrary/AssetGrid";
-import { api, ApiClientError, type BrandAsset, type DesignTheme, type Script, type VisualDesign } from "@/lib/apiClient";
+import { api, ApiClientError, type BrandAsset, type DesignTheme, type Script, type TimelineEntry, type VisualDesign } from "@/lib/apiClient";
 import { accentAlpha, color, fontHeading } from "@/lib/design/tokens";
 import { DESIGN_FORMATS, defaultFormatForPlatform, type DesignFormatId } from "@/lib/visualDesign/formats";
 import DesignCanvas from "./DesignCanvas";
@@ -21,8 +21,12 @@ import {
   type RenderUrls,
 } from "./designDom";
 import { downloadBlob, renderSlideToPng, zipBlobs } from "./exportSlides";
+import { renderAnimationToMp4 } from "./exportAnimation";
+import TimelineBar from "./TimelineBar";
 
 type LocalSlide = { planNumber: number; html: string };
+/** Ce que l'undo/redo restaure : les slides et, pour une animation, la ligne de temps. */
+type Snapshot = { slides: LocalSlide[]; timeline: TimelineEntry[] | null };
 
 const CANVAS_WIDTH = 520;
 const SAVE_DEBOUNCE_MS = 800;
@@ -54,8 +58,14 @@ export default function DesignEditor({
   const [theme, setTheme] = useState<DesignTheme | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
-  const [undoStack, setUndoStack] = useState<LocalSlide[][]>([]);
-  const [redoStack, setRedoStack] = useState<LocalSlide[][]>([]);
+  const [timeline, setTimeline] = useState<TimelineEntry[] | null>(null);
+  const [durationMs, setDurationMs] = useState<number | null>(null);
+  const [playheadMs, setPlayheadMs] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [exportProgress, setExportProgress] = useState<{ done: number; total: number } | null>(null);
+  const exportAbort = useRef<AbortController | null>(null);
+  const [undoStack, setUndoStack] = useState<Snapshot[]>([]);
+  const [redoStack, setRedoStack] = useState<Snapshot[]>([]);
   const [instruction, setInstruction] = useState("");
   const [scope, setScope] = useState<"slide" | "all">("slide");
   const [busy, setBusy] = useState<string | null>(null);
@@ -89,11 +99,17 @@ export default function DesignEditor({
     if (!design) {
       setSlides([]);
       setTheme(null);
+      setTimeline(null);
+      setDurationMs(null);
+      setPlaying(false);
       setSelectedPlan(null);
       setSelectedLayerId(null);
     } else {
       setSlides(design.slides.map((s) => ({ planNumber: s.planNumber, html: s.html })));
       setTheme(design.theme);
+      setTimeline(design.durationMs ? (design.timeline ?? []) : null);
+      setDurationMs(design.durationMs ?? null);
+      setPlaying(false);
       setSelectedPlan((p) => (p !== null && design.slides.some((s) => s.planNumber === p) ? p : (design.slides[0]?.planNumber ?? null)));
     }
   }
@@ -108,10 +124,11 @@ export default function DesignEditor({
 
   const current = slides.find((s) => s.planNumber === selectedPlan) ?? null;
   const layerInfo = current && selectedLayerId ? describeLayer(current.html, selectedLayerId) : null;
+  const isAnimation = durationMs !== null && timeline !== null;
 
   // --- Persistance (retouches manuelles) ---
   const scheduleSave = useCallback(
-    (next: LocalSlide[]) => {
+    (next: Snapshot, nextDurationMs?: number | null) => {
       dirtyRef.current = true;
       if (saveTimer.current) clearTimeout(saveTimer.current);
       const generation = generationRef.current;
@@ -119,7 +136,11 @@ export default function DesignEditor({
         if (!dirtyRef.current || generation !== generationRef.current) return;
         dirtyRef.current = false;
         try {
-          const { design: saved } = await api.patchDesign(script.id, { slides: next });
+          const { design: saved } = await api.patchDesign(script.id, {
+            slides: next.slides,
+            ...(next.timeline ? { timeline: next.timeline } : {}),
+            ...(nextDurationMs ? { durationMs: nextDurationMs } : {}),
+          });
           // Une version plus récente (instruction, recomposition) est arrivée entre-temps : la
           // réponse de cette sauvegarde est périmée, on ne l'applique pas.
           if (generation !== generationRef.current) return;
@@ -132,14 +153,22 @@ export default function DesignEditor({
     [script.id, onDesignChange]
   );
 
-  function applySlides(next: LocalSlide[], options: { record?: boolean } = {}) {
+  function applySnapshot(next: Snapshot, options: { record?: boolean } = {}) {
     if (busy !== null) return;
     if (options.record !== false) {
-      setUndoStack((u) => [...u.slice(-29), slides]);
+      setUndoStack((u) => [...u.slice(-29), { slides, timeline }]);
       setRedoStack([]);
     }
-    setSlides(next);
+    setSlides(next.slides);
+    setTimeline(next.timeline);
     scheduleSave(next);
+  }
+
+  function applySlides(next: LocalSlide[], options: { record?: boolean } = {}) {
+    // Un calque supprimé quitte aussi la ligne de temps.
+    const layerIds = new Set(next.flatMap((s) => Array.from(s.html.matchAll(/data-layer="([^"]+)"/g)).map((m) => m[1])));
+    const nextTimeline = timeline ? timeline.filter((t) => layerIds.has(t.layerId)) : null;
+    applySnapshot({ slides: next, timeline: nextTimeline }, options);
   }
 
   function updateCurrent(html: string) {
@@ -147,12 +176,33 @@ export default function DesignEditor({
     applySlides(slides.map((s) => (s.planNumber === current.planNumber ? { ...s, html } : s)));
   }
 
+  function updateTimelineEntry(layerId: string, entry: TimelineEntry | null) {
+    if (!timeline) return;
+    const rest = timeline.filter((t) => t.layerId !== layerId);
+    applySnapshot({ slides, timeline: entry ? [...rest, entry].sort((a, b) => a.startMs - b.startMs) : rest });
+  }
+
+  function changeDuration(next: number) {
+    if (!timeline || busy !== null) return;
+    setDurationMs(next);
+    setPlayheadMs((p) => Math.min(p, next));
+    // Les instants au-delà de la nouvelle durée sont ramenés dedans (le serveur ferait pareil).
+    const clamped = timeline.map((t) => ({
+      ...t,
+      startMs: Math.min(t.startMs, Math.max(0, next - t.enterMs)),
+      exitAtMs: t.exitAtMs === null ? null : Math.min(t.exitAtMs, next),
+    }));
+    setTimeline(clamped);
+    scheduleSave({ slides, timeline: clamped }, next);
+  }
+
   function undo() {
     const prev = undoStack[undoStack.length - 1];
     if (!prev || busy !== null) return;
     setUndoStack((u) => u.slice(0, -1));
-    setRedoStack((r) => [...r, slides]);
-    setSlides(prev);
+    setRedoStack((r) => [...r, { slides, timeline }]);
+    setSlides(prev.slides);
+    setTimeline(prev.timeline);
     scheduleSave(prev);
   }
 
@@ -160,8 +210,9 @@ export default function DesignEditor({
     const next = redoStack[redoStack.length - 1];
     if (!next || busy !== null) return;
     setRedoStack((r) => r.slice(0, -1));
-    setUndoStack((u) => [...u, slides]);
-    setSlides(next);
+    setUndoStack((u) => [...u, { slides, timeline }]);
+    setSlides(next.slides);
+    setTimeline(next.timeline);
     scheduleSave(next);
   }
 
@@ -221,14 +272,14 @@ export default function DesignEditor({
       if (saveTimer.current) clearTimeout(saveTimer.current);
       if (dirtyRef.current) {
         dirtyRef.current = false;
-        await api.patchDesign(script.id, { slides });
+        await api.patchDesign(script.id, { slides, ...(timeline ? { timeline } : {}), ...(durationMs ? { durationMs } : {}) });
       }
       const { design: revised, rationale: why } = await api.instructDesign(script.id, {
         instruction: text,
         planNumber: scope === "slide" ? selectedPlan : null,
       });
       setRationale(why);
-      setUndoStack((u) => [...u.slice(-29), slides]);
+      setUndoStack((u) => [...u.slice(-29), { slides, timeline }]);
       setRedoStack([]);
       setInstruction("");
       onDesignChange(revised);
@@ -259,16 +310,36 @@ export default function DesignEditor({
     }
   }
 
-  // --- Export ---
+  // --- Export (PNG, ou MP4 pour une animation — uniquement sur le bouton) ---
   async function exportAll() {
     if (!design) return;
+    setPlaying(false);
     setBusy("export");
     setError(null);
+    setExportProgress(null);
     try {
       if (saveTimer.current) clearTimeout(saveTimer.current);
       if (dirtyRef.current) {
         dirtyRef.current = false;
-        await api.patchDesign(script.id, { slides });
+        await api.patchDesign(script.id, { slides, ...(timeline ? { timeline } : {}), ...(durationMs ? { durationMs } : {}) });
+      }
+      const base = (script.title ?? "post").replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "").toLowerCase() || "post";
+      if (isAnimation && timeline && durationMs && slides[0]) {
+        const controller = new AbortController();
+        exportAbort.current = controller;
+        const blob = await renderAnimationToMp4({
+          renderableHtml: toRenderableHtml(slides[0].html, urls),
+          width: design.width,
+          height: design.height,
+          durationMs,
+          timeline,
+          signal: controller.signal,
+          onProgress: (done, total) => setExportProgress({ done, total }),
+        });
+        const { design: exported } = await api.exportDesign(script.id, [{ planNumber: slides[0].planNumber, blob }]);
+        onDesignChange(exported);
+        downloadBlob(blob, `${base}.mp4`);
+        return;
       }
       const files: { planNumber: number; blob: Blob }[] = [];
       for (const slide of slides) {
@@ -276,12 +347,13 @@ export default function DesignEditor({
       }
       const { design: exported } = await api.exportDesign(script.id, files);
       onDesignChange(exported);
-      const base = (script.title ?? "post").replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "").toLowerCase() || "post";
       if (files.length === 1) downloadBlob(files[0].blob, `${base}.png`);
       else downloadBlob(await zipBlobs(files.map((f) => ({ name: `${base}-${f.planNumber}.png`, blob: f.blob }))), `${base}.zip`);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : `Export impossible : ${err instanceof Error ? err.message : "erreur inconnue"}.`);
     } finally {
+      exportAbort.current = null;
+      setExportProgress(null);
       setBusy(null);
     }
   }
@@ -388,9 +460,14 @@ export default function DesignEditor({
           <button style={{ ...iconBtn, color: color.danger }} title="Supprimer la maquette" onClick={remove} disabled={busy !== null}>
             <Trash2 size={15} />
           </button>
+          {busy === "export" && exportProgress && (
+            <button style={iconBtn} title="Annuler l'export" onClick={() => exportAbort.current?.abort()}>
+              {Math.round((exportProgress.done / exportProgress.total) * 100)} % · annuler
+            </button>
+          )}
           <Button onClick={exportAll} disabled={busy !== null} style={{ padding: "8px 14px", fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
             <Download size={14} />
-            {busy === "export" ? "Export…" : slides.length > 1 ? "Exporter les slides" : "Exporter"}
+            {busy === "export" ? "Export…" : isAnimation ? "Exporter la vidéo" : slides.length > 1 ? "Exporter les slides" : "Exporter"}
           </Button>
         </div>
       </div>
@@ -408,6 +485,22 @@ export default function DesignEditor({
               onSelectLayer={setSelectedLayerId}
               onCommit={(rendered) => updateCurrent(fromRenderedHtml(rendered, urls))}
               readOnly={busy !== null}
+              timeline={isAnimation ? timeline : null}
+              durationMs={durationMs}
+              playheadMs={playheadMs}
+              playing={playing}
+              onPlayheadChange={setPlayheadMs}
+            />
+          )}
+          {isAnimation && durationMs && (
+            <TimelineBar
+              durationMs={durationMs}
+              playheadMs={playheadMs}
+              playing={playing}
+              disabled={busy !== null}
+              onPlayingChange={setPlaying}
+              onSeek={setPlayheadMs}
+              onDurationChange={changeDuration}
             />
           )}
           <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center", overflowX: "auto", paddingBottom: 4 }}>
@@ -438,10 +531,10 @@ export default function DesignEditor({
                 />
               </button>
             ))}
-            <button style={iconBtn} title="Dupliquer la slide" onClick={duplicateCurrent} disabled={!current || slides.length >= 12}>
+            <button style={iconBtn} title="Dupliquer la slide" onClick={duplicateCurrent} disabled={!current || slides.length >= 12 || isAnimation}>
               <Plus size={14} />
             </button>
-            {slides.length > 1 && (
+            {slides.length > 1 && !isAnimation && (
               <button style={{ ...iconBtn, color: color.danger }} title="Supprimer la slide" onClick={deleteCurrent}>
                 <Trash2 size={14} />
               </button>
@@ -467,6 +560,11 @@ export default function DesignEditor({
                   if (current) updateCurrent(removeLayer(current.html, layerInfo.id));
                   setSelectedLayerId(null);
                 }}
+                animation={
+                  isAnimation && durationMs
+                    ? { entry: timeline?.find((t) => t.layerId === layerInfo.id) ?? null, durationMs, onChange: (entry) => updateTimelineEntry(layerInfo.id, entry) }
+                    : undefined
+                }
               />
             ) : (
               <p style={{ margin: 0, fontSize: 13, color: color.textMuted }}>Sélectionne un calque sur la slide pour le retoucher.</p>
