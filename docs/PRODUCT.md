@@ -155,7 +155,7 @@ Non implémentée. Voir §2.4.
 
 ## 5. Orientations IA (résumé)
 
-- **Moteur LLM :** provider pluggable — Gemini (par défaut), Claude (Anthropic), Groq ou OpenAI, sélectionné par variable d'environnement.
+- **Moteur LLM :** provider pluggable sélectionné par variable d'environnement. **OpenAI est le seul provider opérationnel** ; les adaptateurs Gemini, Claude (Anthropic) et Groq existent dans le code mais ne sont pas utilisables en l'état. Gemini reste utilisé, indépendamment de ce choix, pour la génération d'images et le captioning vision.
 - **Architecture de prompts :** prompts système modulaires par cas d'usage (génération de script, chat d'onboarding, chat assistant, analyse de style, suggestion de rôles/angles/séries), tous forcés en sortie JSON structurée via function/tool calling.
 
 Le détail technique (stack, modèle de données, endpoints, architecture des prompts complète) est dans `TECH.md`.
@@ -172,4 +172,5 @@ Le détail technique (stack, modèle de données, endpoints, architecture des pr
 6. Étendre le rééquilibrage automatique (aujourd'hui limité aux rôles) aux angles et aux séries récurrentes.
 7. Reprise du Module C une fois le parcours de base validé en usage réel.
 8. Auto-publication directe via API officielles (évolution long terme).
-9. Passe d'apprentissage `style_profile` à partir du gisement premier jet/version finale déjà stocké (`docs/SPEC_MATIERE_EDITEUR.md` §4.7), et proposition multi-voix au premier jet.
+9. Passe d'apprentissage `style_profile` à partir du gisement premier jet/version finale déjà stocké (`docs/SPEC_MATIERE_EDITEUR.md` §4.7) — cadrée dans `docs/SPEC_APPRENTISSAGE_STYLE.md` ; la proposition multi-voix au premier jet reste à cadrer.
+10. Maquette du post visuel composée par l'agent (HTML par-dessus l'image, éditable à la main et par instruction, export PNG) — cadrée dans `docs/SPEC_DESIGN_HTML_SUR_IMAGE.md`.

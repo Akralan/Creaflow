@@ -1,8 +1,8 @@
 # CADRAGE — RESSOURCES VISUELLES & GÉNÉRATION D'IMAGES
 
-> Cadrage d'une fonctionnalité non encore implémentée. Complète `PRODUCT.md` (positionnement) et `TECH.md` (état du code). À fusionner dans ces deux documents une fois la fonctionnalité livrée.
+> Cadrage de la fonctionnalité. Complète `PRODUCT.md` (positionnement) et `TECH.md` (état du code).
 >
-> **Statut :** implémenté côté code (schéma, ingestion, captioning, recherche sémantique, génération d'image, garde-fous). Non encore vérifié en environnement réel : nécessite un bucket Cloudflare R2, un projet Google Cloud (Picker + OAuth) et l'extension `pgvector` sur le Postgres cible — voir `docs/SETUP_RESSOURCES_VISUELLES.md` (configuration pas à pas) et `drizzle/README_PGVECTOR.md` (détail pgvector). À fusionner dans `PRODUCT.md`/`TECH.md` une fois cette vérification faite.
+> **Statut :** implémenté (schéma, ingestion, captioning, recherche sémantique, génération d'image, garde-fous) et validé en conditions réelles. Prérequis d'environnement : un bucket Cloudflare R2, un projet Google Cloud (Picker + OAuth) et l'extension `pgvector` sur le Postgres cible — voir `docs/SETUP_RESSOURCES_VISUELLES.md` (configuration pas à pas) et `drizzle/README_PGVECTOR.md` (détail pgvector). Prolongé par `docs/SPEC_DESIGN_HTML_SUR_IMAGE.md` (composition typographique par-dessus l'image).
 
 ---
 
@@ -21,7 +21,7 @@ Une bibliothèque d'images de marque par utilisateur, alimentée depuis son Goog
 
 Choix du modèle justifié par sa force réelle : l'**édition conditionnée par images de référence** avec conservation du sujet entre générations — et non le texte-vers-image de zéro, où il n'apporterait rien de décisif face aux alternatives. Le cas d'usage (retravailler les vraies photos de la marque) correspond exactement à son point fort.
 
-Bonus opérationnel : Gemini est déjà le provider par défaut (`LLM_PROVIDER`), donc même clé, même compte, même facturation.
+Note : la génération d'images et le captioning vision utilisent `GEMINI_API_KEY` indépendamment de `LLM_PROVIDER` (qui, lui, pointe sur OpenAI, seul provider texte opérationnel).
 
 ---
 

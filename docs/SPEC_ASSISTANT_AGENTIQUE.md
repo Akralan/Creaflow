@@ -1,6 +1,6 @@
 # CADRAGE — ASSISTANT ÉDITORIAL AGENTIQUE
 
-> **Statut : implémenté (lots 0 à 4), non testé avec une vraie clé LLM.** Branche `feature/assistant-agentique`, partie de `feature/refonte-ui-redacteur-en-chef`. Migrations `0024` (nouveaux kinds de proposition) et `0025` (`assistant_attachments`) générées, **pas encore appliquées**. Ce document reste le cadrage de référence ; `PRODUCT.md` et `TECH.md` reflètent le code livré.
+> **Statut : implémenté (lots 0 à 4), mergé sur `main` (PR #2) et validé en conditions réelles.** Migrations `0024` (nouveaux kinds de proposition) et `0025` (`assistant_attachments`) appliquées. Ce document reste le cadrage de référence ; `PRODUCT.md` et `TECH.md` reflètent le code livré.
 >
 > Écarts assumés par rapport au cadrage initial :
 > - **§3.2** — les outils d'écriture ne sont pas un par domaine : `propose_changes` (l'outil historique, sans la réponse conversationnelle) couvre sujets, séries, rôles, angles, cadence et audience ; s'y ajoutent `propose_material` et `propose_archive`. Trois outils plutôt qu'une quinzaine, pour ne pas noyer le modèle.

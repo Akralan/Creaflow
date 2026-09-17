@@ -15,7 +15,7 @@
 
 ## 2. Stack & Infrastructure
 
-- **Moteur IA :** provider pluggable — `gemini` (par défaut), `anthropic`, `groq` ou `openai`, sélectionné par `LLM_PROVIDER`. Voir `src/lib/llm/provider.ts`. Chaque appel structuré est tenté une 2e fois avec un rappel explicite dans le system prompt si le modèle ne respecte pas le format d'appel d'outil (fréquent chez certains modèles via Groq).
+- **Moteur IA :** provider pluggable sélectionné par `LLM_PROVIDER`. **Seul `openai` est opérationnel** ; `gemini`, `anthropic` et `groq` existent dans le code mais ne sont pas utilisables en l'état (le fallback codé en dur reste `gemini` si la variable est absente — à renseigner explicitement). Voir `src/lib/llm/provider.ts`. Chaque appel structuré est tenté une 2e fois avec un rappel explicite dans le system prompt si le modèle ne respecte pas le format d'appel d'outil (fréquent chez certains modèles via Groq).
 - **Frontend :** React / Next.js (App Router), interface web desktop (pas de responsive mobile).
 - **Backend :** API routes Next.js co-localisées avec le frontend, pas de backend séparé.
 - **Principe de conception API :** les routes sont pensées **par vue UI**, pas par entité pure — chaque écran se charge avec le moins d'appels possible (endpoints agrégés avec jointures Drizzle plutôt qu'un appel par entité liée).

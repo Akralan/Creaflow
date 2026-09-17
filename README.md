@@ -30,9 +30,9 @@ LLM_PROVIDER=openai
 OPENAI_API_KEY=sk-...
 ```
 
-> **Seul OpenAI fonctionne aujourd'hui.** `.env.example` propose aussi `gemini` (valeur par défaut),
-> `anthropic` et `groq` : ces providers existent dans le code mais ne sont pas opérationnels, ne pas
-> compter dessus pour faire tourner l'app.
+> **Seul OpenAI fonctionne aujourd'hui.** `LLM_PROVIDER` accepte aussi `gemini`, `anthropic` et
+> `groq` : ces providers existent dans le code mais ne sont pas opérationnels, ne pas compter dessus
+> pour faire tourner l'app.
 
 Tout le reste de `.env.example` est optionnel : sans les clés OAuth (TikTok, Instagram, LinkedIn,
 GitHub), sans Stripe, sans stockage R2, l'app fonctionne — seules les fonctionnalités concernées sont

@@ -1,6 +1,6 @@
 # SPEC — SÉRIES & RÔLES ÉDITORIAUX (rétrogradation des catégories)
 
-> **Statut : implémenté (Lots 0 à 4), migration de données appliquée en dev le 2026-08-26. Non testé avec une vraie clé LLM.** Ce document ne modifie pas les specs précédentes ; il recadre l'UX au-dessus d'un modèle de données qui reste en place.
+> **Statut : implémenté (Lots 0 à 4), migration de données appliquée en dev le 2026-08-26, validé en conditions réelles.** Ce document ne modifie pas les specs précédentes ; il recadre l'UX au-dessus d'un modèle de données qui reste en place.
 >
 > **Objectif.** Constat en usage réel : « catégories de contenu » et « séries » sont perçues comme la même chose, et manipuler les deux est moins lisible que n'en manipuler une. Le diagnostic n'est pas que le modèle est faux — une catégorie est un *rôle* dans le mix (axe d'allocation, comme l'angle), une série est un *format* avec une identité et une continuité — mais que l'UI expose les deux comme des objets jumeaux (même champs, même geste, mêmes écrans). Ce chantier garde le modèle, et fait de la **série le seul objet éditorial que l'utilisateur manipule** ; la catégorie devient un **rôle**, propriété d'une série ou d'un créneau libre, et rejoint l'angle dans la famille des mécanismes que le produit gère à la place de l'utilisateur.
 >

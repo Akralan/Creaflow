@@ -1,6 +1,6 @@
 # Connecteurs Etsy, Shopify, Notion, Linear — et ce qu'est un « sujet » chez chacun
 
-Statut : **Notion et Linear implémentés** (2026-09-09), non testés avec de vraies clés. Tout est
+Statut : **Notion et Linear implémentés** (2026-09-09) et validés en conditions réelles. Tout est
 arbitré. Etsy et Shopify restent bloqués derrière une validation manuelle de leur plateforme
 (§10) — démarches dans `docs/DEMANDES_ETSY_SHOPIFY.md`.
 
