@@ -2,6 +2,7 @@
   "name": "creaflow-poc",
   "version": "0.1.0",
   "private": true,
+  "license": "Elastic-2.0",
   "scripts": {
     "setup": "node scripts/setup.mjs",
     "dev": "next dev",

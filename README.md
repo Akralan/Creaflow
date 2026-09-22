@@ -74,3 +74,19 @@ Pour utiliser un Postgres déjà installé plutôt que Docker : il lui faut l'ex
 - `docs/TECH.md` — stack, modèle de données, endpoints, architecture des prompts.
 - `docs/` — les specs par chantier (séries et rôles, rédacteur en chef, assistant agentique,
   ressources visuelles, onboarding développeur).
+
+## Licence
+
+CreaFlow est distribué sous [Elastic License 2.0](LICENSE).
+
+En résumé :
+
+- ✅ Vous pouvez l'installer, l'utiliser (y compris dans un cadre professionnel), le modifier et le
+  redistribuer.
+- ❌ Vous ne pouvez pas le proposer à des tiers en tant que service hébergé ou managé (SaaS).
+- ❌ Vous ne pouvez pas retirer ou contourner les mentions de licence.
+
+Ce résumé n'a pas de valeur juridique, seul le fichier `LICENSE` fait foi. Pour un usage commercial
+en tant que service, contactez alix.chagotpro@gmail.com.
+
+Copyright © 2026 Alix Chagot. « CreaFlow » est une marque de Alix Chagot.
