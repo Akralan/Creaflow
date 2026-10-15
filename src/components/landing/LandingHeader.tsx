@@ -7,6 +7,7 @@ import { text, ink } from "@/components/landing/theme";
 import { hoverHandlers } from "@/components/landing/hoverStyle";
 import BrandMark from "@/components/landing/BrandMark";
 import { OPEN_PRICING_EVENT, PRICING_ENABLED } from "@/components/landing/LandingOffer";
+import { FEATURES_ENABLED } from "@/components/landing/flags";
 
 const logoLinkStyle: CSSProperties = { display: "flex", alignItems: "center", gap: 10, color: text.body };
 const logoLinkHover: CSSProperties = { color: text.body };
@@ -60,9 +61,15 @@ export default function LandingHeader() {
           </span>
         </Link>
         <nav style={{ display: "flex", alignItems: "center", gap: "clamp(8px, 1.6vw, 26px)" }}>
-          <Link href="#fonctionnalites" style={navLinkStyle} {...hoverHandlers(navLinkStyle, navLinkHover)}>
-            Fonctionnalités
-          </Link>
+          {FEATURES_ENABLED ? (
+            <Link href="#fonctionnalites" style={navLinkStyle} {...hoverHandlers(navLinkStyle, navLinkHover)}>
+              Fonctionnalités
+            </Link>
+          ) : (
+            <Link href="#ce-que-ca-change" style={navLinkStyle} {...hoverHandlers(navLinkStyle, navLinkHover)}>
+              Ce que ça change
+            </Link>
+          )}
           {/* Les tarifs remplacent le CTA final en fondu : le lien demande l'affichage avant d'y aller. */}
           {PRICING_ENABLED && (
             <Link

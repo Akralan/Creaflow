@@ -6,8 +6,10 @@ import LandingHero from "@/components/landing/LandingHero";
 import LandingSources from "@/components/landing/LandingSources";
 import LandingSocialProofSlot from "@/components/landing/LandingSocialProofSlot";
 import LandingProblem from "@/components/landing/LandingProblem";
+import LandingOutcomes from "@/components/landing/LandingOutcomes";
 import LandingHowItWorks from "@/components/landing/LandingHowItWorks";
 import LandingFeatures from "@/components/landing/LandingFeatures";
+import { FEATURES_ENABLED } from "@/components/landing/flags";
 import LandingOffer from "@/components/landing/LandingOffer";
 import LandingFooter from "@/components/landing/LandingFooter";
 import styles from "@/components/landing/landing.module.css";
@@ -47,6 +49,10 @@ function Panel({
 /**
  * Landing recentrée sur la cible prioritaire de docs/PRODUCT.md §2.1 : indépendants,
  * fondateurs et développeurs qui ont déjà de la matière écrite. Une promesse, un CTA répété.
+ *
+ * Ordre des panneaux : le hero promet et montre, le Problème fait qu'on se reconnaît, « Ce que
+ * ça change » résout la tension (section la plus visuelle, en contraste), « Comment ça marche »
+ * explique, le CTA conclut. La grille de fonctionnalités est masquée (FEATURES_ENABLED).
  */
 export default function LandingPage() {
   return (
@@ -63,13 +69,20 @@ export default function LandingPage() {
         <Panel index={1} variant="rise">
           <LandingProblem />
         </Panel>
-        <Panel index={2} variant="scale" background={bg.soft2}>
+        <Panel index={2} variant="slide">
+          <LandingOutcomes />
+        </Panel>
+        <Panel index={3} variant="scale" background={bg.soft2}>
           <LandingHowItWorks />
         </Panel>
-        <Panel index={3} variant="slide">
-          <LandingFeatures />
-        </Panel>
-        <Panel index={4} variant="blur">
+        {FEATURES_ENABLED && (
+          /* Même mouvement d'arrivée que « Ce que ça change » : acceptable tant que ce panneau
+             n'est affiché que pour comparaison. */
+          <Panel index={4} variant="slide">
+            <LandingFeatures />
+          </Panel>
+        )}
+        <Panel index={5} variant="blur">
           {/* CTA final + tarifs (masqués pour l'instant, cf. PRICING_ENABLED). */}
           <LandingOffer />
           <LandingFooter />

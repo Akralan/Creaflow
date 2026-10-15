@@ -37,7 +37,7 @@ export default function PostFan() {
       {/* Carte 1 : photo */}
       <div className={`${styles.fanCard} ${styles.fanLeft}`}>
         <div className={styles.fanInner} style={{ background: "#1b1713" }}>
-          <Image src="/landing/post-photo.jpg" alt="" fill sizes="(max-width: 640px) 140px, 220px" style={{ objectFit: "cover" }} />
+          <Image src="/landing/post-photo.jpg" alt="" fill sizes="(max-width: 640px) 180px, 320px" style={{ objectFit: "cover" }} />
           <div
             style={{
               position: "absolute",
@@ -78,10 +78,10 @@ export default function PostFan() {
       <div className={`${styles.fanCard} ${styles.fanRight}`}>
         <div className={styles.fanInner} style={{ background: bg.card, border: `1px solid ${ink(0.08)}` }}>
           <div className={styles.fanTextHead}>
-            <span style={{ width: 26, height: 26, borderRadius: "50%", background: `linear-gradient(135deg, ${accentAlpha(0.6)}, ${accent})`, flexShrink: 0 }} />
+            <span style={{ width: "2.6em", height: "2.6em", borderRadius: "50%", background: `linear-gradient(135deg, ${accentAlpha(0.6)}, ${accent})`, flexShrink: 0 }} />
             <span style={{ minWidth: 0 }}>
-              <span style={{ display: "block", fontSize: 10.5, fontWeight: 700, color: text.heading, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Alix · Fondateur</span>
-              <span style={{ display: "block", fontSize: 9, color: text.faint, fontFamily: fontMono, whiteSpace: "nowrap" }}>LinkedIn · texte</span>
+              <span style={{ display: "block", fontSize: "1.05em", fontWeight: 700, color: text.heading, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Alix · Fondateur</span>
+              <span style={{ display: "block", fontSize: "0.9em", color: text.faint, fontFamily: fontMono, whiteSpace: "nowrap" }}>LinkedIn · texte</span>
             </span>
           </div>
           <p className={styles.fanTextBody} style={{ fontFamily: fontHeading, color: text.heading }}>

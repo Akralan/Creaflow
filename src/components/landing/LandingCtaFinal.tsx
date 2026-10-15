@@ -6,6 +6,7 @@ import { fontHeading, fontMono } from "@/lib/design/tokens";
 import { accent, accentHover, accentText, text, ink } from "@/components/landing/theme";
 import { hoverHandlers } from "@/components/landing/hoverStyle";
 import PostFan from "@/components/landing/PostFan";
+import styles from "@/components/landing/landing.module.css";
 
 const ctaStyle: CSSProperties = {
   display: "inline-flex",
@@ -46,10 +47,14 @@ type Props = {
   onShowPricing?: () => void;
 };
 
-/** Mot de la fin, avec le CTA répété — la dernière chose qu'on voit avant le footer. */
+/**
+ * Mot de la fin, avec le CTA répété — la dernière chose qu'on voit avant le footer. Occupe un
+ * écran entier (le panneau s'arrêtait à mi-hauteur, ce qui cassait l'empilement des sections),
+ * l'éventail de posts grandit avec la fenêtre (cf. --card-w dans .fan).
+ */
 export default function LandingCtaFinal({ onShowPricing }: Props) {
   return (
-    <div data-screen-label="CTA final" style={{ position: "relative", overflow: "hidden" }}>
+    <div data-screen-label="CTA final" className={styles.ctaFinal} style={{ position: "relative", overflow: "hidden" }}>
       <div
         data-parallax=""
         data-speed="0.14"
@@ -72,7 +77,8 @@ export default function LandingCtaFinal({ onShowPricing }: Props) {
           position: "relative",
           maxWidth: 1160,
           margin: "0 auto",
-          padding: "clamp(44px, 6vw, 80px) clamp(18px, 5vw, 44px) clamp(48px, 7vw, 88px)",
+          width: "100%",
+          padding: "clamp(28px, 4vw, 56px) clamp(18px, 5vw, 44px) clamp(40px, 6vw, 72px)",
           textAlign: "center",
         }}
       >

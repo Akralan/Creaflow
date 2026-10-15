@@ -92,8 +92,8 @@ export default function LandingProblem() {
             c&apos;est le temps de la transformer en posts, et le réflexe.
           </p>
           <div data-reveal="" data-delay={180} style={{ marginTop: 18 }}>
-            <Link href="#comment-ca-marche" style={linkStyle} {...hoverHandlers(linkStyle, linkHover)}>
-              Voir comment CreaFlow s&apos;en charge
+            <Link href="#ce-que-ca-change" style={linkStyle} {...hoverHandlers(linkStyle, linkHover)}>
+              Voir ce que ça change
               <span style={{ fontFamily: fontMono, fontSize: 14 }}>→</span>
             </Link>
           </div>
