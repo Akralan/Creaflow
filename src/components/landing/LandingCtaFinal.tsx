@@ -3,8 +3,10 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { fontHeading, fontMono } from "@/lib/design/tokens";
-import { accent, accentHover, text } from "@/components/landing/theme";
+import { accent, accentHover, accentText, text, ink } from "@/components/landing/theme";
 import { hoverHandlers } from "@/components/landing/hoverStyle";
+import PostFan from "@/components/landing/PostFan";
+import styles from "@/components/landing/landing.module.css";
 
 const ctaStyle: CSSProperties = {
   display: "inline-flex",
@@ -23,9 +25,36 @@ const ctaStyle: CSSProperties = {
 };
 const ctaHover: CSSProperties = { background: accentHover, color: "#fffdfa" };
 
-export default function LandingCtaFinal() {
+const pricingToggleStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  padding: "15px 22px",
+  borderRadius: 15,
+  border: `1px solid ${ink(0.14)}`,
+  background: "rgba(255,253,250,0.6)",
+  color: text.body,
+  fontSize: 15.5,
+  fontWeight: 600,
+  fontFamily: "inherit",
+  cursor: "pointer",
+  transition: "background .25s ease, border-color .25s ease",
+};
+const pricingToggleHover: CSSProperties = { background: "rgba(255,253,250,1)", borderColor: ink(0.26), color: text.body };
+
+type Props = {
+  /** Absent quand les tarifs sont masqués (cf. PRICING_ENABLED dans LandingOffer). */
+  onShowPricing?: () => void;
+};
+
+/**
+ * Mot de la fin, avec le CTA répété — la dernière chose qu'on voit avant le footer. Occupe un
+ * écran entier (le panneau s'arrêtait à mi-hauteur, ce qui cassait l'empilement des sections),
+ * l'éventail de posts grandit avec la fenêtre (cf. --card-w dans .fan).
+ */
+export default function LandingCtaFinal({ onShowPricing }: Props) {
   return (
-    <section data-screen-label="CTA final" style={{ position: "relative", overflow: "hidden", borderTop: "1px solid rgba(34,29,25,0.07)" }}>
+    <div data-screen-label="CTA final" className={styles.ctaFinal} style={{ position: "relative", overflow: "hidden" }}>
       <div
         data-parallax=""
         data-speed="0.14"
@@ -48,10 +77,12 @@ export default function LandingCtaFinal() {
           position: "relative",
           maxWidth: 1160,
           margin: "0 auto",
-          padding: "clamp(72px, 10vw, 132px) clamp(18px, 5vw, 44px)",
+          width: "100%",
+          padding: "clamp(28px, 4vw, 56px) clamp(18px, 5vw, 44px) clamp(40px, 6vw, 72px)",
           textAlign: "center",
         }}
       >
+        <PostFan />
         <h2
           data-reveal=""
           style={{
@@ -71,17 +102,33 @@ export default function LandingCtaFinal() {
         <p
           data-reveal=""
           data-delay={80}
-          style={{ margin: "20px auto 0", fontSize: "1.06rem", lineHeight: 1.55, color: text.secondary, maxWidth: "42ch", textWrap: "pretty" }}
+          style={{ margin: "20px auto 0", fontSize: "1.06rem", lineHeight: 1.55, color: text.secondary, maxWidth: "44ch", textWrap: "pretty" }}
         >
-          Dix minutes de conversation, et votre ligne éditoriale est prête. Sans carte bancaire.
+          Branchez une source, répondez à trois questions, et votre ligne éditoriale est prête. Gratuit, sans carte
+          bancaire.
         </p>
-        <div data-reveal="" data-delay={160} style={{ marginTop: 32 }}>
+        <div
+          data-reveal=""
+          data-delay={160}
+          style={{ marginTop: 32, display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: 14 }}
+        >
           <Link href="/login?mode=signup" style={ctaStyle} {...hoverHandlers(ctaStyle, ctaHover)}>
             Démarrer gratuitement
             <span style={{ fontFamily: fontMono, fontSize: 15 }}>→</span>
           </Link>
+          {onShowPricing && (
+            <button type="button" onClick={onShowPricing} style={pricingToggleStyle} {...hoverHandlers(pricingToggleStyle, pricingToggleHover)}>
+              Voir les tarifs
+              <span style={{ color: accentText, fontFamily: fontMono, fontSize: 14 }}>→</span>
+            </button>
+          )}
         </div>
+        {onShowPricing && (
+          <p data-reveal="" data-delay={220} style={{ margin: "18px auto 0", fontSize: 13.5, color: text.faint }}>
+            Puis à partir de 20 € par mois, sans engagement.
+          </p>
+        )}
       </div>
-    </section>
+    </div>
   );
 }

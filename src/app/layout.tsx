@@ -41,7 +41,7 @@ const designJetBrainsMono = JetBrains_Mono({ variable: "--font-design-jetbrains-
 
 export const metadata: Metadata = {
   title: "CreaFlow",
-  description: "Directeur marketing virtuel pour créateurs et boutiques.",
+  description: "Vos notes de travail deviennent vos posts de la semaine. Rédacteur en chef IA pour indépendants, fondateurs et développeurs qui documentent déjà ce qu'ils font.",
 };
 
 export default function RootLayout({

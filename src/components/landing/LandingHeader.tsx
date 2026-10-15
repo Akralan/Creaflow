@@ -3,8 +3,11 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { fontHeading } from "@/lib/design/tokens";
-import { accent, bg, text, ink } from "@/components/landing/theme";
+import { text, ink } from "@/components/landing/theme";
 import { hoverHandlers } from "@/components/landing/hoverStyle";
+import BrandMark from "@/components/landing/BrandMark";
+import { OPEN_PRICING_EVENT, PRICING_ENABLED } from "@/components/landing/LandingOffer";
+import { FEATURES_ENABLED } from "@/components/landing/flags";
 
 const logoLinkStyle: CSSProperties = { display: "flex", alignItems: "center", gap: 10, color: text.body };
 const logoLinkHover: CSSProperties = { color: text.body };
@@ -52,38 +55,32 @@ export default function LandingHeader() {
         }}
       >
         <Link href="#top" style={logoLinkStyle} {...hoverHandlers(logoLinkStyle, logoLinkHover)}>
-          <span
-            style={{
-              width: 27,
-              height: 27,
-              borderRadius: 9,
-              background: accent,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <span
-              style={{
-                width: 9,
-                height: 9,
-                borderRadius: "50%",
-                background: bg.page,
-                animation: "cf-blink 3.4s ease-in-out infinite",
-              }}
-            />
-          </span>
+          <BrandMark size={30} />
           <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 20.5, letterSpacing: "-0.025em" }}>
             CreaFlow
           </span>
         </Link>
         <nav style={{ display: "flex", alignItems: "center", gap: "clamp(8px, 1.6vw, 26px)" }}>
-          <Link href="#fonctionnalites" style={navLinkStyle} {...hoverHandlers(navLinkStyle, navLinkHover)}>
-            Fonctionnalités
-          </Link>
-          <Link href="#tarifs" style={tarifsLinkStyle} {...hoverHandlers(tarifsLinkStyle, tarifsLinkHover)}>
-            Tarifs
-          </Link>
+          {FEATURES_ENABLED ? (
+            <Link href="#fonctionnalites" style={navLinkStyle} {...hoverHandlers(navLinkStyle, navLinkHover)}>
+              Fonctionnalités
+            </Link>
+          ) : (
+            <Link href="#ce-que-ca-change" style={navLinkStyle} {...hoverHandlers(navLinkStyle, navLinkHover)}>
+              Ce que ça change
+            </Link>
+          )}
+          {/* Les tarifs remplacent le CTA final en fondu : le lien demande l'affichage avant d'y aller. */}
+          {PRICING_ENABLED && (
+            <Link
+              href="#tarifs"
+              style={tarifsLinkStyle}
+              {...hoverHandlers(tarifsLinkStyle, tarifsLinkHover)}
+              onClick={() => window.dispatchEvent(new CustomEvent(OPEN_PRICING_EVENT))}
+            >
+              Tarifs
+            </Link>
+          )}
           <Link href="/login?mode=signup" style={ctaLinkStyle} {...hoverHandlers(ctaLinkStyle, ctaLinkHover)}>
             Se connecter
           </Link>
