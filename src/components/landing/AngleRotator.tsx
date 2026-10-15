@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { accent, accentText, bg } from "@/components/landing/theme";
 import { fontMono } from "@/lib/design/tokens";
 
-/** Reproduit `this.angles` du script source, cycle toutes les 2600ms via setInterval. */
+/** Cycle toutes les 2600ms : l'anti-répétition impose un angle neuf à chaque génération. */
 const angles = [
   "angle déjà utilisé — on change",
-  "nouveau : le geste qui rate souvent",
-  "nouveau : ce que personne ne voit",
-  "nouveau : la question qu'on vous pose",
+  "nouveau : la décision qu'on regrette",
+  "nouveau : le chiffre qui a surpris",
+  "nouveau : ce qu'on referait autrement",
 ];
 
 export default function AngleRotator() {

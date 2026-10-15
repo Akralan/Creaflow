@@ -13,9 +13,7 @@ function prefersReducedMotion(): boolean {
  * - `data-header` : bascule fond/bordure du header après ~12px de scroll.
  * - `data-parallax`/`data-speed` : translation verticale liée au scroll (désactivée si
  *   prefers-reduced-motion), formule exacte du script source.
- * - `data-step` : dans "Comment ça marche", l'étape active est celle dont le centre est le
- *   plus proche du centre de la fenêtre (logique `bestDist` exacte, désactivée si
- *   prefers-reduced-motion).
+ * - `data-stack-panel` : variables CSS de l'empilement des sections (voir plus bas).
  */
 export function useScrollTick() {
   useEffect(() => {
@@ -46,24 +44,41 @@ export function useScrollTick() {
         el.style.transform = `${centered ? "translateX(-50%) " : ""}translate3d(0,${shift.toFixed(1)}px,0)`;
       });
 
-      const mid = window.innerHeight * 0.52;
-      const steps = document.querySelectorAll<HTMLElement>("[data-step]");
-      let best = -1;
-      let bestDist = Infinity;
-      steps.forEach((el, i) => {
-        const rect = el.getBoundingClientRect();
-        const d = Math.abs(rect.top + rect.height / 2 - mid);
-        if (d < bestDist) {
-          bestDist = d;
-          best = i;
+      // Transition entre sections (cf. .stackPanel) : pour chaque panneau, `--cover` dit à
+      // quel point le suivant le recouvre (0 → 1) et `--enter` la progression de sa propre
+      // arrivée (0 : son haut touche le bas de la fenêtre, 1 : il est en place).
+      // Un panneau plus court que la fenêtre (le dernier, typiquement) n'atteint jamais le
+      // haut de l'écran : on mesure sa progression par rapport au point le plus haut qu'il
+      // peut réellement atteindre en fin de page, pour qu'il arrive bien à 1.
+      const vh = window.innerHeight;
+      const remaining = Math.max(0, max - y);
+      const panels = document.querySelectorAll<HTMLElement>("[data-stack-panel]");
+      const enters: number[] = [];
+      panels.forEach((el, i) => {
+        // Un panneau plus haut que la fenêtre se colle par son bas, pas par son haut : on le
+        // lit en entier en défilant, et le suivant ne le recouvre qu'une fois son bas atteint.
+        const stickTop = Math.min(0, vh - el.offsetHeight);
+        const stickTopPx = `${stickTop}px`;
+        if (el.style.top !== stickTopPx) el.style.top = stickTopPx;
+
+        if (i === 0) {
+          enters.push(1);
+          return;
         }
+        const top = el.getBoundingClientRect().top;
+        const finalTop = Math.max(0, top - remaining);
+        const travel = Math.max(1, vh - finalTop);
+        enters.push(Math.min(1, Math.max(0, (vh - top) / travel)));
       });
-      steps.forEach((el, i) => {
-        const on = i === best;
-        el.style.opacity = on ? "1" : "0.55";
-        el.style.transform = on ? "translate3d(0,0,0) scale(1)" : "translate3d(0,0,0) scale(0.985)";
-        el.style.borderColor = on ? "oklch(0.55 0.2 292 / 0.42)" : "rgba(34,29,25,0.08)";
-        el.style.boxShadow = on ? "0 26px 48px -38px oklch(0.55 0.2 292 / 0.85)" : "none";
+      panels.forEach((el, i) => {
+        const enter = enters[i];
+        // Le précédent reste net pendant toute la première moitié de l'arrivée du suivant,
+        // puis s'estompe sur la seconde : un gros coup de molette ne tombe plus entre deux
+        // pages floues.
+        const next = i + 1 < enters.length ? enters[i + 1] : 0;
+        const cover = Math.min(1, Math.max(0, (next - 0.5) / 0.5));
+        el.style.setProperty("--enter", enter.toFixed(3));
+        el.style.setProperty("--cover", cover.toFixed(3));
       });
     };
 

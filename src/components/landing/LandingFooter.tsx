@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import Link from "next/link";
 import { accentText, text } from "@/components/landing/theme";
 import { hoverHandlers } from "@/components/landing/hoverStyle";
+import BrandMark from "@/components/landing/BrandMark";
 
 const linkStyle: CSSProperties = { fontSize: 14, color: text.muted };
 const linkHover: CSSProperties = { color: accentText };
@@ -23,7 +24,10 @@ export default function LandingFooter() {
           gap: 16,
         }}
       >
-        <span style={{ fontSize: 14, color: text.faint }}>© 2026 CreaFlow. Tous droits réservés.</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 10, fontSize: 14, color: text.faint }}>
+          <BrandMark size={22} />
+          © 2026 CreaFlow. Tous droits réservés.
+        </span>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 22 }}>
           {/* Le design source pointe vers des ancres factices (#cgu/#confidentialite/#mentions) —
               remplacées ici par les routes légales réelles du repo. */}

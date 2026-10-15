@@ -1,0 +1,648 @@
+/*
+ * Mises en page responsives de la landing. Les composants gardent leurs styles inline
+ * (couleurs, typo) et ne délèguent ici que ce qui a besoin de media queries ou de
+ * sélecteurs (grilles, repli des tarifs, animations d'entrée).
+ */
+
+/* ---------- Hero ---------- */
+.heroGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(40px, 6vw, 64px);
+  align-items: center;
+}
+.heroTitle {
+  font-size: clamp(2.55rem, 8vw, 4.4rem);
+}
+.heroLine {
+  display: block;
+}
+@media (max-width: 639px) {
+  /* Sur téléphone, les trois lignes forcées donnent cinq lignes : on laisse le texte couler. */
+  .heroLine {
+    display: inline;
+  }
+  .heroTitle {
+    font-size: clamp(2.2rem, 10vw, 2.7rem);
+    max-width: none;
+  }
+}
+.heroDemoOuter {
+  position: relative;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 640px;
+}
+.heroDemoTilt {
+  transition: transform 0.6s cubic-bezier(0.2, 0.75, 0.2, 1);
+}
+.heroChip {
+  display: none;
+}
+@media (min-width: 980px) {
+  .heroGrid {
+    grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
+    gap: clamp(36px, 4.5vw, 72px);
+  }
+  .heroTitle {
+    font-size: clamp(2.9rem, 4.5vw, 4.3rem);
+  }
+  .heroDemoOuter {
+    max-width: none;
+  }
+  .heroDemoTilt {
+    transform: perspective(1800px) rotateY(-6deg) rotateX(2deg);
+  }
+  .heroDemoOuter:hover .heroDemoTilt {
+    transform: perspective(1800px) rotateY(-2deg) rotateX(0.5deg) translateY(-4px);
+  }
+  .heroChip {
+    display: inline-flex;
+  }
+}
+
+/* ---------- Transition entre sections au scroll ----------
+ * Chaque panneau est collant en haut de la fenêtre. Quand le suivant arrive, le précédent
+ * s'estompe, se floute et recule (--cover : 0 → 1), pendant que le suivant apparaît en fondu
+ * avec un mouvement propre à chaque section (--enter : 0 → 1, variantes ci-dessous).
+ * useScrollTick alimente les deux variables ; le reste est du CSS.
+ */
+.stack {
+  position: relative;
+}
+.stackPanel {
+  position: sticky;
+  top: 0;
+  --cover: 0;
+  --enter: 1;
+  background: #f7f4ef;
+  /* Le panneau qui arrive devient opaque sur le premier quart de son trajet ; celui qu'il
+     recouvre s'efface sur la seconde moitié (voir --cover dans useScrollTick). */
+  opacity: calc((1 - var(--cover)) * min(1, var(--enter) * 4));
+  filter: blur(calc(var(--cover) * 14px));
+  transform: translate3d(0, calc(var(--cover) * -36px), 0) scale(calc(1 - var(--cover) * 0.06));
+  transform-origin: 50% 30%;
+  /* Le bord haut du panneau qui arrive est fondu, pour un vrai fondu enchaîné sans ligne nette. */
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, min(1, var(--enter) * 1.4)) 0, #000 calc(220px * (1 - var(--enter))));
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, min(1, var(--enter) * 1.4)) 0, #000 calc(220px * (1 - var(--enter))));
+  will-change: transform, opacity, filter;
+}
+.stackInner {
+  will-change: transform, opacity, filter;
+}
+/* Variantes d'arrivée, une par section pour ne pas répéter le même mouvement */
+.variantRise .stackInner {
+  transform: translate3d(0, calc((1 - var(--enter)) * 90px), 0);
+}
+.variantScale .stackInner {
+  transform: scale(calc(0.92 + 0.08 * var(--enter)));
+  transform-origin: 50% 0;
+}
+.variantSlide .stackInner {
+  transform: translate3d(calc((1 - var(--enter)) * 64px), 0, 0);
+}
+.variantBlur .stackInner {
+  filter: blur(calc((1 - var(--enter)) * 12px));
+  transform: translate3d(0, calc((1 - var(--enter)) * 40px), 0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .stackPanel {
+    opacity: 1;
+    filter: none;
+    transform: none;
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+  .stackInner {
+    transform: none;
+    filter: none;
+  }
+}
+
+/* ---------- Mobile : démo allégée ---------- */
+@media (max-width: 639px) {
+  .hideOnPhone {
+    display: none !important;
+  }
+  .demoContent {
+    grid-column: 1 / -1;
+  }
+}
+/* ---------- Comment ça marche : parcours en trois étapes ---------- */
+.howSteps {
+  --how-gap: clamp(28px, 4vw, 56px);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(36px, 6vw, 48px);
+  position: relative;
+}
+.howStep {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.howStep > * {
+  margin-left: auto;
+  margin-right: auto;
+}
+.howVisual {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.howBullet {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #f3efe8;
+  border: 1.5px solid oklch(0.55 0.2 292 / 0.45);
+  color: oklch(0.47 0.2 292);
+  font-family: var(--font-mono), monospace;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 1;
+}
+@media (min-width: 900px) {
+  .howSteps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--how-gap);
+  }
+  /* Ligne pointillée du centre de la première pastille au centre de la troisième */
+  .howSteps::before {
+    content: "";
+    position: absolute;
+    top: 19.5px;
+    left: calc((100% - 2 * var(--how-gap)) / 6);
+    right: calc((100% - 2 * var(--how-gap)) / 6);
+    border-top: 1.5px dashed oklch(0.55 0.2 292 / 0.35);
+  }
+}
+
+/* ---------- Problème : titre + accroche en regard, sommaire à filets ---------- */
+.problemHead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px clamp(32px, 6vw, 96px);
+  align-items: end;
+  margin-bottom: clamp(28px, 4vw, 48px);
+}
+.problemList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.problemItem {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  padding: clamp(22px, 3vw, 32px) 0;
+  border-top: 1px solid rgba(34, 29, 25, 0.1);
+}
+@media (min-width: 900px) {
+  .problemHead {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  }
+  .problemLead {
+    padding-bottom: 6px;
+  }
+  .problemList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: clamp(32px, 5vw, 72px);
+  }
+}
+
+/* ---------- Fonctionnalités ---------- */
+.featGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(14px, 1.8vw, 20px);
+}
+.featWide {
+  grid-column: 1 / -1;
+}
+.featWideInner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(24px, 3vw, 44px);
+  align-items: center;
+}
+@media (min-width: 720px) {
+  .featGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 880px) {
+  .featWideInner {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+/* ---------- Offre : CTA final <-> tarifs, en fondu ---------- */
+.fadeIn {
+  animation: fadeIn 0.5s cubic-bezier(0.2, 0.75, 0.2, 1) both;
+}
+.fadeOut {
+  animation: fadeOut 0.24s ease both;
+}
+.pricingCard {
+  animation: rise 0.65s cubic-bezier(0.2, 0.75, 0.2, 1) both;
+}
+.pricingCard:nth-child(2) {
+  animation-delay: 0.08s;
+}
+.pricingCard:nth-child(3) {
+  animation-delay: 0.16s;
+}
+.pricingGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(14px, 1.8vw, 20px);
+  align-items: stretch;
+}
+@media (min-width: 640px) {
+  .pricingGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 960px) {
+  .pricingGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ---------- Rotation des profils (exemples du hero et des fonctionnalités) ---------- */
+.swapIn {
+  animation: swapIn 0.55s cubic-bezier(0.2, 0.75, 0.2, 1) both;
+}
+.swapOut {
+  animation: swapOut 0.38s ease both;
+}
+@keyframes swapIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes swapOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, -4px, 0);
+  }
+}
+
+/* ---------- Animations locales ---------- */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, -8px, 0);
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes shimmer {
+  from {
+    transform: translate3d(-100%, 0, 0);
+  }
+  to {
+    transform: translate3d(250%, 0, 0);
+  }
+}
+@keyframes typing {
+  0%, 20% { opacity: 0.25; }
+  30%, 50% { opacity: 1; }
+  60%, 100% { opacity: 0.25; }
+}
+.shimmerTrack {
+  position: relative;
+  overflow: hidden;
+}
+.shimmerTrack::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255, 253, 250, 0.5), transparent);
+  pointer-events: none;
+  animation: shimmer 2.4s ease-in-out infinite;
+}
+.typingDot {
+  animation: typing 1.5s ease-in-out infinite;
+}
+.typingDot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.typingDot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroDemoTilt {
+    transition: none;
+  }
+  .fadeIn,
+  .fadeOut,
+  .swapIn,
+  .swapOut,
+  .pricingCard,
+  .shimmerTrack::after,
+  .typingDot {
+    animation: none;
+  }
+}
+
+/* ---------- Éventail de posts (section finale) ----------
+ * Trois cartes en diagonale, qui surgissent une par une quand la section arrive (.fanIn).
+ * Taille pilotée par --card-w ; sur téléphone l'éventail est plus petit et plus serré pour
+ * rester au-dessus du texte sans jamais le recouvrir.
+ */
+.fan {
+  --card-w: 212px;
+  --card-h: 282px;
+  --spread: 150px;
+  --tilt: 13deg;
+  position: relative;
+  /* Les cartes inclinées dépassent sous la ligne de base : on réserve la place. */
+  height: calc(var(--card-h) + 64px);
+  margin: 0 auto clamp(30px, 4vw, 48px);
+  width: 100%;
+  max-width: 720px;
+  pointer-events: none;
+}
+.fanCard {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: var(--card-w);
+  height: var(--card-h);
+  margin-left: calc(var(--card-w) / -2);
+  transform-origin: 50% 120%;
+  opacity: 0;
+  transform: translate3d(0, 120px, 0) rotate(0deg) scale(0.6);
+  transition:
+    transform 0.9s cubic-bezier(0.22, 1.2, 0.36, 1),
+    opacity 0.5s ease;
+  will-change: transform, opacity;
+}
+.fanInner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 30px 60px -28px rgba(34, 29, 25, 0.55), 0 2px 6px rgba(34, 29, 25, 0.08);
+}
+.fanIn .fanLeft {
+  opacity: 1;
+  transform: translate3d(calc(var(--spread) * -1), 4px, 0) rotate(calc(var(--tilt) * -1)) scale(1);
+  transition-delay: 0.05s;
+}
+.fanIn .fanCenter {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  transition-delay: 0.2s;
+  z-index: 2;
+}
+.fanIn .fanRight {
+  opacity: 1;
+  transform: translate3d(var(--spread), 4px, 0) rotate(var(--tilt)) scale(1);
+  transition-delay: 0.35s;
+}
+.fanBadge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  backdrop-filter: blur(6px);
+}
+/* Carte photo */
+.fanPhotoTitle {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 30px;
+  margin: 0;
+  color: #fffdfa;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.fanPhotoMeta {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  font-size: 9.5px;
+  color: rgba(255, 253, 250, 0.7);
+  letter-spacing: 0.08em;
+}
+/* Carte motion : boucle de 3 s — trois lignes qui entrent, tiennent, puis repartent */
+.fanBlob {
+  position: absolute;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  right: -60px;
+  top: -40px;
+  background: radial-gradient(circle at 40% 40%, oklch(0.75 0.17 292 / 0.75), transparent 68%);
+  filter: blur(14px);
+  animation: fanBlob 3s ease-in-out infinite;
+}
+.fanMotionLines {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  gap: 2px;
+  color: #fffdfa;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+.fanLine {
+  display: block;
+  opacity: 0;
+  animation: fanLine 3s cubic-bezier(0.2, 0.75, 0.2, 1) infinite;
+}
+.fanLine:nth-child(2) {
+  animation-delay: 0.35s;
+}
+.fanLine:nth-child(3) {
+  animation-delay: 0.7s;
+}
+.fanLineAccent {
+  color: oklch(0.82 0.14 292);
+}
+.fanProgress {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 253, 250, 0.18);
+  overflow: hidden;
+}
+.fanProgressBar {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: #fffdfa;
+  animation: fanProgress 3s linear infinite;
+}
+.fanMotionCounter {
+  position: absolute;
+  right: 14px;
+  bottom: 24px;
+  font-size: 9.5px;
+  color: rgba(255, 253, 250, 0.7);
+  letter-spacing: 0.08em;
+}
+/* Carte texte */
+.fanTextHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 14px 10px;
+}
+.fanTextBody {
+  margin: 0;
+  padding: 0 14px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+.fanTextFoot {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 9.5px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(34, 29, 25, 0.08);
+}
+@keyframes fanLine {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  12%,
+  78% {
+    opacity: 1;
+    transform: none;
+  }
+  90%,
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -8px, 0);
+  }
+}
+@keyframes fanProgress {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+@keyframes fanBlob {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-24px, 30px, 0) scale(1.15);
+  }
+}
+@media (max-width: 639px) {
+  .fan {
+    --card-w: 132px;
+    --card-h: 176px;
+    --spread: 84px;
+    --tilt: 11deg;
+    height: calc(var(--card-h) + 56px);
+    margin-bottom: 34px;
+  }
+  .fanPhotoTitle {
+    font-size: 12px;
+    bottom: 24px;
+  }
+  .fanMotionLines {
+    font-size: 15px;
+  }
+  .fanTextBody {
+    font-size: 9.5px;
+    padding: 0 10px 5px;
+  }
+  .fanTextHead {
+    padding: 10px 10px 6px;
+  }
+  .fanBadge {
+    font-size: 8.5px;
+    top: 8px;
+    left: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fanCard {
+    transition: none;
+  }
+  .fanLine,
+  .fanProgressBar,
+  .fanBlob {
+    animation: none;
+    opacity: 1;
+  }
+  .fanProgressBar {
+    width: 60%;
+  }
+}
