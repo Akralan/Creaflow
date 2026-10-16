@@ -2,7 +2,7 @@
 
 > Cadrage de la fonctionnalité. Complète `PRODUCT.md` (positionnement) et `TECH.md` (état du code).
 >
-> **Statut :** implémenté (schéma, ingestion, captioning, recherche sémantique, génération d'image, garde-fous) et validé en conditions réelles. Prérequis d'environnement : un bucket Cloudflare R2, un projet Google Cloud (Picker + OAuth) et l'extension `pgvector` sur le Postgres cible — voir `docs/SETUP_RESSOURCES_VISUELLES.md` (configuration pas à pas) et `drizzle/README_PGVECTOR.md` (détail pgvector). Prolongé par `docs/SPEC_DESIGN_HTML_SUR_IMAGE.md` (composition typographique par-dessus l'image).
+> **Statut :** implémenté (schéma, ingestion, captioning, recherche sémantique, garde-fous) et validé en conditions réelles. **La génération d'image (§2, Nano Banana) a été retirée le 2026-10-16** par `docs/SPEC_COMPOSITION_VISUELLE.md` : les photos servent telles quelles ou détourées dans la maquette ; les points §6.2 et §8.2-3 (AI Act, SynthID) sont sans objet. Prérequis d'environnement : un bucket Cloudflare R2, un projet Google Cloud (Picker + OAuth) et l'extension `pgvector` sur le Postgres cible — voir `docs/SETUP_RESSOURCES_VISUELLES.md` (configuration pas à pas) et `drizzle/README_PGVECTOR.md` (détail pgvector). Prolongé par `docs/SPEC_DESIGN_HTML_SUR_IMAGE.md` (composition typographique par-dessus l'image).
 
 ---
 

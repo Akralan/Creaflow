@@ -65,20 +65,39 @@ les pistes selon votre hébergement (Postgres local, Docker, Neon/Supabase/RDS..
 
 ## 4. Clé Gemini (déjà couverte si `LLM_PROVIDER=gemini`)
 
-Le captioning, les embeddings et la génération d'image (Nano Banana) passent **toujours** par
-Gemini, quel que soit `LLM_PROVIDER` — `GEMINI_API_KEY` doit donc être renseignée même si vous
-utilisez `anthropic` ou `groq` comme provider de génération de scripts.
+Le captioning vision des photos passe **toujours** par Gemini, quel que soit `LLM_PROVIDER` —
+`GEMINI_API_KEY` doit donc être renseignée même si vous utilisez `anthropic` ou `groq` comme
+provider de génération de scripts. (La génération d'image Nano Banana a été retirée,
+`docs/SPEC_COMPOSITION_VISUELLE.md`.)
 
 ```
 GEMINI_API_KEY=...
-GEMINI_IMAGE_MODEL=gemini-3-pro-image
 ```
 
 Les **embeddings** de la bibliothèque visuelle ne passent plus par Gemini : ils utilisent OpenAI
 (`OPENAI_API_KEY`, `OPENAI_EMBEDDING_MODEL=text-embedding-3-small`, 768 dimensions), le modèle
 `text-embedding-004` ayant été retiré côté Google — voir `docs/SPEC_RESSOURCES_VISUELLES.md` §8.4.
-Cette clé est de toute façon requise par l'assistant éditorial. Seuls le captioning vision et la
-génération d'images restent chez Gemini.
+Cette clé est de toute façon requise par l'assistant éditorial. Seul le captioning vision reste
+chez Gemini.
+
+---
+
+## 4 bis. Détourage des photos (optionnel) — Photoroom
+
+Le détourage (`docs/SPEC_COMPOSITION_VISUELLE.md` §2) isole le sujet d'une photo sur fond
+transparent, pour le poser sur un fond de marque dans la maquette. Il passe par l'API Photoroom
+derrière un adaptateur ; sans ces variables, la fonction est simplement absente (pas de bascule
+« détourée », l'agent ne la propose pas), tout le reste fonctionne.
+
+1. Créer un compte sur photoroom.com, puis une clé API (API → Basic plan). Tarif : **0,02 $ par
+   image** ; chaque photo n'est détourée qu'une seule fois (PNG mis en cache sur R2).
+2. En développement, préfixer la clé par `sandbox_` : appels gratuits (100 par jour), image avec
+   filigrane.
+
+```
+BACKGROUND_REMOVAL_PROVIDER=photoroom
+PHOTOROOM_API_KEY=sandbox_xxxxxxxxxxxx
+```
 
 ---
 
@@ -87,4 +106,4 @@ génération d'images restent chez Gemini.
 1. `npm run db:migrate` — doit passer sans erreur `extension "vector" n'est pas disponible`.
 2. `npm run dev`, se connecter, aller dans **Paramètres → Ressources visuelles** : le bouton *Importer depuis Google Drive* doit ouvrir une popup Google (pas d'erreur "Google Picker n'est pas configuré").
 3. Uploader une photo directement (glisser-déposer) : elle doit apparaître tout de suite en grille avec le statut *Analyse en cours…*, puis basculer sur l'image quelques secondes après (captioning + embedding via `after()`).
-4. Depuis une fiche script `visual`, cliquer *Générer le visuel*, sélectionner une photo, décrire une mise en scène : l'image produite doit s'afficher sur la fiche.
+4. Générer un post visuel depuis le calendrier : la fiche s'ouvre avec « Composition en cours… », puis la maquette apparaît avec la photo suggérée. Dans la bibliothèque, *Détourer* sur une photo doit afficher le sujet sur damier (si Photoroom est configuré).
