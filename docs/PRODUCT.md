@@ -49,10 +49,10 @@ Pour eux, la matière est dans la tête et les conversations, pas sur le disque 
 Registre de plateformes extensible côté code (`src/lib/social/types.ts`) ; à date :
 - **Avec connexion OAuth** (analyse de la "patte" de marque à partir des posts récents, et pour Instagram récupération automatique des métriques de performance — voir Module D) : Instagram, LinkedIn, X (Twitter). TikTok et YouTube ont été retirés avec la vidéo le 2026-10-16 (`docs/SPEC_ONBOARDING_MVP.md` §6).
   - X est posée côté code mais bloquée par l'ouverture d'un compte de facturation (pay-per-use depuis février 2026), LinkedIn par une validation d'accès externe (Community Management API) — ces deux dernières fonctionnent en connexion de compte, pas encore en récupération de métriques réelle.
-- **Suivies sans OAuth** (calendrier + objectifs de fréquence, contenu généré manuellement, métriques saisies à la main) : Newsletter, Blog / site perso, Slack, Autre.
+- **Suivies sans OAuth** (calendrier, contenu généré manuellement, métriques saisies à la main) : Newsletter, Blog / site perso, Slack, Autre.
 
 ### 2.3 Modules livrés
-- **Module A** — Onboarding & Profiling, sous forme de chat conversationnel avec l'IA ; parcours « source d'abord » via connexion GitHub, Notion ou Linear (dépôts, pages et projets deviennent des sujets et alimentent le corpus).
+- **Module A** — Onboarding & Profiling : un seul parcours en six écrans (`docs/SPEC_ONBOARDING_MVP.md`), où l'on branche sa matière (GitHub, Notion, Linear ou notes collées) et où l'on corrige ce que la machine en a compris — plus de chat.
 - **Module B** — Moteur d'Idées & Scripts, avec système anti-répétition par angles.
 - **Module D** — Calendrier Intelligent, mix éditorial personnalisé par IA.
 - **Module E** — Direction éditoriale & Assistant IA conversationnel *(ajouté en cours de route, non prévu au cadrage initial)*.
@@ -65,7 +65,7 @@ Registre de plateformes extensible côté code (`src/lib/social/types.ts`) ; à 
 ## 3. Parcours Utilisateur & Fonctionnalités
 
 ```
-[ Onboarding conversationnel ] ➔ [ Direction éditoriale IA ] ➔ [ Générateur de Scripts ] ➔ [ Calendrier Intelligent ]
+[ Onboarding : brancher sa matière ] ➔ [ Direction éditoriale IA ] ➔ [ Générateur de Scripts ] ➔ [ Calendrier Intelligent ]
                                             ▲
                                             │
                                   [ Assistant éditorial (chat) ]
@@ -73,19 +73,18 @@ Registre de plateformes extensible côté code (`src/lib/social/types.ts`) ; à 
 
 ### Module A : Onboarding & Profiling d'Activité
 
-**Deux parcours, selon d'où vient la matière.** Qui crée son compte avec **GitHub**, **Notion** ou **Linear** choisit jusqu'à 5 sources qui deviennent ses sujets — un dépôt public, une page racine ou une base Notion, un projet Linear — dont le contenu entre directement dans le corpus : les `.md` et le journal de commits d'un dépôt, le texte d'une page et de ses sous-pages, la description d'un projet avec son journal d'updates et ses issues terminées. Il ne répond ensuite qu'à deux ou trois questions (ton, audience, temps disponible) : le reste est déduit de son profil et de ses sujets. Tout le monde d'autre suit le parcours conversationnel décrit ci-dessous, inchangé. Ce qui devient un sujet chez chaque plateforme est arbitré dans `docs/SPEC_CONNECTEURS_ET_SUJETS.md` ; détail technique en `docs/TECH.md` §8.
+**Un seul parcours, et tout ce qu'on demande est une chose à faire** (`docs/SPEC_ONBOARDING_MVP.md`). Ce que la personne fait se lit dans sa matière ; son ton s'apprend à ses retouches. Ni ton, ni valeurs, ni matériel, ni temps disponible ne sont plus demandés, et il n'y a plus de chat d'onboarding. Six écrans :
 
-L'utilisateur configure son espace via un **chat conversationnel avec l'IA** (pas un formulaire classique) : l'assistant pose une question à la fois, adaptée à l'activité décrite, et en déduit progressivement :
-- **Identité de marque :** nom, type d'activité, ton, valeurs.
-- **Audience visée :** qui achète ou lit, ce qui l'intéresse, ce qu'il doit retenir de la marque — question posée mais **skippable**, jamais un critère bloquant pour terminer l'onboarding. Éditable ensuite en paramètres, avec un override possible par sujet pour les profils multi-sujets (ex. personal branding : l'audience d'un projet technique diffère de celle d'un produit grand public).
-- **Contraintes de production :** matériel disponible, temps disponible par semaine.
-- **Plateformes pertinentes :** suggérées par l'IA selon l'activité décrite (parmi le registre de plateformes connues).
+1. **Démarrer** — c'est aussi l'inscription, la cible de « Démarrer gratuitement » : « Comment tu t'appelles ? », puis quatre portes au même rang, **GitHub · Notion · Linear · Coller mes notes**. Les trois premières créent (ou retrouvent) le compte par OAuth ; l'email et le mot de passe ne sont demandés que pour « Coller mes notes ». `/login` ne sert plus qu'à revenir.
+2. **Ce qu'on lit** — pour chaque porte branchée, le choix des dépôts, pages ou projets (les plus récents déjà cochés) ; une grande zone de texte pour les notes. Les portes non branchées restent proposées : un compte branche GitHub, Notion et Linear à la fois, **quel que soit l'email de chaque compte tiers** (une fois connecté, le compte tiers se rattache au compte CreaFlow ouvert). Jusqu'à 15 sources pendant l'onboarding.
+3. **Lecture** — une animation pendant que la machine lit la matière et en déduit le profil, en un seul appel.
+4. **Ce que tu fais** — ce qu'on a compris, en champs éditables : ce que tu fais, pour qui (**audience visée**, éditable ensuite en paramètres, avec un override possible par sujet), et **tes sujets** (1 à 5), chacun avec ses sources regroupées — le même projet vu dans GitHub (ce qui a été construit), Notion (la réflexion, les décisions) et Linear (les tâches). Renommables, sources détachables vers un autre sujet.
+5. **Qu'est-ce que tu attends de nous ?** — une zone de texte libre, facultative mais mise en avant ; elle oriente ensuite toutes les générations.
+6. **Tes jours de publication** — les sept jours de la semaine, mercredi et samedi cochés par défaut, au moins un ; et les réseaux où publier (LinkedIn coché par défaut, X, Instagram). Une case cochée = un post ce jour-là, sur chaque réseau actif.
 
-Une fois assez d'informations réunies, l'IA marque la conversation comme complète, ce qui déclenche automatiquement :
-- la génération de la **direction éditoriale** de départ (rôles éditoriaux, angles de script, séries récurrentes — voir Module E),
-- la création d'objectifs de fréquence hebdomadaire par défaut sur les plateformes suggérées.
+« C'est parti » génère la **direction éditoriale** de départ (rôles éditoriaux, angles de script, séries récurrentes — voir Module E) et mène au calendrier. Plus d'écran de sélection des séries : elles se modifient ensuite dans Direction. Ce qui devient un sujet chez chaque plateforme est arbitré dans `docs/SPEC_CONNECTEURS_ET_SUJETS.md` ; détail technique en `docs/TECH.md` §4 et §8.
 
-En parallèle, l'utilisateur renseigne ses **sujets** (1 à 5, appelés "produits" côté code/API — renommage purement visuel, `docs/SPEC_MATIERE_EDITEUR.md` §3.3) et peut connecter ses comptes sociaux (Instagram/LinkedIn/X) via OAuth : la connexion déclenche automatiquement la récupération de publications récentes et une première analyse IA du style de communication (`style_profile`). Ce profil **apprend ensuite des corrections de l'utilisateur** : chaque script finalisé après retouche (ou écrit par lui) nourrit, sur proposition à valider, des règles de style impératives que le produit respecte partout où il rédige — génération, retouche de phrase, régénération de bloc (`docs/SPEC_APPRENTISSAGE_STYLE.md`).
+Les **sujets** s'appellent "produits" côté code/API — renommage purement visuel, `docs/SPEC_MATIERE_EDITEUR.md` §3.3. L'utilisateur peut aussi connecter ses comptes sociaux (Instagram/LinkedIn/X) via OAuth : la connexion déclenche automatiquement la récupération de publications récentes et une première analyse IA du style de communication (`style_profile`). Ce profil **apprend ensuite des corrections de l'utilisateur** : chaque script finalisé après retouche (ou écrit par lui) nourrit, sur proposition à valider, des règles de style impératives que le produit respecte partout où il rédige — génération, retouche de phrase, régénération de bloc (`docs/SPEC_APPRENTISSAGE_STYLE.md`).
 
 **Alimenter le corpus d'un sujet :** deux portes pour nourrir la génération en matière factuelle (anecdotes, chiffres, décisions, retours...) — coller du texte ou un fichier `.md`/`.txt` pour qui écrit déjà (journal de bord, anciens posts), ou se faire **interviewer par le chat** (une question concrète à la fois) pour qui n'a rien d'écrit. Les deux alimentent le même corpus, structuré en arrière-plan en unités typées (anecdote / bug / chiffre / décision / learning) réutilisées par rotation à chaque génération — voir Module B.
 
@@ -118,7 +117,7 @@ Chaque génération est contrainte par :
 Jamais implémentée, abandonnée avec la vidéo. Voir §2.4.
 
 ### Module D : Le Calendrier Intelligent & Auto-Remplissage
-- **Fréquence sur-mesure :** objectif hebdomadaire par plateforme, modifiable individuellement.
+- **Jours de publication :** un post par jour coché et par réseau actif, aux dates exactes de ces jours ; jours et réseaux se changent dans Paramètres (plus de nombre de posts par semaine à régler).
 - **Génération automatique du mois :** mix de contenus dont les proportions sont **personnalisées par IA et par utilisateur** (plus de triptyque fixe 30/50/20) :
   - défini par les **rôles éditoriaux actifs**, chacun avec un poids en % normalisé à 100 sur l'ensemble ;
   - les **séries récurrentes** actives peuvent en plus s'imposer sur une partie des créneaux (poids indépendant, non normalisé) ;
@@ -130,7 +129,7 @@ Jamais implémentée, abandonnée avec la vidéo. Voir §2.4.
 
 ### Module E : Direction éditoriale & Assistant IA — *ajouté au périmètre, non prévu au cadrage initial*
 - **Écran "Direction" :** la **série est le seul objet éditorial manipulé** (`docs/SPEC_SERIES_ET_ROLES.md`) — création, identité, poids, ciblage par plateforme, sujet lié, mode, régénération par IA. Chaque série sert **exactement un rôle éditorial** (pourquoi le post existe : expertise, coulisses, preuve sociale…) ; un créneau sans série est un **post libre** qui ne porte qu'un rôle. Le mix des rôles s'affiche en lecture seule sur cet écran ; son édition complète (libellé, consigne, poids, gourmandise en matière) vit dans Paramètres › Avancé, parce que ce poids est surtout piloté par les performances réelles.
-- **Assistant éditorial (chat) — un rédacteur en chef assistant :** conversation libre pour faire évoluer sujets, séries, rôles, angles, objectifs de fréquence, **matière première** et **audience de marque** (`docs/SPEC_ASSISTANT_AGENTIQUE.md`).
+- **Assistant éditorial (chat) — un rédacteur en chef assistant :** conversation libre pour faire évoluer sujets, séries, rôles, angles, réseaux actifs, jours de publication, **matière première** et **audience de marque** (`docs/SPEC_ASSISTANT_AGENTIQUE.md`).
   - **Il lit tout l'espace de travail** pour argumenter : la matière du créateur, ses scripts, son calendrier, ses performances réelles, l'état narratif de ses séries, son profil. Un rédacteur en chef qui conseille sans avoir lu ce qui est publié ni ce qui est planifié ne sert à rien.
   - **Il ne touche ni aux scripts ni au calendrier.** Les mots et le planning restent la main du créateur ; l'assistant tient le brief. C'est une frontière de rôle, pas une limite technique.
   - **Il ne modifie jamais rien directement :** il formule des **propositions** — création, modification, ou archivage (jamais de suppression) — que l'utilisateur accepte, édite ou rejette une par une avant application.
@@ -158,7 +157,7 @@ Jamais implémentée, abandonnée avec la vidéo. Voir §2.4.
 ## 5. Orientations IA (résumé)
 
 - **Moteur LLM :** provider pluggable sélectionné par variable d'environnement. **OpenAI est le seul provider opérationnel** ; les adaptateurs Gemini, Claude (Anthropic) et Groq existent dans le code mais ne sont pas utilisables en l'état. Gemini reste utilisé, indépendamment de ce choix, pour le captioning vision des photos. Le détourage des photos passe par un service externe derrière un adaptateur (Photoroom), optionnel.
-- **Architecture de prompts :** prompts système modulaires par cas d'usage (génération de script, chat d'onboarding, chat assistant, analyse de style, suggestion de rôles/angles/séries), tous forcés en sortie JSON structurée via function/tool calling.
+- **Architecture de prompts :** prompts système modulaires par cas d'usage (génération de script, extraction du profil d'onboarding, chat assistant, analyse de style, suggestion de rôles/angles/séries), tous forcés en sortie JSON structurée via function/tool calling.
 
 Le détail technique (stack, modèle de données, endpoints, architecture des prompts complète) est dans `TECH.md`.
 

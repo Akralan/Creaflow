@@ -17,7 +17,6 @@ const baseContext = {
   creatorProfile: {
     brandName: "Bougies Test",
     activityType: "Artisan bougies",
-    tone: "chaleureux",
   },
   platform: "linkedin",
   contentCategory: { id: "cat-1", label: "Vente", description: "Contenu orienté vente." },

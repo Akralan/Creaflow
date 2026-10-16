@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -10,16 +10,18 @@ import { api, ApiClientError } from "@/lib/apiClient";
 import { color, fontHeading } from "@/lib/design/tokens";
 import BrandMark from "@/components/BrandMark";
 
-type Mode = "login" | "signup" | "forgot";
+// L'inscription n'est plus ici : elle se fait au premier écran de l'onboarding, en branchant sa
+// matière (docs/SPEC_ONBOARDING_MVP.md §2). `/login?mode=signup`, encore pointé par la landing,
+// y redirige.
+type Mode = "login" | "forgot";
 
 function modeFromParam(value: string | null): Mode {
-  return value === "signup" || value === "forgot" ? value : "login";
+  return value === "forgot" ? value : "login";
 }
 
 const titles: Record<Mode, { heading: string; sub: string }> = {
-  login: { heading: "Content de vous revoir", sub: "Connectez-vous pour retrouver votre calendrier." },
-  signup: { heading: "Créer votre compte", sub: "Quelques secondes pour démarrer." },
-  forgot: { heading: "Mot de passe oublié", sub: "Indiquez votre adresse, vous recevrez un lien pour en choisir un nouveau." },
+  login: { heading: "Content de te revoir", sub: "Connecte-toi pour retrouver ton calendrier." },
+  forgot: { heading: "Mot de passe oublié", sub: "Indique ton adresse, tu recevras un lien pour en choisir un nouveau." },
 };
 
 function LoginContent() {
@@ -28,12 +30,15 @@ function LoginContent() {
   const [mode, setModeState] = useState<Mode>(() => modeFromParam(searchParams.get("mode")));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [legalAccepted, setLegalAccepted] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => searchParams.get("oauthError"));
   const [notice, setNotice] = useState<string | null>(() =>
-    searchParams.get("deleted") ? "Votre compte a été supprimé. Un email de confirmation vous a été envoyé." : null
+    searchParams.get("deleted") ? "Ton compte a été supprimé. Un email de confirmation t'a été envoyé." : null
   );
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("mode") === "signup") router.replace("/onboarding");
+  }, [router, searchParams]);
 
   function setMode(next: Mode) {
     setModeState(next);
@@ -45,23 +50,15 @@ function LoginContent() {
     e.preventDefault();
     setError(null);
     setNotice(null);
-    if (mode === "signup" && !legalAccepted) {
-      setError("Merci d'accepter les conditions générales et la politique de confidentialité pour créer un compte.");
-      return;
-    }
     setLoading(true);
     try {
       if (mode === "forgot") {
         await api.forgotPassword(email);
         // Même message quelle que soit l'adresse : la route ne dit pas qui est inscrit.
-        setNotice("Si un compte existe avec cette adresse, un email vient de partir. Pensez à vérifier vos indésirables.");
+        setNotice("Si un compte existe avec cette adresse, un email vient de partir. Pense à vérifier tes indésirables.");
         return;
       }
-      if (mode === "login") {
-        await api.login(email, password);
-      } else {
-        await api.signup(email, password);
-      }
+      await api.login(email, password);
       const { profile } = await api.getProfile();
       router.push(profile ? "/calendar" : "/onboarding");
     } catch (err) {
@@ -122,7 +119,7 @@ function LoginContent() {
                   type="password"
                   required
                   minLength={8}
-                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••"
@@ -134,39 +131,17 @@ function LoginContent() {
               </div>
             )}
 
-            {mode === "signup" && (
-              <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: color.textMuted, cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={legalAccepted}
-                  onChange={(e) => setLegalAccepted(e.target.checked)}
-                  style={{ marginTop: 2 }}
-                />
-                <span>
-                  J&apos;accepte les{" "}
-                  <a href="/legal/cgu" target="_blank" rel="noopener noreferrer">
-                    conditions générales
-                  </a>{" "}
-                  et la{" "}
-                  <a href="/legal/confidentialite" target="_blank" rel="noopener noreferrer">
-                    politique de confidentialité
-                  </a>
-                  .
-                </span>
-              </label>
-            )}
 
             {error && <p style={{ margin: 0, fontSize: 13, color: color.danger }}>{error}</p>}
             {notice && <p style={{ margin: 0, fontSize: 13, color: "oklch(0.5 0.14 150)" }}>{notice}</p>}
 
             <Button type="submit" fullWidth disabled={loading} style={{ marginTop: 6 }}>
-              {loading ? "..." : mode === "login" ? "Se connecter" : mode === "signup" ? "Créer mon compte" : "Recevoir le lien"}
+              {loading ? "..." : mode === "login" ? "Se connecter" : "Recevoir le lien"}
             </Button>
           </form>
 
           <p style={{ textAlign: "center", margin: "20px 0 0", fontSize: 14, color: color.textMuted }}>
-            {mode === "login" && <>Pas encore de compte ? {switchLink("signup", "Créer un compte")}</>}
-            {mode === "signup" && <>Déjà un compte ? {switchLink("login", "Se connecter")}</>}
+            {mode === "login" && <>Pas encore de compte ? <a href="/onboarding">Démarrer gratuitement</a></>}
             {mode === "forgot" && <>{switchLink("login", "Retour à la connexion")}</>}
           </p>
         </Card>

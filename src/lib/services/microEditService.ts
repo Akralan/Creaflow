@@ -71,7 +71,7 @@ export async function applySelectionInstruction(
 
   const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
   const brandContext = profile
-    ? `Marque : ${profile.brandName} (${profile.activityType})${profile.tone ? ` — ton : ${profile.tone}` : ""}`
+    ? `Marque : ${profile.brandName} (${profile.activityType})`
     : "";
   // La matière du sujet est fournie ici aussi (pas seulement à la génération complète) : sans elle,
   // une instruction comme "base-toi sur le premier run" ou "parle plutôt de X" est impossible à
@@ -168,7 +168,7 @@ export async function regenerateBlock(userId: string, scriptId: string, block: M
   if (block === "hook" && script.contentType === "text") {
     const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
     const brandContext = profile
-      ? `Marque : ${profile.brandName} (${profile.activityType})${profile.tone ? ` — ton : ${profile.tone}` : ""}`
+      ? `Marque : ${profile.brandName} (${profile.activityType})`
       : "";
     const args = await callStructured({
       system:

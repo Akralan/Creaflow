@@ -71,20 +71,31 @@ export function distributeCategories(n: number, weights: CategoryWeight[]): stri
   return result.map((id) => id ?? fallbackId);
 }
 
-/** Répartit n créneaux sur les jours d'un mois de façon régulière, sans doublon. */
-export function distributeDays(n: number, daysInMonth: number): number[] {
-  if (n <= 0) return [];
-
-  const used = new Set<number>();
-  const days: number[] = [];
-  for (let i = 0; i < n; i++) {
-    let day = Math.round(((i + 0.5) * daysInMonth) / n);
-    day = Math.min(Math.max(day, 1), daysInMonth);
-    while (used.has(day) && day < daysInMonth) day++;
-    used.add(day);
-    days.push(day);
+/**
+ * Jours du mois (1..31) qui tombent sur l'un des jours de semaine donnés — ISO, 1 = lundi … 7 =
+ * dimanche (docs/SPEC_ONBOARDING_MVP.md §5 : un créneau par jour coché). Calculé en UTC, comme les
+ * dates insérées par la génération du calendrier. Ordre croissant, sans doublon.
+ */
+export function datesForWeekdays(year: number, monthIndex: number, weekdays: number[]): number[] {
+  const wanted = new Set(weekdays);
+  const daysInMonth = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+  const result: number[] = [];
+  for (let day = 1; day <= daysInMonth; day++) {
+    const isoWeekday = new Date(Date.UTC(year, monthIndex, day)).getUTCDay() || 7; // dimanche : 0 → 7
+    if (wanted.has(isoWeekday)) result.push(day);
   }
-  return days;
+  return result;
+}
+
+const WEEKDAY_NAMES = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
+
+/** Jours de publication en clair, dans l'ordre de la semaine : [6, 3] → « mercredi, samedi ». */
+export function publishingDaysLabel(weekdays: number[]): string {
+  return [...new Set(weekdays)]
+    .filter((d) => d >= 1 && d <= 7)
+    .sort((a, b) => a - b)
+    .map((d) => WEEKDAY_NAMES[d - 1])
+    .join(", ");
 }
 
 export function parseMonth(month: string): { year: number; monthIndex: number; daysInMonth: number } {
@@ -93,10 +104,6 @@ export function parseMonth(month: string): { year: number; monthIndex: number; d
   const monthIndex = Number(monthStr) - 1; // 0-based pour Date
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
   return { year, monthIndex, daysInMonth };
-}
-
-export function weeksInMonth(daysInMonth: number): number {
-  return daysInMonth / 7;
 }
 
 export interface SeriesWeight {

@@ -1,11 +1,11 @@
 import { and, eq, isNotNull } from "drizzle-orm";
 import { db } from "@/db";
-import { materialSources, products, sourceMaterials } from "@/db/schema";
+import { creatorProfiles, materialSources, products, sourceMaterials } from "@/db/schema";
 import { getConnector } from "@/lib/connectors/registry";
 import type { ConnectorCandidate, IncomingDoc, MaterialSourceType } from "@/lib/connectors/types";
 import { markStaleForMaterialIngestion } from "@/lib/services/narrativeDirector";
 import { ApiError } from "@/lib/api/errors";
-import { MAX_PRODUCTS } from "@/lib/validation";
+import { MAX_ONBOARDING_SOURCES, MAX_PRODUCTS } from "@/lib/validation";
 import { logger } from "@/lib/logger";
 
 /**
@@ -170,9 +170,16 @@ export async function createSourcesFromCandidates(
   type: MaterialSourceType,
   candidates: ConnectorCandidate[]
 ): Promise<CreatedSourceResult[]> {
-  const existing = await db.query.products.findMany({ where: eq(products.userId, userId), columns: { id: true } });
-  if (existing.length + candidates.length > MAX_PRODUCTS) {
-    throw new ApiError(400, `Maximum ${MAX_PRODUCTS} sujets (${existing.length} déjà enregistrés).`);
+  // Pendant l'onboarding (pas encore de profil), chaque source branchée naît sur son propre sujet
+  // puis les sources d'un même projet sont regroupées (docs/SPEC_ONBOARDING_MVP.md §3 bis) : la
+  // limite porte alors sur les sources, et celle des sujets s'applique au regroupement final.
+  const [existing, profile] = await Promise.all([
+    db.query.products.findMany({ where: eq(products.userId, userId), columns: { id: true } }),
+    db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId), columns: { id: true } }),
+  ]);
+  const limit = profile ? MAX_PRODUCTS : MAX_ONBOARDING_SOURCES;
+  if (existing.length + candidates.length > limit) {
+    throw new ApiError(400, `Maximum ${limit} ${profile ? "sujets" : "sources"} (${existing.length} déjà enregistrés).`);
   }
 
   const results: CreatedSourceResult[] = [];

@@ -5,7 +5,7 @@ import { callStructured } from "./provider";
 /**
  * Interview-chat — deuxième porte d'alimentation du corpus (docs/SPEC_MATIERE_EDITEUR.md §3.7) :
  * pour qui ne tient pas de journal, le corpus ne se colle pas, il s'extrait. Pattern maison identique
- * à l'onboarding (une question à la fois, jamais un formulaire déguisé) — cf. onboardingChat.ts.
+ * à l'onboarding (une question à la fois, jamais un formulaire déguisé) (feu le chat d'onboarding).
  */
 export interface InterviewMessage {
   role: "user" | "assistant";

@@ -1,9 +1,7 @@
 import { unstable_rethrow } from "next/navigation";
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import { creatorProfiles } from "@/db/schema";
 import { getCurrentUserId } from "@/lib/auth/session";
 import { logger } from "@/lib/logger";
+import { isOnboardingComplete } from "@/lib/services/onboardingService";
 
 /**
  * Où envoyer un visiteur de la page d'accueil déjà connecté : le calendrier s'il a un profil,
@@ -15,11 +13,7 @@ export async function resolveSignedInDestination(): Promise<"/calendar" | "/onbo
   try {
     const userId = await getCurrentUserId();
     if (!userId) return null;
-    const profile = await db.query.creatorProfiles.findFirst({
-      where: eq(creatorProfiles.userId, userId),
-      columns: { userId: true },
-    });
-    return profile ? "/calendar" : "/onboarding";
+    return (await isOnboardingComplete(userId)) ? "/calendar" : "/onboarding";
   } catch (error) {
     // Laisse passer les erreurs internes de Next (ex. le signal « cette route lit des cookies, ne
     // pas la prérendre » émis au build) : seules les erreurs applicatives retombent sur la landing.

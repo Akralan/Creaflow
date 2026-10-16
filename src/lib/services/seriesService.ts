@@ -165,8 +165,7 @@ export async function generateSeriesForUser(userId: string) {
   const suggested = await suggestContentSeries({
     brandName: profile.brandName,
     activityType: profile.activityType,
-    tone: profile.tone,
-    values: profile.values,
+    expectations: profile.expectations,
     products: productList.map((p) => ({ name: p.name, description: p.description })),
     categories: activeCategories.map((c) => ({ label: c.label, description: c.description })),
   });

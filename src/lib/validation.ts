@@ -14,6 +14,19 @@ export const contentSeriesModeSchema = z.enum(["feuilleton", "rendez_vous"]);
 // n'avoir qu'un seul sujet, sans proposition de valeur (valueProposition optionnelle).
 export const MIN_PRODUCTS = 1;
 export const MAX_PRODUCTS = 5;
+// Sources branchées pendant l'onboarding, avant regroupement en au plus MAX_PRODUCTS sujets.
+export const MAX_ONBOARDING_SOURCES = 15;
+
+// Jours de publication (docs/SPEC_ONBOARDING_MVP.md §2 écran 6, §5) — ISO, 1 = lundi … 7 = dimanche.
+// Au moins un jour : un rythme vide n'a pas de sens, l'écran empêche de décocher le dernier.
+export const DEFAULT_PUBLISHING_DAYS = [3, 6];
+export const publishingDaysSchema = z
+  .array(z.number().int().min(1).max(7))
+  .min(1, "Choisis au moins un jour de publication.")
+  .max(7)
+  .transform((days) => [...new Set(days)].sort((a, b) => a - b));
+// « Qu'est-ce que tu attends de nous ? » — texte libre, borné pour rester injectable dans les prompts.
+export const expectationsSchema = z.string().trim().max(2000);
 
 // Bibliothèque de ressources visuelles (docs/SPEC_RESSOURCES_VISUELLES.md §7.2 : "une sélection de
 // 40 images" comme ordre de grandeur de référence).

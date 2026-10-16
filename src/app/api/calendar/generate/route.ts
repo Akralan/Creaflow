@@ -2,24 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { and, count, eq, gte, lt } from "drizzle-orm";
 import { db } from "@/db";
-import { calendarEntries, sourceMaterials, postingGoals } from "@/db/schema";
+import { calendarEntries, creatorProfiles, sourceMaterials, postingGoals } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
 import {
   adjustCategoryWeightsForMaterialScarcity,
   categoryWeightsFromCategories,
+  datesForWeekdays,
   distributeCategories,
-  distributeDays,
   distributeSeriesOverrides,
   filterByPlatform,
   parseMonth,
   renormalizeCategoryWeights,
   seriesWeightsFromSeries,
-  weeksInMonth,
 } from "@/lib/services/calendarService";
 import { listActiveCategoriesForUser } from "@/lib/services/categoryLabelsService";
 import { listActiveSeriesForUser } from "@/lib/services/seriesService";
 import { platformLabel } from "@/lib/social/types";
 import { ApiError, handleApiError } from "@/lib/api/errors";
+import { DEFAULT_PUBLISHING_DAYS } from "@/lib/validation";
 
 const schema = z.object({
   month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Format attendu : YYYY-MM"),
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId();
     const { month } = schema.parse(await request.json());
-    const { year, monthIndex, daysInMonth } = parseMonth(month);
+    const { year, monthIndex } = parseMonth(month);
 
     const rangeStart = new Date(Date.UTC(year, monthIndex, 1));
     const rangeEnd = new Date(Date.UTC(year, monthIndex + 1, 1));
@@ -51,10 +51,24 @@ export async function POST(request: NextRequest) {
       throw new ApiError(409, "Le calendrier de ce mois est déjà généré.");
     }
 
-    const goals = await db.query.postingGoals.findMany({ where: eq(postingGoals.userId, userId) });
+    // Une plateforme est active quand son objectif est > 0 (il vaut alors le nombre de jours de
+    // publication) ; une plateforme coupée ne reçoit aucun créneau.
+    const goals = (await db.query.postingGoals.findMany({ where: eq(postingGoals.userId, userId) })).filter(
+      (goal) => goal.targetCountPerWeek > 0
+    );
     if (goals.length === 0) {
-      throw new ApiError(400, "Définis d'abord tes objectifs hebdomadaires par plateforme (PostingGoal).");
+      throw new ApiError(400, "Active d'abord au moins une plateforme de publication.");
     }
+
+    // Un créneau par jour coché (docs/SPEC_ONBOARDING_MVP.md §5) : les dates tombent exactement sur
+    // les jours de publication du profil, identiques pour toutes les plateformes actives.
+    const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
+    // Mois en cours : pas de créneau dans le passé (fin d'onboarding en milieu de mois).
+    const now = new Date();
+    const isCurrentMonth = now.getUTCFullYear() === year && now.getUTCMonth() === monthIndex;
+    const days = datesForWeekdays(year, monthIndex, profile?.publishingDays ?? DEFAULT_PUBLISHING_DAYS).filter(
+      (day) => !isCurrentMonth || day >= now.getUTCDate()
+    );
 
     const activeCategories = await listActiveCategoriesForUser(userId);
     if (activeCategories.length === 0) {
@@ -70,7 +84,6 @@ export async function POST(request: NextRequest) {
       hasSufficientMaterial = value >= MIN_SOURCE_MATERIALS_FOR_SUFFICIENCY;
     }
 
-    const weeks = weeksInMonth(daysInMonth);
     const rowsToInsert = goals.flatMap((goal) => {
       const categoriesForPlatform = filterByPlatform(activeCategories, goal.platform);
       if (categoriesForPlatform.length === 0) {
@@ -89,9 +102,8 @@ export async function POST(request: NextRequest) {
         seriesForPlatform.map((s) => ({ id: s.id, weight: s.weight, categoryId: s.category?.id ?? null }))
       );
 
-      const slotCount = Math.round(goal.targetCountPerWeek * weeks);
+      const slotCount = days.length;
       const categoryIds = distributeCategories(slotCount, weights);
-      const days = distributeDays(slotCount, daysInMonth);
       const seriesOverrides = distributeSeriesOverrides(slotCount, seriesWeights);
 
       return categoryIds.map((contentCategoryId, i) => {

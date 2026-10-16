@@ -75,10 +75,8 @@ export interface ScriptGenerationContext {
   creatorProfile: {
     brandName: string;
     activityType: string;
-    tone?: string | null;
-    values?: string | null;
-    equipment?: string[] | null;
-    weeklyTimeAvailable?: string | null;
+    /** Réponse libre à « Qu'est-ce que tu attends de nous ? » (docs/SPEC_ONBOARDING_MVP.md §3). */
+    expectations?: string | null;
     /** Audience de marque (docs/SPEC_PROMPT_GENERATION_TECH.md §2/§5) — fallback quand product.targetAudience est absent. */
     targetAudience?: string | null;
   };
@@ -187,13 +185,9 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
   // Override par sujet en priorité, fallback marque (docs/SPEC_PROMPT_GENERATION_TECH.md §2/§5).
   const targetAudience = product?.targetAudience ?? creatorProfile.targetAudience;
   if (targetAudience) brandLines.push(`Audience visée : ${targetAudience}`);
-  if (creatorProfile.tone) brandLines.push(`Ton : ${creatorProfile.tone}`);
-  if (creatorProfile.values) brandLines.push(`Valeurs : ${creatorProfile.values}`);
-  if (creatorProfile.equipment?.length) {
-    brandLines.push(`Matériel disponible : ${creatorProfile.equipment.join(", ")}`);
-  }
-  if (creatorProfile.weeklyTimeAvailable) {
-    brandLines.push(`Temps disponible par semaine : ${creatorProfile.weeklyTimeAvailable}`);
+  // Le ton n'est plus déclaré : il est appris des retouches et arrive par le bloc STYLE ci-dessous.
+  if (creatorProfile.expectations) {
+    brandLines.push(`Ce que l'auteur attend de CreaFlow : ${creatorProfile.expectations}`);
   }
   sections.push(`=== CONTEXTE MARQUE ===\n${brandLines.join("\n")}`);
 

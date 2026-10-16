@@ -76,8 +76,7 @@ Propose entre 0 et 5 "séries" : des formats de contenu récurrents et nommés (
 export interface SeriesLabelsContext {
   brandName: string;
   activityType: string;
-  tone?: string | null;
-  values?: string | null;
+  expectations?: string | null;
   products: Array<{ name: string; description?: string | null }>;
   categories: Array<{ label: string; description: string }>;
 }
@@ -85,8 +84,7 @@ export interface SeriesLabelsContext {
 export async function suggestContentSeries(context: SeriesLabelsContext): Promise<SeriesEntry[]> {
   const lines = [
     `Marque : ${context.brandName} (${context.activityType})`,
-    context.tone ? `Ton : ${context.tone}` : null,
-    context.values ? `Valeurs : ${context.values}` : null,
+    context.expectations ? `Ce que l'auteur attend de CreaFlow : ${context.expectations}` : null,
     context.products.length > 0
       ? `Produits/projets : ${context.products.map((p) => p.name + (p.description ? ` — ${p.description}` : "")).join(" ; ")}`
       : "Aucun produit renseigné.",

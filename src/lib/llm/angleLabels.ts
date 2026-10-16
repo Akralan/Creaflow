@@ -52,16 +52,14 @@ Propose entre 4 et 8 angles : ce sont des ARCHÉTYPES DE STRUCTURE/HOOK (ex: que
 export interface AngleLabelsContext {
   brandName: string;
   activityType: string;
-  tone?: string | null;
-  values?: string | null;
+  expectations?: string | null;
   products: Array<{ name: string; description?: string | null }>;
 }
 
 export async function suggestContentAngles(context: AngleLabelsContext): Promise<AngleEntry[]> {
   const lines = [
     `Marque : ${context.brandName} (${context.activityType})`,
-    context.tone ? `Ton : ${context.tone}` : null,
-    context.values ? `Valeurs : ${context.values}` : null,
+    context.expectations ? `Ce que l'auteur attend de CreaFlow : ${context.expectations}` : null,
     context.products.length > 0
       ? `Produits/projets : ${context.products.map((p) => p.name + (p.description ? ` — ${p.description}` : "")).join(" ; ")}`
       : "Aucun produit renseigné.",

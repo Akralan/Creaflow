@@ -201,6 +201,7 @@ export interface DesignPostContext {
   hookVisual: string | null;
   storyboard: { planNumber: number; description: string }[];
   brandName: string;
+  /** Ton appris des retouches (styleProfile.tone), null tant qu'aucun style n'a été appris. */
   tone: string | null;
 }
 

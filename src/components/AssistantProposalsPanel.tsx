@@ -4,10 +4,12 @@ import { useState } from "react";
 import { Check, SquarePen, X } from "lucide-react";
 import Card from "@/components/ui/Card";
 import IconActionButton from "@/components/ui/IconActionButton";
+import PublishingDaysPicker from "@/components/PublishingDaysPicker";
 import { api, ApiClientError, type AssistantProposal, type StyleProfile } from "@/lib/apiClient";
 import { accentAlpha, color } from "@/lib/design/tokens";
 import { useContentCategories } from "@/contexts/CategoryLabelsContext";
 import { KNOWN_PLATFORMS, platformLabel } from "@/lib/social/types";
+import { publishingDaysLabel } from "@/lib/services/calendarService";
 
 const KIND_LABEL: Record<AssistantProposal["kind"], string> = {
   product_create: "Nouveau sujet",
@@ -18,7 +20,7 @@ const KIND_LABEL: Record<AssistantProposal["kind"], string> = {
   category_update: "Modifier le rôle",
   angle_create: "Nouvel angle",
   angle_update: "Modifier l'angle",
-  posting_goal_update: "Objectif de fréquence",
+  posting_goal_update: "Plateforme",
   material_create: "Ajouter à la matière",
   material_update: "Modifier la matière",
   material_delete: "Retirer de la matière",
@@ -28,6 +30,7 @@ const KIND_LABEL: Record<AssistantProposal["kind"], string> = {
   category_reweight: "Rééquilibrage des rôles",
   profile_update: "Audience de la marque",
   style_profile_update: "Style d'écriture",
+  publishing_days_update: "Jours de publication",
 };
 
 const inputStyle: React.CSSProperties = {
@@ -59,6 +62,7 @@ type ProposalGroup =
   | "category"
   | "angle"
   | "postingGoal"
+  | "publishingDays"
   | "categoryReweight"
   | "profile"
   | "style"
@@ -81,6 +85,8 @@ function proposalGroup(kind: AssistantProposal["kind"]): ProposalGroup {
       return "angle";
     case "posting_goal_update":
       return "postingGoal";
+    case "publishing_days_update":
+      return "publishingDays";
     case "material_create":
     case "material_update":
     case "material_delete":
@@ -155,7 +161,11 @@ interface AngleDraft {
 
 interface PostingGoalDraft {
   platform: string;
-  targetCountPerWeek: number;
+  active: boolean;
+}
+
+interface PublishingDaysDraft {
+  publishingDays: number[];
 }
 
 interface CategoryReweightItemDraft {
@@ -219,8 +229,17 @@ function toAngleDraft(payload: Record<string, unknown>): AngleDraft {
 function toPostingGoalDraft(payload: Record<string, unknown>): PostingGoalDraft {
   return {
     platform: typeof payload.platform === "string" ? payload.platform : "",
-    targetCountPerWeek: typeof payload.targetCountPerWeek === "number" ? payload.targetCountPerWeek : 0,
+    // Une proposition antérieure au passage « active / coupée » porte encore un nombre par semaine.
+    active:
+      typeof payload.active === "boolean"
+        ? payload.active
+        : typeof payload.targetCountPerWeek === "number" && payload.targetCountPerWeek > 0,
   };
+}
+
+function toPublishingDaysDraft(payload: Record<string, unknown>): PublishingDaysDraft {
+  const raw = Array.isArray(payload.publishingDays) ? payload.publishingDays : [];
+  return { publishingDays: raw.filter((d): d is number => typeof d === "number" && d >= 1 && d <= 7) };
 }
 
 function toMaterialDraft(payload: Record<string, unknown>): MaterialDraft {
@@ -265,6 +284,9 @@ function ProposalCard({
   const [categoryDraft, setCategoryDraft] = useState<CategoryDraft>(() => toCategoryDraft(proposal.payload));
   const [angleDraft, setAngleDraft] = useState<AngleDraft>(() => toAngleDraft(proposal.payload));
   const [postingGoalDraft, setPostingGoalDraft] = useState<PostingGoalDraft>(() => toPostingGoalDraft(proposal.payload));
+  const [publishingDaysDraft, setPublishingDaysDraft] = useState<PublishingDaysDraft>(() =>
+    toPublishingDaysDraft(proposal.payload)
+  );
   const [categoryReweightDraft, setCategoryReweightDraft] = useState<CategoryReweightDraft>(() =>
     toCategoryReweightDraft(proposal.payload)
   );
@@ -289,6 +311,8 @@ function ProposalCard({
               ? angleDraft
               : group === "postingGoal"
                 ? postingGoalDraft
+                : group === "publishingDays"
+                  ? publishingDaysDraft
                 : group === "categoryReweight"
                   ? { items: categoryReweightDraft.items }
                   : group === "profile"
@@ -339,6 +363,8 @@ function ProposalCard({
           ? angleDraft.label
           : group === "postingGoal"
             ? platformLabel(postingGoalDraft.platform)
+            : group === "publishingDays"
+              ? "Nouveaux jours de publication"
             : group === "categoryReweight"
               ? "Rééquilibrage des rôles"
               : group === "profile"
@@ -361,7 +387,11 @@ function ProposalCard({
         : group === "angle"
           ? angleDraft.description
           : group === "postingGoal"
-            ? `${postingGoalDraft.targetCountPerWeek}/semaine`
+            ? postingGoalDraft.active
+              ? "Active : un post par jour de publication"
+              : "Coupée : plus aucun post sur cette plateforme"
+            : group === "publishingDays"
+              ? `Un post chaque ${publishingDaysLabel(publishingDaysDraft.publishingDays)}`
             : group === "categoryReweight"
               ? categoryReweightDraft.reasonSummary
               : group === "profile"
@@ -485,16 +515,20 @@ function ProposalCard({
                 </option>
               ))}
             </select>
-            <input
-              style={{ ...inputStyle, width: 100 }}
-              type="number"
-              min={0}
-              max={30}
-              step={0.5}
-              value={postingGoalDraft.targetCountPerWeek}
-              onChange={(e) => setPostingGoalDraft((d) => ({ ...d, targetCountPerWeek: Number(e.target.value) }))}
-            />
+            <div style={{ display: "flex", gap: 6 }}>
+              <button onClick={() => setPostingGoalDraft((d) => ({ ...d, active: true }))} style={pillStyle(postingGoalDraft.active)}>
+                Active
+              </button>
+              <button onClick={() => setPostingGoalDraft((d) => ({ ...d, active: false }))} style={pillStyle(!postingGoalDraft.active)}>
+                Coupée
+              </button>
+            </div>
           </div>
+        ) : group === "publishingDays" ? (
+          <PublishingDaysPicker
+            value={publishingDaysDraft.publishingDays}
+            onChange={(publishingDays) => setPublishingDaysDraft({ publishingDays })}
+          />
         ) : group === "categoryReweight" ? (
           <div style={{ display: "grid", gap: 8 }}>
             {categoryReweightDraft.reasonSummary && (

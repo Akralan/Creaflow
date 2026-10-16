@@ -179,10 +179,7 @@ export async function buildGenerationContext(
     creatorProfile: {
       brandName: profile.brandName,
       activityType: profile.activityType,
-      tone: profile.tone,
-      values: profile.values,
-      equipment: profile.equipment,
-      weeklyTimeAvailable: profile.weeklyTimeAvailable,
+      expectations: profile.expectations,
       targetAudience: profile.targetAudience,
     },
     styleProfile: parseStoredStyleProfile(profile.styleProfile),

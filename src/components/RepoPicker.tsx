@@ -12,9 +12,12 @@ import { MAX_PRODUCTS } from "@/lib/validation";
 export default function RepoPicker({
   onConnected,
   variant = "onboarding",
+  preselect = 0,
 }: {
   onConnected: () => void;
   variant?: "onboarding" | "settings";
+  /** Coche d'avance les N dépôts poussés le plus récemment (docs/SPEC_ONBOARDING_MVP.md §2 écran 2). */
+  preselect?: number;
 }) {
   const [repos, setRepos] = useState<GithubRepoOption[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
@@ -26,9 +29,18 @@ export default function RepoPicker({
   useEffect(() => {
     api
       .getGithubRepos()
-      .then(({ repos }) => setRepos(repos))
+      .then(({ repos }) => {
+        setRepos(repos);
+        const recent = repos
+          .filter((r) => !r.alreadyConnected)
+          .sort((a, b) => b.pushedAt.localeCompare(a.pushedAt))
+          .slice(0, Math.min(preselect, MAX_PRODUCTS));
+        setSelected(recent.map((r) => r.externalId));
+      })
       .catch((err) => setError(err instanceof ApiClientError ? err.message : "Impossible de lire tes dépôts GitHub."))
       .finally(() => setLoading(false));
+    // preselect ne sert qu'au premier chargement.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function toggle(externalId: string) {
@@ -70,11 +82,9 @@ export default function RepoPicker({
       <div>
         <p style={{ color: color.textMuted, fontSize: 15, margin: "0 0 16px" }}>
           {message}
-          {variant === "onboarding" &&
-            " Tu peux décrire tes sujets à la main — la matière se colle ensuite depuis l'écran du sujet."}
+          {variant === "onboarding" && " Tu peux brancher une autre source ou coller tes notes."}
         </p>
         {error && <p style={{ color: color.danger, fontSize: 13, marginBottom: 12 }}>{error}</p>}
-        {variant === "onboarding" && <Button onClick={onConnected}>Décrire mes sujets à la main</Button>}
       </div>
     );
   }

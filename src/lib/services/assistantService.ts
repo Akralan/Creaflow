@@ -18,7 +18,12 @@ import {
   saveCategoriesForUser,
 } from "@/lib/services/categoryLabelsService";
 import { listActiveAnglesForUser, upsertAngleItem } from "@/lib/services/angleService";
-import { postingGoalPayloadSchema, savePostingGoalForUser } from "@/lib/services/postingGoalsService";
+import {
+  postingGoalPayloadSchema,
+  setPlatformActiveForUser,
+  syncGoalCountsToPublishingDays,
+} from "@/lib/services/postingGoalsService";
+import { DEFAULT_PUBLISHING_DAYS, publishingDaysSchema } from "@/lib/validation";
 import { createProductsForUser, updateProductForUser } from "@/lib/services/productsService";
 import {
   createFileMaterial,
@@ -119,7 +124,10 @@ export async function runAssistantChatTurnForUser(userId: string, message: strin
       listActiveCategoriesForUser(userId),
       listActiveAnglesForUser(userId),
       db.query.postingGoals.findMany({ where: eq(postingGoals.userId, userId) }),
-      db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId), columns: { targetAudience: true } }),
+      db.query.creatorProfiles.findFirst({
+        where: eq(creatorProfiles.userId, userId),
+        columns: { targetAudience: true, expectations: true, publishingDays: true },
+      }),
     ]);
 
   // Les fichiers déposés depuis le dernier échange sont mentionnés dans le message persisté : le fil
@@ -144,6 +152,8 @@ export async function runAssistantChatTurnForUser(userId: string, message: strin
     categories: activeCategories,
     angles: activeAngles,
     postingGoals: goals.map((g) => ({ platform: g.platform, targetCountPerWeek: g.targetCountPerWeek })),
+    publishingDays: profile?.publishingDays ?? DEFAULT_PUBLISHING_DAYS,
+    expectations: profile?.expectations ?? null,
     currentTargetAudience: profile?.targetAudience ?? null,
   });
 
@@ -237,7 +247,16 @@ export async function runAssistantChatTurnForUser(userId: string, message: strin
       userId,
       kind: "posting_goal_update",
       targetId: null,
-      payload: { platform: g.platform, targetCountPerWeek: g.targetCountPerWeek },
+      payload: { platform: g.platform, active: g.active },
+    });
+  }
+
+  for (const d of turn.publishingDaysProposals) {
+    rows.push({
+      userId,
+      kind: "publishing_days_update",
+      targetId: null,
+      payload: { publishingDays: d.publishingDays },
     });
   }
 
@@ -325,6 +344,21 @@ const anglePayloadSchema = z.object({
 const profilePayloadSchema = z.object({
   targetAudience: z.string().min(1),
 });
+
+const publishingDaysPayloadSchema = z.object({
+  publishingDays: publishingDaysSchema,
+});
+
+// Une proposition d'objectif émise avant le passage à « active / coupée » porte encore un nombre
+// de posts par semaine : on le lit comme active (> 0) ou coupée (0) plutôt que de la rendre
+// impossible à accepter.
+const legacyPostingGoalPayloadSchema = z.preprocess((raw) => {
+  if (raw && typeof raw === "object" && !("active" in raw) && "targetCountPerWeek" in raw) {
+    const { targetCountPerWeek, ...rest } = raw as Record<string, unknown>;
+    return { ...rest, active: typeof targetCountPerWeek === "number" && targetCountPerWeek > 0 };
+  }
+  return raw;
+}, postingGoalPayloadSchema);
 
 // Payload de style_profile_update, produit par la passe d'apprentissage (styleLearningService.ts).
 // `fields` peut porter un styleProfile retouché avant acceptation (règles décochées côté UI).
@@ -665,10 +699,15 @@ export async function resolveProposal(
   } else if (proposal.kind === "style_profile_update") {
     const data = styleProfilePayloadSchema.parse(merged);
     await applyStyleProfile(userId, data.styleProfile);
+  } else if (proposal.kind === "publishing_days_update") {
+    const data = publishingDaysPayloadSchema.parse(merged);
+    // Même règle que la route du profil : les plateformes actives suivent le nombre de jours.
+    await db.update(creatorProfiles).set({ publishingDays: data.publishingDays }).where(eq(creatorProfiles.userId, userId));
+    await syncGoalCountsToPublishingDays(userId, data.publishingDays);
   } else {
     // posting_goal_update
-    const data = postingGoalPayloadSchema.parse(merged);
-    await savePostingGoalForUser(userId, data.platform, data.targetCountPerWeek);
+    const data = legacyPostingGoalPayloadSchema.parse(merged);
+    await setPlatformActiveForUser(userId, data.platform, data.active);
   }
 
   await db.update(assistantProposals).set({ status: "accepted", resolvedAt: new Date() }).where(eq(assistantProposals.id, proposal.id));

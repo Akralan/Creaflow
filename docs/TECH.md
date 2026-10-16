@@ -7,7 +7,7 @@
 ## 1. Rappel du périmètre
 
 - **Plateforme :** Web uniquement, usage desktop.
-- **Modules livrés :** A (Onboarding conversationnel), B (Moteur d'Idées & Scripts, anti-répétition, corpus de matière + éditeur de blocs), D (Calendrier Intelligent), E (Direction éditoriale & Assistant IA).
+- **Modules livrés :** A (Onboarding — un seul parcours en six écrans depuis `docs/SPEC_ONBOARDING_MVP.md`, plus de chat), B (Moteur d'Idées & Scripts, anti-répétition, corpus de matière + éditeur de blocs), D (Calendrier Intelligent), E (Direction éditoriale & Assistant IA).
 - **Hors périmètre :** Module C (Matrice de Recyclage de Contenu), abandonné avec la vidéo.
 - **Plus de vidéo** depuis le 2026-10-16 (`docs/SPEC_ONBOARDING_MVP.md` §6, migration `0036_fin_video`) : type de contenu `video`, champs propres à la vidéo et plateformes TikTok/YouTube supprimés. L'animation du post visuel exportée en MP4 reste (`visualFormat = animation`).
 - **Réseaux couverts :** voir `PRODUCT.md` §2.2 / `src/lib/social/types.ts`.
@@ -32,13 +32,10 @@
 ```
 User
 - id, email, passwordHash, createdAt
+- vertical (creator / dev / artisan / entrepreneur — posée à la création, ne choisit plus le parcours d'onboarding)
 
-OnboardingSession (1:1 avec User)
-- id, userId
-- messages (jsonb — historique complet du chat d'onboarding)
-- extractedProfile (jsonb, nullable — champs de profil déduits au fil de la conversation)
-- status (in_progress / complete)
-- createdAt, updatedAt
+(OnboardingSession et l'enum onboarding_status ont été supprimés par la migration `0037_onboarding_mvp` :
+l'onboarding est terminé dès que le CreatorProfile existe.)
 
 AssistantSession (1:1 avec User)
 - id, userId
@@ -58,12 +55,13 @@ AssistantProposal (une ligne par proposition émise par l'assistant)
 - id, userId
 - kind (product_create / product_update / series_create / series_update /
         category_create / category_update / angle_create / angle_update / posting_goal_update /
-        category_reweight / profile_update / style_profile_update /
+        category_reweight / profile_update / style_profile_update / publishing_days_update /
         material_create / material_update / material_delete /
         series_archive / category_archive / angle_archive)
 - targetId (nullable — id de l'entité ciblée si action="update", pas de FK typée : la cible dépend de `kind`.
   Toujours null pour category_reweight, qui porte plusieurs catégories dans son payload, comme posting_goal_update
-  profile_update et style_profile_update — une seule cible possible pour ces deux derniers, le CreatorProfile de l'utilisateur.
+  (payload `{ platform, active }`), profile_update, style_profile_update et publishing_days_update — une seule cible
+  possible pour ces trois derniers, le CreatorProfile de l'utilisateur.
   style_profile_update porte `{ styleProfile, changeNotes }` ; une seule en attente à la fois, la suivante remplace la précédente.)
 - payload (jsonb — contenu de la proposition)
 - status (pending / accepted / rejected)
@@ -76,9 +74,12 @@ category_reweight, produite par un calcul déterministe (`categoryReweightServic
 
 CreatorProfile (1:1 avec User)
 - id, userId
-- brandName, activityType, tone, values (texte libre)
-- equipment (array texte)
-- weeklyTimeAvailable
+- brandName (affiché « Ton nom »), activityType (texte libre)
+- expectations (texte libre, nullable — « Ce que tu attends de CreaFlow », injecté dans les prompts de
+  script, rôles, angles et séries ; remplace tone, values, equipment et weeklyTimeAvailable, supprimés
+  par la migration `0037` — le ton vient désormais de styleProfile, appris aux retouches)
+- publishingDays (integer[], défaut {3,6} — jours ISO cochés, 1 = lundi … 7 = dimanche ; jamais vide,
+  le service refuse de décocher le dernier)
 - targetAudience (texte libre, nullable — qui achète/lit, ce qui l'intéresse, ce qu'il doit retenir ;
   extrait de l'onboarding ou édité en paramètres, `docs/SPEC_PROMPT_GENERATION_TECH.md` §5. Fallback
   quand Product.targetAudience est absent, cf. §5.1)
@@ -154,7 +155,7 @@ les injections futures).
 SubjectInterviewSession (une par sujet — deuxième porte d'alimentation du corpus, docs/SPEC_MATIERE_EDITEUR.md §3.7)
 - id, userId
 - productId (nullable — niveau marque)
-- messages (jsonb — pattern identique à OnboardingSession/AssistantSession)
+- messages (jsonb — pattern identique à AssistantSession)
 - createdAt, updatedAt
 - contrainte unique (userId, productId) — NULL non dédupliqué par Postgres, tolérance connue
   identique au check-then-write non atomique d'enforceScriptQuota
@@ -261,8 +262,10 @@ PostMetricsSnapshot (historique daté, jamais écrasé — résout l'absence d'h
 - source (manual / api)
 - capturedAt
 
-PostingGoal (objectif hebdo par plateforme — Module D)
-- id, userId, platform, targetCountPerWeek (real)
+PostingGoal (plateforme de publication active ou coupée — Module D)
+- id, userId, platform, targetCountPerWeek (real — conséquence de CreatorProfile.publishingDays :
+  nombre de jours cochés si la plateforme est active, 0 si elle est coupée ; recalculé à chaque
+  changement des jours, plus réglable à la main)
 
 CalendarEntry (Module D)
 - id, userId
@@ -293,7 +296,7 @@ Aucune contrainte `NOT NULL` ne force l'un ou l'autre sens.
 ## 4. Vues UI & Endpoints associés
 
 ### Authentification
-- `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`.
+- `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`. `/signup` n'est plus une page : l'inscription est l'écran 1 de `/onboarding`, et `POST /api/auth/signup` n'est appelé que par la porte « Coller mes notes ». `/login` ne fait plus que la connexion et le mot de passe oublié ; `/login?mode=signup` redirige vers `/onboarding`.
 - `POST /api/auth/password/forgot { email }` — répond toujours `{ ok }` (ne révèle pas qui est inscrit) ; crée un jeton (32 octets, stocké haché SHA-256 dans `password_reset_tokens`, 1 h, usage unique, invalide les précédents du compte) et envoie le lien `${APP_URL}/reinitialiser-mot-de-passe?token=…`. Un échec d'envoi est logué (Sentry) sans faire échouer la requête, pour la même raison.
 - `POST /api/auth/password/reset { token, password }` — remplace le hash, pose `sessionsInvalidatedBefore`, marque le jeton consommé, **connecte l'utilisateur** (cookie posé après l'invalidation, donc valide), envoie « mot de passe modifié ». Fonctionne pour un compte GitHub/Notion/Linear sans mot de passe : ça lui en crée un. Service : `src/lib/services/passwordService.ts`. Page : `/login?mode=forgot` (demande) et `/reinitialiser-mot-de-passe` (saisie).
 
@@ -303,10 +306,14 @@ Aucune contrainte `NOT NULL` ne force l'un ou l'autre sens.
 - `GET /api/account/export` — JSON téléchargé (`Content-Disposition`), toutes les tables du compte sans jetons OAuth ni embeddings, images par URL publique (`accountService.exportAccountData`).
 - `DELETE /api/account { password | emailConfirmation }` — confirmation par mot de passe, ou recopie de l'email pour un compte sans mot de passe. Ordre : résiliation Stripe immédiate (bloquante : pas de compte supprimé qu'on continuerait à facturer ; le client et ses factures restent, annotés `creaflowAccountDeletedAt`), lecture des clés R2, `DELETE FROM users` (cascade sur toutes les tables utilisateur), puis suppression des objets R2 (au mieux, échecs logués — après la base, pour ne jamais laisser un compte vivant sans ses images), cookie effacé, email de confirmation. `upsertSubscriptionFromStripe` ignore (200 + `warn`) un event pour un `userId` qui n'existe plus. Pas de révocation des jetons chez les fournisseurs (effacés de notre côté seulement).
 
-### Onboarding (Module A) — chat conversationnel (`/onboarding`)
-- `GET /api/onboarding/chat` — historique des messages + statut (`complete`).
-- `POST /api/onboarding/chat` `{ message }` — envoie un message utilisateur, fait tourner l'IA (`runOnboardingChatTurn`), fusionne les champs extraits sur l'état accumulé (`mergeExtractedProfile` — n'écrase jamais un champ connu par une valeur vide), et **si `complete=true`**, déclenche automatiquement `finalizeOnboarding` : persiste `CreatorProfile`, génère catégories + angles + séries (si aucune n'existe déjà), crée les `PostingGoal` par défaut sur les plateformes suggérées. Un seul aller-retour. Les séries générées ne restent pas silencieuses : la réponse porte aussi `series` (id, label, description, mode, rôle), que l'UI affiche en cartes cochables (`SeriesPicker`, tout coché par défaut) — l'utilisateur choisit celles qu'il garde avant de continuer.
-- `POST /api/onboarding/series-selection` `{ keptIds }` — applique ce choix : archive les séries actives non gardées (`keepOnlySeries`, id inconnu → 404). Au moins un id (400 sinon) ; l'UI n'appelle pas la route si tout est gardé.
+### Onboarding (Module A) — parcours en six écrans (`/onboarding`, `docs/SPEC_ONBOARDING_MVP.md`)
+Un seul parcours, quelle que soit la porte d'entrée (`users.vertical` ne l'aiguille plus). Page `src/app/onboarding/page.tsx`, composants `src/components/onboarding/` (`OnboardingWelcome`, `OnboardingSources`, `SubjectsEditor`, `StepHeading`) et `PublishingDaysPicker`. Écrans : nom + quatre portes (GitHub, Notion, Linear, « Coller mes notes » — c'est aussi l'inscription) → sources (`RepoPicker`/`SourcePicker`, zone de notes) → lecture animée → « Ce que tu fais » + sujets regroupés éditables → « Qu'est-ce que tu attends de nous ? » → jours de publication et réseaux (LinkedIn coché par défaut, X, Instagram). Service : `src/lib/services/onboardingService.ts`. L'onboarding est terminé dès que le `CreatorProfile` existe.
+- `GET /api/onboarding/state` — ouverte **sans session** (renvoie alors `{ signedIn: false }`, l'écran 1 servant d'inscription) ; sinon `hasProfile`, fournisseurs connectés, nom suggéré (repli sur le nom du compte tiers), sources branchées et notes collées.
+- `POST /api/onboarding/notes` `{ text }` — « Coller mes notes » : crée un `SourceMaterial(kind="paste")` de niveau marque, rattaché à un sujet à la fin.
+- `POST /api/onboarding/draft` `{ name }` — un appel LLM sur des extraits de la matière branchée (`extractProfileFromMaterial`, §5.3) ; **n'écrit rien**. Échec du modèle → champs vides et une source par sujet, jamais bloquant. 400 si rien n'est branché. Rate limit 10/h.
+- `POST /api/onboarding/complete` `{ name, activityType, targetAudience?, expectations?, publishingDays, platforms, subjects: [{ name, description?, keys }] }` — regroupe les sources en sujets (`planSubjectGrouping`, fonction pure testée : réutilise le sujet de la première source du groupe, supprime les sujets vidés, refuse une source citée deux fois), écrit le profil, active les plateformes choisies au rythme des jours cochés (les autres à 0), puis génère rôles → angles → séries s'il n'en existe pas. Rejouable si la génération échoue en route. Rate limit 10/h.
+- Plus d'écran de sélection des séries : elles se modifient ensuite dans Direction. Le chat d'onboarding (`/api/onboarding/chat`) et `/api/onboarding/series-selection` sont supprimés.
+- Pendant l'onboarding (pas encore de profil), la limite de branchement porte sur les **sources** (`MAX_ONBOARDING_SOURCES` = 15) ; `MAX_PRODUCTS` (5) s'applique au regroupement final et après l'onboarding.
 - `GET/PUT/DELETE /api/products`, `/api/products/:id` — catalogue produits (3 à 5, bulk POST accepté). `PUT` accepte aussi `targetAudience` (nullable — override d'audience par sujet, `docs/SPEC_PROMPT_GENERATION_TECH.md` §5).
 - `GET /api/auth/:platform/connect` → redirection OAuth (state + returnTo en cookies httpOnly) ; `GET /api/auth/:platform/callback` → crée/rafraîchit la `SocialConnection`, récupère les posts récents (`InspirationVideo`), **puis lance une passe d'apprentissage du style** (`runStyleLearningPass`) — aucun appel supplémentaire requis depuis le front. Un échec de récupération des posts n'invalide pas la connexion.
 - `POST /api/profile/style-analysis` — passe d'apprentissage du style (§5.5). Body optionnel `{ includeLearned }`. Renvoie `profile`, `styleLearning` (compteur), `proposalId` (null si écriture directe), `changeNotes`, `proposedStyleProfile`.
@@ -317,7 +324,7 @@ Aucune contrainte `NOT NULL` ne force l'un ou l'autre sens.
 - `GET/POST /api/profile/content-categories` — `GET` liste les catégories actives ; `POST` avec corps régénère intégralement via IA (`generateCategoriesForUser`, archive l'ancien jeu actif) ; `POST` avec corps `{ categories: [...] }` valide et sauvegarde une édition manuelle (`saveCategoriesForUser`, poids renormalisés).
 - `GET/POST /api/series` — même pattern pour les séries récurrentes (`generateSeriesForUser` / `saveSeriesForUser`), dépend des rôles déjà actifs. Chaque série porte **un** `categoryId` (docs/SPEC_SERIES_ET_ROLES.md) ; la lecture renvoie `category: {id,label}` (singulier).
 - Les angles n'ont pas d'endpoint dédié exposé séparément dans ce document — gérés via `src/lib/services/angleService.ts` (`generateAnglesForUser`, `upsertAngleItem`), appelés à l'onboarding et depuis l'écran Direction.
-- `GET/POST /api/posting-goals` — objectifs de fréquence hebdomadaire par plateforme.
+- `GET/POST /api/posting-goals` — plateformes de publication : `POST { platform, active }` active une plateforme (au rythme des jours cochés) ou la coupe (`targetCountPerWeek = 0`). Le nombre par semaine ne se règle plus à la main.
 
 - `POST /api/assets/reembed` — maintenance : recalcule les embeddings des ressources `ready` à partir de leur `aiDescription` déjà stockée (aucun appel vision). À lancer une fois après un changement de modèle d'embedding — deux modèles ne produisent pas des vecteurs comparables (`docs/SPEC_RESSOURCES_VISUELLES.md` §8.4). Pas d'écran dédié, appel manuel.
 
@@ -333,7 +340,7 @@ Assistant **agentique** (`docs/SPEC_ASSISTANT_AGENTIQUE.md`) : il lit tout l'esp
 
 ### Calendrier mensuel (Module D) — vue principale `/calendar`
 - `GET /api/calendar?month=YYYY-MM` — endpoint agrégé : `CalendarEntry` du mois avec script lié (`{id, title, status}` ou `null`), catégorie et série jointes, + `PostingGoal` par plateforme. Un seul appel.
-- `POST /api/calendar/generate` `{ month }` — génère les créneaux du mois : répartit les créneaux par plateforme selon `PostingGoal`, pondère par les poids de catégories actives ciblant cette plateforme (renormalisés), applique en plus les séries actives ciblant cette plateforme comme overrides sur une partie des créneaux (`distributeSeriesOverrides`). Aiguillage matière×catégorie (docs/SPEC_MATIERE_EDITEUR.md §5.3) : si des catégories `materialHungry` existent et que le corpus global (nombre de `SourceMaterial`, tous sujets confondus — heuristique grossière, plus de structuration en unités à compter) est sous un seuil (3), leur poids est ramené à 0 et redistribué (`adjustCategoryWeightsForMaterialScarcity`) — jamais de retouche d'un calendrier déjà généré. Échoue si un mois est déjà généré, si aucun objectif ou aucune catégorie n'est configuré(e).
+- `POST /api/calendar/generate` `{ month }` — génère les créneaux du mois : **un créneau par jour coché** (`CreatorProfile.publishingDays`) et par plateforme active (`PostingGoal.targetCountPerWeek > 0`), aux dates exactes de ces jours (`datesForWeekdays`, `calendarService.ts` ; l'ancienne répartition `distributeDays` est supprimée), pondère par les poids de catégories actives ciblant cette plateforme (renormalisés), applique en plus les séries actives ciblant cette plateforme comme overrides sur une partie des créneaux (`distributeSeriesOverrides`). Aiguillage matière×catégorie (docs/SPEC_MATIERE_EDITEUR.md §5.3) : si des catégories `materialHungry` existent et que le corpus global (nombre de `SourceMaterial`, tous sujets confondus — heuristique grossière, plus de structuration en unités à compter) est sous un seuil (3), leur poids est ramené à 0 et redistribué (`adjustCategoryWeightsForMaterialScarcity`) — jamais de retouche d'un calendrier déjà généré. Échoue si un mois est déjà généré, si aucun objectif ou aucune catégorie n'est configuré(e).
 - `POST /api/calendar` `{ scriptId, scheduledDate }` — place un script déjà généré et non planifié sur une date (`placeScriptOnCalendar`, réutilisée telle quelle par la génération de série depuis la matière).
 - `PATCH /api/calendar/:id` `{ status?, contentCategoryId?, seriesId? }` — modification manuelle d'un créneau. Poser `seriesId` impose le rôle de la série (`contentCategoryId` envoyé est alors ignoré) ; changer le rôle seul d'un créneau déjà en série est refusé (400) — il faut d'abord le repasser en post libre.
 - `DELETE /api/calendar/:id` — supprime un créneau, uniquement s'il n'a pas encore de script généré.
@@ -369,7 +376,7 @@ Assistant **agentique** (`docs/SPEC_ASSISTANT_AGENTIQUE.md`) : il lit tout l'esp
 - `DELETE /api/materials/:id` — supprime une matière brute (cascade sur ses `SourceMaterialCitation`).
 - `POST /api/materials/upload` (multipart, `.md`/`.txt` uniquement — anti-scope §3.2, pas de parseur PDF) — même pipeline que le collage, `kind="file"`.
 - `GET /api/materials/:id/citations` — citations pointant vers ce document, tous scripts confondus, sert le surlignage des passages déjà cités dans le panneau Matière (debug + transparence produit).
-- `GET/POST /api/materials/interview?productId=` — interview-chat (§3.7) : `GET` renvoie l'historique, `POST { message }` fait tourner un tour de conversation (`runInterviewTurn`, pattern identique à `onboardingChat.ts`) et, si une information factuelle est extraite, crée un `SourceMaterial(kind="interview")`, immédiatement utilisable.
+- `GET/POST /api/materials/interview?productId=` — interview-chat (§3.7) : `GET` renvoie l'historique, `POST { message }` fait tourner un tour de conversation (`runInterviewTurn`, pattern hérité de l'ancien chat d'onboarding, supprimé depuis) et, si une information factuelle est extraite, crée un `SourceMaterial(kind="interview")`, immédiatement utilisable.
 - `POST /api/series/from-material` `{ productId?, seriesId | newSeries, platform, contentCategoryId, contentType, episodeCount }` — génère une série depuis le corpus (§3.8) : propose un découpage en épisodes à partir du texte brut complet du sujet (`materialEpisodes.ts`, `{episodeTitle, angleHint}` par épisode, pas d'assignation de fragments), génère un script complet par épisode (réutilise `buildGenerationContext`/`createScriptRecord` avec une directive d'épisode injectée dans le prompt — le LLM choisit lui-même dans le texte brut complet ce qui correspond à l'angle, une génération complète par épisode donc quota inchangé dans son principe), place chaque script sur le calendrier (réutilise `placeScriptOnCalendar`, espacés de 3 jours par défaut). S'arrête au quota plutôt que d'annuler les épisodes déjà générés.
 
 ### Performance & rééquilibrage (Module D/E) — écran `/performance`
@@ -378,7 +385,7 @@ Assistant **agentique** (`docs/SPEC_ASSISTANT_AGENTIQUE.md`) : il lit tout l'esp
 - `POST /api/performance/match-candidates/:id/resolve` `{ action: "confirm"|"dismiss" }` — `confirm` upsert `PostMetrics` (`source="api"`) depuis les métriques déjà capturées sur le candidat + insère un `PostMetricsSnapshot` ; `dismiss` marque le candidat comme définitivement écarté. Les deux statuts sont terminaux.
 
 ### Paramètres / connexions sociales — écran `/settings`
-- `GET/POST /api/profile` — lecture/écriture du `CreatorProfile` (identité de marque), y compris `targetAudience` (`docs/SPEC_PROMPT_GENERATION_TECH.md` §5). Le `GET` renvoie aussi `styleLearning: { pendingScripts, lastLearnedAt, pendingProposalId }` — le compteur « scripts corrigés depuis la dernière analyse », lu par Paramètres et par l'éditeur (bandeau au passage en tourné/publié, seuil 5).
+- `GET/POST /api/profile` — lecture/écriture du `CreatorProfile` (identité de marque), y compris `targetAudience` (`docs/SPEC_PROMPT_GENERATION_TECH.md` §5), `expectations` (« Ce que tu attends de CreaFlow ») et `publishingDays` (sélecteur de jours ; un changement recalcule le `targetCountPerWeek` des plateformes actives, `syncGoalCountsToPublishingDays`). Le `GET` renvoie aussi `styleLearning: { pendingScripts, lastLearnedAt, pendingProposalId }` — le compteur « scripts corrigés depuis la dernière analyse », lu par Paramètres et par l'éditeur (bandeau au passage en tourné/publié, seuil 5).
 - `GET /api/connections` — statut de connexion par plateforme, un seul appel : `connected`, `status` (`ok`/`needs_reconnect`/`null`), `hasMetricsFetch`. Les plateformes affichées sont l'union des `PostingGoal` définis et des `SocialConnection` existantes ; avant tout onboarding, retombe sur les plateformes à OAuth du registre.
 
 ---
@@ -391,7 +398,7 @@ Tous les appels IA passent par `callStructured` (`src/lib/llm/provider.ts`) : so
 Prompt v2 (`docs/SPEC_PROMPT_GENERATION_TECH.md`, Lots 1-2) — remplace l'ancienne version one-shot.
 
 - **Prompt système** (`SCRIPT_SYSTEM_PROMPT`) — rôle ("Directeur Marketing Virtuel de CreaFlow"), obsession de spécificité explicite ("un post publiable tel quel par un concurrent est un échec"), règles de qualité courtes (une seule idée par script formulée dans le champ `concept`, hook = manque jamais annonce, au moins un élément que seul ce créateur peut dire), interpole `EDITORIAL_WRITING_RULES` (constante partagée, anti-clichés/concret > abstrait — également consommée par `microEdit.ts::rewrite_selection` et `materialEpisodes.ts`, cf. §5.11/§5.12), puis interdits durs (anti-invention, `usedExcerpts` obligatoire).
-- **Contexte dynamique par appel** (`buildScriptUserMessage`, `buildGenerationContext` dans `scriptService.ts`) — blocs balisés à ordre fixe : `=== CONTEXTE MARQUE ===` (marque, **audience visée** — `Product.targetAudience ?? CreatorProfile.targetAudience`, §5 —, ton, valeurs, style, matériel, temps), `=== MATIÈRE ===` (§5.8), `=== BRIEF ===` (produit, plateforme + règle plateforme, catégorie, série, angle, type de contenu, photo de référence, directive d'épisode), `=== VARIÉTÉ ===` (sujets récents, performance, **concepts refusés** via "autre idée" — `rejectedConcepts`, plafonné aux 5 plus récents, §6.3), `=== PRIORITÉS ===` (bloc final, poids maximal : vérité factuelle > identité série/angle > voix de marque > codes plateforme, + rappel du test du concurrent).
+- **Contexte dynamique par appel** (`buildScriptUserMessage`, `buildGenerationContext` dans `scriptService.ts`) — blocs balisés à ordre fixe : `=== CONTEXTE MARQUE ===` (marque, **audience visée** — `Product.targetAudience ?? CreatorProfile.targetAudience`, §5 —, « Ce que l'auteur attend de CreaFlow : … » depuis `CreatorProfile.expectations` ; ton, valeurs, matériel et temps ont disparu avec la migration `0037`, la voix passe par le bloc `=== STYLE ===`, §5.5), `=== MATIÈRE ===` (§5.8), `=== BRIEF ===` (produit, plateforme + règle plateforme, catégorie, série, angle, type de contenu, photo de référence, directive d'épisode), `=== VARIÉTÉ ===` (sujets récents, performance, **concepts refusés** via "autre idée" — `rejectedConcepts`, plafonné aux 5 plus récents, §6.3), `=== PRIORITÉS ===` (bloc final, poids maximal : vérité factuelle > identité série/angle > voix de marque > codes plateforme, + rappel du test du concurrent).
 - **Champ `concept`** (`scriptSchema.ts`) — **première propriété, `required`**, sur les 2 tools de génération : l'ordre des propriétés JSON force le LLM à décider l'idée avant de rédiger le reste. Persisté sur `Script.concept` (§3), figé après la génération, jamais réécrit par la régénération de bloc (§5.11) ou la sélection→instruction — remplacé uniquement par "autre idée, même brief" (§6.3 ci-dessous).
 - **Sortie forcée en JSON strict** — un des 2 tools selon `contentType` (`generate_visual_post` / `generate_text_post`, `scriptSchema.ts` ; `generate_video_script` supprimé avec la vidéo), schéma correspondant aux colonnes de `Script` pertinentes pour ce type, descriptions de champs qualitatives (ex. `hookText` : "crée une tension ou une curiosité, jamais une annonce du sujet").
 
@@ -400,8 +407,8 @@ Prompt v2 (`docs/SPEC_PROMPT_GENERATION_TECH.md`, Lots 1-2) — remplace l'ancie
 ### 5.2 Anti-répétition par angles — `src/lib/services/angleService.ts`
 Cœur du mécanisme : `pickAngleForScript(userId, contentCategoryId, excludeScriptId?)` sélectionne l'angle actif le **moins récemment utilisé** par l'utilisateur dans la catégorie visée (`selectLeastRecentlyUsedAngle`, sur les 30 derniers scripts angle-non-null de la catégorie). Dégradation gracieuse : `null` si aucun angle actif (utilisateur legacy, avant génération d'angles). L'angle est injecté dans le prompt comme directive de structure/hook, invisible pour l'utilisateur final.
 
-### 5.3 Chat d'onboarding — `src/lib/llm/onboardingChat.ts`
-Un seul tool (`update_onboarding_profile`) renvoie à la fois la réponse conversationnelle (`assistantReply`), les champs de profil déduits **cumulés depuis le début de la conversation** (pas seulement les nouveaux), et un booléen `complete` (vrai dès que nom/activité, temps disponible et au moins une plateforme suggérée sont connus). Une question à la fois, jamais de formulaire déguisé, aucune hypothèse sur le type d'activité (produit physique ou non). Cherche aussi à connaître l'**audience visée** (`targetAudience`, `docs/SPEC_PROMPT_GENERATION_TECH.md` §5) — question skippable, n'entre jamais dans les critères de `complete`.
+### 5.3 Extraction du profil d'onboarding — `src/lib/llm/profileExtraction.ts`
+Remplace le chat d'onboarding (`onboardingChat.ts`, supprimé avec `docs/SPEC_ONBOARDING_MVP.md`). Un seul appel `callStructured` (`extractProfileFromMaterial`) reçoit le nom saisi, l'identité des comptes tiers (nom, login, bio) et, par source branchée, un court extrait de sa matière (`draftOnboardingProfile` : README d'abord, 3 documents de 700 caractères au plus ; les notes collées jusqu'à 2 000). Il renvoie `activityType`, `targetAudience` et les sujets : pour chacun un libellé, une phrase de description et la liste des clés de sources qu'il regroupe (`source:<id>` / `note:<id>`). `normalizeSubjects` garantit que chaque source finit dans exactement un sujet (une source oubliée devient son propre sujet). Rien n'est écrit à ce stade : l'écran 4 corrige, `POST /api/onboarding/complete` enregistre.
 
 ### 5.13 Boucle agentique — `callAgentic` (`src/lib/llm/provider.ts`, `providers/openai.ts`)
 Primitive multi-tours à N outils non imposés (`tool_choice: "auto"`), à côté de `callStructured` qui reste mono-tool et inchangée pour tout le reste. **Implémentée pour le seul provider OpenAI** et appelée en dur, indépendamment de `LLM_PROVIDER` — même parti pris que la génération d'images et le captioning vision, câblés sur Gemini pour la même raison (les embeddings, eux, sont passés à OpenAI — `docs/SPEC_RESSOURCES_VISUELLES.md` §8.4). Sans `OPENAI_API_KEY`, l'assistant échoue explicitement ; le reste de l'app tourne normalement.
@@ -411,11 +418,14 @@ Garde-fous : `maxTurns` (défaut 8) puis un appel de clôture sans outils pour n
 **Outils de lecture** (`src/lib/services/assistantReadTools.ts`, aucun effet de bord) : `list_materials`, `read_material`, `list_scripts`, `read_script`, `read_calendar`, `read_performance`, `read_narrative_state`, `read_profile`. Les listes renvoient des résumés et des projections courtes ; le texte intégral n'arrive que sur un `read_*` explicite, tronqué à 12 000 caractères.
 
 ### 5.4 Chat assistant éditorial — `src/lib/llm/assistantChat.ts`
-La réponse à l'utilisateur est le **texte libre** du modèle, plus le champ d'un outil. Trois outils d'écriture, tous producteurs de propositions à valider, jamais d'écriture directe :
+La réponse à l'utilisateur est le **texte libre** du modèle, plus le champ d'un outil. Quatre outils d'écriture, tous producteurs de propositions à valider, jamais d'écriture directe :
 
 - `propose_changes` — jusqu'à 5 propositions par type (produits, séries, rôles, angles, objectifs de fréquence) et jusqu'à 1 d'**audience de marque** (`profile_update`, distincte de l'audience par sujet, portée par le champ `targetAudience` d'une proposition de produit). Chacune `create` ou `update`. Appelable plusieurs fois dans un même tour : les propositions s'accumulent.
 - `propose_material` — ajout, modification ou retrait d'un document de matière. Deux sources : le texte rapporté par le modèle (extraction conversationnelle) ou un `attachmentId` désignant un fichier déposé, dont le contenu n'a jamais transité par le prompt.
 - `propose_archive` — archivage d'une série, d'un rôle ou d'un angle. Jamais de suppression : l'objet archivé reste référencé par les scripts et créneaux déjà produits.
+- `propose_publishing_days` — nouvelle liste complète des jours de publication (`publishing_days_update`), seulement sur demande claire. Les propositions d'objectif de fréquence de `propose_changes` ne portent plus un nombre mais `{ platform, active }` : une plateforme est active (un post par jour coché) ou coupée.
+
+Le contexte affiche les jours de publication en clair (« mercredi et samedi ») et les attentes de l'auteur (`expectations`).
 
 Le contexte injecté inclut l'état complet actuel — ids exacts pour les cibles d'`update`, libellé exact du rôle unique de chaque série, mode et sujet lié de chaque série, consigne et `materialHungry` de chaque rôle, proposition de valeur et audience de chaque sujet, audience de marque. Tout champ proposable est montré : proposer un `update` sur un champ invisible reviendrait à l'écraser à l'aveugle.
 
@@ -435,7 +445,7 @@ Injection : `buildStyleBlock(profile, platform)` produit un bloc `=== STYLE ===`
 - `src/lib/llm/angleLabels.ts` — 4 à 8 angles/archétypes de structure (pas des sujets), réutilisés par l'anti-répétition.
 - `src/lib/llm/seriesLabels.ts` — 0 à 5 séries récurrentes nommées, chacune rattachée à **un seul** rôle actif par son libellé exact (`categoryLabel`, docs/SPEC_SERIES_ET_ROLES.md) ; liste vide acceptée si le métier ne s'y prête pas.
 
-Ces trois générations sont déclenchées automatiquement à la fin de l'onboarding (`finalizeOnboarding`, dans cet ordre : catégories → angles → séries, les séries dépendant des catégories) et peuvent être régénérées manuellement depuis l'écran Direction (l'ancien jeu actif est archivé, pas supprimé).
+Les trois reçoivent `expectations` (« Ce que l'auteur attend de CreaFlow : … ») à la place de l'ancien ton/valeurs/matériel/temps. Ces trois générations sont déclenchées automatiquement à la fin de l'onboarding (`completeOnboarding`, dans cet ordre : catégories → angles → séries, les séries dépendant des catégories) et peuvent être régénérées manuellement depuis l'écran Direction (l'ancien jeu actif est archivé, pas supprimé).
 
 ### 5.7 Récupération automatique des métriques & re-pondération (Module D/E)
 
@@ -489,7 +499,7 @@ et ajoute celles rapportées par cette édition — une édition partielle ne do
 qui restent valides ailleurs dans le texte, contrairement à une régénération complète.
 
 ### 5.10 Interview-chat — `src/lib/llm/materialInterviewChat.ts` + `materialInterviewService.ts`
-Un seul tool (`record_interview_turn`) renvoie la question suivante (`assistantReply`) et, si le message contient une information factuelle exploitable, `extractedMaterial` (sinon `null`). Une question à la fois, jamais de formulaire déguisé, même règle anti-invention appliquée à l'assistant lui-même — pattern calqué sur `onboardingChat.ts` (§5.3). Chaque `extractedMaterial` non vide crée un `SourceMaterial(kind="interview")`, immédiatement utilisable (§5.8).
+Un seul tool (`record_interview_turn`) renvoie la question suivante (`assistantReply`) et, si le message contient une information factuelle exploitable, `extractedMaterial` (sinon `null`). Une question à la fois, jamais de formulaire déguisé, même règle anti-invention appliquée à l'assistant lui-même — pattern calqué sur l'ancien chat d'onboarding (`onboardingChat.ts`, supprimé depuis). Chaque `extractedMaterial` non vide crée un `SourceMaterial(kind="interview")`, immédiatement utilisable (§5.8).
 
 ### 5.11 Micro-retouches — `src/lib/llm/microEdit.ts` + `microEditService.ts`
 Deux gestes contraints, jamais une régénération de structure complète (`docs/SPEC_MATIERE_EDITEUR.md` §4.4). Le vrai geste d'édition du corps, en usage réel, c'est le premier — petit bout par petit bout, pas une régénération à l'aveugle en espérant un bon résultat (constat direct, a fait retirer le bouton de régénération du bloc "Texte", cf. plus bas) :
@@ -545,7 +555,7 @@ Self-service, mode `subscription` Stripe Checkout — pas d'intégration Stripe.
   - `POST /api/auth/login` : 10/15min par IP + 5/15min par email (double limite : IP contre le spam générique, email contre le credential stuffing ciblé depuis plusieurs IP).
   - `POST /api/auth/signup` : 5/heure par IP (anti-création massive de comptes).
   - Génération de script (`POST /api/scripts`, `POST /api/scripts/generate`, `POST /api/scripts/:id/regenerate`, `POST /api/scripts/:id/new-idea`) : 20/min par utilisateur, scope `"script-generate"` partagé entre les 4 routes (sinon la limite se contournerait en alternant entre elles).
-  - Chat d'onboarding (`POST /api/onboarding/chat`) : 20/min par utilisateur.
+  - Onboarding : `POST /api/onboarding/draft` et `POST /api/onboarding/complete` (appels LLM) : 10/heure par utilisateur chacun.
   - Chat assistant (`POST /api/assistant/chat`) : **10/min** — le plafond compte des tours de conversation, mais un tour agentique vaut désormais plusieurs appels LLM (`docs/SPEC_ASSISTANT_AGENTIQUE.md` §2.3).
   - `POST /api/profile/style-analysis` : 5/min par utilisateur (déclenchement manuel, usage rare).
   - `POST /api/scripts/:id/design` (scope `design-compose`) et `POST /api/assets/:id/cutout` (scope `asset-cutout`) : 10/min par utilisateur chacun.
@@ -563,7 +573,9 @@ Cadrage : `docs/superpowers/specs/2026-08-31-onboarding-dev-github-design.md` (G
 
 **Trois fournisseurs**, chacun servant deux fois : porte d'entrée (inscription et connexion) et source de matière. Ce qui devient un sujet chez chacun est fixé par la spec §4-§6 — un dépôt GitHub, une page racine ou une base Notion, un projet Linear.
 
-**Deux parcours d'onboarding**, aiguillés par `users.vertical` (`creator` | `dev` | `artisan` | `entrepreneur`), posé au signup et jamais recalculé. Le parcours créateur (chat généraliste → sujets → réseaux) est inchangé. Les trois autres valeurs partagent le parcours « source d'abord » : sujets → discussion courte → réseaux (`sourceFirstVertical`, `src/lib/verticals/sourceFirst.tsx`). Elles existent pour que le nom ne mente pas, pas pour différencier des textes — elles pointent aujourd'hui vers la même fabrique.
+**Un seul parcours d'onboarding** depuis `docs/SPEC_ONBOARDING_MVP.md` (voir ici §4, « Onboarding (Module A) »). `users.vertical` (`creator` | `dev` | `artisan` | `entrepreneur`) est toujours posé à la création et jamais recalculé, mais n'aiguille plus rien : les deux parcours d'avant (chat créateur, « source d'abord ») et le registre `src/lib/verticals/{registry,creator,sourceFirst,shared,server}` sont supprimés. Il ne reste que `src/lib/verticals/types.ts` (`VerticalId`), lu par les prompts de maquette.
+
+**Mode « brancher une source ».** Le callback OAuth regarde d'abord s'il y a une session ouverte. Si oui, le compte tiers est rattaché à l'utilisateur connecté **quel que soit son email** (la personne prouve les deux comptes en étant connectée aux deux) ; refus si ce compte tiers est déjà relié à un autre compte CreaFlow, ou si le compte CreaFlow a déjà une autre identité de ce fournisseur. Sans session, la résolution par identité / email vérifié ci-dessous s'applique. `start` accepte `?returnTo=` (chemin interne uniquement, gardé dans le cookie `oauth_return_<provider>`) : c'est ce qui ramène à l'écran des sources de l'onboarding ou aux Paramètres ; les erreurs métier du callback redirigent vers `returnTo` (ou `/login`) avec `?oauthError=`. Le même mode sert dans Paramètres pour brancher une source plus tard.
 
 **La verticale ne dit pas quel sélecteur afficher** : `dev` couvre GitHub comme Linear. C'est `connectedProviders` (`GET /api/profile`, alimenté par `oauth_accounts`) qui le décide.
 
@@ -580,7 +592,7 @@ Les sélecteurs ne sont pas réservés à l'onboarding : paramètres > Sujets af
 **Identité.** OAuth App GitHub, scope `read:user user:email read:org` exactement. `public_repo` est écarté : il accorderait l'écriture sur les dépôts publics, dont l'app n'a aucun usage, alors que leur contenu se lit sans scope dédié. `user:email` est en revanche obligatoire — `users.email` est `NOT NULL UNIQUE` et `GET /user` ne renvoie l'email que s'il est public sur le profil, d'où la lecture de `GET /user/emails`. `read:org` (lecture seule) l'est aussi : sans lui GitHub ne révèle pas les appartenances aux organisations et `affiliation=organization_member` renvoie une liste vide. Un token émis avant un élargissement de scope ne le rattrape jamais : il faut repasser par le bouton « Continuer avec GitHub » pour en obtenir un nouveau.
 
 - `users.passwordHash` devient **nullable** ; `POST /api/auth/login` refuse explicitement un compte sans hash avec un message qui oriente vers GitHub, plutôt que de répondre « mot de passe incorrect » à quelqu'un qui n'en a jamais eu. Ce message révèle qu'un compte GitHub existe pour l'adresse saisie : compromis assumé pour ne pas laisser l'utilisateur dans une impasse, borné par le rate limit par email déjà en place.
-- **Résolution de compte** (`decideAccountResolution`, `oauthAccountService.ts`, fonction pure testée, identique pour les trois fournisseurs) : identité déjà liée → connexion ; sinon email **vérifié** correspondant à un compte existant → rattachement de l'identité ; sinon création. Sans email vérifié → refus (409). Le rattachement n'est jamais fait sur une adresse non vérifiée : n'importe qui pourrait sinon revendiquer l'adresse d'un compte existant et en prendre le contrôle. Un rattachement ne modifie pas `vertical`.
+- **Résolution de compte** (`decideAccountResolution`, `oauthAccountService.ts`, fonction pure testée, identique pour les trois fournisseurs) — hors mode « brancher une source », qui y est tranché en premier : identité déjà liée → connexion ; sinon email **vérifié** correspondant à un compte existant → rattachement de l'identité ; sinon création. Sans email vérifié → refus (409). Le rattachement n'est jamais fait sur une adresse non vérifiée : n'importe qui pourrait sinon revendiquer l'adresse d'un compte existant et en prendre le contrôle. Un rattachement ne modifie pas `vertical`.
 - Routes : `GET /api/auth/github/start` (sans session — c'est une porte d'entrée), `GET /api/auth/github/callback` (state CSRF en cookie, rate limit `github-oauth` 10/h par IP), `GET /api/auth/github/status` (`force-dynamic`, dit à `/login` s'il faut afficher le bouton).
 
 **Modèle de données.** Une table `material_sources` (`userId`, `productId`, `type`, `externalId`, `label`, `config`, `syncCursor`, `lastSyncedAt`, `status`, `lastError`), unique sur `(userId, type, externalId)` — pas de colonnes GitHub sur `products`. Un sujet est un objet éditorial, un dépôt une de ses sources : des colonnes de connecteur sur `products` figeraient « un sujet = un dépôt » et pollueraient une table référencée partout. Il n'y a **volontairement pas** d'interface `SourceConnector` ni de registre à la manière de `socialProviders` : un connecteur Obsidian n'a ni branche, ni commits, ni owner, et écrire le contrat à partir d'un seul implémenteur reviendrait à le deviner. Le contrat s'extraira au deuxième connecteur.
@@ -598,7 +610,7 @@ Les sélecteurs ne sont pas réservés à l'onboarding : paramètres > Sujets af
 
 **Re-sync manuel** (`POST /api/material-sources/:id/sync`, pas de cron — même philosophie que le reste de l'app). `diffDocuments` (fonction pure testée) décide : absent → INSERT ; checksum identique → **aucune écriture** ; checksum différent → UPDATE avec `summary` remis à null ; chemin disparu du dépôt → laissé intact (c'est de la matière passée valable, et ses citations pointent dessus). Le passage de `summary` à null rompt volontairement la règle « l'édition manuelle devient la source de vérité » d'`updateMaterialSummary` : pour une source connectée, c'est le dépôt qui fait foi. Une synchro qui écrit appelle `markStaleForMaterialIngestion`, sans quoi le rédacteur en chef ne replanifierait pas.
 
-**Prompt des comptes connectés** (`runConnectedOnboardingChatTurn`, `onboardingChat.ts`) : même moteur, même contrat de sortie et même critère de `complete` que le parcours créateur ; seuls changent le prompt système (deux ou trois questions maximum — ton, audience, temps ; matériel de production jamais demandé) et le contexte injecté (profil du compte tiers, sujets retenus, début de leur matière déjà ingérée — le **premier document** de la source, et non `README.md` en dur, qui laissait Notion et Linear sans extrait). Le prompt nomme la plateforme réellement connectée. Le tool est **dérivé** de `updateOnboardingProfileTool` moins `equipment`, pour qu'un futur champ de profil ne se perde pas dans un seul des deux parcours. C'est le seul endroit à rouvrir le jour où Etsy et Shopify arrivent : un artisan filme ses pièces, la question du matériel a du sens pour lui.
+**Prompt des comptes connectés** — *supprimé avec le chat d'onboarding (`docs/SPEC_ONBOARDING_MVP.md`), remplacé par l'extraction en un appel (§5.3) ; paragraphe conservé pour l'historique.* (`runConnectedOnboardingChatTurn`, `onboardingChat.ts`) : même moteur, même contrat de sortie et même critère de `complete` que le parcours créateur ; seuls changent le prompt système (deux ou trois questions maximum — ton, audience, temps ; matériel de production jamais demandé) et le contexte injecté (profil du compte tiers, sujets retenus, début de leur matière déjà ingérée — le **premier document** de la source, et non `README.md` en dur, qui laissait Notion et Linear sans extrait). Le prompt nomme la plateforme réellement connectée. Le tool est **dérivé** de `updateOnboardingProfileTool` moins `equipment`, pour qu'un futur champ de profil ne se perde pas dans un seul des deux parcours. C'est le seul endroit à rouvrir le jour où Etsy et Shopify arrivent : un artisan filme ses pièces, la question du matériel a du sens pour lui.
 
 **Hors périmètre** : dépôts privés, GitHub App (accès par dépôt), re-sync automatique, ingestion d'autre chose que du Markdown. Les dépôts publics où l'utilisateur est collaborateur direct et ceux des organisations dont il est membre **sont** listés (`affiliation=owner,collaborator,organization_member`, scope `read:org` requis pour le volet organisation) — sous réserve que l'organisation n'ait pas activé les « OAuth App access restrictions », qui masquent ses dépôts tant que l'app n'y est pas approuvée.
 

@@ -125,10 +125,10 @@ export interface CreatorProfile {
   userId: string;
   brandName: string;
   activityType: string;
-  tone: string | null;
-  values: string | null;
-  equipment: string[] | null;
-  weeklyTimeAvailable: string | null;
+  /** « Qu'est-ce que tu attends de nous ? » (docs/SPEC_ONBOARDING_MVP.md §3). */
+  expectations: string | null;
+  /** Jours de publication, ISO : 1 = lundi … 7 = dimanche. Jamais vide. */
+  publishingDays: number[];
   /** Audience de marque (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — fallback pour Product.targetAudience. */
   targetAudience: string | null;
   styleProfile: StyleProfile | null;
@@ -455,14 +455,31 @@ export interface OnboardingMessage {
   content: string;
 }
 
-/** Séries générées à la fin du chat d'onboarding — l'utilisateur coche celles qu'il garde
- *  (composant SeriesPicker) avant de continuer, le reste est archivé via series-selection. */
-export interface OnboardingSeriesProposal {
-  id: string;
-  label: string;
+/** État de l'onboarding (docs/SPEC_ONBOARDING_MVP.md §2) — `signedIn: false` à l'écran 1, avant
+ *  que le premier branchement ne crée le compte. */
+export type OnboardingState =
+  | { signedIn: false }
+  | {
+      signedIn: true;
+      hasProfile: boolean;
+      connectedProviders: Array<{ id: string; displayName: string }>;
+      suggestedName: string;
+      sources: Array<{ id: string; provider: string; providerLabel: string; label: string; productId: string }>;
+      notes: Array<{ id: string; excerpt: string }>;
+    };
+
+/** Sujet proposé par la lecture de la matière : `keys` = `source:<id>` / `note:<id>` regroupés. */
+export interface OnboardingSubjectDraft {
+  name: string;
   description: string;
-  mode: "feuilleton" | "rendez_vous";
-  categoryLabel: string | null;
+  keys: string[];
+}
+
+export interface OnboardingDraft {
+  activityType: string;
+  targetAudience: string;
+  subjects: OnboardingSubjectDraft[];
+  extracted: boolean;
 }
 
 /** Fichier déposé dans la conversation de l'assistant, en attente d'être rangé en matière
@@ -494,7 +511,8 @@ export interface AssistantProposal {
     | "angle_archive"
     | "category_reweight"
     | "profile_update"
-    | "style_profile_update";
+    | "style_profile_update"
+    | "publishing_days_update";
   targetId: string | null;
   payload: Record<string, unknown>;
   status: "pending" | "accepted" | "rejected";
@@ -606,11 +624,9 @@ export const api = {
   saveProfile: (data: {
     brandName: string;
     activityType: string;
-    tone?: string;
-    values?: string;
-    equipment?: string[];
-    weeklyTimeAvailable?: string;
     targetAudience?: string;
+    expectations?: string;
+    publishingDays?: number[];
   }) => post<{ profile: CreatorProfile }>("/api/profile", data),
   /** Passe d'apprentissage du style (docs/SPEC_APPRENTISSAGE_STYLE.md). `proposalId` null = profil
    *  écrit directement (première analyse), sinon une proposition à valider a été créée. */
@@ -721,8 +737,8 @@ export const api = {
   getConnections: () => apiFetch<{ connections: Connection[] }>("/api/connections"),
 
   getPostingGoals: () => apiFetch<{ goals: PostingGoal[] }>("/api/posting-goals"),
-  savePostingGoal: (platform: Platform, targetCountPerWeek: number) =>
-    post<{ goal: PostingGoal }>("/api/posting-goals", { platform, targetCountPerWeek }),
+  savePostingGoal: (platform: Platform, active: boolean) =>
+    post<{ goal: PostingGoal }>("/api/posting-goals", { platform, active }),
 
   getCalendar: (month: string) =>
     apiFetch<{ entries: CalendarEntry[]; goals: PostingGoal[] }>(`/api/calendar?month=${month}`),
@@ -838,13 +854,18 @@ export const api = {
     data: Partial<{ views: number; likes: number; comments: number; shares: number }>
   ) => put<{ metrics: PostMetrics }>(`/api/scripts/${id}/metrics`, data),
 
-  getOnboardingChat: () => apiFetch<{ messages: OnboardingMessage[]; complete: boolean }>("/api/onboarding/chat"),
-  sendOnboardingMessage: (message: string) =>
-    post<{ reply: string; complete: boolean; series: OnboardingSeriesProposal[] }>("/api/onboarding/chat", {
-      message,
-    }),
-  applyOnboardingSeriesSelection: (keptIds: string[]) =>
-    post<{ series: unknown[] }>("/api/onboarding/series-selection", { keptIds }),
+  getOnboardingState: () => apiFetch<OnboardingState>("/api/onboarding/state"),
+  addOnboardingNotes: (text: string) => post<{ note: { id: string; excerpt: string } }>("/api/onboarding/notes", { text }),
+  draftOnboardingProfile: (name: string) => post<{ draft: OnboardingDraft }>("/api/onboarding/draft", { name }),
+  completeOnboarding: (data: {
+    name: string;
+    activityType: string;
+    targetAudience?: string;
+    expectations?: string;
+    publishingDays: number[];
+    platforms: string[];
+    subjects: Array<{ name: string; description?: string; keys: string[] }>;
+  }) => post<{ ok: true }>("/api/onboarding/complete", data),
 
   getAssistantChat: () =>
     apiFetch<{ messages: OnboardingMessage[]; proposals: AssistantProposal[]; attachments: AssistantAttachment[] }>(

@@ -68,16 +68,14 @@ export function normalizeCategoryWeights(categories: CategoryEntry[]): CategoryE
 export interface CategoryLabelsContext {
   brandName: string;
   activityType: string;
-  tone?: string | null;
-  values?: string | null;
+  expectations?: string | null;
   products: Array<{ name: string; description?: string | null }>;
 }
 
 export async function suggestContentCategories(context: CategoryLabelsContext): Promise<CategoryEntry[]> {
   const lines = [
     `Marque : ${context.brandName} (${context.activityType})`,
-    context.tone ? `Ton : ${context.tone}` : null,
-    context.values ? `Valeurs : ${context.values}` : null,
+    context.expectations ? `Ce que l'auteur attend de CreaFlow : ${context.expectations}` : null,
     context.products.length > 0
       ? `Produits/projets : ${context.products.map((p) => p.name + (p.description ? ` — ${p.description}` : "")).join(" ; ")}`
       : "Aucun produit renseigné.",

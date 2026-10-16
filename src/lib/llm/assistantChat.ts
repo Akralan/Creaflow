@@ -1,10 +1,14 @@
 import { z } from "zod";
 import type { AgenticToolCall, LlmToolDefinition } from "./types";
 import { callAgentic } from "./provider";
-import type { OnboardingMessage } from "./onboardingChat";
 import { KNOWN_PLATFORMS, platformLabel } from "@/lib/social/types";
+import { publishingDaysSchema } from "@/lib/validation";
+import { publishingDaysLabel } from "@/lib/services/calendarService";
 
-export type AssistantMessage = OnboardingMessage;
+export interface AssistantMessage {
+  role: "user" | "assistant";
+  content: string;
+}
 
 const proposalActionSchema = z.enum(["create", "update"]);
 const KNOWN_PLATFORM_KEYS = KNOWN_PLATFORMS.map((p) => p.key);
@@ -66,9 +70,11 @@ export const angleProposalSchema = z.object({
 });
 export type AngleProposal = z.infer<typeof angleProposalSchema>;
 
+// Une plateforme est active (un post par jour de publication) ou coupée : le nombre de posts par
+// semaine ne se règle plus (docs/SPEC_ONBOARDING_MVP.md §1).
 export const postingGoalProposalSchema = z.object({
   platform: z.string().min(1),
-  targetCountPerWeek: z.number().min(0).max(30),
+  active: z.boolean(),
 });
 export type PostingGoalProposal = z.infer<typeof postingGoalProposalSchema>;
 
@@ -113,6 +119,12 @@ export const archiveProposalSchema = z.object({
 });
 export type ArchiveProposal = z.infer<typeof archiveProposalSchema>;
 
+/** Jours de publication (docs/SPEC_ONBOARDING_MVP.md §5) — liste complète à jour, pas un delta. */
+export const publishingDaysProposalSchema = z.object({
+  publishingDays: publishingDaysSchema,
+});
+export type PublishingDaysProposal = z.infer<typeof publishingDaysProposalSchema>;
+
 export const assistantChatResultSchema = z.object({
   productProposals: z.array(productProposalSchema).max(5),
   seriesProposals: z.array(seriesProposalSchema).max(5),
@@ -126,6 +138,7 @@ export type AssistantChatResult = z.infer<typeof assistantChatResultSchema>;
 const ASSISTANT_CHAT_TOOL_NAME = "propose_changes";
 const MATERIAL_TOOL_NAME = "propose_material";
 const ARCHIVE_TOOL_NAME = "propose_archive";
+const PUBLISHING_DAYS_TOOL_NAME = "propose_publishing_days";
 
 /** Outils séparés plutôt que des tableaux de plus dans propose_changes : en boucle agentique, un
  *  outil ciblé s'appelle sans avoir à remplir six tableaux vides. */
@@ -186,6 +199,28 @@ function buildArchiveTool(context: { seriesIds: string[]; categoryIds: string[];
   };
 }
 
+function buildPublishingDaysTool(): LlmToolDefinition {
+  return {
+    name: PUBLISHING_DAYS_TOOL_NAME,
+    description:
+      "Propose de changer les jours de publication du créateur. Une case cochée = un post ce jour-là, sur chaque plateforme active. Réservé à une demande claire de l'utilisateur (changer de rythme, publier un autre jour). Rien n'est appliqué avant sa validation.",
+    input_schema: {
+      type: "object",
+      properties: {
+        publishingDays: {
+          type: "array",
+          description:
+            "Liste COMPLÈTE des jours de publication après changement (pas seulement ceux à ajouter), au format ISO : 1 = lundi, 2 = mardi, 3 = mercredi, 4 = jeudi, 5 = vendredi, 6 = samedi, 7 = dimanche. Au moins un jour.",
+          items: { type: "integer", minimum: 1, maximum: 7 },
+          minItems: 1,
+          maxItems: 7,
+        },
+      },
+      required: ["publishingDays"],
+    },
+  };
+}
+
 /** `enum` sur une valeur censée matcher exactement une valeur existante — omis quand la liste est
  *  vide, un `enum: []` rejetterait toute valeur. */
 function enumField(values: string[], description: string) {
@@ -215,7 +250,7 @@ function buildAssistantTool(context: {
   return {
     name: ASSISTANT_CHAT_TOOL_NAME,
     description:
-      "Enregistre des propositions de création ou de modification (sujets, séries, rôles éditoriaux, angles, objectifs de fréquence, audience de marque) que l'utilisateur validera, éditera ou refusera. N'applique rien directement. N'appelle cet outil QUE si tu as vraiment quelque chose à proposer, et adresse-toi à l'utilisateur dans ta réponse en texte, pas ici.",
+      "Enregistre des propositions de création ou de modification (sujets, séries, rôles éditoriaux, angles, plateformes actives ou coupées, audience de marque) que l'utilisateur validera, éditera ou refusera. N'applique rien directement. N'appelle cet outil QUE si tu as vraiment quelque chose à proposer, et adresse-toi à l'utilisateur dans ta réponse en texte, pas ici.",
     input_schema: {
       type: "object",
       properties: {
@@ -316,18 +351,18 @@ function buildAssistantTool(context: {
         postingGoalProposals: {
           type: "array",
           description:
-            "0 à 5 propositions de mise à jour d'objectif de fréquence hebdomadaire par plateforme. Pas de distinction create/update : la plateforme identifie la cible.",
+            "0 à 5 propositions d'activer ou de couper une plateforme. Une plateforme active reçoit un post par jour de publication ; une plateforme coupée n'en reçoit aucun. Pas de distinction create/update : la plateforme identifie la cible.",
           maxItems: 5,
           items: {
             type: "object",
             properties: {
               platform: enumField(context.platformKeys, "Clé de plateforme connue (parmi le registre)."),
-              targetCountPerWeek: {
-                type: "number",
-                description: "Objectif hebdomadaire (0 à 30, par pas de 0.5 — ex: 0.5 = 1 publication toutes les 2 semaines).",
+              active: {
+                type: "boolean",
+                description: "true pour activer la plateforme, false pour la couper.",
               },
             },
-            required: ["platform", "targetCountPerWeek"],
+            required: ["platform", "active"],
           },
         },
         profileProposals: {
@@ -359,7 +394,7 @@ function buildAssistantTool(context: {
   };
 }
 
-const SYSTEM_PROMPT = `Tu es l'assistant éditorial de CreaFlow. Tu discutes avec l'utilisateur de sa direction éditoriale et des paramètres de son calendrier de publication, et tu proposes, quand c'est pertinent, des créations ou modifications de PRODUITS (sujets), SÉRIES récurrentes, RÔLES ÉDITORIAUX (appelés 'catégories' dans les données), ANGLES, OBJECTIFS DE FRÉQUENCE par plateforme, et l'AUDIENCE DE MARQUE.
+const SYSTEM_PROMPT = `Tu es l'assistant éditorial de CreaFlow. Tu discutes avec l'utilisateur de sa direction éditoriale et des paramètres de son calendrier de publication, et tu proposes, quand c'est pertinent, des créations ou modifications de PRODUITS (sujets), SÉRIES récurrentes, RÔLES ÉDITORIAUX (appelés 'catégories' dans les données), ANGLES, PLATEFORMES actives ou coupées, JOURS DE PUBLICATION, et l'AUDIENCE DE MARQUE.
 
 Tu disposes d'OUTILS DE LECTURE sur tout l'espace de travail : la matière première du créateur (ses documents de travail), ses scripts, son calendrier de publication, ses performances réelles, l'état narratif de ses séries en cours, et son profil complet. Sers-t'en quand la réponse en dépend — un rédacteur en chef qui conseille sans avoir lu ce qui est publié ni ce qui est planifié ne sert à rien. Mais ne fouille pas pour le plaisir : sur une question qui n'en a pas besoin, réponds directement. Deux ou trois lectures ciblées valent mieux que dix.
 
@@ -371,7 +406,7 @@ Règles :
 - La SÉRIE est l'objet que l'utilisateur manipule. Quand il décrit un format, un rendez-vous, une idée récurrente, propose une SÉRIE (rattachée à un rôle existant) — pas un rôle. Ne propose la création ou la modification d'un rôle que si l'utilisateur le demande explicitement, ou si aucun rôle existant ne peut accueillir la série et qu'il en manque manifestement un. Le poids des rôles évolue surtout à partir des performances réelles : ne le retouche que sur demande claire.
 - Pose une seule question à la fois, de façon conversationnelle.
 - Ne propose une création/modification que quand tu as assez d'info — la plupart des tours ne doivent rien proposer (tableaux vides).
-- Les objectifs de fréquence n'ont qu'une seule forme, sans distinction create/update : la plateforme identifie la cible, la valeur existante est simplement remplacée.
+- Le rythme ne se règle pas en nombre de posts : une plateforme est ACTIVE ou COUPÉE (postingGoalProposals, la plateforme identifie la cible), et chaque plateforme active reçoit un post par JOUR DE PUBLICATION. Pour changer les jours, utilise propose_publishing_days avec la liste complète des jours voulus — seulement sur demande claire de l'utilisateur.
 - L'archivage (propose_archive) ne s'efface jamais : il retire un élément de la circulation sans toucher aux contenus déjà produits. Ne le propose que sur demande claire de l'utilisateur, jamais de ta propre initiative pour "faire le ménage".
 - MATIÈRE : quand l'utilisateur te raconte une information factuelle exploitable (une actualité sur un de ses sujets, une anecdote d'atelier, un chiffre, une décision, un retour d'expérience), propose de l'ajouter à sa matière avec propose_material — c'est ce qui nourrira ses prochains contenus. Rapporte fidèlement ce qu'il a dit, sans rien ajouter ni romancer. N'en propose pas à chaque phrase : seulement quand il y a une vraie information à conserver. Si tu ne sais pas à quel sujet la rattacher, demande-lui plutôt que de deviner.
 - FICHIERS : quand l'utilisateur dépose un fichier dans la conversation, tu en vois le nom, JAMAIS le contenu. Ne prétends jamais savoir ce qu'il contient et ne le résume pas. C'est son message qui te dit quoi en faire ; s'il n'est pas clair sur le sujet de rattachement, demande — tu pourras le ranger plus tard, le fichier reste disponible.
@@ -416,6 +451,10 @@ export interface AssistantChatContext {
   }>;
   angles: Array<{ id: string; label: string; description: string }>;
   postingGoals: Array<{ platform: string; targetCountPerWeek: number }>;
+  /** Jours de publication du profil, ISO (1 = lundi … 7 = dimanche). */
+  publishingDays: number[];
+  /** Réponse à « Qu'est-ce que tu attends de nous ? » — null si jamais renseignée. */
+  expectations?: string | null;
   /** Audience de marque actuelle (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — null si jamais renseignée. */
   currentTargetAudience?: string | null;
   sources?: Array<{ url: string; text: string }>;
@@ -435,6 +474,7 @@ export interface AssistantTurnResult {
   proposals: AssistantChatResult;
   materialProposals: MaterialProposal[];
   archiveProposals: ArchiveProposal[];
+  publishingDaysProposals: PublishingDaysProposal[];
   toolCalls: AgenticToolCall[];
   stoppedAtMaxTurns: boolean;
 }
@@ -477,11 +517,15 @@ export async function runAssistantChatTurn(context: AssistantChatContext): Promi
     context.angles.length > 0
       ? `Angles actifs : ${context.angles.map((a) => `[id:${a.id}] ${a.label} — ${a.description}`).join(" ; ")}`
       : "Aucun angle actif pour l'instant.",
+    `Jours de publication : ${publishingDaysLabel(context.publishingDays)} (un post par jour coché, sur chaque plateforme active).`,
     context.postingGoals.length > 0
-      ? `Objectifs de fréquence actuels : ${context.postingGoals
-          .map((g) => `${platformLabel(g.platform)} : ${g.targetCountPerWeek}/semaine`)
+      ? `Plateformes : ${context.postingGoals
+          .map((g) => `${platformLabel(g.platform)} : ${g.targetCountPerWeek > 0 ? "active" : "coupée"}`)
           .join(" ; ")}`
-      : "Aucun objectif de fréquence défini pour l'instant.",
+      : "Aucune plateforme active pour l'instant.",
+    context.expectations
+      ? `Ce que le créateur attend de CreaFlow : ${context.expectations}`
+      : "Le créateur n'a pas dit ce qu'il attend de CreaFlow.",
     context.currentTargetAudience
       ? `Audience de marque actuelle : ${context.currentTargetAudience}`
       : "Aucune audience de marque renseignée pour l'instant.",
@@ -528,6 +572,7 @@ export async function runAssistantChatTurn(context: AssistantChatContext): Promi
   // d'écraser. Les plafonds par type restent ceux du schéma, appliqués à chaque appel.
   const materialProposals: MaterialProposal[] = [];
   const archiveProposals: ArchiveProposal[] = [];
+  const publishingDaysProposals: PublishingDaysProposal[] = [];
   const proposals: AssistantChatResult = {
     productProposals: [],
     seriesProposals: [],
@@ -549,6 +594,7 @@ export async function runAssistantChatTurn(context: AssistantChatContext): Promi
         categoryIds: context.categories.map((c) => c.id),
         angleIds: context.angles.map((a) => a.id),
       }),
+      buildPublishingDaysTool(),
     ],
     maxTokens: 3072,
     onToolCall: async ({ name, input }) => {
@@ -561,6 +607,11 @@ export async function runAssistantChatTurn(context: AssistantChatContext): Promi
         const parsed = archiveProposalSchema.parse(input);
         archiveProposals.push(parsed);
         return { recorded: 1, note: "Proposition d'archivage enregistrée, en attente de validation. Réponds maintenant en texte." };
+      }
+      if (name === PUBLISHING_DAYS_TOOL_NAME) {
+        const parsed = publishingDaysProposalSchema.parse(input);
+        publishingDaysProposals.push(parsed);
+        return { recorded: 1, note: "Proposition de jours de publication enregistrée, en attente de validation. Réponds maintenant en texte." };
       }
       if (name !== ASSISTANT_CHAT_TOOL_NAME) {
         return context.onReadTool(name, input);
@@ -585,6 +636,7 @@ export async function runAssistantChatTurn(context: AssistantChatContext): Promi
     proposals,
     materialProposals,
     archiveProposals,
+    publishingDaysProposals,
     toolCalls: result.toolCalls,
     stoppedAtMaxTurns: result.stoppedAtMaxTurns,
   };

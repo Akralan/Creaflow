@@ -1,6 +1,6 @@
 # SPEC — ONBOARDING MVP & FIN DE LA VIDÉO
 
-> **Statut : à valider.** Premier chantier du passage V0 → MVP. Branche `feature/onboarding-mvp`.
+> **Statut : implémenté (Lots 0-5) le 2026-10-16**, migrations `0036`-`0037` appliquées en base de dev, pas encore testé en conditions réelles. Écarts : §8. Premier chantier du passage V0 → MVP. Branche `feature/onboarding-mvp`.
 >
 > **Objectif.** Quand quelqu'un arrive, tout ce qu'on lui demande doit être une chose *à faire*, pas une question à laquelle la machine pourrait répondre seule. Ce que la personne fait se lit dans sa matière (GitHub, Notion, Linear, notes) ; son ton s'apprend à ses retouches (`docs/SPEC_APPRENTISSAGE_STYLE.md`). L'onboarding se réduit donc à : se présenter, brancher sa matière, corriger ce qu'on en a compris, dire ce qu'on attend du service, choisir ses jours.
 >
@@ -123,3 +123,12 @@ Un seul appel LLM (`LLM_PROVIDER`, donc OpenAI en pratique), après l'ingestion 
 | 5 | Docs à jour, `CLAUDE.md`. |
 
 **À signaler à la landing** (autre chantier en cours) : le bouton « Démarrer gratuitement » doit pointer vers l'écran 1 ; « Comment ça marche » annonce encore « le ton, pour qui tu publies, le temps dont tu disposes » ; la grille tarifaire parle de « scripts », un mot hérité de la vidéo.
+
+---
+
+## 8. Écarts à l'implémentation
+
+- **Table `onboarding_sessions` supprimée**, avec l'enum `onboarding_status`, au lieu d'être gardée réduite à `status` (§3) : plus rien ne la lisait, l'onboarding est terminé dès que le profil existe.
+- **Choix des réseaux sur l'écran 6** (LinkedIn coché par défaut, X, Instagram), à côté des jours : le calendrier a besoin d'au moins une plateforme active pour poser un créneau.
+- **Limite de 15 sources pendant l'onboarding** (`MAX_ONBOARDING_SOURCES`) : tant qu'il n'y a pas de profil, c'est le nombre de sources branchées qui est plafonné ; la limite de 5 sujets (`MAX_PRODUCTS`) s'applique au regroupement final et après l'onboarding.
+- **`/login` ne fait plus l'inscription** : `/login?mode=signup` redirige vers `/onboarding`, et `/login` ne garde que la connexion et le mot de passe oublié. Un compte email n'est créé que par la porte « Coller mes notes ».

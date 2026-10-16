@@ -9,7 +9,7 @@ import ProductCatalogue from "@/components/ProductCatalogue";
 import RepoPicker from "@/components/RepoPicker";
 import SourcePicker from "@/components/SourcePicker";
 import ConnectionRow from "@/components/ConnectionRow";
-import EquipmentPicker from "@/components/EquipmentPicker";
+import PublishingDaysPicker from "@/components/PublishingDaysPicker";
 import StyleAnalysisPanel from "@/components/StyleAnalysisPanel";
 import BrandAssetLibrary from "@/components/BrandAssetLibrary/BrandAssetLibrary";
 import BillingPanel from "@/components/BillingPanel";
@@ -17,6 +17,7 @@ import BrandKitPanel from "@/components/BrandKitPanel";
 import AccountPanel from "@/components/AccountPanel";
 import { api, ApiClientError, type Connection } from "@/lib/apiClient";
 import { color } from "@/lib/design/tokens";
+import { DEFAULT_PUBLISHING_DAYS } from "@/lib/validation";
 
 type Tab = "identity" | "catalogue" | "assets" | "connexions" | "billing" | "account";
 
@@ -55,11 +56,9 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 function IdentityTab() {
   const [brandName, setBrandName] = useState("");
   const [activityType, setActivityType] = useState("");
-  const [tone, setTone] = useState("");
-  const [values, setValues] = useState("");
-  const [equipment, setEquipment] = useState<string[]>([]);
-  const [weeklyTimeAvailable, setWeeklyTimeAvailable] = useState("");
   const [targetAudience, setTargetAudience] = useState("");
+  const [expectations, setExpectations] = useState("");
+  const [publishingDays, setPublishingDays] = useState<number[]>(DEFAULT_PUBLISHING_DAYS);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -70,11 +69,9 @@ function IdentityTab() {
       if (profile) {
         setBrandName(profile.brandName);
         setActivityType(profile.activityType);
-        setTone(profile.tone || "");
-        setValues(profile.values || "");
-        setEquipment(profile.equipment || []);
-        setWeeklyTimeAvailable(profile.weeklyTimeAvailable || "");
         setTargetAudience(profile.targetAudience || "");
+        setExpectations(profile.expectations || "");
+        setPublishingDays(profile.publishingDays.length > 0 ? profile.publishingDays : DEFAULT_PUBLISHING_DAYS);
       }
       setLoaded(true);
     });
@@ -85,7 +82,7 @@ function IdentityTab() {
     setSaved(false);
     setError(null);
     try {
-      await api.saveProfile({ brandName, activityType, tone, values, equipment, weeklyTimeAvailable, targetAudience });
+      await api.saveProfile({ brandName, activityType, targetAudience, expectations, publishingDays });
       setSaved(true);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement.");
@@ -99,30 +96,27 @@ function IdentityTab() {
   return (
     <div style={{ display: "grid", gap: 20 }}>
     <Card style={{ padding: 28, display: "grid", gap: 20 }}>
-      <TextField label="Nom de la marque" value={brandName} onChange={(e) => setBrandName(e.target.value)} />
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        <TextField label="Type d'activité" value={activityType} onChange={(e) => setActivityType(e.target.value)} />
-        <TextField label="Ton" value={tone} onChange={(e) => setTone(e.target.value)} />
-      </div>
-      <TextAreaField label="Valeurs" value={values} onChange={(e) => setValues(e.target.value)} />
+      <TextField label="Ton nom" value={brandName} onChange={(e) => setBrandName(e.target.value)} />
+      <TextField label="Type d'activité" value={activityType} onChange={(e) => setActivityType(e.target.value)} />
       <TextAreaField
         label="Audience visée"
         value={targetAudience}
         onChange={(e) => setTargetAudience(e.target.value)}
         placeholder="Qui achète ou lit, ce qui l'intéresse, ce qu'il doit retenir de la marque"
       />
+      {/* Le ton n'est plus demandé : il s'apprend des retouches (docs/SPEC_ONBOARDING_MVP.md §1). */}
+      <TextAreaField
+        label="Ce que tu attends de CreaFlow"
+        value={expectations}
+        onChange={(e) => setExpectations(e.target.value)}
+        placeholder="Je veux publier chaque semaine sans y passer mes soirées, et que les gens suivent la construction de mon produit jusqu'au lancement."
+      />
       <div>
         <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 12 }}>
-          Matériel
+          Jours de publication
         </label>
-        <EquipmentPicker value={equipment} onChange={setEquipment} />
+        <PublishingDaysPicker value={publishingDays} onChange={setPublishingDays} />
       </div>
-      <TextField
-        label="Temps de tournage disponible"
-        value={weeklyTimeAvailable}
-        onChange={(e) => setWeeklyTimeAvailable(e.target.value)}
-        style={{ maxWidth: 340 }}
-      />
       {error && <p style={{ color: color.danger, fontSize: 13, margin: 0 }}>{error}</p>}
       <div style={{ display: "flex", alignItems: "center", gap: 12, paddingTop: 8, borderTop: `1px solid ${color.dividerAlt}`, marginTop: 4 }}>
         <Button onClick={handleSave} disabled={saving} style={{ padding: "11px 22px", fontSize: 14 }}>

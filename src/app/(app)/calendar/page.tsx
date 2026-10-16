@@ -6,7 +6,7 @@ import { Check, Trash2, X } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import { PlatformBadge } from "@/components/ui/Badge";
-import { TextField, heading1Style } from "@/components/ui/TextField";
+import { heading1Style } from "@/components/ui/TextField";
 import IconActionButton from "@/components/ui/IconActionButton";
 import EntryCard from "@/components/EntryCard";
 import GenerateScriptModal from "@/components/GenerateScriptModal";
@@ -57,8 +57,9 @@ export default function CalendarPage() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingGoals, setEditingGoals] = useState(false);
-  const [goalDrafts, setGoalDrafts] = useState<Record<string, number>>(
-    Object.fromEntries(KNOWN_PLATFORMS.map((p) => [p.key, 0]))
+  // Une plateforme est active ou coupée : le rythme se lit dans les jours de publication du profil.
+  const [goalDrafts, setGoalDrafts] = useState<Record<string, boolean>>(
+    Object.fromEntries(KNOWN_PLATFORMS.map((p) => [p.key, false]))
   );
   const [editingEntry, setEditingEntry] = useState<CalendarEntry | null>(null);
   const [editCategoryId, setEditCategoryId] = useState<string>("");
@@ -120,7 +121,7 @@ export default function CalendarPage() {
       setGoals(goals);
       setGoalDrafts(
         Object.fromEntries(
-          KNOWN_PLATFORMS.map((p) => [p.key, goals.find((g) => g.platform === p.key)?.targetCountPerWeek ?? 0])
+          KNOWN_PLATFORMS.map((p) => [p.key, (goals.find((g) => g.platform === p.key)?.targetCountPerWeek ?? 0) > 0])
         )
       );
     } catch (err) {
@@ -171,7 +172,7 @@ export default function CalendarPage() {
       setEditingGoals(false);
       await load();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement des objectifs.");
+      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement des plateformes.");
     }
   }
 
@@ -406,23 +407,58 @@ export default function CalendarPage() {
                 </button>
               )}
             </div>
-            <p style={{ margin: "0 0 18px", fontSize: 13, color: color.textMuted }}>Votre rythme par plateforme.</p>
+            <p style={{ margin: "0 0 18px", fontSize: 13, color: color.textMuted }}>
+              Un post par jour de publication, sur chaque plateforme active.
+            </p>
 
             {editingGoals ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {KNOWN_PLATFORMS.map(({ key: p, label }) => (
-                  <TextField
-                    key={p}
-                    label={label}
-                    type="number"
-                    min={0}
-                    max={30}
-                    step={0.5}
-                    helper="0.5 = 1 publication toutes les 2 semaines"
-                    value={goalDrafts[p]}
-                    onChange={(e) => setGoalDrafts((d) => ({ ...d, [p]: Number(e.target.value) }))}
-                  />
-                ))}
+                {KNOWN_PLATFORMS.map(({ key: p, label }) => {
+                  const active = goalDrafts[p];
+                  return (
+                    <div key={p} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <PlatformBadge platform={p} />
+                        <span style={{ fontSize: 14, fontWeight: 600 }}>{label}</span>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={active}
+                        aria-label={`${label} : ${active ? "active" : "coupée"}`}
+                        onClick={() => setGoalDrafts((d) => ({ ...d, [p]: !d[p] }))}
+                        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}
+                      >
+                        <span style={{ fontSize: 12, fontWeight: 600, color: active ? color.textSecondary : color.textMuted }}>
+                          {active ? "Active" : "Coupée"}
+                        </span>
+                        <span
+                          style={{
+                            width: 36,
+                            height: 20,
+                            borderRadius: 20,
+                            background: active ? "oklch(0.5 0.2 292)" : color.border,
+                            position: "relative",
+                            transition: "background 0.15s",
+                          }}
+                        >
+                          <span
+                            style={{
+                              position: "absolute",
+                              top: 2,
+                              left: active ? 18 : 2,
+                              width: 16,
+                              height: 16,
+                              borderRadius: "50%",
+                              background: "white",
+                              transition: "left 0.15s",
+                            }}
+                          />
+                        </span>
+                      </button>
+                    </div>
+                  );
+                })}
                 <div style={{ display: "flex", gap: 8 }}>
                   <Button variant="secondary" onClick={() => setEditingGoals(false)} style={{ flex: 1, padding: "10px" }}>
                     Annuler
@@ -434,9 +470,9 @@ export default function CalendarPage() {
               </div>
             ) : visibleGoals.length === 0 ? (
               <p style={{ fontSize: 13, color: color.textMuted }}>
-                Aucun objectif défini.{" "}
+                Aucune plateforme active.{" "}
                 <a href="#" onClick={(e) => { e.preventDefault(); setEditingGoals(true); }}>
-                  En définir un
+                  En activer une
                 </a>
                 .
               </p>
@@ -471,12 +507,12 @@ export default function CalendarPage() {
                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: color.successDot }} />
                   Calendrier généré pour {monthLabel(year, monthIndex)}
                 </>
-              ) : goals.length > 0 ? (
+              ) : visibleGoals.length > 0 ? (
                 <Button onClick={handleGenerateMonth} disabled={generating} fullWidth>
                   {generating ? "Génération..." : "Générer le calendrier du mois"}
                 </Button>
               ) : (
-                "Définissez vos objectifs pour générer le mois."
+                "Activez au moins une plateforme pour générer le mois."
               )}
             </div>
           </Card>

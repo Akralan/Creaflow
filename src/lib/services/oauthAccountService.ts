@@ -37,7 +37,26 @@ export function decideAccountResolution(input: {
   hasVerifiedEmail: boolean;
   userIdWithSameEmail: string | null;
   providerId?: string;
+  /** Utilisateur déjà connecté quand le trajet OAuth revient : on BRANCHE une source sur son
+   *  compte (docs/SPEC_ONBOARDING_MVP.md §3), on ne résout pas une identité. */
+  sessionUserId?: string | null;
+  /** Le compte connecté est déjà relié à une AUTRE identité de ce fournisseur (un seul compte
+   *  GitHub, Notion ou Linear par compte CreaFlow — unicité (userId, provider)). */
+  sessionUserHasOtherIdentity?: boolean;
 }): AccountResolution {
+  const label = identityProviderLabel(input.providerId ?? "");
+  if (input.sessionUserId) {
+    // Mode « brancher une source » : l'email du compte tiers n'a pas à correspondre — la personne
+    // prouve les deux comptes en étant connectée aux deux à la fois.
+    if (input.identityUserId && input.identityUserId !== input.sessionUserId) {
+      return { action: "reject", reason: `Ce compte ${label} est déjà utilisé par un autre compte CreaFlow.` };
+    }
+    if (input.identityUserId) return { action: "login", userId: input.sessionUserId };
+    if (input.sessionUserHasOtherIdentity) {
+      return { action: "reject", reason: `Ton compte CreaFlow est déjà relié à un autre compte ${label}.` };
+    }
+    return { action: "link", userId: input.sessionUserId };
+  }
   if (input.identityUserId) {
     return { action: "login", userId: input.identityUserId };
   }
@@ -72,19 +91,27 @@ export function verticalForProvider(providerId: string): "dev" | "artisan" | "en
 export async function resolveOAuthAccount(
   providerId: string,
   identity: OAuthIdentity,
-  tokens: ProviderTokens
+  tokens: ProviderTokens,
+  sessionUserId: string | null = null
 ): Promise<{ userId: string; isNew: boolean }> {
   const existing = await db.query.oauthAccounts.findFirst({
     where: and(eq(oauthAccounts.provider, providerId), eq(oauthAccounts.providerUserId, identity.providerUserId)),
   });
   const email = identity.email?.toLowerCase() ?? null;
   const sameEmail = email ? await db.query.users.findFirst({ where: eq(users.email, email) }) : null;
+  const sessionAccount = sessionUserId
+    ? await db.query.oauthAccounts.findFirst({
+        where: and(eq(oauthAccounts.userId, sessionUserId), eq(oauthAccounts.provider, providerId)),
+      })
+    : null;
 
   const decision = decideAccountResolution({
     identityUserId: existing?.userId ?? null,
     hasVerifiedEmail: Boolean(email),
     userIdWithSameEmail: sameEmail?.id ?? null,
     providerId,
+    sessionUserId,
+    sessionUserHasOtherIdentity: Boolean(sessionAccount && sessionAccount.providerUserId !== identity.providerUserId),
   });
 
   const profile = {

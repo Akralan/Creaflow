@@ -50,6 +50,8 @@ function buildContext(overrides: Partial<AssistantChatContext> = {}): AssistantC
     ],
     angles: [],
     postingGoals: [],
+    publishingDays: [3, 6],
+    expectations: null,
     currentTargetAudience: null,
     readTools,
     onReadTool: vi.fn().mockResolvedValue({ count: 0, materials: [] }),
@@ -95,6 +97,7 @@ describe("runAssistantChatTurn", () => {
       "propose_changes",
       "propose_material",
       "propose_archive",
+      "propose_publishing_days",
     ]);
     // L'historique part en vrai multi-tours, plus aplati en une seule chaîne.
     expect(messages).toEqual([{ role: "user", content: "Salut." }]);
@@ -171,6 +174,52 @@ describe("runAssistantChatTurn", () => {
       { action: "create", productId: "p1", title: "Commande du mardi", text: "Le four a cuit 40 pièces." },
     ]);
     expect(result.archiveProposals).toEqual([{ kind: "series", targetId: "s1", reason: "Plus le temps." }]);
+  });
+
+  it("montre les jours de publication en clair, les plateformes actives ou coupées, et les attentes", async () => {
+    callAgenticMock.mockImplementation(replyOnly("Ok."));
+
+    await runAssistantChatTurn(
+      buildContext({
+        publishingDays: [6, 3],
+        expectations: "Publier sans y passer mes soirées.",
+        postingGoals: [
+          { platform: "linkedin", targetCountPerWeek: 2 },
+          { platform: "instagram", targetCountPerWeek: 0 },
+        ],
+      })
+    );
+
+    const { system, tools } = callAgenticMock.mock.calls[0][0];
+    expect(system).toContain("Jours de publication : mercredi, samedi");
+    expect(system).toContain("LinkedIn : active");
+    expect(system).toContain("Instagram : coupée");
+    expect(system).not.toContain("/semaine");
+    expect(system).toContain("Publier sans y passer mes soirées.");
+    const proposalTool = tools.find((t: { name: string }) => t.name === "propose_changes");
+    const goal = proposalTool.input_schema.properties.postingGoalProposals.items;
+    expect(goal.required).toEqual(["platform", "active"]);
+    expect(goal.properties.targetCountPerWeek).toBeUndefined();
+  });
+
+  it("collecte une proposition de jours de publication, normalisée", async () => {
+    callAgenticMock.mockImplementation(async ({ onToolCall }: { onToolCall: (c: unknown) => Promise<unknown> }) => {
+      await onToolCall({ name: "propose_publishing_days", input: { publishingDays: [5, 1, 5] } });
+      return { reply: "Proposé.", toolCalls: [], turns: 2, stoppedAtMaxTurns: false };
+    });
+
+    const result = await runAssistantChatTurn(buildContext());
+
+    expect(result.publishingDaysProposals).toEqual([{ publishingDays: [1, 5] }]);
+  });
+
+  it("refuse une proposition de jours de publication vide", async () => {
+    callAgenticMock.mockImplementation(async ({ onToolCall }: { onToolCall: (c: unknown) => Promise<unknown> }) => {
+      await onToolCall({ name: "propose_publishing_days", input: { publishingDays: [] } });
+      return { reply: "…", toolCalls: [], turns: 2, stoppedAtMaxTurns: false };
+    });
+
+    await expect(runAssistantChatTurn(buildContext())).rejects.toThrow();
   });
 
   it("refuse une création de matière sans contenu ni fichier", async () => {
