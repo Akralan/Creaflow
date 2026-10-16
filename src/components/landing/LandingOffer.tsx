@@ -19,7 +19,7 @@ type View = "cta" | "pricing";
 const FADE_OUT_MS = 240;
 
 /**
- * Section finale à deux faces : le CTA « Vos cinq premiers scripts vous attendent » par
+ * Section finale à deux faces : le CTA « Tes cinq premiers scripts t'attendent » par
  * défaut, remplacé en fondu par la grille de tarifs à la demande (bouton « Voir les tarifs »,
  * lien « Tarifs » du header, ou arrivée directe sur #tarifs). Un bouton « Retour » ramène au
  * CTA. Les deux ne sont jamais affichés ensemble : la landing reste courte.

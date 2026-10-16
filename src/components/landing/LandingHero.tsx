@@ -197,8 +197,8 @@ export default function LandingHero() {
               textWrap: "balance",
             }}
           >
-            <span className={styles.heroLine} style={{ animation: "cf-rise .9s cubic-bezier(.2,.75,.2,1) both" }}>Vos notes de travail</span>{" "}
-            <span className={styles.heroLine} style={{ animation: "cf-rise .9s cubic-bezier(.2,.75,.2,1) .1s both" }}>deviennent vos posts</span>{" "}
+            <span className={styles.heroLine} style={{ animation: "cf-rise .9s cubic-bezier(.2,.75,.2,1) both" }}>Tes notes de travail</span>{" "}
+            <span className={styles.heroLine} style={{ animation: "cf-rise .9s cubic-bezier(.2,.75,.2,1) .1s both" }}>deviennent tes posts</span>{" "}
             <span className={styles.heroLine} style={{ animation: "cf-rise .9s cubic-bezier(.2,.75,.2,1) .2s both", color: accent, whiteSpace: "nowrap" }}>de la semaine.</span>
           </h1>
           <p
@@ -212,8 +212,8 @@ export default function LandingHero() {
               animation: "cf-rise 1s cubic-bezier(.2,.75,.2,1) .3s both",
             }}
           >
-            Branchez GitHub, Notion ou Linear, ou collez vos notes. CreaFlow lit ce que vous avez vraiment fait et vous
-            écrit des posts prêts à publier. Jamais inventé, jamais répété.
+            Branche GitHub, Notion ou Linear, ou colle tes notes. CreaFlow lit ce que tu as vraiment fait et t&apos;écrit
+            des posts prêts à publier. Jamais inventé, jamais répété.
           </p>
           <div
             style={{
@@ -265,7 +265,7 @@ export default function LandingHero() {
           />
           <span className={styles.heroChip} style={{ ...floatingChip, top: 314, left: -26 }}>
             <span style={{ width: 20, height: 20, borderRadius: 7, background: accentAlpha(0.14), color: accentText, display: "grid", placeItems: "center", fontFamily: mono, fontSize: 11 }}>✓</span>
-            Tiré de vos notes, rien d&apos;inventé
+            Tiré de tes notes, rien d&apos;inventé
           </span>
           <span className={styles.heroChip} style={{ ...floatingChip, bottom: -16, right: 26 }}>
             <span style={{ width: 20, height: 20, borderRadius: 7, background: "oklch(0.9 0.08 62)", color: "oklch(0.45 0.12 62)", display: "grid", placeItems: "center", fontFamily: mono, fontSize: 11 }}>0</span>

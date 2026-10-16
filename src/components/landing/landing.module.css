@@ -187,41 +187,6 @@
   }
 }
 
-/* ---------- Problème : titre + accroche en regard, sommaire à filets ---------- */
-.problemHead {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 20px clamp(32px, 6vw, 96px);
-  align-items: end;
-  margin-bottom: clamp(28px, 4vw, 48px);
-}
-.problemList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-}
-.problemItem {
-  display: flex;
-  gap: 18px;
-  align-items: flex-start;
-  padding: clamp(22px, 3vw, 32px) 0;
-  border-top: 1px solid rgba(34, 29, 25, 0.1);
-}
-@media (min-width: 900px) {
-  .problemHead {
-    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-  }
-  .problemLead {
-    padding-bottom: 6px;
-  }
-  .problemList {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: clamp(32px, 5vw, 72px);
-  }
-}
-
 /* ---------- Fonctionnalités ---------- */
 .featGrid {
   display: grid;
