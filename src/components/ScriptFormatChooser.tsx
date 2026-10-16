@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, Film, Images, Type, type LucideIcon } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
+import GenerationAnimation, { type GenerationOutput } from "@/components/GenerationAnimation";
 import { api, ApiClientError, type CalendarEntry, type VisualFormatFields } from "@/lib/apiClient";
 import { DEFAULT_DURATION_MS, MAX_DURATION_MS, MIN_DURATION_MS } from "@/lib/visualDesign/visualFormat";
 import { accent, accentAlpha, color, fontHeading } from "@/lib/design/tokens";
@@ -160,6 +161,8 @@ export default function ScriptFormatChooser({
   const [error, setError] = useState<string | null>(null);
 
   const request = generationRequest(visual, text, { images, seconds });
+  const output: GenerationOutput =
+    visual === "animation" ? { kind: "animation" } : visual === "carousel" ? { kind: "images", count: images } : { kind: "text" };
 
   async function generate() {
     if (!entry || !request || generating) return;
@@ -176,11 +179,17 @@ export default function ScriptFormatChooser({
 
   return (
     <Modal open={entry !== null} onClose={() => !generating && onClose()} width={640}>
-      <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 20, margin: "0 0 4px" }}>Quel format ?</h2>
+      <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 20, margin: "0 0 4px" }}>
+        {generating ? "CreaFlow rédige ton post" : "Quel format ?"}
+      </h2>
       <p style={{ margin: "0 0 20px", fontSize: 14, color: color.textMuted }}>
         {entry?.series ? entry.series.label : "Post libre"}
         {entry ? ` · ${entry.contentCategory.label}` : ""} — un visuel, du texte, ou les deux dans le même post.
       </p>
+      {generating ? (
+        <GenerationAnimation output={output} />
+      ) : (
+        <>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
         {(Object.keys(VISUALS) as VisualChoice[]).map((key) => (
           <ChoiceCard
@@ -213,6 +222,8 @@ export default function ScriptFormatChooser({
           onChange={setSeconds}
           disabled={generating}
         />
+      )}
+        </>
       )}
       {error && <p style={{ margin: "16px 0 0", fontSize: 13, color: color.danger }}>{error}</p>}
       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12, marginTop: 22 }}>

@@ -1,0 +1,385 @@
+/* Animation d'attente pendant la rédaction d'un post : la matière (sources) part en bulles vers
+   la « tambouille » qui tourne, et ressort sous la forme du post choisi. Tout en CSS, en boucle. */
+
+.stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: 64px 1fr 120px 1fr 150px;
+  align-items: center;
+  height: 210px;
+  margin: 8px 0 4px;
+}
+
+/* --- Sources --- */
+.sources {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+}
+.source {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #fffdfa;
+  color: #1b1713;
+  box-shadow: 0 10px 22px -12px rgba(34, 29, 25, 0.45), inset 0 0 0 1px rgba(34, 29, 25, 0.08);
+  animation: sourcePulse 2.4s ease-in-out infinite;
+}
+.source:nth-child(2) {
+  animation-delay: 0.8s;
+}
+.source:nth-child(3) {
+  animation-delay: 1.6s;
+}
+@keyframes sourcePulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  12% {
+    transform: scale(1.1);
+  }
+}
+
+/* --- Bulles de données : de la source vers la tambouille --- */
+.lane {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+.chip {
+  position: absolute;
+  left: 0;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #4d3778;
+  background: oklch(0.55 0.2 292 / 0.12);
+  opacity: 0;
+  animation: flowIn 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes flowIn {
+  0% {
+    transform: translateX(-10%) scale(0.9);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(var(--travel, 140px)) translateY(var(--converge, 0px)) scale(0.35);
+    opacity: 0;
+  }
+}
+
+/* --- La tambouille --- */
+.pot {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  justify-self: center;
+}
+.ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    oklch(0.62 0.19 292),
+    oklch(0.72 0.13 220),
+    oklch(0.78 0.12 160),
+    oklch(0.8 0.13 80),
+    oklch(0.7 0.16 350),
+    oklch(0.62 0.19 292)
+  );
+  animation: spin 2.2s linear infinite;
+  filter: saturate(1.1);
+}
+.ring::after {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border-radius: 50%;
+  background: #fffdfa;
+}
+.core {
+  position: absolute;
+  inset: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, oklch(0.75 0.17 292), oklch(0.5 0.2 292));
+  animation: wobble 1.6s ease-in-out infinite;
+  box-shadow: 0 0 28px oklch(0.62 0.19 292 / 0.55);
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes wobble {
+  0%,
+  100% {
+    border-radius: 50% 50% 50% 50%;
+    transform: scale(1);
+  }
+  33% {
+    border-radius: 58% 42% 55% 45%;
+    transform: scale(1.08) rotate(20deg);
+  }
+  66% {
+    border-radius: 44% 56% 46% 54%;
+    transform: scale(0.94) rotate(-15deg);
+  }
+}
+
+/* --- Ce qui sort : un flux vers le post --- */
+.spark {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin-top: -3.5px;
+  border-radius: 50%;
+  background: oklch(0.62 0.19 292);
+  box-shadow: 0 0 10px oklch(0.62 0.19 292 / 0.7);
+  animation: flowOut 1.2s ease-in infinite;
+  opacity: 0;
+}
+@keyframes flowOut {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(var(--travel, 120px));
+    opacity: 0;
+  }
+}
+
+/* --- Sortie : post texte --- */
+.output {
+  position: relative;
+  width: 150px;
+  height: 180px;
+  justify-self: end;
+}
+.textCard {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: #fffdfa;
+  box-shadow: 0 22px 40px -22px rgba(34, 29, 25, 0.5), inset 0 0 0 1px rgba(34, 29, 25, 0.07);
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.avatarRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, oklch(0.55 0.2 292 / 0.6), oklch(0.55 0.2 292));
+}
+.line {
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(34, 29, 25, 0.12);
+  width: 0;
+  animation: typeLine 3.6s ease-out infinite;
+}
+.lineStrong {
+  height: 9px;
+  background: rgba(34, 29, 25, 0.75);
+}
+@keyframes typeLine {
+  0% {
+    width: 0;
+  }
+  35%,
+  85% {
+    width: var(--w, 90%);
+  }
+  100% {
+    width: var(--w, 90%);
+    opacity: 0;
+  }
+}
+
+/* --- Sortie : images / carrousel en éventail --- */
+.fanCard {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  width: 92px;
+  height: 116px;
+  margin-left: -46px;
+  border-radius: 12px;
+  overflow: hidden;
+  transform-origin: 50% 130%;
+  box-shadow: 0 18px 30px -16px rgba(34, 29, 25, 0.55);
+  animation: fanOut 3.6s cubic-bezier(0.22, 1.2, 0.36, 1) infinite;
+  opacity: 0;
+}
+.fanCard::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 12px;
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(255, 253, 250, 0.85);
+  box-shadow: 0 -12px 0 -1px rgba(255, 253, 250, 0.55);
+}
+@keyframes fanOut {
+  0% {
+    transform: translateY(40px) rotate(0deg) scale(0.6);
+    opacity: 0;
+  }
+  30%,
+  85% {
+    transform: translateX(var(--dx, 0px)) rotate(var(--rot, 0deg)) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(var(--dx, 0px)) rotate(var(--rot, 0deg)) scale(1);
+    opacity: 0;
+  }
+}
+
+/* --- Sortie : animation (le motion de la landing) --- */
+.motionCard {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(160deg, oklch(0.32 0.12 292) 0%, oklch(0.2 0.06 292) 100%);
+  box-shadow: 0 22px 40px -22px rgba(34, 29, 25, 0.6);
+}
+.motionBlob {
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  right: -40px;
+  top: -30px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, oklch(0.75 0.17 292 / 0.75), transparent 68%);
+  filter: blur(10px);
+  animation: wobble 3s ease-in-out infinite;
+}
+.motionLines {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  gap: 6px;
+}
+.motionLine {
+  height: 11px;
+  border-radius: 5px;
+  background: #fffdfa;
+  opacity: 0;
+  animation: motionIn 3s cubic-bezier(0.2, 0.75, 0.2, 1) infinite;
+}
+.motionLine:nth-child(2) {
+  animation-delay: 0.35s;
+  width: 80%;
+}
+.motionLine:nth-child(3) {
+  animation-delay: 0.7s;
+  width: 55%;
+  background: oklch(0.82 0.14 292);
+}
+@keyframes motionIn {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  15%,
+  70% {
+    opacity: 1;
+    transform: none;
+  }
+  85%,
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+.motionProgress {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(255, 253, 250, 0.2);
+  overflow: hidden;
+}
+.motionProgress::after {
+  content: "";
+  display: block;
+  height: 100%;
+  width: 0;
+  background: #fffdfa;
+  animation: progress 3s linear infinite;
+}
+@keyframes progress {
+  to {
+    width: 100%;
+  }
+}
+
+.caption {
+  text-align: center;
+  font-size: 14px;
+  color: #574d45;
+  min-height: 22px;
+  animation: captionIn 0.45s ease both;
+}
+@keyframes captionIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .stage {
+    transform: scale(0.68);
+    transform-origin: left center;
+    width: 147%;
+    margin-bottom: -60px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage *,
+  .stage *::after {
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+  }
+}
