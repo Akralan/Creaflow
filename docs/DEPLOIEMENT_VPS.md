@@ -297,6 +297,23 @@ appel pour valider la session), et le réveil de Neon après inactivité sur le 
 
 ## Statut
 
-Écrit le 2026-10-16. Les fichiers sont en place et `npm run build` produit bien la sortie
-standalone ; aucun déploiement réel n'a encore été fait avec. Première mise en ligne à faire en
-suivant ce guide, puis corriger ici ce qui a accroché.
+Écrit et **déployé pour de vrai le 2026-10-16** sur un VPS OVH (Ubuntu 26.04, 2 vCPU, 4 Go) :
+`https://vps-a004fa72.vps.ovh.ca`. Certificat obtenu du premier coup, 35 tables créées par les
+migrations, création de compte et session vérifiées de bout en bout depuis l'extérieur. Écarts
+avec le guide, assumés pour cette première mise en ligne :
+
+- **Pas de nom de domaine acheté** : Caddy sert le nom d'hôte attribué par OVH au VPS
+  (`vps-XXXX.vps.ovh.ca`), qui pointe déjà sur l'IP et pour lequel Let's Encrypt émet un vrai
+  certificat. Le jour où un domaine arrive : changer `APP_DOMAIN` et `APP_URL` dans le `.env`,
+  `docker compose -f docker-compose.prod.yml up -d`, et refaire le §8.
+- **Utilisateur `ubuntu`** (celui d'OVH, sudo sans mot de passe) à la place d'un utilisateur
+  `creaflow` dédié. Connexion par clé uniquement, mot de passe SSH désactivé
+  (`/etc/ssh/sshd_config.d/99-creaflow-keys-only.conf`). Alias `ssh creaflow` sur le poste.
+- **Branche déployée : `feature/deploiement-vps`**, pas `main`, parce que les fichiers de
+  déploiement n'y étaient pas encore. Après le merge : `cd /opt/creaflow && git checkout main`
+  une fois, puis `./deploy/update.sh` comme d'habitude.
+- **`.env` minimal** : aucune clé d'API. Landing, inscription et connexion marchent ; génération,
+  photos, paiement et emails attendent leurs clés. `deploy/backup.sh` n'est pas planifié tant que
+  R2 n'est pas configuré (`BACKUP_BUCKET` et les identifiants R2 manquent).
+- Un redémarrage du serveur est en attente après la mise à jour du noyau (`/var/run/reboot-required`) ;
+  les conteneurs reviennent seuls (`restart: unless-stopped`).
