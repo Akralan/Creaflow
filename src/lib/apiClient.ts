@@ -328,6 +328,8 @@ export interface VisualFormatFields {
   slideCount?: number;
   /** Animation : 5 000 à 15 000. */
   durationMs?: number;
+  /** Faux = visuel seul, légende courte ; absent ou vrai = un post texte + visuel. */
+  withText?: boolean;
 }
 
 export interface PostMetrics {

@@ -534,7 +534,8 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      <ScriptFormatChooser entry={choosingEntry} onClose={() => setChoosingEntry(null)} />
+      {/* Remonté à chaque créneau : le choix précédent ne doit pas rester coché. */}
+      <ScriptFormatChooser key={choosingEntry?.id ?? "aucun"} entry={choosingEntry} onClose={() => setChoosingEntry(null)} />
 
       <ImportScriptModal
         open={showImportModal}

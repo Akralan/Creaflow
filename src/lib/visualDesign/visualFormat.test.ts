@@ -23,6 +23,14 @@ describe("normalizeVisualSpec", () => {
 });
 
 describe("buildFormatBlock", () => {
+  it("demande un vrai texte de post quand le visuel l'accompagne, une légende courte sinon", () => {
+    const withText = buildFormatBlock(normalizeVisualSpec({ visualFormat: "animation" }));
+    const visualOnly = buildFormatBlock(normalizeVisualSpec({ visualFormat: "animation", withText: false }));
+    expect(withText).toContain("Texte du post : la légende est un vrai post rédigé");
+    expect(visualOnly).toContain("Légende courte : une ou deux phrases au plus");
+    expect(visualOnly).not.toContain("Texte du post");
+  });
+
   it("décrit chaque format au rédacteur", () => {
     expect(buildFormatBlock(null)).toBe("");
     expect(buildFormatBlock(normalizeVisualSpec({}))).toContain("exactement 1 entrée");

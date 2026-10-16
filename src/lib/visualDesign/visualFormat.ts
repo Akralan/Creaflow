@@ -23,6 +23,9 @@ export interface VisualFormatSpec {
   slideCount: number | null;
   /** Animation uniquement. */
   durationMs: number | null;
+  /** Le visuel est accompagné d'un vrai texte de post (un seul post : texte + visuel) ; faux = le
+   *  visuel porte tout, la légende reste courte. Absent = vrai, le comportement d'avant. */
+  withText?: boolean;
 }
 
 export const visualFormatSchema = z.enum(VISUAL_FORMATS);
@@ -32,15 +35,30 @@ export const visualFormatFieldsSchema = z.object({
   visualFormat: visualFormatSchema.optional(),
   slideCount: z.number().int().min(MIN_SLIDES).max(MAX_SLIDES).optional(),
   durationMs: z.number().int().min(MIN_DURATION_MS).max(MAX_DURATION_MS).optional(),
+  withText: z.boolean().optional(),
 });
 
-export function normalizeVisualSpec(input: { visualFormat?: VisualFormat | null; slideCount?: number | null; durationMs?: number | null }): VisualFormatSpec {
+export function normalizeVisualSpec(input: {
+  visualFormat?: VisualFormat | null;
+  slideCount?: number | null;
+  durationMs?: number | null;
+  withText?: boolean | null;
+}): VisualFormatSpec {
   const format = input.visualFormat ?? "single";
   return {
     format,
     slideCount: format === "carousel" ? (input.slideCount ?? DEFAULT_SLIDES) : null,
     durationMs: format === "animation" ? (input.durationMs ?? DEFAULT_DURATION_MS) : null,
+    ...(input.withText === false ? { withText: false } : {}),
   };
+}
+
+/** Ligne du bloc FORMAT sur la légende : un post « visuel + texte » est un seul post dont la légende
+ *  est le texte complet ; un visuel seul n'a qu'une légende courte. */
+function captionLine(spec: VisualFormatSpec): string {
+  return spec.withText === false
+    ? "\nLégende courte : une ou deux phrases au plus, c'est le visuel qui porte le message."
+    : "\nTexte du post : la légende est un vrai post rédigé, complet, que le visuel accompagne et illustre.";
 }
 
 /** Lecture depuis une ligne `scripts` (colonnes nullables des scripts antérieurs au chantier). */
@@ -61,13 +79,13 @@ export function buildFormatBlock(spec: VisualFormatSpec | null | undefined): str
   if (!spec) return "";
   if (spec.format === "carousel") {
     const n = spec.slideCount ?? DEFAULT_SLIDES;
-    return `=== FORMAT ===\nCarrousel de ${n} slides : le storyboard a exactement ${n} entrées, une par slide, dans l'ordre de lecture ; la première accroche, la dernière porte l'appel à l'action.`;
+    return `=== FORMAT ===\nCarrousel de ${n} slides : le storyboard a exactement ${n} entrées, une par slide, dans l'ordre de lecture ; la première accroche, la dernière porte l'appel à l'action.${captionLine(spec)}`;
   }
   if (spec.format === "animation") {
     const seconds = Math.round((spec.durationMs ?? DEFAULT_DURATION_MS) / 1000);
-    return `=== FORMAT ===\nAnimation de ${seconds} secondes : le storyboard a entre ${ANIMATION_MOMENTS.min} et ${ANIMATION_MOMENTS.max} entrées ; chaque entrée est un MOMENT du texte à l'écran, dans l'ordre d'apparition, sur une seule image de fond. Le texte de tous les moments réunis doit se lire en ${seconds} secondes (environ 3 mots par seconde) : phrases très courtes.`;
+    return `=== FORMAT ===\nAnimation de ${seconds} secondes : le storyboard a entre ${ANIMATION_MOMENTS.min} et ${ANIMATION_MOMENTS.max} entrées ; chaque entrée est un MOMENT du texte à l'écran, dans l'ordre d'apparition, sur une seule image de fond. Le texte de tous les moments réunis doit se lire en ${seconds} secondes (environ 3 mots par seconde) : phrases très courtes.${captionLine(spec)}`;
   }
-  return `=== FORMAT ===\nImage unique : le storyboard a exactement 1 entrée — ce qu'on voit et le texte affiché.`;
+  return `=== FORMAT ===\nImage unique : le storyboard a exactement 1 entrée — ce qu'on voit et le texte affiché.${captionLine(spec)}`;
 }
 
 export interface StoryboardCheck<T> {
