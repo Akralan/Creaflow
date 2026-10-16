@@ -36,9 +36,6 @@
 .heroDemoTilt {
   transition: transform 0.6s cubic-bezier(0.2, 0.75, 0.2, 1);
 }
-.heroChip {
-  display: none;
-}
 @media (min-width: 980px) {
   .heroGrid {
     grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
@@ -55,9 +52,6 @@
   }
   .heroDemoOuter:hover .heroDemoTilt {
     transform: perspective(1800px) rotateY(-2deg) rotateX(0.5deg) translateY(-4px);
-  }
-  .heroChip {
-    display: inline-flex;
   }
 }
 
@@ -184,41 +178,6 @@
     left: calc((100% - 2 * var(--how-gap)) / 6);
     right: calc((100% - 2 * var(--how-gap)) / 6);
     border-top: 1.5px dashed oklch(0.55 0.2 292 / 0.35);
-  }
-}
-
-/* ---------- Problème : titre + accroche en regard, sommaire à filets ---------- */
-.problemHead {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 20px clamp(32px, 6vw, 96px);
-  align-items: end;
-  margin-bottom: clamp(28px, 4vw, 48px);
-}
-.problemList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-}
-.problemItem {
-  display: flex;
-  gap: 18px;
-  align-items: flex-start;
-  padding: clamp(22px, 3vw, 32px) 0;
-  border-top: 1px solid rgba(34, 29, 25, 0.1);
-}
-@media (min-width: 900px) {
-  .problemHead {
-    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-  }
-  .problemLead {
-    padding-bottom: 6px;
-  }
-  .problemList {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: clamp(32px, 5vw, 72px);
   }
 }
 
@@ -788,22 +747,6 @@
 .outcomeCard[data-dim="true"] {
   opacity: 0.72;
 }
-.outcomeChip {
-  position: absolute;
-  z-index: 3;
-  display: none;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 13px 8px 10px;
-  border-radius: 999px;
-  background: #fffdfa;
-  border: 1px solid rgba(34, 29, 25, 0.09);
-  box-shadow: 0 14px 30px -18px rgba(34, 29, 25, 0.5);
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #221d19;
-  white-space: nowrap;
-}
 @keyframes outcomeBob {
   0%,
   100% {
@@ -819,9 +762,6 @@
   }
   .outcomeCollageOuter {
     max-width: none;
-  }
-  .outcomeChip {
-    display: inline-flex;
   }
 }
 @media (max-width: 639px) {

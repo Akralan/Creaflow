@@ -1,7 +1,8 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { personas, type Persona } from "@/components/landing/personas";
+import { personas as allPersonas, type Persona } from "@/components/landing/personas";
+import { ACTIVE_PERSONA_IDS } from "@/components/landing/flags";
 import styles from "@/components/landing/landing.module.css";
 
 /**
@@ -10,6 +11,10 @@ import styles from "@/components/landing/landing.module.css";
  * Un seul store module-level pour que le hero et les fonctionnalités changent ensemble.
  */
 const PERIOD_MS = 7000;
+
+/** Profils affichés (cf. ACTIVE_PERSONA_IDS). Liste vide ou ids inconnus : tous les profils. */
+const activePersonas = allPersonas.filter((p) => ACTIVE_PERSONA_IDS.includes(p.id));
+const personas = activePersonas.length > 0 ? activePersonas : allPersonas;
 const FADE_OUT_MS = 380;
 
 type State = { index: number; phase: "in" | "out" };
@@ -43,7 +48,8 @@ function tick() {
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
-  if (!running) {
+  // Un seul profil : rien à faire tourner.
+  if (!running && personas.length > 1) {
     running = true;
     tick();
   }
