@@ -509,6 +509,8 @@ export async function resolveDailyDirection(
     contentType: string;
     directive?: string | null;
     rejectedConcepts?: string[];
+    /** « Autre idée, même brief » : l'épisode du script qu'on réécrit, à garder. */
+    lockedBeatId?: string | null;
   }
 ): Promise<DailyDirection | null> {
   try {
@@ -530,6 +532,11 @@ export async function resolveDailyDirection(
         // directive du jour, réservée à l'appel choix du jour qui suit.
         directive: null,
       });
+    }
+
+    // Plan épuisé : on le prolonge avant de choisir, sinon le chef n'aurait plus d'épisode à donner.
+    if (mode === "feuilleton" && !params.lockedBeatId && nextEpisode(state.beats, null) === null && state.beats.length > 0) {
+      state = await planNarrativeForSubject(userId, { productId: state.productId, seriesId: state.seriesId, directive: null });
     }
 
     const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
@@ -557,8 +564,11 @@ export async function resolveDailyDirection(
         ? {
             ...baseContext,
             arcSummary: state.arcSummary,
-            beats: state.beats
-              .filter((b): b is NarrativeBeat & { status: "planned" | "drafted" } => b.status === "planned" || b.status === "drafted")
+            // UN seul épisode proposé : le suivant dans l'ordre du plan (ou celui du script réécrit).
+            // Laisser le modèle choisir parmi planned + drafted lui faisait reprendre un épisode déjà
+            // rédigé — trois scripts sur le même épisode, et Direction qui en comptait un seul.
+            beats: [nextEpisode(state.beats, params.lockedBeatId ?? null)]
+              .filter((b): b is NarrativeBeat & { status: "planned" | "drafted" } => b !== null && (b.status === "planned" || b.status === "drafted"))
               .map(
                 (b): DailyDirectionBeatCandidate => ({ id: b.id, title: b.title, kind: b.kind, status: b.status, rationale: b.rationale })
               ),
@@ -652,8 +662,25 @@ export async function markBeatDrafted(stateId: string, beatId: string, scriptId:
   const beats = (state.beats as NarrativeBeat[] | null) ?? [];
   const idx = beats.findIndex((b) => b.id === beatId);
   if (idx === -1) return;
+  // Garde-fou : un épisode déjà rattaché à un autre script n'est pas réattribué en silence.
+  if (beats[idx].status === "drafted" && beats[idx].scriptId && beats[idx].scriptId !== scriptId) {
+    logger.warn("Épisode déjà rédigé pour un autre script — rattachement ignoré", { beatId, scriptId, existing: beats[idx].scriptId });
+    return;
+  }
   const updatedBeats = beats.map((b, i) => (i === idx ? { ...b, status: "drafted" as const, scriptId } : b));
   await db.update(narrativeState).set({ beats: updatedBeats, updatedAt: new Date() }).where(eq(narrativeState.id, stateId));
+}
+
+/**
+ * L'épisode à écrire : celui du script réécrit s'il est donné (« autre idée, même brief »), sinon le
+ * premier `planned` dans l'ordre du plan. Jamais un épisode déjà rédigé pour un autre script.
+ */
+export function nextEpisode(beats: NarrativeBeat[], lockedBeatId: string | null): NarrativeBeat | null {
+  if (lockedBeatId) {
+    const locked = beats.find((b) => b.id === lockedBeatId);
+    if (locked) return locked;
+  }
+  return beats.find((b) => b.status === "planned") ?? null;
 }
 
 /**

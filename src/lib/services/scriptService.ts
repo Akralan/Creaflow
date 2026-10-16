@@ -159,6 +159,10 @@ export async function buildGenerationContext(
     process.env.NARRATIVE_DIRECTOR_ENABLED === "false"
       ? null
       : await resolveDailyDirection(userId, {
+          // Réécriture d'un script (« autre idée ») : on garde son épisode.
+          lockedBeatId: excludeScriptId
+            ? ((await db.query.scripts.findFirst({ where: eq(scripts.id, excludeScriptId), columns: { beatId: true } }))?.beatId ?? null)
+            : null,
           productId: effectiveProductId,
           seriesId: seriesId ?? null,
           platform,
