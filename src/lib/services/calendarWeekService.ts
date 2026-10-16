@@ -75,9 +75,24 @@ const CAPTION_PREVIEW_CHARS = 280;
 export async function listCalendarRange(userId: string, from: Date, to: Date) {
   // Filet : une série supprimée avant la règle de réaffectation laissait des créneaux orphelins.
   await releaseSlotsOfArchivedSeries(userId);
+
+  const now = new Date();
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const { slots, upcoming } = await loadUpcoming(userId, today);
+  // « Post suivant » : le premier créneau vide à venir après la semaine affichée (ou après
+  // aujourd'hui pour une semaine passée).
+  const next = slots.find((sl) => sl.scheduledDate >= to) ?? null;
+  // La bande se prolonge jusqu'à lui : les posts déjà rédigés entre la fin de la semaine et le
+  // prochain à rédiger restent visibles (sinon un post créé via « Post suivant » sur la semaine
+  // d'après disparaissait au retour). Sans créneau vide à venir, un mois de posts rédigés au plus.
+  const until = next ? next.scheduledDate : new Date(to.getTime() + 31 * 24 * 3600 * 1000);
   const [entries, goals, profile] = await Promise.all([
     db.query.calendarEntries.findMany({
-      where: and(eq(calendarEntries.userId, userId), gte(calendarEntries.scheduledDate, from), lt(calendarEntries.scheduledDate, to)),
+      where: and(
+        eq(calendarEntries.userId, userId),
+        gte(calendarEntries.scheduledDate, from),
+        lt(calendarEntries.scheduledDate, until < to ? to : until)
+      ),
       with: {
         script: {
           columns: {
@@ -108,12 +123,6 @@ export async function listCalendarRange(userId: string, from: Date, to: Date) {
   const designByScript = new Map(designs.map((d) => [d.scriptId, d]));
   const hasLogo = Boolean((profile?.brandKit as { logoAssetId?: string | null } | null)?.logoAssetId);
 
-  const now = new Date();
-  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const { slots, upcoming } = await loadUpcoming(userId, today);
-  const shownIds = new Set(entries.map((e) => e.id));
-  // « Post suivant » : le premier créneau vide à venir qui n'est pas déjà sur la bande affichée.
-  const next = slots.find((sl) => !shownIds.has(sl.id)) ?? null;
   // Sans aucun créneau vide à venir, c'est le mois en cours qu'on tente d'abord (l'écran passe au
   // suivant s'il est déjà planifié) ; sinon le mois qui suit le dernier créneau vide.
   const lastPlanned = slots.at(-1)?.scheduledDate;
@@ -130,7 +139,9 @@ export async function listCalendarRange(userId: string, from: Date, to: Date) {
       : null,
     // Plus aucun créneau vide à venir : le mois à planifier pour trouver la suite.
     monthToPlan: next ? null : `${afterLast.getUTCFullYear()}-${String(afterLast.getUTCMonth() + 1).padStart(2, "0")}`,
-    entries: entries.map((entry) => {
+    // Au-delà de la semaine, seulement les posts rédigés (les créneaux vides de cette zone
+    // n'existent pas : le premier est `nextSlot`).
+    entries: entries.filter((entry) => entry.scheduledDate < to || entry.script).map((entry) => {
       const script = entry.script;
       if (!script) return { ...entry, script: null, upcoming: upcoming.get(entry.id) ?? null };
       const design = designByScript.get(script.id);

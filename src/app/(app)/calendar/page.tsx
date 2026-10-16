@@ -40,6 +40,18 @@ function weekLabel(monday: Date): string {
     : `Du ${full.format(monday)} au ${full.format(sunday)}`;
 }
 
+/** Fin de la semaine dans la bande : ce qui suit appartient aux semaines d'après. */
+function StripDivider() {
+  return (
+    <div aria-hidden style={{ flex: "0 0 auto", alignSelf: "stretch", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: "0 2px" }}>
+      <span style={{ fontFamily: fontMono, fontSize: 11, letterSpacing: "0.08em", color: "#8a7f74", writingMode: "vertical-rl", transform: "rotate(180deg)" }}>
+        ENSUITE
+      </span>
+      <span style={{ flex: 1, width: 1, background: "rgba(34,29,25,0.14)" }} />
+    </div>
+  );
+}
+
 const iconButton: React.CSSProperties = {
   width: 40,
   height: 40,
@@ -146,6 +158,10 @@ export default function CalendarPage() {
   if (!loaded) return null;
 
   const isThisWeek = monday.getTime() === thisMonday.getTime();
+  // Posts rédigés au-delà de la semaine, jusqu'au prochain à rédiger : séparés par « Ensuite ».
+  const nextMondayKey = dayKey(addDays(monday, 7));
+  const weekEntries = entries.filter((e) => e.scheduledDate.slice(0, 10) < nextMondayKey);
+  const laterEntries = entries.filter((e) => e.scheduledDate.slice(0, 10) >= nextMondayKey);
   const isPast = (entry: WeekEntry) => entry.scheduledDate.slice(0, 10) < todayKey;
 
   return (
@@ -208,13 +224,25 @@ export default function CalendarPage() {
       ) : (
         <>
           <div className={styles.strip}>
-            {entries.map((entry) => (
+            {weekEntries.map((entry) => (
               <WeekPostCard
                 key={entry.id}
                 entry={entry}
                 authorName={authorName}
                 hasLogo={hasLogo}
                 isPast={isPast(entry)}
+                onOpen={() => open(entry)}
+                onEditSlot={() => setEditingEntry(entry)}
+              />
+            ))}
+            {laterEntries.length > 0 && <StripDivider />}
+            {laterEntries.map((entry) => (
+              <WeekPostCard
+                key={entry.id}
+                entry={entry}
+                authorName={authorName}
+                hasLogo={hasLogo}
+                isPast={false}
                 onOpen={() => open(entry)}
                 onEditSlot={() => setEditingEntry(entry)}
               />
@@ -248,8 +276,14 @@ export default function CalendarPage() {
             )}
           </div>
           <div className={styles.list}>
-            {entries.map((entry) => (
+            {weekEntries.map((entry) => (
               <WeekPostRow key={entry.id} entry={entry} isPast={isPast(entry)} onOpen={() => open(entry)} />
+            ))}
+            {laterEntries.length > 0 && (
+              <div style={{ fontFamily: fontMono, fontSize: 11, letterSpacing: "0.08em", color: "#8a7f74", margin: "8px 2px 0" }}>ENSUITE</div>
+            )}
+            {laterEntries.map((entry) => (
+              <WeekPostRow key={entry.id} entry={entry} isPast={false} onOpen={() => open(entry)} />
             ))}
             {nextSlot && <WeekPostRow kicker="Post suivant" entry={nextSlot} isPast={false} onOpen={() => open(nextSlot)} />}
             {!nextSlot && monthToPlan && activeGoals.length > 0 && (
