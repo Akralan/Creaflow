@@ -1,714 +1,253 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Target, Upload } from "lucide-react";
 import Button from "@/components/ui/Button";
-import Card from "@/components/ui/Card";
-import { PlatformBadge } from "@/components/ui/Badge";
-import { heading1Style } from "@/components/ui/TextField";
-import IconActionButton from "@/components/ui/IconActionButton";
-import EntryCard from "@/components/EntryCard";
-import GenerateScriptModal from "@/components/GenerateScriptModal";
 import ImportScriptModal from "@/components/ImportScriptModal";
 import ScriptFormatChooser from "@/components/ScriptFormatChooser";
-import { api, ApiClientError, type CalendarEntry, type PostingGoal, type Script } from "@/lib/apiClient";
-import { accent, color, platformMeta, statusMeta } from "@/lib/design/tokens";
-import { resolveCategoryMeta } from "@/lib/design/categoryDisplay";
-import { useContentCategories } from "@/contexts/CategoryLabelsContext";
-import { useContentSeries } from "@/contexts/SeriesContext";
-import { KNOWN_PLATFORMS } from "@/lib/social/types";
+import WeekPostCard, { WeekPostRow } from "@/components/calendar/WeekPostCard";
+import SlotEditorModal from "@/components/calendar/SlotEditorModal";
+import PlatformGoalsModal from "@/components/calendar/PlatformGoalsModal";
+import styles from "@/components/calendar/calendar.module.css";
+import { api, ApiClientError, type PostingGoal, type WeekEntry } from "@/lib/apiClient";
+import { color, fontHeading } from "@/lib/design/tokens";
 
-const WEEKDAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
-
-function monthKey(year: number, monthIndex: number) {
-  return `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
-}
-
-function monthLabel(year: number, monthIndex: number) {
-  const label = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(
-    new Date(year, monthIndex, 1)
-  );
-  return label.charAt(0).toUpperCase() + label.slice(1);
-}
-
-function startOfWeek(d: Date) {
+/** Lundi (local) de la semaine qui contient `d`. */
+function mondayOf(d: Date): Date {
   const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const day = (date.getDay() + 6) % 7; // lundi = 0
-  date.setDate(date.getDate() - day);
+  date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
   return date;
 }
 
-function dayDateStr(year: number, monthIndex: number, day: number) {
-  return `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+function addDays(d: Date, days: number): Date {
+  const next = new Date(d);
+  next.setDate(next.getDate() + days);
+  return next;
 }
 
+/** YYYY-MM-DD du jour local — les créneaux sont des jours (minuit UTC), pas des instants. */
+function dayKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function weekLabel(monday: Date): string {
+  const sunday = addDays(monday, 6);
+  const day = new Intl.DateTimeFormat("fr-FR", { day: "numeric" });
+  const full = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long" });
+  return monday.getMonth() === sunday.getMonth()
+    ? `Du ${day.format(monday)} au ${full.format(sunday)}`
+    : `Du ${full.format(monday)} au ${full.format(sunday)}`;
+}
+
+const iconButton: React.CSSProperties = {
+  width: 40,
+  height: 40,
+  borderRadius: 12,
+  border: "1px solid rgba(34,29,25,0.1)",
+  background: "#fffdfa",
+  color: "#574d45",
+  display: "grid",
+  placeItems: "center",
+  cursor: "pointer",
+};
+
+/**
+ * Calendrier : une semaine, pas un mois — moins de pression, et chaque créneau montré comme le
+ * post qu'il sera, côte à côte (une liste de titres sur téléphone). L'objectif de la semaine et
+ * l'import d'un script sont derrière deux icônes.
+ */
 export default function CalendarPage() {
   const router = useRouter();
-  const categories = useContentCategories();
-  const series = useContentSeries();
-  const today = useMemo(() => new Date(), []);
-  const [year, setYear] = useState(today.getFullYear());
-  const [monthIndex, setMonthIndex] = useState(today.getMonth());
+  const thisMonday = useMemo(() => mondayOf(new Date()), []);
+  const todayKey = useMemo(() => dayKey(new Date()), []);
+  const [monday, setMonday] = useState(thisMonday);
 
-  const [entries, setEntries] = useState<CalendarEntry[]>([]);
+  const [entries, setEntries] = useState<WeekEntry[]>([]);
   const [goals, setGoals] = useState<PostingGoal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
+  const [authorName, setAuthorName] = useState("");
+  const [hasLogo, setHasLogo] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [editingGoals, setEditingGoals] = useState(false);
-  // Une plateforme est active ou coupée : le rythme se lit dans les jours de publication du profil.
-  const [goalDrafts, setGoalDrafts] = useState<Record<string, boolean>>(
-    Object.fromEntries(KNOWN_PLATFORMS.map((p) => [p.key, false]))
-  );
-  const [editingEntry, setEditingEntry] = useState<CalendarEntry | null>(null);
-  const [editCategoryId, setEditCategoryId] = useState<string>("");
-  const [editSeriesId, setEditSeriesId] = useState<string>("");
-  const [savingEntry, setSavingEntry] = useState(false);
+  const [planning, setPlanning] = useState(false);
 
-  const [showGenerateModal, setShowGenerateModal] = useState(false);
-  // Créneau vide cliqué : choix du format en trois cases, puis rédaction immédiate.
-  const [choosingEntry, setChoosingEntry] = useState<CalendarEntry | null>(null);
-  const [modalScheduledDate, setModalScheduledDate] = useState<string | undefined>(undefined);
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [placingScript, setPlacingScript] = useState<Script | null>(null);
-  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
+  const [choosingEntry, setChoosingEntry] = useState<WeekEntry | null>(null);
+  const [editingEntry, setEditingEntry] = useState<WeekEntry | null>(null);
+  const [showGoals, setShowGoals] = useState(false);
+  const [showImport, setShowImport] = useState(false);
 
-  useEffect(() => {
-    if (!placingScript) return;
-    function handleMouseMove(e: MouseEvent) {
-      setCursorPos({ x: e.clientX, y: e.clientY });
-    }
-    function handleWindowClick() {
-      // Un onClick React (délégué à la racine) s'exécute avant un listener natif attaché
-      // via addEventListener sur window (phase de bubbling, window est atteint en dernier).
-      // Si une cellule/entrée a déjà consommé ce clic (placeAt a déjà appelé
-      // setPlacingScript(null) de façon synchrone), l'updater fonctionnel voit déjà `null`
-      // et ne fait rien. Sinon (clic hors cellule), on annule le placement.
-      setPlacingScript((current) => (current === null ? current : null));
-    }
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setPlacingScript(null);
-    }
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("click", handleWindowClick);
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("click", handleWindowClick);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [placingScript]);
-
-  async function placeAt(dateStr: string) {
-    const script = placingScript;
-    if (!script) return;
-    setPlacingScript(null);
-    setCursorPos(null);
+  const load = useCallback(async () => {
     setError(null);
     try {
-      await api.placeScript(script.id, dateStr);
-      await load();
+      const data = await api.getCalendarWeek(dayKey(monday), dayKey(addDays(monday, 7)));
+      setEntries(data.entries);
+      setGoals(data.goals);
+      setAuthorName(data.authorName);
+      setHasLogo(data.hasLogo);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors du placement du script.");
-    }
-  }
-
-  async function load() {
-    setLoading(true);
-    setError(null);
-    try {
-      const { entries, goals } = await api.getCalendar(monthKey(year, monthIndex));
-      setEntries(entries);
-      setGoals(goals);
-      setGoalDrafts(
-        Object.fromEntries(
-          KNOWN_PLATFORMS.map((p) => [p.key, (goals.find((g) => g.platform === p.key)?.targetCountPerWeek ?? 0) > 0])
-        )
-      );
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur de chargement du calendrier.");
+      setError(err instanceof ApiClientError ? err.message : "Chargement du calendrier impossible.");
     } finally {
-      setLoading(false);
+      setLoaded(true);
     }
-  }
+  }, [monday]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [year, monthIndex]);
+  }, [load]);
 
-  function changeMonth(delta: number) {
-    let m = monthIndex + delta;
-    let y = year;
-    if (m < 0) { m = 11; y -= 1; }
-    if (m > 11) { m = 0; y += 1; }
-    setMonthIndex(m);
-    setYear(y);
-  }
+  const activeGoals = goals.filter((g) => g.targetCountPerWeek > 0);
+  const publishedThisWeek = useMemo(() => {
+    const done: Record<string, number> = {};
+    for (const e of entries) if (e.status === "published") done[e.platform] = (done[e.platform] ?? 0) + 1;
+    return done;
+  }, [entries]);
 
-  async function handleGenerateMonth() {
-    setGenerating(true);
+  /** Semaine vide : on planifie les mois qu'elle couvre (un mois déjà planifié répond 409, sans
+   *  conséquence ici). */
+  async function planWeek() {
+    setPlanning(true);
     setError(null);
+    const months = [...new Set([dayKey(monday).slice(0, 7), dayKey(addDays(monday, 6)).slice(0, 7)])];
     try {
-      await api.generateCalendar(monthKey(year, monthIndex));
-      await load();
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de la génération du calendrier.");
-    } finally {
-      setGenerating(false);
-    }
-  }
-
-
-  async function saveGoals() {
-    setError(null);
-    try {
-      await Promise.all(KNOWN_PLATFORMS.map((p) => api.savePostingGoal(p.key, goalDrafts[p.key])));
-      setEditingGoals(false);
-      await load();
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement des plateformes.");
-    }
-  }
-
-  function openEntryEditor(entry: CalendarEntry) {
-    setEditingEntry(entry);
-    setEditCategoryId(entry.contentCategory.id);
-    setEditSeriesId(entry.series?.id ?? "");
-  }
-
-  /** Série d'abord (docs/SPEC_SERIES_ET_ROLES.md §5.4) : choisir une série impose son rôle ;
-   *  "Post libre" laisse le rôle actuel modifiable à la main. */
-  function selectEntrySeries(nextSeriesId: string) {
-    setEditSeriesId(nextSeriesId);
-    const role = series.find((s) => s.id === nextSeriesId)?.category?.id;
-    if (role) setEditCategoryId(role);
-  }
-
-  async function saveEntryCategory() {
-    if (!editingEntry) return;
-    setSavingEntry(true);
-    setError(null);
-    try {
-      // Avec une série, le serveur dérive le rôle : on n'envoie que seriesId (§4.2).
-      await api.updateCalendarEntry(
-        editingEntry.id,
-        editSeriesId ? { seriesId: editSeriesId } : { contentCategoryId: editCategoryId, seriesId: null }
-      );
-      setEditingEntry(null);
-      await load();
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de la modification du créneau.");
-    } finally {
-      setSavingEntry(false);
-    }
-  }
-
-  async function deleteEntry() {
-    if (!editingEntry) return;
-    setSavingEntry(true);
-    setError(null);
-    try {
-      await api.deleteCalendarEntry(editingEntry.id);
-      setEditingEntry(null);
-      await load();
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de la suppression du créneau.");
-    } finally {
-      setSavingEntry(false);
-    }
-  }
-
-  const cells = useMemo(() => {
-    const lead = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
-    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-    const byDay = new Map<number, CalendarEntry[]>();
-    for (const e of entries) {
-      const d = new Date(e.scheduledDate);
-      if (d.getFullYear() === year && d.getMonth() === monthIndex) {
-        const day = d.getDate();
-        byDay.set(day, [...(byDay.get(day) || []), e]);
+      for (const month of months) {
+        await api.generateCalendar(month).catch((err) => {
+          // « Le calendrier de ce mois est déjà généré. » (409) : rien à faire pour ce mois.
+          if (!(err instanceof ApiClientError && /déjà généré/.test(err.message))) throw err;
+        });
       }
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : "La planification a échoué.");
+    } finally {
+      setPlanning(false);
     }
-    const list: Array<{ day: number | null; entries: CalendarEntry[]; isToday: boolean }> = [];
-    for (let i = 0; i < lead; i++) list.push({ day: null, entries: [], isToday: false });
-    for (let d = 1; d <= daysInMonth; d++) {
-      list.push({
-        day: d,
-        entries: byDay.get(d) || [],
-        isToday: d === today.getDate() && monthIndex === today.getMonth() && year === today.getFullYear(),
-      });
-    }
-    while (list.length % 7 !== 0) list.push({ day: null, entries: [], isToday: false });
-    return list;
-  }, [entries, year, monthIndex, today]);
+  }
 
-  const weekGoalProgress = useMemo(() => {
-    const weekStart = startOfWeek(today);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 7);
-    const doneByPlatform: Record<string, number> = {};
-    for (const e of entries) {
-      const d = new Date(e.scheduledDate);
-      if (d >= weekStart && d < weekEnd && e.status === "published") {
-        doneByPlatform[e.platform] = (doneByPlatform[e.platform] || 0) + 1;
-      }
-    }
-    return doneByPlatform;
-  }, [entries, today]);
+  function open(entry: WeekEntry) {
+    if (entry.script) router.push(`/scripts/${entry.script.id}`);
+    else setChoosingEntry(entry);
+  }
 
-  const visibleGoals = useMemo(() => goals.filter((g) => g.targetCountPerWeek > 0), [goals]);
+  if (!loaded) return null;
 
-  if (loading) return null;
+  const isThisWeek = monday.getTime() === thisMonday.getTime();
+  const isPast = (entry: WeekEntry) => entry.scheduledDate.slice(0, 10) < todayKey;
 
   return (
-    <div style={{ padding: "32px 36px" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, marginBottom: 26 }}>
+    <div style={{ padding: "clamp(20px, 4vw, 36px) clamp(16px, 4vw, 40px)", minHeight: "100%", background: "#f7f4ef" }}>
+      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 28 }}>
         <div>
-          <h1 style={heading1Style}>Votre mois de publication</h1>
-          <p style={{ margin: "6px 0 0", color: color.textMuted, fontSize: 15 }}>
-            Voici quoi tourner, et quand. Cliquez un créneau pour ouvrir le script.
-          </p>
+          <h1 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: "clamp(1.8rem, 3.4vw, 2.5rem)", letterSpacing: "-0.03em", margin: 0, color: "#1b1713" }}>
+            {isThisWeek ? "Ta semaine" : "Semaine"}
+          </h1>
+          <p style={{ margin: "6px 0 0", color: "#6d6259", fontSize: 15 }}>{weekLabel(monday)}</p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: color.cardBg, border: `1px solid ${color.border}`, borderRadius: 12, padding: "6px 8px" }}>
-          <button onClick={() => changeMonth(-1)} style={{ background: "none", border: "none", padding: "6px 8px", color: color.textFaint, fontSize: 16, cursor: "pointer" }}>‹</button>
-          <span style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 16, minWidth: 140, textAlign: "center" }}>
-            {monthLabel(year, monthIndex)}
-          </span>
-          <button onClick={() => changeMonth(1)} style={{ background: "none", border: "none", padding: "6px 8px", color: color.textMuted, fontSize: 16, cursor: "pointer" }}>›</button>
-        </div>
-      </div>
-
-      {error && <p style={{ color: color.danger, fontSize: 14, marginBottom: 16 }}>{error}</p>}
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 288px", gap: 24, alignItems: "start" }}>
-        <Card style={{ padding: 18 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, marginBottom: 6 }}>
-            {WEEKDAYS.map((w) => (
-              <div key={w} style={{ textAlign: "center", fontSize: 12, fontWeight: 600, color: color.textFaint, letterSpacing: "0.04em", textTransform: "uppercase", padding: "4px 0" }}>
-                {w}
-              </div>
-            ))}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 2, background: "#fffdfa", border: "1px solid rgba(34,29,25,0.1)", borderRadius: 12, padding: 3 }}>
+            <button type="button" aria-label="Semaine précédente" onClick={() => setMonday((m) => addDays(m, -7))} style={{ ...iconButton, border: "none", width: 34, height: 34 }}>
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setMonday(thisMonday)}
+              disabled={isThisWeek}
+              style={{ border: "none", background: "none", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: isThisWeek ? "#a2988c" : "#574d45", padding: "0 8px", cursor: isThisWeek ? "default" : "pointer" }}
+            >
+              Aujourd&apos;hui
+            </button>
+            <button type="button" aria-label="Semaine suivante" onClick={() => setMonday((m) => addDays(m, 7))} style={{ ...iconButton, border: "none", width: 34, height: 34 }}>
+              <ChevronRight size={18} />
+            </button>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
-            {cells.map((c, i) => {
-              const clickableEmpty = c.day !== null && c.entries.length === 0;
-              return (
-              <div
-                key={i}
-                onClick={() => {
-                  if (placingScript) {
-                    if (c.day !== null) placeAt(dayDateStr(year, monthIndex, c.day));
-                    return;
-                  }
-                  if (clickableEmpty) {
-                    setModalScheduledDate(dayDateStr(year, monthIndex, c.day as number));
-                    setShowGenerateModal(true);
-                  }
-                }}
-                title={clickableEmpty ? "Générer un script libre à cette date" : undefined}
-                style={{
-                  minHeight: 92,
-                  borderRadius: 11,
-                  border: `1px solid ${c.day ? "#eee7dd" : color.divider}`,
-                  background: c.day ? color.cardBg : color.inputBg,
-                  padding: 7,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 5,
-                  cursor: clickableEmpty || (placingScript && c.day !== null) ? "pointer" : "default",
-                }}
-              >
-                {c.day && (
-                  <>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: c.isToday ? "oklch(0.5 0.2 292)" : color.textSecondary }}>
-                        {c.day}
-                      </span>
-                      {c.isToday && (
-                        <span style={{ fontSize: 9, fontWeight: 700, color: "#fff", background: accent, borderRadius: 20, padding: "2px 6px" }}>
-                          AUJ.
-                        </span>
-                      )}
-                    </div>
-                    {c.entries.map((entry) => {
-                      const status = entry.script ? statusMeta[entry.script.status] : null;
-                      return (
-                        <EntryCard
-                          key={entry.id}
-                          data={{ platform: entry.platform, contentCategory: entry.contentCategory, series: entry.series, title: entry.script?.title }}
-                          onClick={() => {
-                            if (placingScript) return; // remonte à la cellule parente, qui gère la pose
-                            // Un créneau vide propose ses trois formats ; le crayon ouvre l'édition du
-                            // créneau (série, rôle, suppression).
-                            if (entry.script) router.push(`/scripts/${entry.script.id}`);
-                            else setChoosingEntry(entry);
-                          }}
-                          style={{ cursor: "pointer" }}
-                        >
-                          {entry.script ? (
-                            status && (
-                              <span style={{ marginTop: "auto", fontSize: 9, fontWeight: 700, color: status.fg, background: status.bg, borderRadius: 20, padding: "2px 7px", alignSelf: "flex-start" }}>
-                                {status.label}
-                              </span>
-                            )
-                          ) : (
-                            <div style={{ marginTop: "auto", display: "flex", justifyContent: "flex-end" }}>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (!placingScript) openEntryEditor(entry);
-                                }}
-                                title="Modifier ce créneau"
-                                aria-label="Modifier ce créneau"
-                                style={{
-                                  fontSize: 10,
-                                  color: color.textMuted,
-                                  background: "none",
-                                  border: `1px solid ${color.border}`,
-                                  borderRadius: 6,
-                                  padding: "3px 5px",
-                                  cursor: "pointer",
-                                }}
-                              >
-                                ✎
-                              </button>
-                            </div>
-                          )}
-                        </EntryCard>
-                      );
-                    })}
-                  </>
-                )}
-              </div>
-              );
-            })}
-          </div>
-        </Card>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, position: "sticky", top: 0 }}>
-          <Card style={{ padding: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 17 }}>Objectifs de la semaine</div>
-              {!editingGoals && (
-                <button onClick={() => setEditingGoals(true)} style={{ background: "none", border: "none", color: "oklch(0.5 0.2 292)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                  Modifier
-                </button>
-              )}
-            </div>
-            <p style={{ margin: "0 0 18px", fontSize: 13, color: color.textMuted }}>
-              Un post par jour de publication, sur chaque plateforme active.
-            </p>
-
-            {editingGoals ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {KNOWN_PLATFORMS.map(({ key: p, label }) => {
-                  const active = goalDrafts[p];
-                  return (
-                    <div key={p} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <PlatformBadge platform={p} />
-                        <span style={{ fontSize: 14, fontWeight: 600 }}>{label}</span>
-                      </div>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={active}
-                        aria-label={`${label} : ${active ? "active" : "coupée"}`}
-                        onClick={() => setGoalDrafts((d) => ({ ...d, [p]: !d[p] }))}
-                        style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit" }}
-                      >
-                        <span style={{ fontSize: 12, fontWeight: 600, color: active ? color.textSecondary : color.textMuted }}>
-                          {active ? "Active" : "Coupée"}
-                        </span>
-                        <span
-                          style={{
-                            width: 36,
-                            height: 20,
-                            borderRadius: 20,
-                            background: active ? "oklch(0.5 0.2 292)" : color.border,
-                            position: "relative",
-                            transition: "background 0.15s",
-                          }}
-                        >
-                          <span
-                            style={{
-                              position: "absolute",
-                              top: 2,
-                              left: active ? 18 : 2,
-                              width: 16,
-                              height: 16,
-                              borderRadius: "50%",
-                              background: "white",
-                              transition: "left 0.15s",
-                            }}
-                          />
-                        </span>
-                      </button>
-                    </div>
-                  );
-                })}
-                <div style={{ display: "flex", gap: 8 }}>
-                  <Button variant="secondary" onClick={() => setEditingGoals(false)} style={{ flex: 1, padding: "10px" }}>
-                    Annuler
-                  </Button>
-                  <Button onClick={saveGoals} style={{ flex: 1, padding: "10px" }}>
-                    Enregistrer
-                  </Button>
-                </div>
-              </div>
-            ) : visibleGoals.length === 0 ? (
-              <p style={{ fontSize: 13, color: color.textMuted }}>
-                Aucune plateforme active.{" "}
-                <a href="#" onClick={(e) => { e.preventDefault(); setEditingGoals(true); }}>
-                  En activer une
-                </a>
-                .
-              </p>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-                {visibleGoals.map((g) => {
-                  const done = weekGoalProgress[g.platform] || 0;
-                  const pct = g.targetCountPerWeek > 0 ? Math.min(100, Math.round((done / g.targetCountPerWeek) * 100)) : 0;
-                  return (
-                    <div key={g.id}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <PlatformBadge platform={g.platform} />
-                          <span style={{ fontSize: 14, fontWeight: 600 }}>{platformMeta[g.platform].label}</span>
-                        </div>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: color.textSecondary }}>
-                          {done}/{g.targetCountPerWeek}
-                        </span>
-                      </div>
-                      <div style={{ height: 7, borderRadius: 20, background: color.trackBg, overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${pct}%`, borderRadius: 20, background: platformMeta[g.platform].badgeBg }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            <div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px solid ${color.dividerAlt}`, fontSize: 13, color: color.textMuted, display: "flex", alignItems: "center", gap: 8 }}>
-              {entries.length > 0 ? (
-                <>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: color.successDot }} />
-                  Calendrier généré pour {monthLabel(year, monthIndex)}
-                </>
-              ) : visibleGoals.length > 0 ? (
-                <Button onClick={handleGenerateMonth} disabled={generating} fullWidth>
-                  {generating ? "Génération..." : "Générer le calendrier du mois"}
-                </Button>
-              ) : (
-                "Activez au moins une plateforme pour générer le mois."
-              )}
-            </div>
-          </Card>
-
-          <button
-            onClick={() => setShowImportModal(true)}
-            style={{
-              background: color.cardBg,
-              border: `1px solid ${color.border}`,
-              borderRadius: 16,
-              padding: "16px 18px",
-              textAlign: "left",
-              cursor: "pointer",
-              fontFamily: "inherit",
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-            }}
-          >
-            <span style={{ width: 38, height: 38, borderRadius: 11, background: "oklch(0.6 0.14 150 / 0.12)", color: "oklch(0.45 0.14 150)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>
-              ⇩
-            </span>
-            <span>
-              <span style={{ display: "block", fontWeight: 600, fontSize: 14, color: color.text }}>Importer un script existant</span>
-              <span style={{ display: "block", fontSize: 12, color: color.textMuted }}>Écrit ailleurs, suivi ici</span>
-            </span>
+          <button type="button" title="Objectif de la semaine" aria-label="Objectif de la semaine" onClick={() => setShowGoals(true)} style={iconButton}>
+            <Target size={18} />
+          </button>
+          <button type="button" title="Importer un script existant" aria-label="Importer un script existant" onClick={() => setShowImport(true)} style={iconButton}>
+            <Upload size={18} />
           </button>
         </div>
       </div>
 
+      {error && <p style={{ color: color.danger, fontSize: 14, margin: "0 0 16px" }}>{error}</p>}
+
+      {entries.length === 0 ? (
+        <div style={{ maxWidth: 520, padding: "36px 28px", borderRadius: 20, background: "#fffdfa", border: "1px solid rgba(34,29,25,0.08)" }}>
+          <div style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 21, color: "#1b1713", marginBottom: 6 }}>Rien de prévu cette semaine.</div>
+          {activeGoals.length > 0 ? (
+            <>
+              <p style={{ margin: "0 0 18px", fontSize: 14, color: "#6d6259" }}>On place tes posts sur tes jours de publication.</p>
+              <Button onClick={planWeek} disabled={planning}>
+                {planning ? "Planification…" : "Planifier mes posts"}
+              </Button>
+            </>
+          ) : (
+            <p style={{ margin: 0, fontSize: 14, color: "#6d6259" }}>
+              Aucun réseau actif.{" "}
+              <a href="#" onClick={(e) => { e.preventDefault(); setShowGoals(true); }}>
+                En activer un
+              </a>
+              .
+            </p>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className={styles.strip}>
+            {entries.map((entry) => (
+              <WeekPostCard
+                key={entry.id}
+                entry={entry}
+                authorName={authorName}
+                hasLogo={hasLogo}
+                isPast={isPast(entry)}
+                onOpen={() => open(entry)}
+                onEditSlot={() => setEditingEntry(entry)}
+              />
+            ))}
+          </div>
+          <div className={styles.list}>
+            {entries.map((entry) => (
+              <WeekPostRow key={entry.id} entry={entry} isPast={isPast(entry)} onOpen={() => open(entry)} />
+            ))}
+          </div>
+        </>
+      )}
+
       {/* Remonté à chaque créneau : le choix précédent ne doit pas rester coché. */}
       <ScriptFormatChooser key={choosingEntry?.id ?? "aucun"} entry={choosingEntry} onClose={() => setChoosingEntry(null)} />
 
+      {editingEntry && (
+        <SlotEditorModal
+          entry={editingEntry}
+          onClose={() => setEditingEntry(null)}
+          onSaved={() => {
+            setEditingEntry(null);
+            load();
+          }}
+        />
+      )}
+
+      {showGoals && (
+        <PlatformGoalsModal
+          goals={goals}
+          publishedThisWeek={publishedThisWeek}
+          onClose={() => setShowGoals(false)}
+          onSaved={() => {
+            setShowGoals(false);
+            load();
+          }}
+        />
+      )}
+
       <ImportScriptModal
-        open={showImportModal}
-        onClose={() => setShowImportModal(false)}
+        open={showImport}
+        onClose={() => setShowImport(false)}
         onImported={() => {
-          setShowImportModal(false);
+          setShowImport(false);
           load();
         }}
       />
-
-      <GenerateScriptModal
-        open={showGenerateModal}
-        onClose={() => setShowGenerateModal(false)}
-        scheduledDate={modalScheduledDate}
-        onGenerated={(script) => {
-          setShowGenerateModal(false);
-          if (modalScheduledDate) {
-            load();
-          } else {
-            setPlacingScript(script);
-          }
-        }}
-      />
-
-      {placingScript && cursorPos && (
-        <div style={{ position: "fixed", left: cursorPos.x + 18, top: cursorPos.y + 18, width: 176, pointerEvents: "none", zIndex: 60 }}>
-          <EntryCard
-            data={{ platform: placingScript.platform, contentCategory: placingScript.contentCategory, series: placingScript.series, title: placingScript.title }}
-            style={{ boxShadow: "0 10px 26px rgba(28,25,23,0.22)" }}
-          />
-        </div>
-      )}
-
-      {editingEntry && (
-        <div
-          onClick={() => !savingEntry && setEditingEntry(null)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(28,25,23,0.4)",
-            display: "grid",
-            placeItems: "center",
-            zIndex: 50,
-          }}
-        >
-          <Card
-            onClick={(e) => e.stopPropagation()}
-            style={{ padding: 26, width: 380, maxWidth: "90vw" }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <PlatformBadge platform={editingEntry.platform} />
-              <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 17 }}>
-                Créneau du {new Date(editingEntry.scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}
-              </span>
-            </div>
-            <p style={{ margin: "0 0 18px", fontSize: 13, color: color.textMuted }}>
-              Ce créneau n&apos;a pas encore de script généré.
-            </p>
-
-            {(() => {
-              const availableEditSeries = series.filter(
-                (s) => s.platforms.length === 0 || s.platforms.includes(editingEntry.platform)
-              );
-              return (
-                <>
-                  <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 8 }}>
-                    Série
-                  </label>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
-                    <button
-                      onClick={() => setEditSeriesId("")}
-                      style={{
-                        border: `1.5px solid ${editSeriesId === "" ? accent : color.border}`,
-                        background: editSeriesId === "" ? "oklch(0.55 0.2 292 / 0.08)" : color.inputBg,
-                        borderRadius: 20,
-                        padding: "7px 13px",
-                        fontSize: 13,
-                        fontWeight: editSeriesId === "" ? 600 : 500,
-                        color: editSeriesId === "" ? "oklch(0.45 0.2 292)" : color.textMuted,
-                        cursor: "pointer",
-                      }}
-                    >
-                      Post libre
-                    </button>
-                    {availableEditSeries.map((s) => {
-                      const active = s.id === editSeriesId;
-                      return (
-                        <button
-                          key={s.id}
-                          onClick={() => selectEntrySeries(s.id)}
-                          style={{
-                            border: `1.5px solid ${active ? accent : color.border}`,
-                            background: active ? "oklch(0.55 0.2 292 / 0.08)" : color.inputBg,
-                            borderRadius: 20,
-                            padding: "7px 13px",
-                            fontSize: 13,
-                            fontWeight: active ? 600 : 500,
-                            color: active ? "oklch(0.45 0.2 292)" : color.textMuted,
-                            cursor: "pointer",
-                          }}
-                        >
-                          {s.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              );
-            })()}
-
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 8 }}>
-              Rôle
-              {editSeriesId && <span style={{ color: color.textFaint, fontWeight: 400 }}> — imposé par la série</span>}
-            </label>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 22 }}>
-              {categories.map((c) => {
-                const meta = resolveCategoryMeta(c);
-                const active = c.id === editCategoryId;
-                if (editSeriesId && !active) return null;
-                return (
-                  <button
-                    key={c.id}
-                    onClick={() => !editSeriesId && setEditCategoryId(c.id)}
-                    disabled={!!editSeriesId}
-                    style={{
-                      border: `1.5px solid ${active ? meta.base : color.border}`,
-                      background: active ? meta.bg : color.inputBg,
-                      borderRadius: 20,
-                      padding: "7px 13px",
-                      fontSize: 13,
-                      fontWeight: active ? 600 : 500,
-                      color: active ? meta.fg : color.textMuted,
-                      cursor: editSeriesId ? "default" : "pointer",
-                    }}
-                  >
-                    {meta.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {error && <p style={{ color: color.danger, fontSize: 13, marginBottom: 14 }}>{error}</p>}
-
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <IconActionButton
-                icon={Trash2}
-                variant="danger"
-                title="Supprimer le créneau"
-                onClick={deleteEntry}
-                disabled={savingEntry}
-              />
-              <div style={{ flex: 1 }} />
-              <IconActionButton
-                icon={X}
-                variant="neutral"
-                title="Annuler"
-                onClick={() => setEditingEntry(null)}
-                disabled={savingEntry}
-              />
-              <IconActionButton
-                icon={Check}
-                variant="primary"
-                title="Enregistrer"
-                onClick={saveEntryCategory}
-                disabled={
-                  savingEntry ||
-                  (editCategoryId === editingEntry.contentCategory.id && editSeriesId === (editingEntry.series?.id ?? ""))
-                }
-              />
-            </div>
-          </Card>
-        </div>
-      )}
     </div>
   );
 }

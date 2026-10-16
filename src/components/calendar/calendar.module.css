@@ -1,0 +1,132 @@
+/* Calendrier semaine : une bande de posts côte à côte sur grand écran, une liste de titres sur
+   téléphone. Même langage que les cartes de la landing (PostFan). */
+
+.strip {
+  display: flex;
+  gap: 22px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  padding: 6px 4px 28px;
+  margin: 0 -4px;
+}
+
+.slot {
+  flex: 0 0 auto;
+  width: var(--card-w, 236px);
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: 18px;
+  overflow: hidden;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  text-align: left;
+  font: inherit;
+  box-shadow: 0 30px 60px -34px rgba(34, 29, 25, 0.5), 0 2px 6px rgba(34, 29, 25, 0.07);
+  transition:
+    transform 0.35s cubic-bezier(0.2, 0.75, 0.2, 1),
+    box-shadow 0.35s ease;
+}
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 36px 64px -30px rgba(34, 29, 25, 0.55), 0 2px 6px rgba(34, 29, 25, 0.08);
+}
+.card:focus-visible {
+  outline: 2px solid oklch(0.55 0.2 292);
+  outline-offset: 3px;
+}
+
+.past {
+  opacity: 0.55;
+}
+
+.empty {
+  box-shadow: none;
+  border: 1.5px dashed rgba(34, 29, 25, 0.18);
+  background: #f4f0e9;
+}
+.empty:hover {
+  border-color: oklch(0.55 0.2 292);
+  background: #f1ece4;
+  box-shadow: none;
+}
+
+.badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  backdrop-filter: blur(6px);
+  z-index: 2;
+}
+
+.blob {
+  position: absolute;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  right: -60px;
+  top: -40px;
+  background: radial-gradient(circle at 40% 40%, oklch(0.75 0.17 292 / 0.75), transparent 68%);
+  filter: blur(14px);
+  animation: blob 3s ease-in-out infinite;
+}
+@keyframes blob {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-14px, 10px) scale(1.12);
+  }
+}
+
+.clamp3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.clamp5 {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.list {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .strip {
+    display: none;
+  }
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blob {
+    animation: none;
+  }
+  .card,
+  .card:hover {
+    transition: none;
+    transform: none;
+  }
+}

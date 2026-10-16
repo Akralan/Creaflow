@@ -96,7 +96,13 @@ function ChoiceCard({
  * texte, ou les deux — c'est toujours un seul post. « Rédiger » génère et ouvre le script. Le sujet
  * vient de la série du créneau (le serveur en hérite).
  */
-export default function ScriptFormatChooser({ entry, onClose }: { entry: CalendarEntry | null; onClose: () => void }) {
+export default function ScriptFormatChooser({
+  entry,
+  onClose,
+}: {
+  entry: Pick<CalendarEntry, "id" | "series" | "contentCategory"> | null;
+  onClose: () => void;
+}) {
   const router = useRouter();
   const [visual, setVisual] = useState<VisualChoice | null>(null);
   const [text, setText] = useState(true);

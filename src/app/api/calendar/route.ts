@@ -6,7 +6,8 @@ import { calendarEntries, postingGoals } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
 import { parseMonth } from "@/lib/services/calendarService";
 import { placeScriptOnCalendar } from "@/lib/services/scriptImportService";
-import { handleApiError } from "@/lib/api/errors";
+import { ApiError, handleApiError } from "@/lib/api/errors";
+import { listCalendarRange } from "@/lib/services/calendarWeekService";
 
 const monthSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Format attendu : YYYY-MM");
 
@@ -15,9 +16,21 @@ const placeScriptSchema = z.object({
   scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format attendu : YYYY-MM-DD"),
 });
 
+const daySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format attendu : YYYY-MM-DD");
+
 export async function GET(request: NextRequest) {
   try {
     const userId = await requireUserId();
+    // Vue semaine (`from`/`to`, bornes en jours, `to` exclu) : créneaux enrichis de leur post.
+    const fromParam = request.nextUrl.searchParams.get("from");
+    if (fromParam) {
+      const from = new Date(`${daySchema.parse(fromParam)}T00:00:00.000Z`);
+      const to = new Date(`${daySchema.parse(request.nextUrl.searchParams.get("to"))}T00:00:00.000Z`);
+      if (!(to > from) || to.getTime() - from.getTime() > 62 * 24 * 3600 * 1000) {
+        throw new ApiError(400, "Période invalide.");
+      }
+      return NextResponse.json(await listCalendarRange(userId, from, to));
+    }
     const month = monthSchema.parse(request.nextUrl.searchParams.get("month"));
     const { year, monthIndex } = parseMonth(month);
 

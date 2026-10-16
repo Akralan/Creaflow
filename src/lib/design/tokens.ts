@@ -68,7 +68,7 @@ export const genericPlatformMeta = { badge: "?", badgeBg: "#6b6259" };
 export const statusMeta: Record<ScriptStatus, { label: string; bg: string; fg: string }> = {
   draft: { label: "Brouillon", bg: color.trackBg, fg: "#8a8078" },
   planned: { label: "Planifié", bg: accentAlpha(0.14), fg: accentText },
-  shot: { label: "Tourné", bg: "oklch(0.62 0.13 60 / 0.16)", fg: "oklch(0.5 0.13 60)" },
+  shot: { label: "Prêt", bg: "oklch(0.62 0.13 60 / 0.16)", fg: "oklch(0.5 0.13 60)" },
   published: { label: "Publié", bg: "oklch(0.62 0.13 150 / 0.16)", fg: "oklch(0.42 0.14 150)" },
 };
 

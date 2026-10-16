@@ -452,6 +452,30 @@ export interface CalendarEntry {
   script: { id: string; title: string; status: ScriptStatus } | null;
 }
 
+/** Créneau de la vue semaine : le post lui-même, pour l'afficher comme un post et non une case. */
+export interface WeekEntry extends Omit<CalendarEntry, "script"> {
+  script: {
+    id: string;
+    title: string | null;
+    status: ScriptStatus;
+    contentType: ContentType;
+    visualFormat: VisualFormat;
+    slideCount: number | null;
+    durationMs: number | null;
+    hookText: string | null;
+    /** Début du texte du post seulement. */
+    caption: string | null;
+    /** Première slide de la maquette (placeholders non résolus), null tant qu'elle n'est pas composée. */
+    preview: {
+      html: string;
+      width: number;
+      height: number;
+      slideCount: number;
+      images: Array<{ ref: string; assetId: string; variant: DesignImageVariant }>;
+    } | null;
+  } | null;
+}
+
 export interface OnboardingMessage {
   role: "user" | "assistant";
   content: string;
@@ -750,6 +774,11 @@ export const api = {
 
   getCalendar: (month: string) =>
     apiFetch<{ entries: CalendarEntry[]; goals: PostingGoal[] }>(`/api/calendar?month=${month}`),
+  /** Vue semaine : `to` exclu, dates au format YYYY-MM-DD. */
+  getCalendarWeek: (from: string, to: string) =>
+    apiFetch<{ entries: WeekEntry[]; goals: PostingGoal[]; authorName: string; hasLogo: boolean }>(
+      `/api/calendar?from=${from}&to=${to}`
+    ),
   getCalendarEntry: (id: string) => apiFetch<{ entry: CalendarEntry }>(`/api/calendar/${id}`),
   generateCalendar: (month: string) => post<{ entries: CalendarEntry[] }>("/api/calendar/generate", { month }),
   placeScript: (scriptId: string, scheduledDate: string) =>
