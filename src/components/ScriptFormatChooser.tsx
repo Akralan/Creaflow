@@ -6,33 +6,81 @@ import { Check, Film, Images, Type, type LucideIcon } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import { api, ApiClientError, type CalendarEntry, type VisualFormatFields } from "@/lib/apiClient";
-import { DEFAULT_DURATION_MS, DEFAULT_SLIDES } from "@/lib/visualDesign/visualFormat";
+import { DEFAULT_DURATION_MS, MAX_DURATION_MS, MIN_DURATION_MS } from "@/lib/visualDesign/visualFormat";
 import { accent, accentAlpha, color, fontHeading } from "@/lib/design/tokens";
 
 type VisualChoice = "animation" | "carousel";
 
-const VISUALS: Record<VisualChoice, { label: string; hint: string; icon: LucideIcon; fields: VisualFormatFields }> = {
-  animation: {
-    label: "Animation",
-    hint: "Quelques secondes qui bougent",
-    icon: Film,
-    fields: { visualFormat: "animation", durationMs: DEFAULT_DURATION_MS },
-  },
-  carousel: {
-    label: "Photo / carrousel",
-    hint: "Une image ou des slides",
-    icon: Images,
-    fields: { visualFormat: "carousel", slideCount: DEFAULT_SLIDES },
-  },
+const VISUALS: Record<VisualChoice, { label: string; hint: string; icon: LucideIcon }> = {
+  animation: { label: "Animation", hint: "Quelques secondes qui bougent", icon: Film },
+  carousel: { label: "Photo / carrousel", hint: "Une image ou des slides", icon: Images },
 };
+
+/** Curseur « nombre d'images » : 1 = image unique, au-delà un carrousel. */
+const MAX_IMAGES = 7;
+const DEFAULT_IMAGES = 1;
+const DEFAULT_SECONDS = Math.round(DEFAULT_DURATION_MS / 1000);
+
+/** Réglages du visuel choisi : nombre d'images, ou durée de l'animation. */
+export interface VisualSettings {
+  images: number;
+  seconds: number;
+}
+
+function visualFields(visual: VisualChoice, settings: VisualSettings): VisualFormatFields {
+  if (visual === "animation") return { visualFormat: "animation", durationMs: settings.seconds * 1000 };
+  return settings.images <= 1 ? { visualFormat: "single" } : { visualFormat: "carousel", slideCount: settings.images };
+}
 
 /**
  * Ce que le choix devient : un seul post. Texte seul → post texte ; un visuel, avec ou sans texte →
  * post visuel dont la légende est un vrai texte rédigé, ou seulement une légende courte.
  */
-export function generationRequest(visual: VisualChoice | null, text: boolean) {
+export function generationRequest(
+  visual: VisualChoice | null,
+  text: boolean,
+  settings: VisualSettings = { images: DEFAULT_IMAGES, seconds: DEFAULT_SECONDS }
+) {
   if (!visual) return text ? { contentType: "text" as const, fields: undefined } : null;
-  return { contentType: "visual" as const, fields: { ...VISUALS[visual].fields, withText: text } };
+  return { contentType: "visual" as const, fields: { ...visualFields(visual, settings), withText: text } };
+}
+
+function Slider({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (v: number) => void;
+  disabled: boolean;
+}) {
+  return (
+    <label style={{ display: "block", marginTop: 18 }}>
+      <span style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 8 }}>
+        <span>{label}</span>
+      </span>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={1}
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(Number(e.target.value))}
+        style={{ width: "100%", accentColor: accent }}
+      />
+      <span style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: color.textFaint }}>
+        <span>{min}</span>
+        <span>{max}</span>
+      </span>
+    </label>
+  );
 }
 
 function ChoiceCard({
@@ -106,10 +154,12 @@ export default function ScriptFormatChooser({
   const router = useRouter();
   const [visual, setVisual] = useState<VisualChoice | null>(null);
   const [text, setText] = useState(true);
+  const [images, setImages] = useState(DEFAULT_IMAGES);
+  const [seconds, setSeconds] = useState(DEFAULT_SECONDS);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const request = generationRequest(visual, text);
+  const request = generationRequest(visual, text, { images, seconds });
 
   async function generate() {
     if (!entry || !request || generating) return;
@@ -144,6 +194,26 @@ export default function ScriptFormatChooser({
         ))}
         <ChoiceCard label="Texte" hint="Un post écrit" icon={Type} selected={text} disabled={generating} onClick={() => setText((t) => !t)} />
       </div>
+      {visual === "carousel" && (
+        <Slider
+          label={images <= 1 ? "1 image" : `${images} images · carrousel`}
+          value={images}
+          min={1}
+          max={MAX_IMAGES}
+          onChange={setImages}
+          disabled={generating}
+        />
+      )}
+      {visual === "animation" && (
+        <Slider
+          label={`Durée · ${seconds} secondes`}
+          value={seconds}
+          min={MIN_DURATION_MS / 1000}
+          max={MAX_DURATION_MS / 1000}
+          onChange={setSeconds}
+          disabled={generating}
+        />
+      )}
       {error && <p style={{ margin: "16px 0 0", fontSize: 13, color: color.danger }}>{error}</p>}
       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12, marginTop: 22 }}>
         {!request && <span style={{ fontSize: 13, color: color.textMuted }}>Choisis au moins un format.</span>}

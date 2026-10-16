@@ -16,10 +16,22 @@ describe("generationRequest", () => {
     });
   });
 
-  it("photo / carrousel seul → post visuel à légende courte", () => {
+  it("photo seule (1 image) → image unique à légende courte", () => {
     expect(generationRequest("carousel", false)).toMatchObject({
       contentType: "visual",
-      fields: { visualFormat: "carousel", withText: false },
+      fields: { visualFormat: "single", withText: false },
+    });
+  });
+
+  it("plusieurs images → carrousel du nombre choisi", () => {
+    expect(generationRequest("carousel", true, { images: 5, seconds: 8 })).toMatchObject({
+      fields: { visualFormat: "carousel", slideCount: 5, withText: true },
+    });
+  });
+
+  it("animation → durée choisie en millisecondes", () => {
+    expect(generationRequest("animation", true, { images: 1, seconds: 12 })).toMatchObject({
+      fields: { visualFormat: "animation", durationMs: 12000 },
     });
   });
 
