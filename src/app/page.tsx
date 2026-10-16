@@ -1,37 +1,16 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { api } from "@/lib/apiClient";
-import { color } from "@/lib/design/tokens";
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import LandingPage from "@/components/landing/LandingPage";
+import { resolveSignedInDestination } from "@/lib/auth/entry";
 
-export default function RootPage() {
-  const router = useRouter();
-  const [checking, setChecking] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
+// Composant serveur (docs/SPEC_SEO.md §1) : la landing arrive complète dans le HTML, titres et
+// texte compris — c'est ce que lisent les moteurs et les aperçus de liens (WhatsApp, LinkedIn,
+// Slack), qui n'exécutent pas de JavaScript. Un utilisateur déjà connecté est redirigé côté
+// serveur, sans l'écran blanc que produisait l'ancienne vérification au montage.
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
-  useEffect(() => {
-    (async () => {
-      const { user } = await api.me();
-      if (!user) {
-        setChecking(false);
-        return;
-      }
-      setAuthenticated(true);
-      const { profile } = await api.getProfile();
-      router.replace(profile ? "/calendar" : "/onboarding");
-    })();
-  }, [router]);
-
-  if (checking) {
-    return <div style={{ height: "100vh", width: "100%", background: color.pageBg }} />;
-  }
-
-  if (authenticated) {
-    // Redirection en cours vers /calendar ou /onboarding — évite un flash de landing page.
-    return <div style={{ height: "100vh", width: "100%", background: color.pageBg }} />;
-  }
-
+export default async function RootPage() {
+  const destination = await resolveSignedInDestination();
+  if (destination) redirect(destination);
   return <LandingPage />;
 }
