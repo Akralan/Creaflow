@@ -8,6 +8,7 @@ import { api, type Connection } from "@/lib/apiClient";
 import { getVertical } from "@/lib/verticals/registry";
 import type { OnboardingStep, OnboardingStepContext, VerticalId } from "@/lib/verticals/types";
 import { accent, accentAlpha, color, fontHeading } from "@/lib/design/tokens";
+import BrandMark from "@/components/BrandMark";
 
 /**
  * Coquille de l'onboarding : progression, onglets, navigation. Elle ne connaît AUCUNE verticale —
@@ -120,22 +121,7 @@ function OnboardingContent() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 9,
-              background: accent,
-              color: "#fff",
-              display: "grid",
-              placeItems: "center",
-              fontFamily: fontHeading,
-              fontWeight: 700,
-              fontSize: 17,
-            }}
-          >
-            C
-          </div>
+          <BrandMark size={32} />
           <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, letterSpacing: "-0.02em" }}>
             CreaFlow
           </span>

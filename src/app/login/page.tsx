@@ -7,7 +7,8 @@ import Button from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import OAuthProviderButtons from "@/components/OAuthProviderButtons";
 import { api, ApiClientError } from "@/lib/apiClient";
-import { accent, color, fontHeading } from "@/lib/design/tokens";
+import { color, fontHeading } from "@/lib/design/tokens";
+import BrandMark from "@/components/BrandMark";
 
 type Mode = "login" | "signup" | "forgot";
 
@@ -90,22 +91,7 @@ function LoginContent() {
     >
       <div style={{ width: "100%", maxWidth: 400 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 32 }}>
-          <div
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 11,
-              background: accent,
-              color: "#fff",
-              display: "grid",
-              placeItems: "center",
-              fontFamily: fontHeading,
-              fontWeight: 700,
-              fontSize: 20,
-            }}
-          >
-            C
-          </div>
+          <BrandMark size={38} />
           <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 22, letterSpacing: "-0.02em" }}>
             CreaFlow
           </span>
