@@ -3,13 +3,14 @@ import { z } from "zod";
 import { requireUserId } from "@/lib/auth/session";
 import { handleApiError } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
-import { createDesignForScript, deleteDesign, patchDesign, toApiDesign, MAX_DESIGN_SLIDES } from "@/lib/services/visualDesignService";
+import { createDesignForScript, deleteDesign, patchDesign, toApiDesignWithAssets, MAX_DESIGN_SLIDES } from "@/lib/services/visualDesignService";
 import { DESIGN_FORMATS } from "@/lib/visualDesign/formats";
+import { MAX_DESIGN_IMAGES } from "@/lib/visualDesign/designImages";
 import { MAX_SLIDE_HTML_BYTES } from "@/lib/visualDesign/htmlSanitizer";
 
 const createSchema = z.object({
-  baseKind: z.enum(["generated", "asset", "none"]),
-  baseAssetId: z.uuid().optional().nullable(),
+  // Photos de la bibliothèque, dans l'ordre (docs/SPEC_COMPOSITION_VISUELLE.md §2) ; vide = sans photo.
+  assetIds: z.array(z.uuid()).max(MAX_DESIGN_IMAGES).default([]),
   format: z.enum(Object.keys(DESIGN_FORMATS) as [string, ...string[]]).optional(),
 });
 
@@ -19,38 +20,38 @@ const patchSchema = z.object({
     .max(MAX_DESIGN_SLIDES)
     .optional(),
   theme: z.unknown().optional(),
+  images: z.array(z.unknown()).max(MAX_DESIGN_IMAGES).optional(),
   // Animation : ligne de temps et durée (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §5.2).
   timeline: z.array(z.unknown()).max(24).optional(),
   durationMs: z.number().int().optional(),
 });
 
-/** Création de la maquette par l'agent (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §5.3). */
+/** Création (ou recomposition) de la maquette par l'agent (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §5.3). */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userId = await requireUserId();
     const { id } = await params;
-    // Un appel LLM long (toutes les slides) — même limite que la génération d'image.
+    // Un appel LLM long (toutes les slides), plus d'éventuels détourages.
     await enforceRateLimit("design-compose", userId, 10, 60);
     const body = createSchema.parse(await request.json());
     const { design, rationale } = await createDesignForScript(userId, id, {
-      baseKind: body.baseKind,
-      baseAssetId: body.baseAssetId ?? null,
+      assetIds: body.assetIds,
       format: body.format as keyof typeof DESIGN_FORMATS | undefined,
     });
-    return NextResponse.json({ design: toApiDesign(design), rationale }, { status: 201 });
+    return NextResponse.json({ design: await toApiDesignWithAssets(design), rationale }, { status: 201 });
   } catch (error) {
     return handleApiError(error);
   }
 }
 
-/** Retouche manuelle : HTML des slides et/ou thème, repassés par la liste blanche côté serveur. */
+/** Retouche manuelle : HTML des slides, thème, photos, repassés par la liste blanche côté serveur. */
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userId = await requireUserId();
     const { id } = await params;
     const body = patchSchema.parse(await request.json());
     const design = await patchDesign(userId, id, body);
-    return NextResponse.json({ design: toApiDesign(design) });
+    return NextResponse.json({ design: await toApiDesignWithAssets(design) });
   } catch (error) {
     return handleApiError(error);
   }

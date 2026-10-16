@@ -30,10 +30,8 @@ function getBucket(): string {
   return bucket;
 }
 
-// Aucune transformation des bytes ici, jamais — cf. docs/SPEC_RESSOURCES_VISUELLES.md §6.2 (AI Act) :
-// une image générée par Nano Banana doit être uploadée telle quelle pour ne pas dépouiller un
-// éventuel filigrane/métadonnées embarqués par l'API. Le redimensionnement (sharp) n'a sa place que
-// dans les services d'ingestion, jamais dans ce module.
+// Aucune transformation des bytes ici : ce module stocke et relit, le redimensionnement (sharp)
+// n'a sa place que dans les services (ingestion, détourage).
 export const r2Storage: ObjectStorage = {
   async upload(key, body, contentType) {
     await getClient().send(

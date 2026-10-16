@@ -396,8 +396,8 @@ export async function patchScriptContent(userId: string, scriptId: string, patch
 /**
  * Suppression d'un brouillon (docs/SPEC_MATIERE_EDITEUR.md §4.5) — pendant de la naissance
  * paresseuse. Cascade DB déjà en place pour scriptGenerationEvents/scriptMicroEditEvents/
- * postMetrics/postMatchCandidates ; SET NULL déjà en place pour generatedImages.scriptId et
- * calendarEntries.scriptId (le créneau survit et redevient générable).
+ * postMetrics/postMatchCandidates/visualDesigns ; SET NULL déjà en place pour calendarEntries.scriptId
+ * (le créneau survit et redevient générable).
  */
 export async function deleteScriptForUser(userId: string, scriptId: string) {
   const [deleted] = await db

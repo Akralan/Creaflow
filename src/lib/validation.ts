@@ -40,5 +40,3 @@ export const MAX_NOTION_DEPTH = 3;
 // issues, dont on ne garde que les terminées.
 export const MAX_LINEAR_UPDATES = 50;
 export const MAX_LINEAR_ISSUES = 100;
-// Nano Banana en édition conditionnée fonctionne mieux avec peu d'images de référence.
-export const MAX_GENERATE_IMAGE_SOURCE_ASSETS = 4;

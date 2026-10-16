@@ -1,4 +1,5 @@
 import { resolveDesignFont } from "./fonts";
+import { parseImagePlaceholder } from "./designImages";
 
 /**
  * Liste blanche et normalisation du HTML d'une slide (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §5.1).
@@ -10,7 +11,6 @@ import { resolveDesignFont } from "./fonts";
 export const MAX_LAYERS_PER_SLIDE = 12;
 export const MAX_SLIDE_HTML_BYTES = 24 * 1024;
 
-export const BASE_IMAGE_PLACEHOLDER = "{{BASE_IMAGE}}";
 export const LOGO_PLACEHOLDER = "{{LOGO}}";
 
 const ALLOWED_TAGS = new Set(["div", "span", "p", "h1", "h2", "h3", "h4", "strong", "em", "br", "img"]);
@@ -94,6 +94,15 @@ const ALLOWED_CSS_PROPS = new Set([
   "transform",
   "transform-origin",
   "filter",
+  // Montages (docs/SPEC_COMPOSITION_VISUELLE.md §2 « Liste blanche ») : photo en rond ou en
+  // médaillon, cadres. `backdrop-filter` écarté (mal rendu par html-to-image).
+  "clip-path",
+  "outline",
+  "outline-color",
+  "outline-width",
+  "outline-style",
+  "outline-offset",
+  "aspect-ratio",
 ]);
 
 const FORBIDDEN_VALUE_RE = /url\s*\(|expression\s*\(|@import|javascript:|<|>|\\/i;
@@ -315,8 +324,8 @@ export function parseStyle(style: string, issues: string[], where: string): Styl
       issues.push(`${where} : valeur trop longue pour « ${prop} »`);
       continue;
     }
-    // Une image de fond passe par <img src="{{BASE_IMAGE}}"> (url() est banni plus haut, placeholder
-    // compris) : ici seuls une couleur ou un gradient sont acceptés.
+    // Une photo passe par <img src="{{IMG:p1}}"> (url() est banni plus haut, placeholder compris) :
+    // ici seuls une couleur ou un gradient sont acceptés.
     if ((prop === "background-image" || prop === "background") && /gradient|image/i.test(value) && !GRADIENT_RE.test(value)) {
       issues.push(`${where} : « ${prop} » n'accepte qu'une couleur ou un gradient`);
       continue;
@@ -351,6 +360,8 @@ export interface SanitizeOptions {
   width: number;
   height: number;
   hasLogo: boolean;
+  /** Références de photo déclarées sur la maquette (`p1`…) : seules celles-ci sont acceptées en `src`. */
+  imageRefs: string[];
 }
 
 export interface SanitizedSlide {
@@ -358,7 +369,8 @@ export interface SanitizedSlide {
   layerCount: number;
   /** Identifiants data-layer des enfants directs, dans l'ordre — la ligne de temps s'y rattache. */
   layerIds: string[];
-  usesBaseImage: boolean;
+  /** Références de photo effectivement utilisées par la slide. */
+  imageRefs: string[];
 }
 
 function serializeElement(el: DesignElement): string {
@@ -391,7 +403,7 @@ export function sanitizeSlideHtml(html: string, options: SanitizeOptions): Sanit
   if (!root) throw new DesignValidationError(issues.length ? issues : ["aucun élément racine"]);
   if (root.tag !== "div") issues.push(`la racine doit être un <div>, pas <${root.tag}>`);
 
-  let usesBaseImage = false;
+  const usedImageRefs = new Set<string>();
   const layerIds = new Set<string>();
 
   // Attributs & styles de chaque élément.
@@ -404,10 +416,13 @@ export function sanitizeSlideHtml(html: string, options: SanitizeOptions): Sanit
     }
     if (node.tag === "img") {
       const src = node.attrs.src ?? "";
-      if (src === BASE_IMAGE_PLACEHOLDER) usesBaseImage = true;
-      else if (src === LOGO_PLACEHOLDER) {
+      const ref = parseImagePlaceholder(src);
+      if (ref) {
+        if (options.imageRefs.includes(ref)) usedImageRefs.add(ref);
+        else issues.push(`${path} : photo « ${ref} » non déclarée sur cette maquette`);
+      } else if (src === LOGO_PLACEHOLDER) {
         if (!options.hasLogo) issues.push(`${path} : {{LOGO}} utilisé sans logo défini`);
-      } else issues.push(`${path} : src d'image interdit (seuls {{BASE_IMAGE}} et {{LOGO}} sont acceptés)`);
+      } else issues.push(`${path} : src d'image interdit (seuls {{IMG:p1}}… et {{LOGO}} sont acceptés)`);
       if (!node.attrs.alt) node.attrs.alt = "";
     } else if ("src" in node.attrs) {
       issues.push(`${path} : src sur une balise <${node.tag}>`);
@@ -477,7 +492,7 @@ export function sanitizeSlideHtml(html: string, options: SanitizeOptions): Sanit
   if (Buffer.byteLength(serialized, "utf8") > MAX_SLIDE_HTML_BYTES) {
     throw new DesignValidationError([`HTML trop volumineux après normalisation (${Math.round(Buffer.byteLength(serialized, "utf8") / 1024)} Ko, max ${MAX_SLIDE_HTML_BYTES / 1024})`]);
   }
-  return { html: serialized, layerCount: layers.length, layerIds: [...layerIds], usesBaseImage };
+  return { html: serialized, layerCount: layers.length, layerIds: [...layerIds], imageRefs: [...usedImageRefs] };
 }
 
 function containsImage(el: DesignElement): boolean {

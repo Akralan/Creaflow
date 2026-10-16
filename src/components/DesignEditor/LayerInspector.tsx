@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 import { color } from "@/lib/design/tokens";
 import { DESIGN_FONTS } from "@/lib/visualDesign/fonts";
 import { DEFAULT_ENTER_MS, ENTER_EFFECTS, EXIT_EFFECTS, MAX_ENTER_MS, MIN_ENTER_MS } from "@/lib/visualDesign/timeline";
-import type { TimelineEntry } from "@/lib/apiClient";
+import type { DesignImage, DesignImageVariant, TimelineEntry } from "@/lib/apiClient";
 import type { LayerInfo } from "./designDom";
 
 const fieldLabel: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: color.textMuted, marginBottom: 4 };
@@ -32,10 +32,23 @@ function toHex(value: string | undefined): string {
   return "#000000";
 }
 
+/** Section photo de l'inspecteur (docs/SPEC_COMPOSITION_VISUELLE.md §2 « Inspecteur d'un calque image »). */
+export interface ImageInspectorProps {
+  /** Photos déclarées sur la maquette (pour remplacer la photo du calque). */
+  images: DesignImage[];
+  cutoutAvailable: boolean;
+  /** Détourage en cours pour cette référence. */
+  busyRef: string | null;
+  onVariant: (ref: string, variant: DesignImageVariant) => void;
+  onReplace: (ref: string) => void;
+  onImageStyle: (styles: Record<string, string | null>) => void;
+}
+
 /**
  * Le minimum utile pour retoucher un calque à la main (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2
  * « Édition manuelle ») : police, taille, graisse, couleur, alignement, fond, opacité, ordre,
- * suppression. Tout le reste passe par l'instruction à l'agent.
+ * suppression ; pour une photo, variante, ajustement, forme, remplacement. Tout le reste passe par
+ * l'instruction à l'agent.
  */
 export default function LayerInspector({
   layer,
@@ -43,11 +56,14 @@ export default function LayerInspector({
   onMove,
   onDelete,
   animation,
+  image,
 }: {
   layer: LayerInfo;
   onStyle: (styles: Record<string, string | null>) => void;
   onMove: (direction: "up" | "down") => void;
   onDelete: () => void;
+  /** Présent pour un calque image qui affiche une photo de la maquette. */
+  image?: ImageInspectorProps;
   /** Maquette animée (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §6) : entrée de ce calque dans la
    *  ligne de temps (null = visible tout du long) et durée totale. Absent pour une maquette statique. */
   animation?: { entry: TimelineEntry | null; durationMs: number; onChange: (entry: TimelineEntry | null) => void };
@@ -176,12 +192,88 @@ export default function LayerInspector({
           />
         </div>
       </div>
+      {image && layer.imageRef && <ImageSection layer={layer} imageRef={layer.imageRef} onStyle={onStyle} {...image} />}
       {animation && (
         <AnimationSection layerId={layer.id} entry={animation.entry} durationMs={animation.durationMs} onChange={animation.onChange} />
       )}
       <div>
         <div style={fieldLabel}>Arrondi</div>
         <input style={input} type="number" min={0} max={400} value={px(layer.style["border-radius"])} onChange={(e) => onStyle({ "border-radius": e.target.value ? `${e.target.value}px` : null })} />
+      </div>
+    </div>
+  );
+}
+
+function ImageSection({
+  layer,
+  imageRef,
+  images,
+  cutoutAvailable,
+  busyRef,
+  onVariant,
+  onReplace,
+  onImageStyle,
+  onStyle,
+}: ImageInspectorProps & { layer: LayerInfo; imageRef: string; onStyle: (styles: Record<string, string | null>) => void }) {
+  const current = images.find((i) => i.ref === imageRef) ?? null;
+  const variant = current?.variant ?? "original";
+  const isRound = (layer.style["clip-path"] ?? "").startsWith("circle(");
+  const fit = layer.imageStyle["object-fit"] ?? "cover";
+  const busy = busyRef === imageRef;
+  return (
+    <div style={{ borderTop: `1px solid ${color.divider}`, paddingTop: 10, display: "grid", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {current?.thumbnailUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={current.thumbnailUrl} alt="" style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 6, border: `1px solid ${color.border}` }} />
+        )}
+        <div style={{ flex: 1 }}>
+          <div style={fieldLabel}>Photo</div>
+          <select style={input} value={imageRef} onChange={(e) => e.target.value !== imageRef && onReplace(e.target.value)}>
+            {images.map((i) => (
+              <option key={i.ref} value={i.ref}>
+                {i.ref}
+                {i.variant === "cutout" ? " · détourée" : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <div>
+        <div style={fieldLabel}>Variante</div>
+        <div style={{ display: "flex", gap: 4 }}>
+          <button style={{ ...iconBtn, flex: 1, fontWeight: variant === "original" ? 700 : 400 }} disabled={busy} onClick={() => onVariant(imageRef, "original")}>
+            Entière
+          </button>
+          <button
+            style={{ ...iconBtn, flex: 1, fontWeight: variant === "cutout" ? 700 : 400 }}
+            disabled={busy || (!cutoutAvailable && !current?.hasCutout)}
+            title={!cutoutAvailable && !current?.hasCutout ? "Détourage non configuré sur ce serveur" : "Sujet détouré, fond transparent"}
+            onClick={() => onVariant(imageRef, "cutout")}
+          >
+            {busy ? "Détourage…" : "Détourée"}
+          </button>
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div>
+          <div style={fieldLabel}>Ajustement</div>
+          <select style={input} value={fit} onChange={(e) => onImageStyle({ "object-fit": e.target.value })}>
+            <option value="cover">Remplir (recadre)</option>
+            <option value="contain">Entière (sans recadrer)</option>
+          </select>
+        </div>
+        <div>
+          <div style={fieldLabel}>Forme</div>
+          <div style={{ display: "flex", gap: 4 }}>
+            <button style={{ ...iconBtn, flex: 1, fontWeight: isRound ? 400 : 700 }} onClick={() => onStyle({ "clip-path": null })}>
+              ▭
+            </button>
+            <button style={{ ...iconBtn, flex: 1, fontWeight: isRound ? 700 : 400 }} title="Médaillon rond" onClick={() => onStyle({ "clip-path": "circle(50% at 50% 50%)" })}>
+              ◯
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

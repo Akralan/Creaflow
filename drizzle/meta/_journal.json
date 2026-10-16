@@ -232,6 +232,20 @@
       "when": 1789679602718,
       "tag": "0032_known_maestro",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1792103054136,
+      "tag": "0033_composition_visuelle_ajouts",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792103069165,
+      "tag": "0034_composition_visuelle_retraits",
+      "breakpoints": true
     }
   ]
 }

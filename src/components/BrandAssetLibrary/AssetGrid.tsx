@@ -9,16 +9,25 @@ const STATUS_LABEL: Record<BrandAsset["status"], string> = {
   unreachable: "Reconnexion nécessaire",
 };
 
+/** Damier derrière un détouré, pour voir la transparence. */
+const CHECKER = "repeating-conic-gradient(#e7e0d4 0% 25%, #f7f3ec 0% 50%) 0 0 / 16px 16px";
+
 export default function AssetGrid({
   assets,
   selectedIds,
   onToggle,
   onDelete,
+  cutout,
+  maxSelected,
 }: {
   assets: BrandAsset[];
   selectedIds: string[];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  /** Détourage depuis la carte (docs/SPEC_COMPOSITION_VISUELLE.md §6 « Bibliothèque ») ; absent = pas d'action. */
+  cutout?: { available: boolean; busyId: string | null; onCutout: (id: string) => void };
+  /** Au-delà, les cartes non sélectionnées deviennent inactives. */
+  maxSelected?: number;
 }) {
   if (assets.length === 0) {
     return (
@@ -27,12 +36,15 @@ export default function AssetGrid({
       </p>
     );
   }
+  const full = maxSelected !== undefined && selectedIds.length >= maxSelected;
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))", gap: 10 }}>
       {assets.map((asset) => {
         const selected = selectedIds.includes(asset.id);
-        const selectable = asset.status === "ready";
+        const selectable = asset.status === "ready" && (selected || !full);
+        const showCutout = Boolean(asset.cutoutUrl);
+        const cutoutBusy = cutout?.busyId === asset.id;
         return (
           <div
             key={asset.id}
@@ -44,15 +56,16 @@ export default function AssetGrid({
               overflow: "hidden",
               border: selected ? "2px solid oklch(0.55 0.2 292)" : `1px solid ${color.border}`,
               cursor: selectable ? "pointer" : "default",
-              background: asset.status === "unreachable" ? "oklch(0.62 0.15 25 / 0.08)" : color.trackBg,
+              opacity: asset.status === "ready" && !selectable ? 0.45 : 1,
+              background: asset.status === "unreachable" ? "oklch(0.62 0.15 25 / 0.08)" : showCutout ? CHECKER : color.trackBg,
             }}
           >
-            {asset.thumbnailUrl ? (
+            {asset.cutoutUrl || asset.thumbnailUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={asset.thumbnailUrl}
+                src={asset.cutoutUrl ?? asset.thumbnailUrl ?? ""}
                 alt={asset.aiDescription || ""}
-                style={{ width: "100%", height: "100%", objectFit: "cover", opacity: asset.status === "ready" ? 1 : 0.5 }}
+                style={{ width: "100%", height: "100%", objectFit: showCutout ? "contain" : "cover", opacity: asset.status === "ready" ? 1 : 0.5 }}
               />
             ) : (
               <div
@@ -78,6 +91,37 @@ export default function AssetGrid({
                 }}
               >
                 {STATUS_LABEL[asset.status]}
+              </div>
+            )}
+
+            {cutout && asset.status === "ready" && !showCutout && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (cutout.available && !cutoutBusy) cutout.onCutout(asset.id);
+                }}
+                disabled={!cutout.available || cutoutBusy}
+                title={cutout.available ? "Détourer le sujet (fond transparent)" : "Détourage non configuré sur ce serveur"}
+                style={{
+                  position: "absolute",
+                  inset: "auto 6px 6px auto",
+                  border: "none",
+                  borderRadius: 999,
+                  padding: "3px 8px",
+                  fontSize: 10,
+                  fontWeight: 600,
+                  background: "rgba(28,25,23,0.7)",
+                  color: "#fff",
+                  cursor: cutout.available ? "pointer" : "default",
+                  opacity: cutout.available ? 1 : 0.5,
+                }}
+              >
+                {cutoutBusy ? "…" : "Détourer"}
+              </button>
+            )}
+            {showCutout && (
+              <div style={{ position: "absolute", inset: "6px auto auto 30px", fontSize: 10, fontWeight: 600, padding: "2px 6px", borderRadius: 999, background: "rgba(28,25,23,0.7)", color: "#fff" }}>
+                détourée
               </div>
             )}
 
