@@ -590,7 +590,11 @@ export async function resolveDailyDirection(
 
     const result = await chooseDailyDirection(dailyContext);
 
-    const beat = result.beatId ? state.beats.find((b) => b.id === result.beatId) : undefined;
+    // En feuilleton, l'épisode est imposé, pas laissé au modèle : il lui arrivait de répondre « aucun
+    // épisode » alors qu'un seul lui était proposé — le script naissait sans épisode, et le plan
+    // reproposait indéfiniment le même. Le modèle décide du concept, pas de la place dans l'arc.
+    const imposed = mode === "feuilleton" ? nextEpisode(state.beats, params.lockedBeatId ?? null) : null;
+    const beat = imposed ?? (result.beatId ? state.beats.find((b) => b.id === result.beatId) : undefined);
     return {
       stateId: state.id,
       beatId: beat ? beat.id : null, // ignore un beatId halluciné ne correspondant à aucun beat connu
