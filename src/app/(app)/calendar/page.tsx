@@ -40,14 +40,12 @@ function weekLabel(monday: Date): string {
     : `Du ${full.format(monday)} au ${full.format(sunday)}`;
 }
 
-/** Fin de la semaine dans la bande : ce qui suit appartient aux semaines d'après. */
+/** Fin de la semaine dans la bande : une ligne pleine largeur, ce qui suit commence une rangée. */
 function StripDivider() {
   return (
-    <div aria-hidden style={{ flex: "0 0 auto", alignSelf: "stretch", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: "0 2px" }}>
-      <span style={{ fontFamily: fontMono, fontSize: 11, letterSpacing: "0.08em", color: "#8a7f74", writingMode: "vertical-rl", transform: "rotate(180deg)" }}>
-        ENSUITE
-      </span>
-      <span style={{ flex: 1, width: 1, background: "rgba(34,29,25,0.14)" }} />
+    <div aria-hidden style={{ flex: "0 0 100%", display: "flex", alignItems: "center", gap: 12 }}>
+      <span style={{ fontFamily: fontMono, fontSize: 11, letterSpacing: "0.08em", color: "#8a7f74" }}>ENSUITE</span>
+      <span style={{ flex: 1, height: 1, background: "rgba(34,29,25,0.14)" }} />
     </div>
   );
 }

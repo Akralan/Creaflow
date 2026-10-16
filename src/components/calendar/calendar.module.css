@@ -1,19 +1,17 @@
 /* Calendrier semaine : une bande de posts côte à côte sur grand écran, une liste de titres sur
    téléphone. Même langage que les cartes de la landing (PostFan). */
 
+/* Les posts passent à la ligne : rien ne doit se cacher à droite derrière un défilement. */
 .strip {
   display: flex;
-  gap: 22px;
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
-  padding: 6px 4px 28px;
-  margin: 0 -4px;
+  flex-wrap: wrap;
+  gap: 28px 22px;
+  padding: 6px 0 28px;
 }
 
 .slot {
   flex: 0 0 auto;
   width: var(--card-w, 236px);
-  scroll-snap-align: start;
   display: flex;
   flex-direction: column;
   gap: 10px;
