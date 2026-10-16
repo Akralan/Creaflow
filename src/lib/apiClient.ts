@@ -480,6 +480,8 @@ export interface OnboardingDraft {
   targetAudience: string;
   subjects: OnboardingSubjectDraft[];
   extracted: boolean;
+  /** Raison lisible quand la lecture par l'IA a échoué. */
+  failureReason: string | null;
 }
 
 /** Fichier déposé dans la conversation de l'assistant, en attente d'être rangé en matière

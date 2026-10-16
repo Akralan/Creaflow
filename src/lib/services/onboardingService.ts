@@ -117,8 +117,29 @@ async function excerptForSource(sourceId: string): Promise<string> {
 }
 
 export interface OnboardingDraft extends ExtractedProfile {
-  /** Faux quand le modèle n'a pas répondu : l'écran affiche alors des champs vides à remplir. */
+  /** Faux quand le modèle n'a pas répondu : l'écran affiche la raison et relance, ou laisse
+   *  remplir à la main à partir des sujets de repli (une source = un sujet). */
   extracted: boolean;
+  /** Raison lisible de l'échec, null quand l'extraction a réussi. */
+  failureReason: string | null;
+}
+
+/**
+ * Traduit une erreur du fournisseur LLM en phrase pour l'écran. L'erreur brute reste dans les logs :
+ * la personne a besoin de savoir si ça vaut la peine de réessayer, pas du code HTTP.
+ */
+export function llmFailureMessage(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error);
+  if (/credit|quota|billing|insufficient/i.test(raw)) {
+    return "Le service d'IA a refusé la demande : le compte OpenAI n'a plus de crédits.";
+  }
+  if (/\b401\b|api key|unauthori[sz]ed|incorrect.*key/i.test(raw)) {
+    return "Le service d'IA n'est pas configuré : la clé OpenAI est absente ou invalide.";
+  }
+  if (/\b429\b|rate limit/i.test(raw)) {
+    return "Le service d'IA est saturé pour le moment.";
+  }
+  return "Le service d'IA n'a pas répondu.";
 }
 
 /** Écran 3 : lit la matière branchée et propose profil + sujets regroupés. N'écrit rien. */
@@ -151,14 +172,20 @@ export async function draftOnboardingProfile(userId: string, name: string): Prom
       identities: accounts.map((a) => ({ provider: identityProviderLabel(a.provider), login: a.login, name: a.name, bio: a.bio })),
       items,
     });
-    return { ...extracted, extracted: true };
+    return { ...extracted, extracted: true, failureReason: null };
   } catch (error) {
-    // Jamais bloquant : sans réponse du modèle, la personne remplit elle-même, chaque source
-    // devenant son propre sujet (spec §4).
-    logger.warn("Extraction du profil d'onboarding impossible, champs laissés vides", {
+    // Jamais bloquant : l'écran affiche la raison et relance ; à défaut, la personne remplit
+    // elle-même à partir de ces sujets de repli, chaque source devenant le sien (spec §4).
+    logger.warn("Extraction du profil d'onboarding impossible", {
       error: error instanceof Error ? error.message : String(error),
     });
-    return { activityType: "", targetAudience: "", subjects: normalizeSubjects([], items), extracted: false };
+    return {
+      activityType: "",
+      targetAudience: "",
+      subjects: normalizeSubjects([], items),
+      extracted: false,
+      failureReason: llmFailureMessage(error),
+    };
   }
 }
 
@@ -295,8 +322,15 @@ export async function completeOnboarding(userId: string, input: CompleteOnboardi
     }
   });
 
-  if ((await listActiveCategoriesForUser(userId)).length === 0) await generateCategoriesForUser(userId);
-  if ((await listActiveAnglesForUser(userId)).length === 0) await generateAnglesForUser(userId);
+  try {
+    if ((await listActiveCategoriesForUser(userId)).length === 0) await generateCategoriesForUser(userId);
+    if ((await listActiveAnglesForUser(userId)).length === 0) await generateAnglesForUser(userId);
   // Dépend des rôles générés juste au-dessus.
-  if ((await listActiveSeriesForUser(userId)).length === 0) await generateSeriesForUser(userId);
+    if ((await listActiveSeriesForUser(userId)).length === 0) await generateSeriesForUser(userId);
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    logger.error("Génération de fin d'onboarding échouée (profil enregistré)", error);
+    // Le profil et les sujets sont écrits : relancer ne refait que ce qui manque.
+    throw new ApiError(503, `${llmFailureMessage(error)} Tes réponses sont enregistrées, réessaie dans un instant.`);
+  }
 }

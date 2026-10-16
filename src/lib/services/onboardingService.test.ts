@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { planSubjectGrouping } from "./onboardingService";
+import { llmFailureMessage, planSubjectGrouping } from "./onboardingService";
 
 const sources = [
   { id: "gh", productId: "p-gh" },
@@ -45,5 +45,24 @@ describe("planSubjectGrouping", () => {
 
   it("refuse une clé qui n'appartient pas à l'utilisateur", () => {
     expect(() => planSubjectGrouping([{ keys: ["source:etranger"] }], sources, [])).toThrow("inconnue");
+  });
+});
+
+describe("llmFailureMessage", () => {
+  it("dit clairement qu'il n'y a plus de crédits OpenAI", () => {
+    const error = new Error("429 You have no credits remaining. Add credits to continue using the API.");
+    expect(llmFailureMessage(error)).toContain("plus de crédits");
+  });
+
+  it("distingue une clé absente ou invalide", () => {
+    expect(llmFailureMessage(new Error("401 Incorrect API key provided"))).toContain("clé OpenAI");
+  });
+
+  it("distingue une saturation passagère", () => {
+    expect(llmFailureMessage(new Error("429 Rate limit reached for requests"))).toContain("saturé");
+  });
+
+  it("retombe sur un message générique", () => {
+    expect(llmFailureMessage(new Error("socket hang up"))).toBe("Le service d'IA n'a pas répondu.");
   });
 });

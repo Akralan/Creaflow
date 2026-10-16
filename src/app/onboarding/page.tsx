@@ -11,7 +11,7 @@ import OnboardingWelcome from "@/components/onboarding/OnboardingWelcome";
 import OnboardingSources from "@/components/onboarding/OnboardingSources";
 import SubjectsEditor, { type SubjectItem } from "@/components/onboarding/SubjectsEditor";
 import PublishingDaysPicker from "@/components/PublishingDaysPicker";
-import { api, ApiClientError, type OnboardingState, type OnboardingSubjectDraft } from "@/lib/apiClient";
+import { api, ApiClientError, type OnboardingDraft, type OnboardingState, type OnboardingSubjectDraft } from "@/lib/apiClient";
 import { publishingDaysLabel } from "@/lib/services/calendarService";
 import { accent, accentAlpha, color, fontHeading } from "@/lib/design/tokens";
 import { DEFAULT_PUBLISHING_DAYS, MAX_PRODUCTS } from "@/lib/validation";
@@ -54,39 +54,123 @@ function monthKeyNow(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function ReadingStep({ lines, onDone }: { lines: string[]; onDone: () => void }) {
+/** Essais automatiques de la lecture avant de rendre la main (bouton « Réessayer »). */
+const MAX_READING_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 4000;
+
+/**
+ * Écran 3 : lecture de la matière par l'IA. Un échec n'est jamais muet : la raison s'affiche, la
+ * lecture se relance seule jusqu'à MAX_READING_ATTEMPTS fois, puis la personne choisit entre
+ * réessayer et remplir à la main (à partir des sujets de repli renvoyés par le serveur).
+ */
+function ReadingStep({
+  lines,
+  load,
+  onSuccess,
+  onManual,
+  onBack,
+}: {
+  lines: string[];
+  load: () => Promise<OnboardingDraft>;
+  onSuccess: (draft: OnboardingDraft) => void;
+  onManual: (fallback: OnboardingDraft | null) => void;
+  onBack: () => void;
+}) {
   const [index, setIndex] = useState(0);
+  const [attempt, setAttempt] = useState(1);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [gaveUp, setGaveUp] = useState(false);
+  const fallback = useRef<OnboardingDraft | null>(null);
+
   useEffect(() => {
     const timer = setInterval(() => setIndex((i) => i + 1), 1400);
     return () => clearInterval(timer);
   }, []);
-  // Déclenché une seule fois, même si React rejoue l'effet en développement.
-  const started = useRef(false);
+
+  // Un essai par valeur de `attempt` — la garde évite le double appel quand React rejoue l'effet
+  // en développement.
+  const startedFor = useRef(0);
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
-    onDone();
-  }, [onDone]);
+    if (startedFor.current === attempt) return;
+    startedFor.current = attempt;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    (async () => {
+      let reason: string;
+      try {
+        const draft = await load();
+        if (draft.extracted) return onSuccess(draft);
+        fallback.current = draft;
+        reason = draft.failureReason ?? "La lecture de ta matière a échoué.";
+      } catch (err) {
+        reason = err instanceof ApiClientError ? err.message : "La lecture de ta matière a échoué.";
+      }
+      setFailure(reason);
+      if (attempt < MAX_READING_ATTEMPTS) {
+        retryTimer = setTimeout(() => setAttempt((a) => a + 1), RETRY_DELAY_MS);
+      } else {
+        setGaveUp(true);
+      }
+    })();
+    return () => clearTimeout(retryTimer);
+  }, [attempt, load, onSuccess]);
+
+  function retry() {
+    setGaveUp(false);
+    setFailure(null);
+    startedFor.current = 0;
+    setAttempt(1);
+  }
+
   const current = lines.length > 0 ? lines[index % lines.length] : "Je lis ta matière…";
   return (
     <div style={{ textAlign: "center", padding: "36px 0 20px" }}>
-      <div
-        aria-hidden
-        style={{
-          width: 54,
-          height: 54,
-          margin: "0 auto 22px",
-          borderRadius: "50%",
-          border: `4px solid ${accentAlpha(0.15)}`,
-          borderTopColor: accent,
-          animation: "cf-onboarding-spin 0.9s linear infinite",
-        }}
-      />
+      {!gaveUp && (
+        <div
+          aria-hidden
+          style={{
+            width: 54,
+            height: 54,
+            margin: "0 auto 22px",
+            borderRadius: "50%",
+            border: `4px solid ${accentAlpha(0.15)}`,
+            borderTopColor: accent,
+            animation: "cf-onboarding-spin 0.9s linear infinite",
+          }}
+        />
+      )}
       <style>{"@keyframes cf-onboarding-spin{to{transform:rotate(360deg)}} @keyframes cf-onboarding-fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}"}</style>
-      <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 22, margin: "0 0 10px" }}>On découvre ce que tu fais</h2>
-      <p key={index} style={{ margin: 0, color: color.textMuted, fontSize: 15, animation: "cf-onboarding-fade .4s ease both" }}>
-        {current}
-      </p>
+      <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 22, margin: "0 0 10px" }}>
+        {gaveUp ? "La lecture n'a pas abouti" : "On découvre ce que tu fais"}
+      </h2>
+      {!gaveUp && (
+        <p key={index} style={{ margin: 0, color: color.textMuted, fontSize: 15, animation: "cf-onboarding-fade .4s ease both" }}>
+          {current}
+        </p>
+      )}
+      {failure && (
+        <div
+          role="alert"
+          style={{ margin: "22px auto 0", maxWidth: 460, padding: "12px 14px", borderRadius: 12, background: "oklch(0.96 0.03 25)", color: color.danger, fontSize: 14, lineHeight: 1.5 }}
+        >
+          {failure}
+          {!gaveUp && (
+            <div style={{ color: color.textMuted, fontSize: 13, marginTop: 4 }}>
+              Nouvel essai dans quelques secondes ({attempt + 1}/{MAX_READING_ATTEMPTS})…
+            </div>
+          )}
+        </div>
+      )}
+      {gaveUp && (
+        <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 10, marginTop: 22 }}>
+          <Button variant="secondary" onClick={onBack}>
+            Précédent
+          </Button>
+          <Button variant="secondary" onClick={() => onManual(fallback.current)}>
+            Remplir à la main
+          </Button>
+          <Button onClick={retry}>Réessayer</Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -159,19 +243,15 @@ function OnboardingContent() {
     [signedIn]
   );
 
-  const runDraft = useCallback(async () => {
-    try {
-      const { draft } = await api.draftOnboardingProfile(name);
-      setActivityType(draft.activityType);
-      setTargetAudience(draft.targetAudience);
-      setSubjects(draft.subjects);
-      setExtracted(draft.extracted);
-      setStep("profile");
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "La lecture de ta matière a échoué.");
-      setStep("sources");
-    }
-  }, [name]);
+  const loadDraft = useCallback(async () => (await api.draftOnboardingProfile(name)).draft, [name]);
+
+  const applyDraft = useCallback((draft: OnboardingDraft | null) => {
+    setActivityType(draft?.activityType ?? "");
+    setTargetAudience(draft?.targetAudience ?? "");
+    setSubjects(draft?.subjects ?? []);
+    setExtracted(Boolean(draft?.extracted));
+    setStep("profile");
+  }, []);
 
   function goNext() {
     setError(null);
@@ -275,7 +355,9 @@ function OnboardingContent() {
             <OnboardingSources state={signedIn} configuredProviderIds={configuredProviderIds} notesOpenInitially={notesOpen} onChanged={reload} />
           )}
 
-          {step === "reading" && <ReadingStep lines={readingLines} onDone={runDraft} />}
+          {step === "reading" && (
+            <ReadingStep lines={readingLines} load={loadDraft} onSuccess={applyDraft} onManual={applyDraft} onBack={() => setStep("sources")} />
+          )}
 
           {step === "profile" && (
             <div style={{ display: "grid", gap: 18 }}>
