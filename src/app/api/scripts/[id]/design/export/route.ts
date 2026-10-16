@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUserId } from "@/lib/auth/session";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
-import { MAX_DESIGN_SLIDES, MAX_EXPORT_BYTES, MAX_VIDEO_EXPORT_BYTES, storeDesignExports, toApiDesign, type ExportFile } from "@/lib/services/visualDesignService";
+import { MAX_DESIGN_SLIDES, MAX_EXPORT_BYTES, MAX_VIDEO_EXPORT_BYTES, storeDesignExports, toApiDesignWithAssets, type ExportFile } from "@/lib/services/visualDesignService";
 
 // video/mp4 : export d'une animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §5.2).
 const ALLOWED_MIME = new Set(["image/png", "image/jpeg", "image/webp", "video/mp4"]);
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
     if (files.length === 0) throw new ApiError(400, "Aucune slide reçue.");
     const design = await storeDesignExports(userId, id, files);
-    return NextResponse.json({ design: toApiDesign(design) });
+    return NextResponse.json({ design: await toApiDesignWithAssets(design) });
   } catch (error) {
     return handleApiError(error);
   }

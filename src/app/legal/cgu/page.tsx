@@ -42,8 +42,8 @@ export default function CguPage() {
 
       <h2 style={sectionTitleStyle}>3. Contenu généré par IA</h2>
       <p>
-        Les scripts, suggestions, maquettes et images produits par {SERVICE_NAME} sont générés par des
-        modèles d&apos;intelligence artificielle tiers. Ils constituent des propositions de départ, pas un
+        Les scripts, suggestions et maquettes de posts visuels produits par {SERVICE_NAME} sont générés
+        par des modèles d&apos;intelligence artificielle tiers, à partir de votre matière et de vos photos. Ils constituent des propositions de départ, pas un
         contenu prêt à publier sans relecture : l&apos;éditeur ne garantit ni l&apos;exactitude, ni la
         pertinence, ni la conformité (droit d&apos;auteur, réglementation publicitaire, image de marque) du
         contenu généré. Vous restez seul responsable du contenu que vous choisissez de publier, et devez
@@ -100,8 +100,9 @@ export default function CguPage() {
         toutes taxes comprises pour un consommateur ; la TVA applicable dépend de la situation du client.
         Une régénération ou une « autre idée » compte comme une génération. Les quotas non utilisés ne
         se reportent pas d&apos;un mois sur l&apos;autre. Un dépassement entraîne le refus de la génération
-        jusqu&apos;au renouvellement ; aucune facturation à l&apos;usage n&apos;est appliquée. La génération
-        d&apos;images est soumise à une limitation de débit raisonnable, destinée à prévenir les abus.
+        jusqu&apos;au renouvellement ; aucune facturation à l&apos;usage n&apos;est appliquée. Le détourage de
+        photos est effectué une seule fois par photo et soumis à une limitation de débit raisonnable,
+        destinée à prévenir les abus.
       </p>
 
       <h2 style={sectionTitleStyle}>7. Commande et paiement</h2>

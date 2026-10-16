@@ -2,27 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { after } from "next/server";
 import { requireUserId } from "@/lib/auth/session";
 import { ApiError, handleApiError } from "@/lib/api/errors";
-import { getObjectStorage } from "@/lib/storage";
 import {
   createUploadedAssets,
   listAssetsForUser,
   processAssetCaptioning,
+  toApiAsset,
   type UploadedFileInput,
 } from "@/lib/services/brandAssetService";
+import { isBackgroundRemovalAvailable } from "@/lib/imaging/backgroundRemoval";
 import { MAX_ASSET_FILE_SIZE_BYTES, MAX_ASSETS_PER_INGESTION } from "@/lib/validation";
 import { logger } from "@/lib/logger";
 
 export async function GET() {
   try {
     const userId = await requireUserId();
-    const storage = getObjectStorage();
     const assets = await listAssetsForUser(userId);
-    return NextResponse.json({
-      assets: assets.map((asset) => ({
-        ...asset,
-        thumbnailUrl: asset.thumbnailKey ? storage.getPublicUrl(asset.thumbnailKey) : null,
-      })),
-    });
+    // `cutoutAvailable` : dit à l'UI si le détourage est configuré (docs/SPEC_COMPOSITION_VISUELLE.md §5.3).
+    return NextResponse.json({ assets: assets.map(toApiAsset), cutoutAvailable: isBackgroundRemovalAvailable() });
   } catch (error) {
     return handleApiError(error);
   }
@@ -66,16 +62,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const storage = getObjectStorage();
-    return NextResponse.json(
-      {
-        assets: created.map((asset) => ({
-          ...asset,
-          thumbnailUrl: asset.thumbnailKey ? storage.getPublicUrl(asset.thumbnailKey) : null,
-        })),
-      },
-      { status: 201 }
-    );
+    return NextResponse.json({ assets: created.map(toApiAsset) }, { status: 201 });
   } catch (error) {
     return handleApiError(error);
   }

@@ -3,12 +3,12 @@ import { DesignValidationError, MAX_LAYERS_PER_SLIDE, parseStyle, sanitizeSlideH
 import { resolveDesignFont, toRenderableFontFamily } from "./fonts";
 import { defaultFormatForPlatform, DESIGN_FORMATS } from "./formats";
 
-const opts = { width: 1080, height: 1350, hasLogo: false };
+const opts = { width: 1080, height: 1350, hasLogo: false, imageRefs: ["p1", "p2"] };
 
 const validSlide = `
 <div style="position:relative;width:1080px;height:1350px;overflow:hidden;background:#111">
   <div data-layer="bg" data-type="image" style="position:absolute;top:0;left:0;width:1080px;height:1350px">
-    <img src="{{BASE_IMAGE}}" alt="" style="width:100%;height:100%;object-fit:cover">
+    <img src="{{IMG:p1}}" alt="" style="width:100%;height:100%;object-fit:cover">
   </div>
   <div data-layer="title" data-type="text" style="position:absolute;top:80px;left:60px;width:960px;font-family:'Playfair Display', serif;font-size:72px;color:#fff">
     Une bougie, <strong>trois</strong> soirs
@@ -29,7 +29,7 @@ describe("sanitizeSlideHtml — HTML valide", () => {
   it("normalise une slide correcte sans la refuser", () => {
     const result = sanitizeSlideHtml(validSlide, opts);
     expect(result.layerCount).toBe(2);
-    expect(result.usesBaseImage).toBe(true);
+    expect(result.imageRefs).toEqual(["p1"]);
     expect(result.html.startsWith('<div style="position:relative;width:1080px;height:1350px;overflow:hidden;background:#111">')).toBe(true);
     expect(result.html).toContain('<div data-layer="bg" data-type="image" style="position:absolute;');
     expect(result.html).toContain("font-family:Playfair Display;");
@@ -45,7 +45,7 @@ describe("sanitizeSlideHtml — HTML valide", () => {
   });
 
   it("attribue des identifiants uniques et devine le type des calques", () => {
-    const html = `<div><div data-layer="a">Texte</div><div data-layer="a"><img src="{{BASE_IMAGE}}"></div><div style="background:#f00;width:10px;height:10px"></div></div>`;
+    const html = `<div><div data-layer="a">Texte</div><div data-layer="a"><img src="{{IMG:p2}}"></div><div style="background:#f00;width:10px;height:10px"></div></div>`;
     const { html: out } = sanitizeSlideHtml(html, opts);
     expect(out).toContain('data-layer="a" data-type="text"');
     expect(out).toContain('data-layer="l2" data-type="image"');
@@ -92,6 +92,20 @@ describe("sanitizeSlideHtml — refus", () => {
         expect.stringContaining("valeur interdite pour « width »"),
       ])
     );
+  });
+
+  it("refuse une photo non déclarée et accepte clip-path / outline", () => {
+    const issues = issuesOf(() => sanitizeSlideHtml(`<div><div><img src="{{IMG:p3}}"></div></div>`, opts));
+    expect(issues).toEqual(expect.arrayContaining([expect.stringContaining("photo « p3 » non déclarée")]));
+    expect(issuesOf(() => sanitizeSlideHtml(`<div><div><img src="{{BASE_IMAGE}}"></div></div>`, opts))).toEqual(
+      expect.arrayContaining([expect.stringContaining("src d'image interdit")])
+    );
+    const { html } = sanitizeSlideHtml(
+      `<div><div style="clip-path:circle(50% at 50% 50%);outline:4px solid #fff;outline-offset:-4px;aspect-ratio:1 / 1"><img src="{{IMG:p2}}"></div></div>`,
+      opts
+    );
+    expect(html).toContain("clip-path:circle(50% at 50% 50%)");
+    expect(html).toContain("outline:4px solid #fff");
   });
 
   it("refuse une police hors liste et le logo quand il n'y en a pas", () => {

@@ -1,5 +1,5 @@
 {
-  "id": "836a95a5-762b-4480-a16c-c87b0689721f",
+  "id": "558738f5-4dda-4f1d-b596-62d018ae97de",
   "prevId": "63ce4b63-4fea-4644-b487-34c41215e1e4",
   "version": "7",
   "dialect": "postgresql",
@@ -285,6 +285,12 @@
         },
         "thumbnail_key": {
           "name": "thumbnail_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cutout_key": {
+          "name": "cutout_key",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -1808,79 +1814,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.password_reset_tokens": {
-      "name": "password_reset_tokens",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "token_hash": {
-          "name": "token_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "used_at": {
-          "name": "used_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "password_reset_tokens_user_id_users_id_fk": {
-          "name": "password_reset_tokens_user_id_users_id_fk",
-          "tableFrom": "password_reset_tokens",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "password_reset_tokens_token_hash_unique": {
-          "name": "password_reset_tokens_token_hash_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "token_hash"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.post_match_candidates": {
       "name": "post_match_candidates",
       "schema": "",
@@ -3372,12 +3305,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "sessions_invalidated_before": {
-          "name": "sessions_invalidated_before",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
         "vertical": {
           "name": "vertical",
           "type": "vertical",
@@ -3451,6 +3378,13 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
+        },
+        "images": {
+          "name": "images",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
         },
         "width": {
           "name": "width",

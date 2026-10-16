@@ -13,6 +13,7 @@ import { brandAssetCaptionSchema, captionBrandAssetTool } from "@/lib/llm/vision
 import { embedText } from "@/lib/llm/embeddings";
 import { buildAssetSearchQuery, type AssetSearchContext } from "@/lib/services/assetSelection";
 import { logger } from "@/lib/logger";
+import { getBackgroundRemover } from "@/lib/imaging/backgroundRemoval";
 
 const THUMBNAIL_WIDTH = 400;
 
@@ -164,7 +165,7 @@ export async function listAssetsForUser(userId: string) {
   });
 }
 
-type BrandAssetRow = typeof brandAssets.$inferSelect;
+export type BrandAssetRow = typeof brandAssets.$inferSelect;
 
 /** Récupère les bytes d'un asset — R2 pour un upload direct, Drive à la demande sinon. */
 export async function fetchAssetBytes(asset: BrandAssetRow): Promise<{ bytes: Buffer; mimeType: string }> {
@@ -350,4 +351,71 @@ export async function archiveAssetForUser(userId: string, assetId: string) {
   if (!archived) {
     throw new ApiError(404, "Ressource visuelle introuvable.");
   }
+}
+
+// --- Détourage (docs/SPEC_COMPOSITION_VISUELLE.md §5.3) ---
+
+/** Grand côté maximal envoyé au service : un post fait 1080 px, inutile d'envoyer plus. */
+const CUTOUT_MAX_SIDE = 2000;
+
+export class CutoutUnavailableError extends ApiError {
+  constructor() {
+    super(503, "Le détourage n'est pas configuré sur ce serveur (BACKGROUND_REMOVAL_PROVIDER).");
+  }
+}
+
+/**
+ * Détoure une photo une seule fois et met le PNG en cache sur R2 (`brandAssets.cutoutKey`). La photo
+ * d'origine n'est jamais modifiée : seule la copie envoyée au service est réduite. Le checksum d'un
+ * asset ne change jamais après l'ingestion (pas de resynchronisation Drive), le cache n'a donc pas
+ * à être invalidé ; si une resynchronisation arrive un jour, elle devra remettre `cutoutKey` à null.
+ * Lève `CutoutUnavailableError` (503) sans provider, ou l'erreur du service.
+ */
+export async function ensureCutout(asset: BrandAssetRow): Promise<BrandAssetRow> {
+  if (asset.cutoutKey) return asset;
+  const remover = getBackgroundRemover();
+  if (!remover) throw new CutoutUnavailableError();
+  // Deux demandes simultanées sur la même photo (bascule dans l'éditeur + composition) ne doivent
+  // payer qu'un appel : la promesse en vol est partagée par asset, dans ce processus.
+  const inFlight = cutoutInFlight.get(asset.id);
+  if (inFlight) return inFlight;
+  const job = (async () => {
+    const { bytes, mimeType } = await fetchAssetBytes(asset);
+    const reduced = await sharp(bytes).resize({ width: CUTOUT_MAX_SIDE, height: CUTOUT_MAX_SIDE, fit: "inside", withoutEnlargement: true }).toBuffer();
+    const png = await remover.removeBackground(reduced, mimeType);
+    const cutoutKey = `assets/${asset.userId}/${asset.id}-cutout.png`;
+    await getObjectStorage().upload(cutoutKey, png, "image/png");
+    const [updated] = await db.update(brandAssets).set({ cutoutKey }).where(eq(brandAssets.id, asset.id)).returning();
+    return updated;
+  })().finally(() => cutoutInFlight.delete(asset.id));
+  cutoutInFlight.set(asset.id, job);
+  return job;
+}
+
+const cutoutInFlight = new Map<string, Promise<BrandAssetRow>>();
+
+/** Détourage à la demande de l'utilisateur (bibliothèque, inspecteur) — asset possédé et prêt. */
+export async function ensureCutoutForUser(userId: string, assetId: string): Promise<BrandAssetRow> {
+  const asset = await db.query.brandAssets.findFirst({
+    where: and(eq(brandAssets.id, assetId), eq(brandAssets.userId, userId), eq(brandAssets.status, "ready")),
+  });
+  if (!asset) throw new ApiError(404, "Photo introuvable ou pas encore prête.");
+  return ensureCutout(asset);
+}
+
+/** Octets du détouré (PNG) d'un asset — `ensureCutout` d'abord si besoin. */
+export async function fetchCutoutBytes(asset: BrandAssetRow): Promise<{ bytes: Buffer; mimeType: string }> {
+  const ready = await ensureCutout(asset);
+  return { bytes: await getObjectStorage().download(ready.cutoutKey!), mimeType: "image/png" };
+}
+
+/** Forme renvoyée au client : URLs publiques résolues, disponibilité du détourage. */
+export function toApiAsset(asset: BrandAssetRow) {
+  const storage = getObjectStorage();
+  return {
+    ...asset,
+    embedding: undefined,
+    thumbnailUrl: asset.thumbnailKey ? storage.getPublicUrl(asset.thumbnailKey) : null,
+    cutoutUrl: asset.cutoutKey ? storage.getPublicUrl(asset.cutoutKey) : null,
+  };
 }

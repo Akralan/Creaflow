@@ -1,9 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Button from "@/components/ui/Button";
-import { TextField } from "@/components/ui/TextField";
-import { api, ApiClientError, type BrandAsset, type GeneratedImage } from "@/lib/apiClient";
+import { api, ApiClientError, type BrandAsset } from "@/lib/apiClient";
 import { color } from "@/lib/design/tokens";
 import AssetGrid from "./AssetGrid";
 import UploadDropzone from "./UploadDropzone";
@@ -11,24 +9,28 @@ import GooglePickerButton from "./GooglePickerButton";
 
 const POLL_INTERVAL_MS = 3000;
 
-export default function BrandAssetLibrary({
-  scriptId,
-  onGenerated,
-}: {
-  /** Si fourni, la génération est rattachée à ce script (fiche script). Omis dans l'écran Settings,
-   *  où la bibliothèque n'est qu'un lieu de gestion sans génération contextualisée. */
-  scriptId?: string;
-  onGenerated?: (image: GeneratedImage) => void;
-}) {
+/**
+ * Bibliothèque d'images de marque (docs/SPEC_RESSOURCES_VISUELLES.md) : import (upload, Google
+ * Picker), grille, détourage à la demande (docs/SPEC_COMPOSITION_VISUELLE.md §6). La génération
+ * d'image a été retirée : les photos servent telles quelles, ou détourées, dans la maquette.
+ */
+export default function BrandAssetLibrary() {
   const [assets, setAssets] = useState<BrandAsset[]>([]);
+  const [cutoutAvailable, setCutoutAvailable] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [instruction, setInstruction] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [generating, setGenerating] = useState(false);
+  const [cutoutBusyId, setCutoutBusyId] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const refresh = useCallback(() => api.getAssets().then(({ assets }) => setAssets(assets)), []);
+  const refresh = useCallback(
+    () =>
+      api.getAssets().then(({ assets, cutoutAvailable }) => {
+        setAssets(assets);
+        setCutoutAvailable(cutoutAvailable);
+      }),
+    []
+  );
 
   useEffect(() => {
     refresh().then(() => setLoaded(true));
@@ -87,20 +89,16 @@ export default function BrandAssetLibrary({
     }
   }
 
-  async function handleGenerate() {
+  async function handleCutout(id: string) {
     setError(null);
-    setGenerating(true);
+    setCutoutBusyId(id);
     try {
-      const { generatedImage } = await api.generateStagedImage({
-        assetIds: selectedIds,
-        instruction,
-        scriptId,
-      });
-      onGenerated?.(generatedImage);
+      const { asset } = await api.cutoutAsset(id);
+      setAssets((prev) => prev.map((a) => (a.id === id ? asset : a)));
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Échec de la génération de l'image.");
+      setError(err instanceof ApiClientError ? err.message : "Détourage impossible.");
     } finally {
-      setGenerating(false);
+      setCutoutBusyId(null);
     }
   }
 
@@ -113,23 +111,19 @@ export default function BrandAssetLibrary({
       </div>
       <UploadDropzone onFiles={handleFiles} />
 
-      <AssetGrid assets={assets} selectedIds={selectedIds} onToggle={toggleSelected} onDelete={handleDelete} />
+      <AssetGrid
+        assets={assets}
+        selectedIds={selectedIds}
+        onToggle={toggleSelected}
+        onDelete={handleDelete}
+        cutout={{ available: cutoutAvailable, busyId: cutoutBusyId, onCutout: handleCutout }}
+      />
+      <p style={{ margin: 0, fontSize: 12, color: color.textFaint }}>
+        Ces photos servent telles quelles dans les maquettes de tes posts visuels. « Détourer » isole le sujet sur fond transparent
+        {cutoutAvailable ? "" : " (non configuré sur ce serveur)"}.
+      </p>
 
       {error && <p style={{ color: color.danger, fontSize: 13, margin: 0 }}>{error}</p>}
-
-      {onGenerated && (
-        <div style={{ borderTop: `1px solid ${color.dividerAlt}`, paddingTop: 16, display: "grid", gap: 10 }}>
-          <TextField
-            label={`Mise en scène souhaitée${selectedIds.length > 0 ? ` (${selectedIds.length} photo${selectedIds.length > 1 ? "s" : ""} sélectionnée${selectedIds.length > 1 ? "s" : ""})` : ""}`}
-            value={instruction}
-            onChange={(e) => setInstruction(e.target.value)}
-            placeholder="Sur un fond en bois clair, lumière naturelle du matin"
-          />
-          <Button onClick={handleGenerate} disabled={generating || selectedIds.length === 0 || !instruction.trim()}>
-            {generating ? "Génération en cours…" : "Générer le visuel"}
-          </Button>
-        </div>
-      )}
     </div>
   );
 }

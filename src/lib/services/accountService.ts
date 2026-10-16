@@ -13,7 +13,6 @@ import {
   contentSeriesCategories,
   contentSeriesPlatforms,
   creatorProfiles,
-  generatedImages,
   googleDriveConnections,
   inspirationVideos,
   materialSources,
@@ -151,17 +150,13 @@ async function cancelStripeSubscription(userId: string): Promise<void> {
   }
 }
 
+// Original (uploads), vignette et détourage en cache de chaque photo (docs/SPEC_COMPOSITION_VISUELLE.md).
 async function listStoredObjectKeys(userId: string): Promise<string[]> {
-  const [assets, images] = await Promise.all([
-    db
-      .select({ originalKey: brandAssets.originalKey, thumbnailKey: brandAssets.thumbnailKey })
-      .from(brandAssets)
-      .where(eq(brandAssets.userId, userId)),
-    db.select({ storageKey: generatedImages.storageKey }).from(generatedImages).where(eq(generatedImages.userId, userId)),
-  ]);
-  return [...assets.flatMap((a) => [a.originalKey, a.thumbnailKey]), ...images.map((i) => i.storageKey)].filter(
-    (k): k is string => Boolean(k)
-  );
+  const assets = await db
+    .select({ originalKey: brandAssets.originalKey, thumbnailKey: brandAssets.thumbnailKey, cutoutKey: brandAssets.cutoutKey })
+    .from(brandAssets)
+    .where(eq(brandAssets.userId, userId));
+  return assets.flatMap((a) => [a.originalKey, a.thumbnailKey, a.cutoutKey]).filter((k): k is string => Boolean(k));
 }
 
 async function deleteStoredObjects(userId: string, keys: string[]): Promise<void> {
@@ -206,7 +201,6 @@ export async function exportAccountData(userId: string): Promise<Record<string, 
     narrativeRows,
     citationRows,
     assetRows,
-    imageRows,
     designRows,
     inspirationRows,
     onboardingRows,
@@ -232,7 +226,6 @@ export async function exportAccountData(userId: string): Promise<Record<string, 
     db.select().from(narrativeState).where(eq(narrativeState.userId, userId)),
     db.select().from(sourceMaterialCitations).where(eq(sourceMaterialCitations.userId, userId)),
     db.select().from(brandAssets).where(eq(brandAssets.userId, userId)),
-    db.select().from(generatedImages).where(eq(generatedImages.userId, userId)),
     db.select().from(visualDesigns).where(eq(visualDesigns.userId, userId)),
     db.select().from(inspirationVideos).where(eq(inspirationVideos.userId, userId)),
     db.select().from(onboardingSessions).where(eq(onboardingSessions.userId, userId)),
@@ -320,9 +313,13 @@ export async function exportAccountData(userId: string): Promise<Record<string, 
     visualAssets: assetRows.map((row) => {
       const { embedding, ...asset } = row;
       void embedding;
-      return { ...asset, originalUrl: publicUrl(asset.originalKey), thumbnailUrl: publicUrl(asset.thumbnailKey) };
+      return {
+        ...asset,
+        originalUrl: publicUrl(asset.originalKey),
+        thumbnailUrl: publicUrl(asset.thumbnailKey),
+        cutoutUrl: publicUrl(asset.cutoutKey),
+      };
     }),
-    generatedImages: imageRows.map((image) => ({ ...image, url: publicUrl(image.storageKey) })),
     visualDesigns: designRows,
     inspirationVideos: inspirationRows,
     onboardingConversation: onboardingRows,

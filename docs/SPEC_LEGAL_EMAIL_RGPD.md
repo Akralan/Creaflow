@@ -2,7 +2,7 @@
 
 Statut : **cadrage validé et implémenté le 2026-10-16** (Lots 0-5). Branche
 `feature/legal-email-rgpd`, partie de `main` après le merge de la landing, dans un worktree séparé.
-Migration `0033` appliquée en base de dev ; parcours complet (reset avec rejeu refusé, fermeture des
+Migration `0035` (renumérotée après le merge de `main`, où la composition visuelle occupe 0033-0034) appliquée en base de dev ; parcours complet (reset avec rejeu refusé, fermeture des
 anciennes sessions, changement de mot de passe, export, suppression) vérifié en local en mode
 console. Reste la validation dans le navigateur et, pour l'envoi réel, `docs/SETUP_EMAILS_BREVO.md`.
 
@@ -82,8 +82,9 @@ la bannière brouillon ; la mention reste dans un commentaire du code, pour toi.
 ### 2.3 Confidentialité : coller au réel
 
 Le tableau des sous-traitants dit « Google (Gemini), Anthropic, Groq ». Le vrai est : **OpenAI**
-pour tout le texte, les embeddings et l'assistant ; **Google** pour les images et la description
-des photos. Anthropic et Groq ne tournent pas et sortent de la liste. On ajoute **Brevo**
+pour tout le texte, les embeddings et l'assistant ; **Google** pour la description des photos ;
+**Photoroom** pour le détourage (arrivé avec `docs/SPEC_COMPOSITION_VISUELLE.md`, qui a retiré la
+génération d'images). Anthropic et Groq ne tournent pas et sortent de la liste. On ajoute **Brevo**
 (emails, société française, données en Union européenne), **Sentry** (erreurs : IP, navigateur,
 identifiant interne, jamais le contenu des scripts), **GitHub, Notion, Linear** (identité et
 matière, si connectés), et l'hébergeur depuis `publisher.ts`.
@@ -231,7 +232,7 @@ données, et un zip d'images changerait l'échelle du chantier. Limite 3 par heu
 
 ## 6. Modèle de données
 
-Une migration `0033` :
+Une migration `0035` (générée en `0033` avant le merge de la composition visuelle, renumérotée ensuite) :
 
 - table `password_reset_tokens` (`id`, `user_id` cascade, `token_hash` unique, `expires_at`,
   `used_at`, `created_at`) ;
@@ -245,7 +246,7 @@ Aucune table liée à une verticale, `schemaInvariants.test.ts` reste vert.
 |---|---|---|
 | 0 | `publisher.ts`, bannière conditionnelle, test de complétude, trois pages réécrites | les pages n'ont plus de crochets si l'identité est remplie |
 | 1 | `src/lib/email/` (brevo + console), `.env.example`, tests avec `fetch` mocké | un email part en mode console |
-| 2 | migration `0033`, forgot/reset, page de réinitialisation, invalidation des sessions | un reset complet en local, l'ancienne session est refusée |
+| 2 | migration `0035`, forgot/reset, page de réinitialisation, invalidation des sessions | un reset complet en local, l'ancienne session est refusée |
 | 3 | onglet Compte : changement de mot de passe, export JSON | fichier téléchargé, mot de passe changé |
 | 4 | suppression de compte (Stripe, R2, base, email) | compte supprimé de bout en bout, Stripe résilié |
 | 5 | `docs/TECH.md`, `docs/PRODUCT.md`, `CLAUDE.md`, `README.md` | docs à jour |

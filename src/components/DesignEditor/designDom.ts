@@ -1,4 +1,5 @@
 import { DESIGN_FONTS, toRenderableFontFamily } from "@/lib/visualDesign/fonts";
+import { imagePlaceholder, parseImagePlaceholder } from "@/lib/visualDesign/designImages";
 
 /**
  * Passage entre le HTML stocké (placeholders, noms de polices lisibles) et le HTML rendu dans le
@@ -7,11 +8,11 @@ import { DESIGN_FONTS, toRenderableFontFamily } from "@/lib/visualDesign/fonts";
  * chaque écriture par la liste blanche : ici on ne valide rien, on transforme.
  */
 
-export const BASE_IMAGE_PLACEHOLDER = "{{BASE_IMAGE}}";
 export const LOGO_PLACEHOLDER = "{{LOGO}}";
 
 export interface RenderUrls {
-  baseImageUrl: string | null;
+  /** URL same-origin de chaque photo de la maquette, par référence (`p1` → `/api/scripts/…/design/images/p1`). */
+  images: Record<string, string>;
   logoUrl: string | null;
 }
 
@@ -24,7 +25,7 @@ function escapeRegExp(s: string): string {
 /** HTML stocké → HTML affichable : placeholders résolus, polices traduites en variables CSS. */
 export function toRenderableHtml(html: string, urls: RenderUrls): string {
   let out = html;
-  out = out.split(BASE_IMAGE_PLACEHOLDER).join(urls.baseImageUrl ?? "");
+  for (const [ref, url] of Object.entries(urls.images)) out = out.split(imagePlaceholder(ref)).join(url);
   out = out.split(LOGO_PLACEHOLDER).join(urls.logoUrl ?? "");
   for (const font of DESIGN_FONTS) {
     // Le navigateur peut avoir cité le nom (« "Playfair Display" ») lors d'une retouche manuelle.
@@ -37,7 +38,7 @@ export function toRenderableHtml(html: string, urls: RenderUrls): string {
 /** HTML affiché (DOM) → HTML à stocker : URLs remises en placeholders, variables CSS en noms de polices. */
 export function fromRenderedHtml(html: string, urls: RenderUrls): string {
   let out = html;
-  if (urls.baseImageUrl) out = out.split(urls.baseImageUrl).join(BASE_IMAGE_PLACEHOLDER);
+  for (const [ref, url] of Object.entries(urls.images)) if (url) out = out.split(url).join(imagePlaceholder(ref));
   if (urls.logoUrl) out = out.split(urls.logoUrl).join(LOGO_PLACEHOLDER);
   // Le navigateur peut réécrire `font-family: var(--x), a, b` en `font-family: var(--x), a, b` ou
   // développer la valeur ; on ne dépend que de la présence de la variable.
@@ -118,9 +119,13 @@ export interface LayerInfo {
   type: "text" | "image" | "shape";
   text: string;
   style: Record<string, string>;
+  /** Calque image : référence de la photo affichée (`p1`), ou null (logo). */
+  imageRef: string | null;
+  /** Calque image : styles de la balise <img> elle-même (object-fit). */
+  imageStyle: Record<string, string>;
 }
 
-const INSPECTED_PROPS = ["top", "left", "width", "height", "font-family", "font-size", "font-weight", "color", "text-align", "background", "background-color", "opacity", "border-radius", "line-height"];
+const INSPECTED_PROPS = ["top", "left", "width", "height", "font-family", "font-size", "font-weight", "color", "text-align", "background", "background-color", "opacity", "border-radius", "line-height", "clip-path", "transform", "box-shadow"];
 
 export function describeLayer(html: string, layerId: string): LayerInfo | null {
   const root = parseSlide(html);
@@ -145,7 +150,83 @@ export function describeLayer(html: string, layerId: string): LayerInfo | null {
     }
   }
   const type = (layer.getAttribute("data-type") as LayerInfo["type"]) ?? "text";
-  return { id: layerId, type, text: (layer.textContent ?? "").replace(/\s+/g, " ").trim(), style };
+  const img = layer.querySelector("img");
+  const imageStyle: Record<string, string> = {};
+  if (img) {
+    for (const prop of ["object-fit", "object-position"]) {
+      const v = img.style.getPropertyValue(prop);
+      if (v) imageStyle[prop] = v;
+    }
+  }
+  return {
+    id: layerId,
+    type,
+    text: (layer.textContent ?? "").replace(/\s+/g, " ").trim(),
+    style,
+    imageRef: img ? imageRefOfSrc(img.getAttribute("src") ?? "") : null,
+    imageStyle,
+  };
+}
+
+/** `src` d'une <img> (placeholder stocké, ou URL rendue `…/design/images/p2?…`) → référence `p2`. */
+export function imageRefOfSrc(src: string): string | null {
+  const stored = parseImagePlaceholder(src);
+  if (stored) return stored;
+  const m = /\/design\/images\/(p[1-6])(?:[?#]|$)/.exec(src);
+  return m ? m[1] : null;
+}
+
+/** Remplace la photo d'un calque image par une autre référence (HTML stocké). */
+export function setLayerImageRef(html: string, layerId: string, ref: string): string {
+  const root = parseSlide(html);
+  if (!root) return html;
+  const img = findLayer(root, layerId)?.querySelector("img");
+  if (!img) return html;
+  img.setAttribute("src", imagePlaceholder(ref));
+  return root.outerHTML;
+}
+
+/** Styles de la balise <img> d'un calque image (object-fit…). */
+export function updateLayerImageStyle(html: string, layerId: string, styles: Record<string, string | null>): string {
+  const root = parseSlide(html);
+  if (!root) return html;
+  const img = findLayer(root, layerId)?.querySelector("img");
+  if (!img) return html;
+  for (const [prop, value] of Object.entries(styles)) {
+    if (value === null || value === "") img.style.removeProperty(prop);
+    else img.style.setProperty(prop, value);
+  }
+  return root.outerHTML;
+}
+
+/**
+ * Ajoute un calque (HTML d'un seul élément, `data-type` posé) en fin de slide, avec un identifiant
+ * libre. Renvoie le HTML stocké et l'identifiant. Le serveur refera passer la liste blanche.
+ */
+export function appendLayer(html: string, layerHtml: string): { html: string; layerId: string } {
+  const root = parseSlide(html);
+  if (!root) return { html, layerId: "" };
+  const used = new Set(layerElements(root).map((l) => l.getAttribute("data-layer")));
+  let n = used.size + 1;
+  let layerId = `l${n}`;
+  while (used.has(layerId)) layerId = `l${++n}`;
+  const tpl = document.createElement("template");
+  tpl.innerHTML = layerHtml.trim();
+  const el = tpl.content.firstElementChild;
+  if (!(el instanceof HTMLElement)) return { html, layerId: "" };
+  el.setAttribute("data-layer", layerId);
+  if (!el.getAttribute("data-type")) el.setAttribute("data-type", el.querySelector("img") ? "image" : "shape");
+  root.appendChild(el);
+  return { html: root.outerHTML, layerId };
+}
+
+/** Calque image prêt à poser : photo centrée, 60 % du canevas, object-fit:cover (docs/SPEC_COMPOSITION_VISUELLE.md §6). */
+export function buildImageLayerHtml(ref: string, canvas: { width: number; height: number }): string {
+  const w = Math.round(canvas.width * 0.6);
+  const h = Math.round(canvas.height * 0.6);
+  const top = Math.round((canvas.height - h) / 2);
+  const left = Math.round((canvas.width - w) / 2);
+  return `<div data-type="image" style="position:absolute;top:${top}px;left:${left}px;width:${w}px;height:${h}px;overflow:hidden;border-radius:${Math.round(canvas.width * 0.02)}px"><img src="${imagePlaceholder(ref)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>`;
 }
 
 /** Duplique une slide en renumérotant son plan. */

@@ -66,9 +66,9 @@ export default function ConfidentialitePage() {
             <td style={tdStyle}>Lecture de vos posts, métriques, documents et dépôts — révocable à tout moment</td>
           </tr>
           <tr>
-            <td style={tdStyle}>Images importées ou générées, description IA associée</td>
+            <td style={tdStyle}>Photos importées, leur version détourée, description IA associée, maquettes de posts visuels</td>
             <td style={tdStyle}>Usage de la bibliothèque de ressources visuelles</td>
-            <td style={tdStyle}>Génération de visuels de marque</td>
+            <td style={tdStyle}>Composition de vos posts visuels</td>
           </tr>
           <tr>
             <td style={tdStyle}>Données de facturation (plan, statut d&apos;abonnement, identifiant client Stripe) — jamais les coordonnées bancaires</td>
@@ -118,12 +118,20 @@ export default function ConfidentialitePage() {
           </tr>
           <tr>
             <td style={tdStyle}>Google (Gemini API)</td>
-            <td style={tdStyle}>Génération d&apos;images par IA, description automatique de vos photos</td>
+            <td style={tdStyle}>Description automatique de vos photos (vos images lui sont transmises pour être décrites)</td>
             <td style={tdStyle}>États-Unis</td>
           </tr>
           <tr>
+            <td style={tdStyle}>Photoroom</td>
+            <td style={tdStyle}>
+              Détourage d&apos;une photo (suppression du fond) — uniquement quand vous le demandez pour une
+              photo donnée ; la photo lui est transmise, le résultat est conservé par nos soins
+            </td>
+            <td style={tdStyle}>France</td>
+          </tr>
+          <tr>
             <td style={tdStyle}>Cloudflare (stockage R2)</td>
-            <td style={tdStyle}>Stockage des images (vignettes, visuels générés)</td>
+            <td style={tdStyle}>Stockage des images (originaux importés, vignettes, détourages)</td>
             <td style={tdStyle}>Réseau mondial Cloudflare</td>
           </tr>
           <tr>

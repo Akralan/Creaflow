@@ -2,7 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 
 let client: GoogleGenAI | null = null;
 
-// Singleton partagé par callGemini (texte structuré), geminiImage (vision/génération d'image) et
+// Singleton partagé par callGemini (texte structuré), geminiImage (captioning vision) et
 // embeddings — un seul client GoogleGenAI pour toute la surface Gemini du repo.
 export function getGeminiClient(): GoogleGenAI {
   if (!client) {

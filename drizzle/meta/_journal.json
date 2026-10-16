@@ -236,8 +236,22 @@
     {
       "idx": 33,
       "version": "7",
-      "when": 1792103246514,
-      "tag": "0033_elite_mongoose",
+      "when": 1792143753538,
+      "tag": "0033_composition_visuelle_ajouts",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792143754538,
+      "tag": "0034_composition_visuelle_retraits",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1792144059955,
+      "tag": "0035_slippery_landau",
       "breakpoints": true
     }
   ]
