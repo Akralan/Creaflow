@@ -161,7 +161,11 @@ export default function CalendarPage() {
   // Posts rédigés au-delà de la semaine, jusqu'au prochain à rédiger : séparés par « Ensuite ».
   const nextMondayKey = dayKey(addDays(monday, 7));
   const weekEntries = entries.filter((e) => e.scheduledDate.slice(0, 10) < nextMondayKey);
-  const laterEntries = entries.filter((e) => e.scheduledDate.slice(0, 10) >= nextMondayKey);
+  // Après la semaine : les posts rédigés et le « post suivant », rangés ensemble par date.
+  const laterEntries = [...entries.filter((e) => e.scheduledDate.slice(0, 10) >= nextMondayKey), ...(nextSlot ? [nextSlot] : [])].sort(
+    (a, b) => a.scheduledDate.localeCompare(b.scheduledDate)
+  );
+  const kickerOf = (entry: WeekEntry) => (entry.id === nextSlot?.id ? "Post suivant" : undefined);
   const isPast = (entry: WeekEntry) => entry.scheduledDate.slice(0, 10) < todayKey;
 
   return (
@@ -239,6 +243,7 @@ export default function CalendarPage() {
             {laterEntries.map((entry) => (
               <WeekPostCard
                 key={entry.id}
+                kicker={kickerOf(entry)}
                 entry={entry}
                 authorName={authorName}
                 hasLogo={hasLogo}
@@ -247,18 +252,6 @@ export default function CalendarPage() {
                 onEditSlot={() => setEditingEntry(entry)}
               />
             ))}
-            {/* La semaine se prolonge : le prochain post à rédiger, même s'il tombe plus tard. */}
-            {nextSlot && (
-              <WeekPostCard
-                kicker="Post suivant"
-                entry={nextSlot}
-                authorName={authorName}
-                hasLogo={hasLogo}
-                isPast={false}
-                onOpen={() => open(nextSlot)}
-                onEditSlot={() => setEditingEntry(nextSlot)}
-              />
-            )}
             {!nextSlot && monthToPlan && activeGoals.length > 0 && (
               <div className={styles.slot}>
                 <div style={{ fontFamily: fontMono, fontSize: 11.5, letterSpacing: "0.06em", color: "#4d3778", fontWeight: 700 }}>
@@ -283,9 +276,8 @@ export default function CalendarPage() {
               <div style={{ fontFamily: fontMono, fontSize: 11, letterSpacing: "0.08em", color: "#8a7f74", margin: "8px 2px 0" }}>ENSUITE</div>
             )}
             {laterEntries.map((entry) => (
-              <WeekPostRow key={entry.id} entry={entry} isPast={false} onOpen={() => open(entry)} />
+              <WeekPostRow key={entry.id} kicker={kickerOf(entry)} entry={entry} isPast={false} onOpen={() => open(entry)} />
             ))}
-            {nextSlot && <WeekPostRow kicker="Post suivant" entry={nextSlot} isPast={false} onOpen={() => open(nextSlot)} />}
             {!nextSlot && monthToPlan && activeGoals.length > 0 && (
               <Button variant="secondary" onClick={planMore} disabled={planning}>
                 {planning ? "On planifie…" : "Planifier la suite"}

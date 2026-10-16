@@ -4,6 +4,9 @@ import { calendarEntries, creatorProfiles, narrativeState, postingGoals, visualD
 import { imagesOf, slidesOf } from "@/lib/services/visualDesignService";
 import { releaseSlotsOfArchivedSeries } from "@/lib/services/seriesSlotRelease";
 
+/** Posts rédigés montrés après la semaine affichée. */
+const LATER_HORIZON_DAYS = 28;
+
 /** Horizon des créneaux vides regardés pour attribuer les épisodes prévus et trouver le suivant. */
 const UPCOMING_LOOKAHEAD = 120;
 
@@ -82,16 +85,16 @@ export async function listCalendarRange(userId: string, from: Date, to: Date) {
   // « Post suivant » : le premier créneau vide à venir après la semaine affichée (ou après
   // aujourd'hui pour une semaine passée).
   const next = slots.find((sl) => sl.scheduledDate >= to) ?? null;
-  // La bande se prolonge jusqu'à lui : les posts déjà rédigés entre la fin de la semaine et le
-  // prochain à rédiger restent visibles (sinon un post créé via « Post suivant » sur la semaine
-  // d'après disparaissait au retour). Sans créneau vide à venir, un mois de posts rédigés au plus.
-  const until = next ? next.scheduledDate : new Date(to.getTime() + 31 * 24 * 3600 * 1000);
+  // La bande se prolonge : tous les posts déjà rédigés des quatre semaines qui suivent restent
+  // visibles, le « post suivant » se rangeant parmi eux à sa date. (S'arrêter au prochain créneau
+  // vide cachait un post rédigé plus loin, qui « apparaissait » dès que le trou était comblé.)
+  const until = new Date(to.getTime() + LATER_HORIZON_DAYS * 24 * 3600 * 1000);
   const [entries, goals, profile] = await Promise.all([
     db.query.calendarEntries.findMany({
       where: and(
         eq(calendarEntries.userId, userId),
         gte(calendarEntries.scheduledDate, from),
-        lt(calendarEntries.scheduledDate, until < to ? to : until)
+        lt(calendarEntries.scheduledDate, until)
       ),
       with: {
         script: {
