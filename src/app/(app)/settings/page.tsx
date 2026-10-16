@@ -14,10 +14,11 @@ import StyleAnalysisPanel from "@/components/StyleAnalysisPanel";
 import BrandAssetLibrary from "@/components/BrandAssetLibrary/BrandAssetLibrary";
 import BillingPanel from "@/components/BillingPanel";
 import BrandKitPanel from "@/components/BrandKitPanel";
+import AccountPanel from "@/components/AccountPanel";
 import { api, ApiClientError, type Connection } from "@/lib/apiClient";
 import { color } from "@/lib/design/tokens";
 
-type Tab = "identity" | "catalogue" | "assets" | "connexions" | "billing";
+type Tab = "identity" | "catalogue" | "assets" | "connexions" | "billing" | "account";
 
 const tabs: Array<{ id: Tab; label: string }> = [
   { id: "identity", label: "Identité de marque" },
@@ -25,6 +26,8 @@ const tabs: Array<{ id: Tab; label: string }> = [
   { id: "assets", label: "Ressources visuelles" },
   { id: "connexions", label: "Connexions sociales" },
   { id: "billing", label: "Facturation" },
+  // La personne, pas sa marque (docs/SPEC_LEGAL_EMAIL_RGPD.md §1) : mot de passe, export, suppression.
+  { id: "account", label: "Compte" },
 ];
 
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
@@ -243,6 +246,7 @@ function SettingsContent() {
       {tab === "assets" && <BrandAssetLibrary />}
       {tab === "connexions" && <ConnexionsTab />}
       {tab === "billing" && <BillingPanel />}
+      {tab === "account" && <AccountPanel />}
     </div>
   );
 }

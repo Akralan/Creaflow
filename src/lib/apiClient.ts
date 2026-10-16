@@ -27,6 +27,14 @@ export interface User {
   email: string;
 }
 
+/** Ce que l'onglet Compte affiche — miroir de AccountSummary (accountService.ts), dates sérialisées. */
+export interface AccountSummary {
+  email: string;
+  createdAt: string;
+  hasPassword: boolean;
+  providers: Array<{ id: string; displayName: string }>;
+}
+
 /** Dépôt public proposé à l'étape « Projets » de l'onboarding dev et dans paramètres > Sujets.
  *  `alreadyConnected` : déjà source d'un sujet — affiché grisé, non re-sélectionnable. */
 export interface GithubRepoOption {
@@ -545,6 +553,19 @@ export const api = {
   login: (email: string, password: string) => post<{ user: User }>("/api/auth/login", { email, password }),
   logout: () => post<{ ok: true }>("/api/auth/logout"),
   me: () => apiFetch<{ user: User | null }>("/api/auth/me"),
+  /** Répond toujours ok, que l'adresse soit connue ou non — ne révèle pas qui est inscrit. */
+  forgotPassword: (email: string) => post<{ ok: true }>("/api/auth/password/forgot", { email }),
+  /** Connecte l'utilisateur dans la foulée (cookie de session posé par la route). */
+  resetPassword: (token: string, password: string) => post<{ ok: true }>("/api/auth/password/reset", { token, password }),
+
+  // Onglet Compte (docs/SPEC_LEGAL_EMAIL_RGPD.md §4) — la personne, pas sa marque.
+  getAccount: () => apiFetch<{ account: AccountSummary }>("/api/account"),
+  changePassword: (currentPassword: string | undefined, newPassword: string) =>
+    post<{ ok: true }>("/api/account/password", { currentPassword, newPassword }),
+  /** Le corps est le fichier d'export lui-même ; le client le propose au téléchargement. */
+  exportAccount: () => apiFetch<Record<string, unknown>>("/api/account/export"),
+  deleteAccount: (confirmation: { password?: string; emailConfirmation?: string }) =>
+    apiFetch<{ ok: true }>("/api/account", { method: "DELETE", body: JSON.stringify(confirmation) }),
   /** Le bouton GitHub de /login n'est rendu que si les variables d'environnement sont présentes. */
   getGithubStatus: () => apiFetch<{ configured: boolean }>("/api/auth/github/status"),
 

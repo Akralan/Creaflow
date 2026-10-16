@@ -9,27 +9,53 @@ import OAuthProviderButtons from "@/components/OAuthProviderButtons";
 import { api, ApiClientError } from "@/lib/apiClient";
 import { accent, color, fontHeading } from "@/lib/design/tokens";
 
+type Mode = "login" | "signup" | "forgot";
+
+function modeFromParam(value: string | null): Mode {
+  return value === "signup" || value === "forgot" ? value : "login";
+}
+
+const titles: Record<Mode, { heading: string; sub: string }> = {
+  login: { heading: "Content de vous revoir", sub: "Connectez-vous pour retrouver votre calendrier." },
+  signup: { heading: "Créer votre compte", sub: "Quelques secondes pour démarrer." },
+  forgot: { heading: "Mot de passe oublié", sub: "Indiquez votre adresse, vous recevrez un lien pour en choisir un nouveau." },
+};
+
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [mode, setMode] = useState<"login" | "signup">(() =>
-    searchParams.get("mode") === "signup" ? "signup" : "login"
-  );
+  const [mode, setModeState] = useState<Mode>(() => modeFromParam(searchParams.get("mode")));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(() =>
+    searchParams.get("deleted") ? "Votre compte a été supprimé. Un email de confirmation vous a été envoyé." : null
+  );
   const [loading, setLoading] = useState(false);
+
+  function setMode(next: Mode) {
+    setModeState(next);
+    setError(null);
+    setNotice(null);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setNotice(null);
     if (mode === "signup" && !legalAccepted) {
-      setError("Merci d'accepter les CGU et la politique de confidentialité pour créer un compte.");
+      setError("Merci d'accepter les conditions générales et la politique de confidentialité pour créer un compte.");
       return;
     }
     setLoading(true);
     try {
+      if (mode === "forgot") {
+        await api.forgotPassword(email);
+        // Même message quelle que soit l'adresse : la route ne dit pas qui est inscrit.
+        setNotice("Si un compte existe avec cette adresse, un email vient de partir. Pensez à vérifier vos indésirables.");
+        return;
+      }
       if (mode === "login") {
         await api.login(email, password);
       } else {
@@ -44,10 +70,16 @@ function LoginContent() {
     }
   }
 
+  const switchLink = (target: Mode, label: string) => (
+    <a href="#" onClick={(e) => { e.preventDefault(); setMode(target); }}>
+      {label}
+    </a>
+  );
+
   return (
     <div
       style={{
-        height: "100vh",
+        minHeight: "100vh",
         width: "100%",
         display: "flex",
         alignItems: "center",
@@ -81,37 +113,40 @@ function LoginContent() {
 
         <Card style={{ borderRadius: 20, padding: 32, boxShadow: "0 20px 40px -24px rgba(40,30,60,0.2)" }}>
           <h1 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 26, margin: "0 0 6px", letterSpacing: "-0.02em" }}>
-            {mode === "login" ? "Content de vous revoir" : "Créer votre compte"}
+            {titles[mode].heading}
           </h1>
-          <p style={{ margin: "0 0 26px", color: color.textMuted, fontSize: 15 }}>
-            {mode === "login"
-              ? "Connectez-vous pour retrouver votre calendrier."
-              : "Quelques secondes pour démarrer."}
-          </p>
+          <p style={{ margin: "0 0 26px", color: color.textMuted, fontSize: 15 }}>{titles[mode].sub}</p>
 
-          <OAuthProviderButtons />
+          {mode !== "forgot" && <OAuthProviderButtons />}
 
           <form onSubmit={handleSubmit} style={{ display: "grid", gap: 16 }}>
             <TextField
               label="Email"
               type="email"
               required
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="marie@atelier-lumen.fr"
             />
-            <div>
-              <TextField
-                label="Mot de passe"
-                type="password"
-                required
-                minLength={8}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••"
-              />
-              <p style={{ margin: "8px 0 0", fontSize: 12, color: color.textFaint }}>8 caractères minimum</p>
-            </div>
+            {mode !== "forgot" && (
+              <div>
+                <TextField
+                  label="Mot de passe"
+                  type="password"
+                  required
+                  minLength={8}
+                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••"
+                />
+                <div style={{ display: "flex", justifyContent: "space-between", margin: "8px 0 0", fontSize: 12 }}>
+                  <span style={{ color: color.textFaint }}>8 caractères minimum</span>
+                  {mode === "login" && switchLink("forgot", "Mot de passe oublié ?")}
+                </div>
+              </div>
+            )}
 
             {mode === "signup" && (
               <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: color.textMuted, cursor: "pointer" }}>
@@ -124,7 +159,7 @@ function LoginContent() {
                 <span>
                   J&apos;accepte les{" "}
                   <a href="/legal/cgu" target="_blank" rel="noopener noreferrer">
-                    CGU
+                    conditions générales
                   </a>{" "}
                   et la{" "}
                   <a href="/legal/confidentialite" target="_blank" rel="noopener noreferrer">
@@ -135,31 +170,18 @@ function LoginContent() {
               </label>
             )}
 
-            {error && (
-              <p style={{ margin: 0, fontSize: 13, color: color.danger }}>{error}</p>
-            )}
+            {error && <p style={{ margin: 0, fontSize: 13, color: color.danger }}>{error}</p>}
+            {notice && <p style={{ margin: 0, fontSize: 13, color: "oklch(0.5 0.14 150)" }}>{notice}</p>}
 
             <Button type="submit" fullWidth disabled={loading} style={{ marginTop: 6 }}>
-              {loading ? "..." : mode === "login" ? "Se connecter" : "Créer mon compte"}
+              {loading ? "..." : mode === "login" ? "Se connecter" : mode === "signup" ? "Créer mon compte" : "Recevoir le lien"}
             </Button>
           </form>
 
           <p style={{ textAlign: "center", margin: "20px 0 0", fontSize: 14, color: color.textMuted }}>
-            {mode === "login" ? (
-              <>
-                Pas encore de compte ?{" "}
-                <a href="#" onClick={(e) => { e.preventDefault(); setMode("signup"); setError(null); }}>
-                  Créer un compte
-                </a>
-              </>
-            ) : (
-              <>
-                Déjà un compte ?{" "}
-                <a href="#" onClick={(e) => { e.preventDefault(); setMode("login"); setError(null); }}>
-                  Se connecter
-                </a>
-              </>
-            )}
+            {mode === "login" && <>Pas encore de compte ? {switchLink("signup", "Créer un compte")}</>}
+            {mode === "signup" && <>Déjà un compte ? {switchLink("login", "Se connecter")}</>}
+            {mode === "forgot" && <>{switchLink("login", "Retour à la connexion")}</>}
           </p>
         </Card>
       </div>

@@ -1,5 +1,7 @@
+import Link from "next/link";
 import LegalPage, { sectionTitleStyle } from "@/components/LegalPage";
 import { color } from "@/lib/design/tokens";
+import { PUBLISHER, SERVICE_NAME } from "@/lib/legal/publisher";
 
 const tableStyle: React.CSSProperties = { width: "100%", borderCollapse: "collapse", fontSize: 14, margin: "12px 0 20px" };
 const thStyle: React.CSSProperties = {
@@ -11,20 +13,17 @@ const thStyle: React.CSSProperties = {
 };
 const tdStyle: React.CSSProperties = { padding: "8px 10px", borderBottom: `1px solid ${color.divider}`, verticalAlign: "top" };
 
-// ⚠️ Brouillon à faire relire par un professionnel du droit (RGPD) avant mise en ligne réelle.
-// Reflète l'architecture réelle du produit au moment de la rédaction (docs/TECH.md) — à tenir à
-// jour si de nouveaux sous-traitants ou traitements sont ajoutés (ex. analytics, nouveau provider LLM).
+// Reflète l'architecture réelle du produit (docs/TECH.md, docs/SPEC_LEGAL_EMAIL_RGPD.md §2.3) : un
+// nouveau sous-traitant (analytics, nouveau provider LLM, Session Replay Sentry…) doit passer par
+// ici avant d'être activé. Rédaction interne à faire relire par un professionnel du droit (RGPD)
+// avant l'ouverture commerciale.
 export default function ConfidentialitePage() {
   return (
-    <LegalPage title="Politique de confidentialité" updatedAt="16 août 2026">
+    <LegalPage title="Politique de confidentialité">
       <p>
-        <strong>⚠️ Brouillon</strong> — ce document doit être relu par un professionnel du droit (RGPD)
-        avant toute mise en ligne publique.
-      </p>
-      <p>
-        Cette politique décrit les données personnelles traitées par CreaFlow, édité par [nom de
-        l&apos;éditeur — voir mentions légales], responsable de traitement au sens du Règlement Général sur
-        la Protection des Données (RGPD).
+        Cette politique décrit les données personnelles traitées par {SERVICE_NAME}, édité par{" "}
+        {PUBLISHER.name} (voir les <Link href="/legal/mentions-legales">mentions légales</Link>),
+        responsable de traitement au sens du Règlement Général sur la Protection des Données (RGPD).
       </p>
 
       <h2 style={sectionTitleStyle}>1. Données collectées</h2>
@@ -40,22 +39,31 @@ export default function ConfidentialitePage() {
           <tr>
             <td style={tdStyle}>Email, mot de passe (haché, jamais stocké en clair)</td>
             <td style={tdStyle}>Création de compte</td>
-            <td style={tdStyle}>Authentification</td>
+            <td style={tdStyle}>Authentification, emails de service</td>
           </tr>
           <tr>
-            <td style={tdStyle}>Profil créateur (nom de marque, activité, ton, valeurs, matériel)</td>
+            <td style={tdStyle}>Identité fournie par GitHub, Notion ou Linear (identifiant, nom, avatar, email)</td>
+            <td style={tdStyle}>Inscription ou connexion via l&apos;un de ces fournisseurs</td>
+            <td style={tdStyle}>Authentification, pré-remplissage du profil</td>
+          </tr>
+          <tr>
+            <td style={tdStyle}>Profil de marque (nom, activité, ton, valeurs, audience, matériel)</td>
             <td style={tdStyle}>Onboarding, saisie manuelle</td>
             <td style={tdStyle}>Personnaliser les contenus générés</td>
           </tr>
           <tr>
-            <td style={tdStyle}>Catalogue produits, catégories/angles/séries éditoriales, scripts générés, calendrier</td>
+            <td style={tdStyle}>
+              Matière écrite (documents importés, réponses à l&apos;interview, contenu de vos dépôts, pages
+              et projets connectés), sujets, séries, scripts générés et corrigés, calendrier, messages
+              échangés avec l&apos;assistant
+            </td>
             <td style={tdStyle}>Usage du service</td>
-            <td style={tdStyle}>Fonctionnement du service</td>
+            <td style={tdStyle}>Fonctionnement du service, apprentissage de votre style d&apos;écriture (propre à votre compte)</td>
           </tr>
           <tr>
-            <td style={tdStyle}>Jetons d&apos;accès OAuth (réseaux sociaux, Google Drive)</td>
+            <td style={tdStyle}>Jetons d&apos;accès OAuth (réseaux sociaux, Google Drive, GitHub, Notion, Linear)</td>
             <td style={tdStyle}>Connexion volontaire d&apos;un compte tiers</td>
-            <td style={tdStyle}>Récupération de posts/métriques, import d&apos;images — révocable à tout moment</td>
+            <td style={tdStyle}>Lecture de vos posts, métriques, documents et dépôts — révocable à tout moment</td>
           </tr>
           <tr>
             <td style={tdStyle}>Images importées ou générées, description IA associée</td>
@@ -63,14 +71,14 @@ export default function ConfidentialitePage() {
             <td style={tdStyle}>Génération de visuels de marque</td>
           </tr>
           <tr>
-            <td style={tdStyle}>Données de facturation (plan, statut d&apos;abonnement) — jamais les coordonnées bancaires complètes</td>
+            <td style={tdStyle}>Données de facturation (plan, statut d&apos;abonnement, identifiant client Stripe) — jamais les coordonnées bancaires</td>
             <td style={tdStyle}>Souscription à un abonnement payant</td>
             <td style={tdStyle}>Facturation, gestion de l&apos;abonnement</td>
           </tr>
           <tr>
-            <td style={tdStyle}>Adresse IP</td>
-            <td style={tdStyle}>Chaque requête</td>
-            <td style={tdStyle}>Sécurité (limitation de débit anti-abus), lutte contre la fraude</td>
+            <td style={tdStyle}>Adresse IP, navigateur, identifiant de compte</td>
+            <td style={tdStyle}>Chaque requête ; en cas d&apos;erreur technique</td>
+            <td style={tdStyle}>Sécurité (limitation de débit), diagnostic des erreurs</td>
           </tr>
         </tbody>
       </table>
@@ -78,15 +86,19 @@ export default function ConfidentialitePage() {
       <h2 style={sectionTitleStyle}>2. Base légale des traitements</h2>
       <p>
         Le traitement des données nécessaires au fonctionnement du compte et du service (authentification,
-        génération de contenu, facturation) repose sur l&apos;exécution du contrat qui vous lie à CreaFlow
-        (art. 6.1.b RGPD). La connexion de comptes tiers (réseaux sociaux, Google Drive) repose sur votre
-        consentement explicite, donné au moment de la connexion et révocable à tout moment. Les mesures de
-        sécurité (limitation de débit, journalisation technique) reposent sur l&apos;intérêt légitime de
-        l&apos;éditeur à assurer la disponibilité et la sécurité du service.
+        génération de contenu, facturation, emails de service) repose sur l&apos;exécution du contrat qui
+        vous lie à l&apos;éditeur (art. 6.1.b RGPD). La connexion de comptes tiers repose sur votre
+        consentement, donné au moment de la connexion et révocable à tout moment. Les mesures de
+        sécurité et le diagnostic des erreurs reposent sur l&apos;intérêt légitime de l&apos;éditeur à assurer
+        la disponibilité et la sécurité du service. La conservation des factures repose sur une
+        obligation légale.
       </p>
 
       <h2 style={sectionTitleStyle}>3. Destinataires des données — sous-traitants</h2>
-      <p>Certaines données sont transmises à des prestataires techniques, dans la stricte mesure nécessaire au fonctionnement du service :</p>
+      <p>
+        Certaines données sont transmises à des prestataires techniques, dans la stricte mesure
+        nécessaire au fonctionnement du service :
+      </p>
       <table style={tableStyle}>
         <thead>
           <tr>
@@ -97,8 +109,16 @@ export default function ConfidentialitePage() {
         </thead>
         <tbody>
           <tr>
-            <td style={tdStyle}>Google (Gemini API), Anthropic, Groq</td>
-            <td style={tdStyle}>Génération de texte/images par IA (le contenu de vos prompts et données de profil pertinentes leur sont transmis pour générer une réponse)</td>
+            <td style={tdStyle}>OpenAI</td>
+            <td style={tdStyle}>
+              Génération de texte par IA, assistant éditorial, indexation de vos images (votre matière,
+              votre profil et vos consignes leur sont transmis pour produire une réponse)
+            </td>
+            <td style={tdStyle}>États-Unis</td>
+          </tr>
+          <tr>
+            <td style={tdStyle}>Google (Gemini API)</td>
+            <td style={tdStyle}>Génération d&apos;images par IA, description automatique de vos photos</td>
             <td style={tdStyle}>États-Unis</td>
           </tr>
           <tr>
@@ -112,75 +132,142 @@ export default function ConfidentialitePage() {
             <td style={tdStyle}>États-Unis / Irlande</td>
           </tr>
           <tr>
-            <td style={tdStyle}>TikTok, Meta (Instagram), LinkedIn, Google (YouTube), X</td>
-            <td style={tdStyle}>Récupération de vos posts et métriques — uniquement si vous connectez le compte concerné</td>
+            <td style={tdStyle}>Brevo</td>
+            <td style={tdStyle}>Envoi des emails de service (réinitialisation de mot de passe, avis de sécurité)</td>
+            <td style={tdStyle}>Union européenne (France)</td>
+          </tr>
+          <tr>
+            <td style={tdStyle}>Sentry</td>
+            <td style={tdStyle}>
+              Remontée des erreurs techniques (adresse IP, navigateur, identifiant de compte, trace de
+              l&apos;erreur — jamais le contenu de vos scripts ni vos mots de passe)
+            </td>
+            <td style={tdStyle}>États-Unis</td>
+          </tr>
+          <tr>
+            <td style={tdStyle}>GitHub, Notion, Linear</td>
+            <td style={tdStyle}>Identité et lecture de vos dépôts, pages et projets — uniquement si vous connectez le compte concerné</td>
+            <td style={tdStyle}>États-Unis</td>
+          </tr>
+          <tr>
+            <td style={tdStyle}>TikTok, Meta (Instagram), LinkedIn, Google (YouTube, Drive), X</td>
+            <td style={tdStyle}>Lecture de vos posts, métriques et images — uniquement si vous connectez le compte concerné</td>
             <td style={tdStyle}>Variable selon la plateforme</td>
           </tr>
           <tr>
-            <td style={tdStyle}>[Hébergeur de la base de données]</td>
-            <td style={tdStyle}>Hébergement de l&apos;ensemble des données du service</td>
-            <td style={tdStyle}>[à préciser une fois l&apos;infrastructure de production choisie]</td>
+            <td style={tdStyle}>{PUBLISHER.appHost.name}</td>
+            <td style={tdStyle}>Hébergement de l&apos;application</td>
+            <td style={tdStyle}>{PUBLISHER.appHost.address}</td>
+          </tr>
+          <tr>
+            <td style={tdStyle}>{PUBLISHER.dbHost.name}</td>
+            <td style={tdStyle}>Hébergement de la base de données</td>
+            <td style={tdStyle}>{PUBLISHER.dbHost.address}</td>
           </tr>
         </tbody>
       </table>
       <p>
-        Ces prestataires n&apos;utilisent vos données que pour exécuter la prestation demandée par CreaFlow, et
-        non à leurs propres fins commerciales. Aucune donnée n&apos;est vendue à des tiers.
+        Ces prestataires n&apos;utilisent vos données que pour exécuter la prestation demandée par
+        l&apos;éditeur, et non à leurs propres fins. Les prestataires d&apos;IA sont sollicités via leurs
+        offres professionnelles, dont les conditions excluent l&apos;utilisation de vos données pour
+        l&apos;entraînement de leurs modèles. Aucune donnée n&apos;est vendue à des tiers.
       </p>
 
       <h2 style={sectionTitleStyle}>4. Transferts hors Union européenne</h2>
       <p>
-        Plusieurs prestataires listés ci-dessus sont situés hors de l&apos;Union européenne, notamment aux
-        États-Unis. Ces transferts s&apos;appuient sur les garanties reconnues par le RGPD applicables à
-        chaque prestataire (clauses contractuelles types, ou adhésion au cadre de protection des données
-        UE-États-Unis (Data Privacy Framework) selon le prestataire).
+        Plusieurs prestataires listés ci-dessus sont situés aux États-Unis. Ces transferts s&apos;appuient
+        sur les garanties reconnues par le RGPD applicables à chaque prestataire : clauses contractuelles
+        types de la Commission européenne, ou certification au cadre de protection des données
+        UE-États-Unis (Data Privacy Framework).
       </p>
 
       <h2 style={sectionTitleStyle}>5. Durée de conservation</h2>
       <p>
-        Vos données sont conservées tant que votre compte est actif. En cas de suppression de compte, vos
-        données personnelles sont supprimées dans un délai raisonnable, sous réserve des données que la loi
-        nous impose de conserver plus longtemps (ex. données de facturation, obligations comptables).
+        Vos données sont conservées tant que votre compte est actif. Lorsque vous supprimez votre
+        compte :
       </p>
+      <ul>
+        <li>
+          vos données dans l&apos;application (profil, matière, scripts, calendrier, jetons d&apos;accès,
+          images stockées) sont effacées <strong>immédiatement</strong> ;
+        </li>
+        <li>
+          vos factures et votre identifiant client sont conservés par Stripe pendant la durée légale
+          des obligations comptables (dix ans) ;
+        </li>
+        <li>
+          les traces d&apos;erreurs techniques déjà remontées à Sentry sont purgées à l&apos;échéance de leur
+          rétention (90 jours au plus) ;
+        </li>
+        <li>
+          les sauvegardes de la base de données tenues par l&apos;hébergeur sont écrasées par rotation dans
+          un délai maximal de trente jours.
+        </li>
+      </ul>
       <p>
-        <em>
-          Note transitoire : la suppression de compte en libre-service n&apos;est pas encore disponible dans
-          l&apos;application au moment de la rédaction — en attendant, toute demande de suppression envoyée à
-          [email de contact] sera traitée manuellement dans le délai légal d&apos;un mois.
-        </em>
+        Les jetons de réinitialisation de mot de passe expirent au bout d&apos;une heure. Les compteurs de
+        limitation de débit portent sur l&apos;adresse IP et sur une empreinte de l&apos;email (jamais
+        l&apos;adresse en clair) ; ils sont purgés automatiquement dans les heures qui suivent leur
+        création.
       </p>
 
       <h2 style={sectionTitleStyle}>6. Cookies</h2>
       <p>
-        CreaFlow utilise un unique cookie strictement nécessaire au fonctionnement du service : un cookie
-        de session (httpOnly, sécurisé) permettant de vous maintenir connecté. Ce cookie ne sert à aucun
-        suivi publicitaire ni à aucune mesure d&apos;audience, et n&apos;est donc soumis à aucun consentement
-        préalable au titre de la réglementation cookies. Si un outil de mesure d&apos;audience ou publicitaire
-        venait à être ajouté, cette politique serait mise à jour et un bandeau de consentement approprié
-        serait ajouté avant toute activation.
+        {SERVICE_NAME} utilise un unique cookie strictement nécessaire au fonctionnement du service : un
+        cookie de session (httpOnly, sécurisé) qui vous maintient connecté pendant sept jours. Ce cookie
+        ne sert à aucun suivi publicitaire ni à aucune mesure d&apos;audience, et n&apos;est donc soumis à
+        aucun consentement préalable. Si un outil de mesure d&apos;audience ou publicitaire venait à être
+        ajouté, cette politique serait mise à jour et un bandeau de consentement ajouté avant toute
+        activation.
       </p>
 
-      <h2 style={sectionTitleStyle}>7. Vos droits</h2>
+      <h2 style={sectionTitleStyle}>7. Emails</h2>
+      <p>
+        {SERVICE_NAME} ne vous envoie que des emails de service : lien de réinitialisation de mot de
+        passe, avis de modification de votre mot de passe, confirmation de suppression de compte,
+        information sur une modification des conditions ou des prix. Aucune newsletter, aucune
+        prospection, aucun suivi d&apos;ouverture.
+      </p>
+
+      <h2 style={sectionTitleStyle}>8. Vos droits</h2>
       <p>
         Conformément au RGPD, vous disposez d&apos;un droit d&apos;accès, de rectification, d&apos;effacement, de
-        limitation, de portabilité et d&apos;opposition sur vos données personnelles. Vous pouvez exercer ces
-        droits en écrivant à [email de contact]. Vous disposez également du droit d&apos;introduire une
-        réclamation auprès de la Commission Nationale de l&apos;Informatique et des Libertés (CNIL,
-        www.cnil.fr).
+        limitation, de portabilité et d&apos;opposition sur vos données personnelles. Deux de ces droits
+        s&apos;exercent directement depuis les paramètres de votre compte (onglet « Compte ») :
       </p>
-
-      <h2 style={sectionTitleStyle}>8. Sécurité</h2>
+      <ul>
+        <li>
+          <strong>Portabilité et accès</strong> : « Télécharger mes données » produit un fichier JSON
+          contenant l&apos;ensemble de vos données (profil, matière, scripts, calendrier, connexions sans
+          leurs jetons, abonnement) ; les images y sont référencées par leur adresse.
+        </li>
+        <li>
+          <strong>Effacement</strong> : « Supprimer mon compte » efface immédiatement vos données, comme
+          décrit à la section 5.
+        </li>
+      </ul>
       <p>
-        Les mots de passe sont hachés (jamais stockés en clair), les échanges avec le service sont chiffrés
-        (HTTPS), et l&apos;accès aux données est limité par utilisateur. Des mesures de limitation de débit
-        protègent le service contre les tentatives d&apos;accès frauduleuses.
+        Pour les autres droits, ou toute question, écrivez à {PUBLISHER.contactEmail} ; nous répondons
+        dans un délai d&apos;un mois. Vous pouvez également introduire une réclamation auprès de la
+        Commission Nationale de l&apos;Informatique et des Libertés (CNIL, www.cnil.fr).
       </p>
 
-      <h2 style={sectionTitleStyle}>9. Mineurs</h2>
-      <p>CreaFlow n&apos;est pas destiné aux personnes de moins de 16 ans.</p>
+      <h2 style={sectionTitleStyle}>9. Sécurité</h2>
+      <p>
+        Les mots de passe sont hachés (jamais stockés en clair), les échanges avec le service sont
+        chiffrés (HTTPS), et l&apos;accès aux données est limité à votre compte. Des mesures de limitation
+        de débit protègent le service contre les tentatives d&apos;accès frauduleuses. Un changement de mot
+        de passe ferme toutes les sessions ouvertes et vous est notifié par email.
+      </p>
+
+      <h2 style={sectionTitleStyle}>10. Mineurs</h2>
+      <p>{SERVICE_NAME} n&apos;est pas destiné aux personnes de moins de 18 ans.</p>
 
       <h2 style={sectionTitleStyle}>Contact</h2>
-      <p>Pour toute question relative à cette politique ou à vos données personnelles : [email de contact].</p>
+      <p>
+        Pour toute question relative à cette politique ou à vos données personnelles :{" "}
+        {PUBLISHER.contactEmail}.
+      </p>
     </LegalPage>
   );
 }

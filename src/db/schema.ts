@@ -124,6 +124,10 @@ export const users = pgTable("users", {
   // passe. POST /api/auth/login doit donc refuser explicitement un compte sans hash plutôt que de
   // comparer contre null, ce qui afficherait "mot de passe incorrect" à quelqu'un qui n'en a jamais eu.
   passwordHash: text("password_hash"),
+  // Un reset ou un changement de mot de passe y écrit l'heure : tout jeton de session émis avant
+  // est refusé par getCurrentUserId (docs/SPEC_LEGAL_EMAIL_RGPD.md §3.4). Sans ça, un intrus
+  // resterait connecté 7 jours après que l'utilisateur a changé son mot de passe pour l'évincer.
+  sessionsInvalidatedBefore: timestamp("sessions_invalidated_before"),
   vertical: verticalEnum("vertical").notNull().default("creator"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -777,6 +781,20 @@ export const rateLimitBuckets = pgTable("rate_limit_buckets", {
   key: text("key").primaryKey(),
   count: integer("count").notNull().default(1),
   windowStart: timestamp("window_start").notNull(),
+});
+
+// Jetons de réinitialisation de mot de passe (docs/SPEC_LEGAL_EMAIL_RGPD.md §3.3) : seul le hash
+// SHA-256 du jeton est stocké — une fuite de la table ne donne aucun lien utilisable. Une nouvelle
+// demande invalide les jetons précédents du compte (used_at), un jeton expire au bout d'une heure
+// et ne sert qu'une fois. Pas de purge : la ligne part avec le compte (cascade), et une table de
+// jetons périmés d'un octet par utilisateur ne vaut pas un cron (même philosophie que rate_limit_buckets).
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const postingGoals = pgTable("posting_goals", {

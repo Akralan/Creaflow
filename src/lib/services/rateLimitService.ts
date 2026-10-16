@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { lt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { rateLimitBuckets } from "@/db/schema";
@@ -75,6 +76,15 @@ export async function checkRateLimit(
   await maybeCleanupExpiredBuckets(nowMs, windowSeconds);
 
   return resolveRateLimitStatus(row.count, limit);
+}
+
+/**
+ * Empreinte d'un identifiant personnel (email) pour la clé de bucket : la table ne contient alors
+ * pas d'adresse en clair, seulement un hash — ce que la politique de confidentialité peut dire
+ * sans mentir. L'IP, elle, reste en clair (utile pour diagnostiquer une rafale).
+ */
+export function pseudonymizeIdentifier(identifier: string): string {
+  return createHash("sha256").update(identifier).digest("hex").slice(0, 32);
 }
 
 /** À appeler en tête des routes sensibles (auth, génération LLM, actions Stripe). */

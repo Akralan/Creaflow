@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { buildBucketKey, computeWindowStart, resolveRateLimitStatus } from "./rateLimitService";
+import { buildBucketKey, computeWindowStart, pseudonymizeIdentifier, resolveRateLimitStatus } from "./rateLimitService";
+
+describe("pseudonymizeIdentifier", () => {
+  it("remplace l'email par une empreinte stable qui ne contient pas l'adresse", () => {
+    const a = pseudonymizeIdentifier("alix@example.com");
+    expect(a).toBe(pseudonymizeIdentifier("alix@example.com"));
+    expect(a).toMatch(/^[0-9a-f]{32}$/);
+    expect(a).not.toContain("@");
+    expect(pseudonymizeIdentifier("autre@example.com")).not.toBe(a);
+  });
+});
 
 describe("computeWindowStart", () => {
   it("arrondit au début de la fenêtre fixe la plus proche (multiple du windowMs)", () => {

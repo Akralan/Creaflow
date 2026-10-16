@@ -1,8 +1,9 @@
 import { and, count, eq, gte } from "drizzle-orm";
 import { db } from "@/db";
-import { scriptGenerationEvents, scriptMicroEditEvents, subscriptions, subscriptionStatusEnum } from "@/db/schema";
+import { scriptGenerationEvents, scriptMicroEditEvents, subscriptions, subscriptionStatusEnum, users } from "@/db/schema";
 import type { Stripe } from "stripe";
 import { ApiError } from "@/lib/api/errors";
+import { logger } from "@/lib/logger";
 import { FREE_TRIAL_MICRO_EDIT_LIMIT, FREE_TRIAL_SCRIPT_LIMIT, getPlan, type PlanId } from "@/lib/billing/plans";
 
 type DbSubscriptionStatus = (typeof subscriptionStatusEnum.enumValues)[number];
@@ -151,6 +152,16 @@ export async function upsertSubscriptionFromStripe(params: {
   plan: PlanId;
 }): Promise<void> {
   const { userId, stripeCustomerId, stripeSubscription, plan } = params;
+
+  // Un compte supprimé (DELETE /api/account) peut encore recevoir un event en vol — abonnement
+  // résilié juste avant, checkout en cours. Sans ce garde, l'insert violerait la clé étrangère,
+  // le webhook répondrait 500 et Stripe le rejouerait pendant des jours. On l'ignore en 200.
+  const owner = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { id: true } });
+  if (!owner) {
+    logger.warn("Event Stripe reçu pour un compte supprimé, ignoré", { userId, stripeSubscriptionId: stripeSubscription.id });
+    return;
+  }
+
   const item = stripeSubscription.items.data[0];
   const values = {
     userId,

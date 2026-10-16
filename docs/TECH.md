@@ -20,7 +20,8 @@
 - **Backend :** API routes Next.js co-localisées avec le frontend, pas de backend séparé.
 - **Principe de conception API :** les routes sont pensées **par vue UI**, pas par entité pure — chaque écran se charge avec le moins d'appels possible (endpoints agrégés avec jointures Drizzle plutôt qu'un appel par entité liée).
 - **Base de données :** PostgreSQL, ORM Drizzle (`src/db/schema.ts`).
-- **Authentification :** email / mot de passe (bcrypt), session via cookie JWT (`src/lib/auth/`). Chaque utilisateur a son propre espace.
+- **Authentification :** email / mot de passe (bcrypt), session via cookie JWT (`src/lib/auth/`). Chaque utilisateur a son propre espace. `getCurrentUserId` fait une lecture par clé primaire à chaque requête authentifiée : un jeton émis avant `users.sessionsInvalidatedBefore` (posé par tout reset ou changement de mot de passe) est refusé, et un cookie survivant à la suppression du compte n'est plus reconnu (`docs/SPEC_LEGAL_EMAIL_RGPD.md` §3.4).
+- **Emails de service :** `src/lib/email/` — interface `sendEmail`, adaptateur Brevo (API transactionnelle, `fetch` direct) ou `console` (dev : l'email est écrit dans les logs). Sélection par `EMAIL_PROVIDER`, mode console par défaut sans `BREVO_API_KEY`. Trois emails : lien de réinitialisation, mot de passe modifié, compte supprimé (`src/lib/email/templates.ts`). Aucune newsletter, aucun tracking.
 - **Intégrations réseaux sociaux :** APIs officielles par plateforme (TikTok Login Kit, Instagram Graph API, LinkedIn API, YouTube Data API v3, X API v2) pour TikTok/Instagram/LinkedIn/YouTube/X (`hasOAuth: true` dans le registre de plateformes, `src/lib/social/types.ts`). Les autres plateformes du registre sont "suivies" sans mécanique OAuth. L'échec de récupération des posts après connexion (ex : accès API restreint sur LinkedIn) n'invalide pas la connexion déjà enregistrée. Refresh de token **lazy à l'usage** pour toute plateforme dont le provider expose `refreshToken()` (`src/lib/services/socialConnectionService.ts`, calqué sur le pattern déjà utilisé pour Google Drive) — aucun cron n'existe dans ce repo. LinkedIn (métriques) et X (OAuth PKCE + métriques) sont posés côté code mais non activables en pratique : validation d'accès externe pour l'un, ouverture d'un compte de facturation pour l'autre — voir `docs/SPEC_METRIQUES_AUTO.md` §2.4/§2.5.
 
 ---
@@ -289,6 +290,14 @@ Aucune contrainte `NOT NULL` ne force l'un ou l'autre sens.
 
 ### Authentification
 - `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`.
+- `POST /api/auth/password/forgot { email }` — répond toujours `{ ok }` (ne révèle pas qui est inscrit) ; crée un jeton (32 octets, stocké haché SHA-256 dans `password_reset_tokens`, 1 h, usage unique, invalide les précédents du compte) et envoie le lien `${APP_URL}/reinitialiser-mot-de-passe?token=…`. Un échec d'envoi est logué (Sentry) sans faire échouer la requête, pour la même raison.
+- `POST /api/auth/password/reset { token, password }` — remplace le hash, pose `sessionsInvalidatedBefore`, marque le jeton consommé, **connecte l'utilisateur** (cookie posé après l'invalidation, donc valide), envoie « mot de passe modifié ». Fonctionne pour un compte GitHub/Notion/Linear sans mot de passe : ça lui en crée un. Service : `src/lib/services/passwordService.ts`. Page : `/login?mode=forgot` (demande) et `/reinitialiser-mot-de-passe` (saisie).
+
+### Compte — onglet « Compte » de `/settings` (`src/components/AccountPanel.tsx`, `docs/SPEC_LEGAL_EMAIL_RGPD.md` §4)
+- `GET /api/account` — `{ email, createdAt, hasPassword, providers }`.
+- `POST /api/account/password { currentPassword?, newPassword }` — `currentPassword` exigé dès que le compte a un hash ; un compte sans mot de passe en définit un. Ferme toutes les sessions puis repose le cookie courant.
+- `GET /api/account/export` — JSON téléchargé (`Content-Disposition`), toutes les tables du compte sans jetons OAuth ni embeddings, images par URL publique (`accountService.exportAccountData`).
+- `DELETE /api/account { password | emailConfirmation }` — confirmation par mot de passe, ou recopie de l'email pour un compte sans mot de passe. Ordre : résiliation Stripe immédiate (bloquante : pas de compte supprimé qu'on continuerait à facturer ; le client et ses factures restent, annotés `creaflowAccountDeletedAt`), lecture des clés R2, `DELETE FROM users` (cascade sur toutes les tables utilisateur), puis suppression des objets R2 (au mieux, échecs logués — après la base, pour ne jamais laisser un compte vivant sans ses images), cookie effacé, email de confirmation. `upsertSubscriptionFromStripe` ignore (200 + `warn`) un event pour un `userId` qui n'existe plus. Pas de révocation des jetons chez les fournisseurs (effacés de notre côté seulement).
 
 ### Onboarding (Module A) — chat conversationnel (`/onboarding`)
 - `GET /api/onboarding/chat` — historique des messages + statut (`complete`).
@@ -514,7 +523,8 @@ Self-service, mode `subscription` Stripe Checkout — pas d'intégration Stripe.
 - **Pas de changement de plan self-service en v1** : le Customer Portal (`POST /api/billing/portal`) couvre moyen de paiement / factures / résiliation, pas le changement de plan — `subscriptions.plan` ne serait plus fiable si Stripe le modifiait sans passer par nos metadata. `POST /api/billing/checkout` refuse (409) tant qu'un abonnement existant n'est pas dans un statut terminal (`canceled`/`incomplete_expired`) — sinon un 2e Checkout créerait un 2e customer/2e subscription Stripe orphelins.
 - **Quota** : `enforceScriptQuota(userId)` appelé en tête de `POST /api/scripts`, `POST /api/scripts/generate`, `POST /api/scripts/:id/regenerate` (désactivé côté produit, §4) et `POST /api/scripts/:id/new-idea` — compte les `ScriptGenerationEvent` créés depuis `currentPeriodStart` (abonnement actif) ou depuis toujours (essai gratuit), lève une `ApiError(402)` au-delà de la limite du plan. Une régénération ou une "autre idée" comptent comme une génération (voir `ScriptGenerationEvent` en §3) : `createScriptRecord`/`updateScriptRecord` (`scriptService.ts`) insèrent l'événement dans la même transaction que l'écriture du script.
 - **Limite connue acceptée** : le check de quota et l'écriture de l'événement ne sont pas atomiques (l'appel LLM a lieu entre les deux) — deux requêtes concurrentes du même utilisateur peuvent ponctuellement dépasser la limite de quelques unités. Documenté dans `enforceScriptQuota` (`billingService.ts`).
-- **Non couvert par cette itération** : quota sur la génération d'images IA (`POST /api/assets/generate-image`, coût Gemini comparable à un script), plans annuels, changement de plan self-service, emails transactionnels de facturation (facture, échec de paiement, fin d'essai).
+- **Suppression de compte** : `DELETE /api/account` résilie immédiatement l'abonnement (`stripe.subscriptions.cancel`) avant d'effacer l'utilisateur — le webhook `customer.subscription.deleted` qui suit ne trouve plus de ligne à mettre à jour, c'est attendu. Le client Stripe et ses factures sont conservés (obligation comptable), annotés `metadata.creaflowAccountDeletedAt`.
+- **Non couvert par cette itération** : quota sur la génération d'images IA (`POST /api/assets/generate-image`, coût Gemini comparable à un script), plans annuels, changement de plan self-service, emails transactionnels de facturation (facture, échec de paiement, fin d'essai — Stripe sait les envoyer lui-même, c'est un réglage du Dashboard, pas du code).
 
 ---
 
@@ -532,6 +542,8 @@ Self-service, mode `subscription` Stripe Checkout — pas d'intégration Stripe.
   - `POST /api/profile/style-analysis` : 5/min par utilisateur (déclenchement manuel, usage rare).
   - `POST /api/assets/generate-image` : 10/min par utilisateur.
   - `POST /api/profile/content-categories` et `POST /api/series` (branche régénération IA uniquement, pas l'édition manuelle) : 5/min par utilisateur chacun.
+  - `POST /api/auth/password/forgot` : 5/heure par IP + 3/heure par email ; `POST /api/auth/password/reset` : 10/heure par IP.
+  - `DELETE /api/account`, `GET /api/account/export` : 3/heure par utilisateur chacun ; `POST /api/account/password` : 5/heure par utilisateur.
   - **Non couvert par cette itération** : les routes `/api/billing/*` (checkout, portail, webhook) n'ont pas encore ce traitement — à ajouter dans un prochain chantier.
 - **IP client** : lue depuis `X-Forwarded-For` (posé par la plateforme d'hébergement — Vercel, Railway, etc.). Si l'en-tête est absent (self-hosting direct sans proxy devant l'app), `getClientIp` renvoie `null` et le check par IP est **sauté** plutôt que d'utiliser une valeur de repli type "unknown" : un bucket partagé par tous les clients sans IP bloquerait tous les visiteurs légitimes dès qu'un seul dépasse la limite (déni de service auto-infligé). Sur `/api/auth/login`, le check par email reste actif dans ce cas ; sur `/api/auth/signup`, aucun filet ne reste (accepté en v1, cas de déploiement non standard).
 
@@ -598,7 +610,18 @@ Les sélecteurs ne sont pas réservés à l'onboarding : paramètres > Sujets af
 
 ---
 
+## 9 bis. Pages légales (`/legal/*`)
+
+- **Identité de l'éditeur en un seul endroit** : `src/lib/legal/publisher.ts` (`PUBLISHER`), lu par les mentions légales, les CGU/CGV, la politique de confidentialité et le footer de la landing. Pas dans `.env` : ce ne sont pas des secrets. Convention : une valeur entre `[crochets]` est un placeholder ; `isPublisherComplete()` le détecte et `LegalPage` affiche d'elle-même la bannière « document en cours de finalisation » tant qu'il en reste un — rien à retirer à la main le jour où l'entité est arrêtée. **État actuel : placeholders** (décision 2026-10-16, entité non arrêtée).
+- **CGU et CGV réunies** (`/legal/cgu`) : offres et quotas lus dans `src/lib/billing/plans.ts` (jamais de montant en dur — les prix vivent côté Stripe et sur la page de tarifs), renouvellement mensuel tacite, résiliation à fin de période, rétractation (L221-28 13°, exécution immédiate demandée), modification des prix avec préavis d'un mois, suppression de compte.
+- **Confidentialité** alignée sur les sous-traitants réels : OpenAI (texte, assistant, embeddings), Google (images, captioning), Cloudflare R2, Stripe, Brevo, Sentry, GitHub/Notion/Linear, plateformes sociales, hébergeurs (depuis `publisher.ts`). Tout nouveau sous-traitant ou traitement (analytics, Session Replay…) passe par cette page avant activation.
+- Rédactions internes, à faire relire par un professionnel du droit avant l'ouverture commerciale.
+
+---
+
 ## 10. Décisions ouvertes
+
+- Vérification de l'adresse email à l'inscription : écartée pour l'instant (friction au moment où on veut des inscriptions ; le reset prouve de toute façon la propriété de l'adresse) — à reconsidérer si des adresses invalides apparaissent (`docs/SPEC_LEGAL_EMAIL_RGPD.md` §5). Le changement d'adresse attend la même brique.
 
 - Faut-il étendre `enforceScriptQuota` (ou une variante) à la génération d'images IA (`POST /api/assets/generate-image`), qui a un coût LLM comparable à un script mais n'est pour l'instant pas quotée ?
 - Le portail Stripe doit-il à terme permettre un changement de plan self-service (nécessiterait de résoudre `plan` depuis le price id à chaque event plutôt que depuis metadata figée à la création) ?
