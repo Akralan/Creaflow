@@ -81,7 +81,7 @@ export default function LandingHeader() {
               Tarifs
             </Link>
           )}
-          <Link href="/login?mode=signup" style={ctaLinkStyle} {...hoverHandlers(ctaLinkStyle, ctaLinkHover)}>
+          <Link href="/login" style={ctaLinkStyle} {...hoverHandlers(ctaLinkStyle, ctaLinkHover)}>
             Se connecter
           </Link>
         </nav>
