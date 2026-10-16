@@ -6,11 +6,13 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import DesignEditor from "@/components/DesignEditor/DesignEditor";
-import BriefHeader from "@/components/ScriptEditor/BriefHeader";
+import { ActionsMenu, BriefInfo, StatusDropdown, UndoButton } from "@/components/ScriptEditor/HeaderControls";
+import PlatformLogo from "@/components/calendar/PlatformLogo";
+import layout from "@/components/ScriptEditor/script.module.css";
 import EditableField from "@/components/ScriptEditor/EditableField";
 import TitleField from "@/components/ScriptEditor/TitleField";
 import { api, ApiClientError, type Script } from "@/lib/apiClient";
-import { accentAlpha, color, fontHeading, fontMono, scriptStatusOptions, statusMeta, type ScriptStatus } from "@/lib/design/tokens";
+import { accentAlpha, color, fontHeading, fontMono, platformMeta, type ScriptStatus } from "@/lib/design/tokens";
 
 const EMPTY_METRICS_DRAFT = { views: 0, likes: 0, comments: 0, shares: 0 };
 const HISTORY_LIMIT = 20;
@@ -38,6 +40,8 @@ function RegenerateButton({ onClick, busy }: { onClick: () => void; busy: boolea
   );
 }
 
+const sectionLabel: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: color.textSecondary };
+
 /** Même seuil que STYLE_LEARNING_SUGGESTION_THRESHOLD (styleLearningService.ts). */
 const STYLE_SUGGESTION_THRESHOLD = 5;
 
@@ -62,6 +66,8 @@ export default function ScriptPage() {
   // Logo de l'identité de marque (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2) : dit à l'éditeur de
   // maquette si {{LOGO}} peut être résolu.
   const [hasLogo, setHasLogo] = useState(false);
+  // Nom affiché sur l'aperçu d'un post texte, comme sur le réseau.
+  const [authorName, setAuthorName] = useState("");
 
   async function load() {
     setLoading(true);
@@ -69,12 +75,13 @@ export default function ScriptPage() {
     try {
       const { script } = await api.getScript(params.id);
       setScript(script);
-      if (script.contentType === "visual") {
-        api
-          .getProfile()
-          .then(({ profile }) => setHasLogo(Boolean(profile?.brandKit?.logoAssetId)))
-          .catch(() => {});
-      }
+      api
+        .getProfile()
+        .then(({ profile }) => {
+          setHasLogo(Boolean(profile?.brandKit?.logoAssetId));
+          setAuthorName(profile?.brandName ?? "");
+        })
+        .catch(() => {});
       setMetricsDraft(
         script.metrics
           ? { views: script.metrics.views, likes: script.metrics.likes, comments: script.metrics.comments, shares: script.metrics.shares }
@@ -267,99 +274,43 @@ export default function ScriptPage() {
     );
   }
 
+  const isText = script.contentType === "text";
+  const textLabel = isText ? "Texte" : "Texte du post";
+
   return (
-    <div style={{ padding: "32px 36px", maxWidth: 900 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+    <div className={layout.page}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
         <button
           onClick={() => router.push("/calendar")}
           style={{ background: "none", border: "none", color: color.textMuted, fontFamily: "inherit", fontSize: 14, cursor: "pointer", padding: 0 }}
         >
-          ← Retour au calendrier
+          ← Calendrier
         </button>
-        {history.length > 0 && (
-          <button
-            onClick={handleUndo}
-            style={{ background: "none", border: "none", color: color.textMuted, fontFamily: "inherit", fontSize: 13, cursor: "pointer", padding: 0 }}
-          >
-            ↺ Annuler la dernière modification
-          </button>
-        )}
-      </div>
-
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 20, marginBottom: 8 }}>
-        <BriefHeader script={script} />
-        <Button variant="secondary" onClick={() => setConfirmDelete(true)} style={{ color: color.danger }}>
-          Supprimer
-        </Button>
-      </div>
-
-      {/* Contexte éditorial de l'épisode (maquette 1b) — l'ancienne pilule ne portait que le titre ;
-          le bloc donne la direction du rédacteur en chef, la promesse à honorer et les callbacks
-          disponibles, avec un retour vers le plan. */}
-      {script.beatId && script.beatTitle && (
-        <div
-          style={{
-            display: "flex",
-            gap: 14,
-            alignItems: "flex-start",
-            background: accentAlpha(0.06),
-            border: `1px solid ${accentAlpha(0.25)}`,
-            borderRadius: 14,
-            padding: "16px 18px",
-            marginBottom: 18,
-          }}
-        >
-          <div style={{ fontSize: 16, color: "oklch(0.5 0.2 292)", lineHeight: 1.2, flexShrink: 0 }}>◈</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: color.text, marginBottom: 6 }}>
-              Épisode de l&apos;arc · {script.beatTitle}
-            </div>
-            <div style={{ fontSize: 13, lineHeight: 1.55, color: color.text2 }}>
-              {script.beatRationale && <>Direction éditoriale : {script.beatRationale} </>}
-              {script.promiseHonored && (
-                <>
-                  Promesse à faire en conclusion :{" "}
-                  <span style={{ fontWeight: 600 }}>« {script.promiseHonored} »</span>{" "}
-                </>
-              )}
-              {script.seriesCallbacks && script.seriesCallbacks.length > 0 && (
-                <>
-                  Callbacks disponibles :{" "}
-                  <span style={{ fontWeight: 600 }}>{script.seriesCallbacks.join(" · ")}</span>
-                </>
-              )}
-              {!script.beatRationale && !script.promiseHonored && !script.seriesCallbacks?.length && (
-                <span style={{ color: color.textMuted }}>
-                  Ce script est rattaché au plan de la série. Le détail de l&apos;arc est dans Direction.
-                </span>
-              )}
-            </div>
-          </div>
-          <button
-            onClick={() => router.push("/direction")}
-            title="Voir le plan dans Direction"
-            style={{
-              flexShrink: 0,
-              fontFamily: "inherit",
-              fontSize: 12,
-              fontWeight: 600,
-              color: "oklch(0.5 0.2 292)",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: 0,
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {history.length > 0 && <UndoButton onClick={handleUndo} />}
+          <BriefInfo script={script} />
+          <ActionsMenu
+            canNewIdea={script.origin === "generated" && Boolean(script.concept)}
+            hasSeries={Boolean(script.series)}
+            busy={applyingNewIdea}
+            onNewIdea={() => {
+              setNewIdeaDirective("");
+              setConfirmNewIdea(true);
             }}
-          >
-            Voir le plan →
-          </button>
+            onDelete={() => setConfirmDelete(true)}
+          />
         </div>
-      )}
-
-      <div style={{ margin: "8px 0 20px" }}>
-        <TitleField title={script.title} onSave={(next) => saveField({ title: next })} />
       </div>
 
-      {error && <p style={{ color: color.danger, fontSize: 13, marginBottom: 16 }}>{error}</p>}
+      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 22 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <TitleField title={script.title} onSave={(next) => saveField({ title: next })} />
+        </div>
+        <StatusDropdown status={script.status} onChange={handleStatusChange} />
+      </div>
+
+      {applyingNewIdea && <p style={{ color: color.textMuted, fontSize: 13, margin: "0 0 14px" }}>On rédige une autre idée…</p>}
+      {error && <p style={{ color: color.danger, fontSize: 13, margin: "0 0 14px" }}>{error}</p>}
 
       {styleSuggestion !== null && (
         <div
@@ -395,88 +346,192 @@ export default function ScriptPage() {
         </div>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 13, color: color.textMuted }}>Statut :</span>
-        <div style={{ display: "flex", background: color.chipBg, borderRadius: 10, padding: 3, gap: 2 }}>
-          {scriptStatusOptions.map((s) => {
-            const active = s === script.status;
-            return (
-              <button
-                key={s}
-                onClick={() => handleStatusChange(s)}
-                style={{
-                  fontSize: 13,
-                  padding: "6px 12px",
-                  borderRadius: 8,
-                  border: "none",
-                  cursor: "pointer",
-                  background: active ? color.cardBg : "transparent",
-                  color: active ? statusMeta[s].fg : color.textFaint,
-                  fontWeight: active ? 600 : 400,
-                  boxShadow: active ? "0 1px 3px rgba(0,0,0,0.06)" : "none",
-                }}
-              >
-                {statusMeta[s].label}
-              </button>
-            );
-          })}
+      <div className={layout.layout}>
+        {/* Le post lui-même : la maquette pour un visuel, le post rendu pour un texte. */}
+        <div style={{ minWidth: 0 }}>
+          {isText ? (
+            <Card style={{ padding: "22px 24px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+                <span style={{ width: 40, height: 40, borderRadius: "50%", background: `linear-gradient(135deg, ${accentAlpha(0.6)}, oklch(0.55 0.2 292))`, flexShrink: 0 }} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontWeight: 700, fontSize: 15, color: color.text }}>{authorName || "Toi"}</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: color.textFaint, fontFamily: fontMono }}>
+                    <PlatformLogo platform={script.platform} size={13} />
+                    {platformMeta[script.platform]?.label ?? script.platform} · texte
+                  </span>
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                <div style={sectionLabel}>Accroche</div>
+                <RegenerateButton onClick={() => regenerateBlock("hook")} busy={regeneratingBlock === "hook"} />
+              </div>
+              {/* Aligne l'accroche (et le titre si besoin) sur le texte actuel, sans jamais réécrire le
+                  texte lui-même — le vrai geste d'édition du corps reste sélection→instruction. */}
+              <EditableField
+                value={script.hookText ?? ""}
+                onSave={(v) => saveField({ hookText: v })}
+                onApplyInstruction={(text, instr, isMajority) => applyInstruction("hookText", text, instr, isMajority)}
+              />
+              <div style={{ ...sectionLabel, margin: "18px 0 6px" }}>{textLabel}</div>
+              {/* Pas de régénération en bloc pour le texte : l'édition se fait petit bout par petit
+                  bout via la sélection (EditableField), qui a accès à la matière du sujet. */}
+              <EditableField
+                value={script.caption}
+                minRows={12}
+                onSave={(v) => saveField({ caption: v })}
+                onApplyInstruction={(text, instr, isMajority) => applyInstruction("caption", text, instr, isMajority)}
+              />
+            </Card>
+          ) : (
+            <Card style={{ padding: 20 }}>
+              <DesignEditor
+                script={script}
+                hasLogo={hasLogo}
+                onDesignChange={(design) => setScript((prev) => (prev ? { ...prev, visualDesign: design } : prev))}
+                onReload={reloadQuietly}
+              />
+            </Card>
+          )}
         </div>
-        {script.origin === "generated" && script.concept && (
-          <button
-            onClick={() => {
-              setNewIdeaDirective("");
-              setConfirmNewIdea(true);
-            }}
-            disabled={applyingNewIdea}
-            title="Remplace tout le contenu par une nouvelle idée, même brief (plateforme/catégorie/angle/série inchangés)"
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: "oklch(0.5 0.2 292)",
-              background: "oklch(0.55 0.2 292 / 0.08)",
-              border: "none",
-              borderRadius: 8,
-              padding: "6px 12px",
-              cursor: "pointer",
-              opacity: applyingNewIdea ? 0.6 : 1,
-            }}
-          >
-            {applyingNewIdea ? "..." : "✦ Autre idée, même brief"}
-          </button>
-        )}
-        {script.product && (
-          <span style={{ marginLeft: "auto", fontSize: 13, color: color.textMuted, display: "flex", alignItems: "center", gap: 7 }}>
-            Sujet : <span style={{ fontWeight: 600, color: color.text }}>{script.product.name}</span>
-          </span>
-        )}
-      </div>
 
-      {script.contentType === "visual" && (
-        <Card style={{ padding: 24, marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-            <div style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, display: "flex", alignItems: "center", gap: 9 }}>
-              <span style={{ color: "oklch(0.55 0.2 292)" }}>◆</span>L&apos;accroche visuelle
+        {/* Ce qui accompagne le post, toujours sous les yeux. */}
+        <aside className={layout.aside}>
+          {!isText && (
+            <Card style={{ padding: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <div style={sectionLabel}>{textLabel}</div>
+                <RegenerateButton onClick={() => regenerateBlock("caption")} busy={regeneratingBlock === "caption"} />
+              </div>
+              <EditableField
+                value={script.caption}
+                minRows={8}
+                onSave={(v) => saveField({ caption: v })}
+                onApplyInstruction={(text, instr, isMajority) => applyInstruction("caption", text, instr, isMajority)}
+              />
+            </Card>
+          )}
+
+          <Card style={{ padding: 20 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <div style={sectionLabel}>Hashtags</div>
+              <RegenerateButton onClick={() => regenerateBlock("hashtags")} busy={regeneratingBlock === "hashtags"} />
             </div>
-            <RegenerateButton onClick={() => regenerateBlock("hook")} busy={regeneratingBlock === "hook"} />
-          </div>
-          <EditableField
-            value={script.hookVisual ?? ""}
-            onSave={(v) => saveField({ hookVisual: v })}
-            onApplyInstruction={(text, instr, isMajority) => applyInstruction("hookVisual", text, instr, isMajority)}
-          />
-        </Card>
-      )}
+            <input
+              key={script.hashtags.join(" ")}
+              defaultValue={script.hashtags.join(" ")}
+              placeholder="#marque #niche"
+              onBlur={(e) => {
+                const hashtags = e.target.value.split(/\s+/).map((h) => h.trim()).filter(Boolean);
+                if (JSON.stringify(hashtags) !== JSON.stringify(script.hashtags)) saveField({ hashtags });
+              }}
+              style={{
+                width: "100%",
+                border: `1px solid ${color.inputBorder}`,
+                borderRadius: 10,
+                padding: "10px 12px",
+                fontSize: 13,
+                fontFamily: "inherit",
+                background: color.inputBg,
+                color: "oklch(0.5 0.2 292)",
+              }}
+            />
+          </Card>
 
-      {script.contentType === "visual" && (
-        <Card style={{ padding: 24, marginBottom: 16 }}>
-          <DesignEditor
-            script={script}
-            hasLogo={hasLogo}
-            onDesignChange={(design) => setScript((prev) => (prev ? { ...prev, visualDesign: design } : prev))}
-            onReload={reloadQuietly}
-          />
-        </Card>
-      )}
+          {script.citations && script.citations.length > 0 && (
+            <Card style={{ padding: 0 }}>
+              <details className={layout.sources}>
+                <summary style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px" }}>
+                  <span style={sectionLabel}>Sources</span>
+                  <span style={{ fontSize: 12, color: color.textMuted }}>
+                    {script.citations.length} passage{script.citations.length > 1 ? "s" : ""} de ta matière ▾
+                  </span>
+                </summary>
+                <div style={{ padding: "0 20px 18px" }}>
+          <div style={{ display: "grid", gap: 10 }}>
+                    {script.citations.map((c) => (
+                      <div key={c.id} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                        <span
+                          title={c.matched ? "Localisé dans le document source" : "Non localisé — le texte source a pu changer"}
+                          style={{
+                            flexShrink: 0,
+                            marginTop: 2,
+                            width: 18,
+                            height: 18,
+                            borderRadius: "50%",
+                            display: "grid",
+                            placeItems: "center",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: c.matched ? "oklch(0.5 0.16 150)" : color.textFaint,
+                            background: c.matched ? "oklch(0.5 0.16 150 / 0.12)" : color.chipBg,
+                          }}
+                        >
+                          {c.matched ? "✓" : "✗"}
+                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          {c.sourceMaterialTitle && (
+                            <div style={{ marginBottom: 4 }}>
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontFamily: fontMono,
+                                  color: color.textSecondary,
+                                  background: color.chipBg,
+                                  borderRadius: 6,
+                                  padding: "2px 8px",
+                                }}
+                              >
+                                {c.sourceMaterialTitle}
+                              </span>
+                            </div>
+                          )}
+                          <div style={{ fontSize: 13, lineHeight: 1.4, color: color.text2 }}>&laquo;&nbsp;{c.excerpt}&nbsp;&raquo;</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </details>
+            </Card>
+          )}
+
+          {script.status === "published" && (
+            <Card style={{ padding: 20 }}>
+              <div style={{ ...sectionLabel, marginBottom: 4 }}>Performance</div>
+              <p style={{ margin: "0 0 14px", fontSize: 12, color: color.textMuted }}>
+                Les statistiques du post publié orientent les prochains vers ce qui marche.
+              </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginBottom: 14 }}>
+            {(["views", "likes", "comments", "shares"] as const).map((field) => (
+              <div key={field}>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: color.textFaint, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>
+                  {{ views: "Vues", likes: "Likes", comments: "Commentaires", shares: "Partages" }[field]}
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={metricsDraft[field]}
+                  onChange={(e) => setMetricsDraft((d) => ({ ...d, [field]: Math.max(0, Number(e.target.value)) }))}
+                  style={{
+                    width: "100%",
+                    border: `1px solid ${color.inputBorder}`,
+                    borderRadius: 8,
+                    padding: "8px 10px",
+                    fontSize: 13,
+                    fontFamily: "inherit",
+                    background: color.cardBg,
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+          <Button onClick={handleSaveMetrics} disabled={savingMetrics} style={{ padding: "8px 16px", fontSize: 13 }}>
+            {savingMetrics ? "..." : "Enregistrer"}
+          </Button>
+            </Card>
+          )}
+        </aside>
+      </div>
 
       <Modal open={confirmDelete} onClose={() => setConfirmDelete(false)} width={420}>
         <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, margin: "0 0 8px" }}>Supprimer ce brouillon ?</h2>
@@ -530,201 +585,6 @@ export default function ScriptPage() {
           </Button>
         </div>
       </Modal>
-
-      {script.contentType === "text" && (
-        <Card style={{ padding: 24, marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-            <div style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, display: "flex", alignItems: "center", gap: 9 }}>
-              <span style={{ color: "oklch(0.55 0.2 292)" }}>◆</span>L&apos;accroche
-            </div>
-            <RegenerateButton onClick={() => regenerateBlock("hook")} busy={regeneratingBlock === "hook"} />
-          </div>
-          {/* Aligne l'accroche (et le titre si besoin) sur le texte actuel, sans jamais réécrire le
-              texte lui-même — le vrai geste d'édition du corps reste sélection→instruction. */}
-          <EditableField
-            value={script.hookText ?? ""}
-            onSave={(v) => saveField({ hookText: v })}
-            onApplyInstruction={(text, instr, isMajority) => applyInstruction("hookText", text, instr, isMajority)}
-          />
-        </Card>
-      )}
-
-      <div
-        style={
-          script.contentType === "text"
-            ? { display: "flex", flexDirection: "column", gap: 16 }
-            : { display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 16, alignItems: "start" }
-        }
-      >
-        {script.contentType !== "text" && (
-          <Card style={{ padding: 24 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-              <div style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, display: "flex", alignItems: "center", gap: 9 }}>
-                <span style={{ color: "oklch(0.55 0.2 292)" }}>▤</span>
-                Slides
-              </div>
-              <RegenerateButton onClick={() => regenerateBlock("storyboard")} busy={regeneratingBlock === "storyboard"} />
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {(script.storyboard ?? []).map((s, i) => (
-                <div key={s.planNumber} style={{ display: "flex", gap: 14 }}>
-                  <div style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 9, background: "oklch(0.55 0.2 292 / 0.1)", color: "oklch(0.5 0.2 292)", fontWeight: 700, fontSize: 14, display: "grid", placeItems: "center", fontFamily: fontHeading }}>
-                    {s.planNumber}
-                  </div>
-                  <div style={{ flex: 1, paddingTop: 3 }}>
-                    <EditableField
-                      value={s.description}
-                      minRows={2}
-                      onSave={(v) => {
-                        const storyboard = (script.storyboard ?? []).map((step, j) => (j === i ? { ...step, description: v } : step));
-                        saveField({ storyboard });
-                      }}
-                      onApplyInstruction={(text, instr, isMajority) => applyInstruction(`storyboard.${i}`, text, instr, isMajority)}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        )}
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <Card style={{ padding: 22 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: color.textSecondary }}>
-                {script.contentType === "text" ? "Texte" : "Légende"}
-              </div>
-              {/* Pas de régénération en bloc pour le texte : personne ne relance une génération à
-                  l'aveugle en espérant un bon résultat — l'édition se fait petit bout par petit bout
-                  via la sélection (EditableField), qui a accès à la matière du sujet. */}
-              {script.contentType !== "text" && (
-                <RegenerateButton onClick={() => regenerateBlock("caption")} busy={regeneratingBlock === "caption"} />
-              )}
-            </div>
-            <EditableField
-              value={script.caption}
-              minRows={script.contentType === "text" ? 8 : 4}
-              onSave={(v) => saveField({ caption: v })}
-              onApplyInstruction={(text, instr, isMajority) => applyInstruction("caption", text, instr, isMajority)}
-            />
-          </Card>
-          <Card style={{ padding: 22 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: color.textSecondary }}>Hashtags</div>
-              <RegenerateButton onClick={() => regenerateBlock("hashtags")} busy={regeneratingBlock === "hashtags"} />
-            </div>
-            <input
-              defaultValue={script.hashtags.join(" ")}
-              placeholder="#marque #niche"
-              onBlur={(e) => {
-                const hashtags = e.target.value.split(/\s+/).map((h) => h.trim()).filter(Boolean);
-                if (JSON.stringify(hashtags) !== JSON.stringify(script.hashtags)) saveField({ hashtags });
-              }}
-              style={{
-                width: "100%",
-                border: `1px solid ${color.inputBorder}`,
-                borderRadius: 10,
-                padding: "10px 12px",
-                fontSize: 13,
-                fontFamily: "inherit",
-                background: color.inputBg,
-                color: "oklch(0.5 0.2 292)",
-              }}
-            />
-          </Card>
-        </div>
-      </div>
-
-      {script.citations && script.citations.length > 0 && (
-        <Card style={{ padding: 22, marginTop: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: color.textSecondary, marginBottom: 4 }}>
-            Matière utilisée pour ce script
-          </div>
-          <p style={{ margin: "0 0 14px", fontSize: 12, color: color.textMuted }}>
-            Passages rapportés par l&apos;IA comme base factuelle — utile pour vérifier ce qui a réellement été repris
-            depuis ta matière (docs/SPEC_MATIERE_EDITEUR.md §3).
-          </p>
-          <div style={{ display: "grid", gap: 10 }}>
-            {script.citations.map((c) => (
-              <div key={c.id} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <span
-                  title={c.matched ? "Localisé dans le document source" : "Non localisé — le texte source a pu changer"}
-                  style={{
-                    flexShrink: 0,
-                    marginTop: 2,
-                    width: 18,
-                    height: 18,
-                    borderRadius: "50%",
-                    display: "grid",
-                    placeItems: "center",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: c.matched ? "oklch(0.5 0.16 150)" : color.textFaint,
-                    background: c.matched ? "oklch(0.5 0.16 150 / 0.12)" : color.chipBg,
-                  }}
-                >
-                  {c.matched ? "✓" : "✗"}
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  {c.sourceMaterialTitle && (
-                    <div style={{ marginBottom: 4 }}>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontFamily: fontMono,
-                          color: color.textSecondary,
-                          background: color.chipBg,
-                          borderRadius: 6,
-                          padding: "2px 8px",
-                        }}
-                      >
-                        {c.sourceMaterialTitle}
-                      </span>
-                    </div>
-                  )}
-                  <div style={{ fontSize: 13, lineHeight: 1.4, color: color.text2 }}>&laquo;&nbsp;{c.excerpt}&nbsp;&raquo;</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {script.status === "published" && (
-        <Card style={{ padding: 22, marginTop: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: color.textSecondary, marginBottom: 4 }}>Performance</div>
-          <p style={{ margin: "0 0 14px", fontSize: 12, color: color.textMuted }}>
-            Saisis les statistiques du post publié — ça oriente les prochaines générations vers ce qui marche.
-          </p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10, marginBottom: 14 }}>
-            {(["views", "likes", "comments", "shares"] as const).map((field) => (
-              <div key={field}>
-                <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: color.textFaint, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>
-                  {{ views: "Vues", likes: "Likes", comments: "Commentaires", shares: "Partages" }[field]}
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  value={metricsDraft[field]}
-                  onChange={(e) => setMetricsDraft((d) => ({ ...d, [field]: Math.max(0, Number(e.target.value)) }))}
-                  style={{
-                    width: "100%",
-                    border: `1px solid ${color.inputBorder}`,
-                    borderRadius: 8,
-                    padding: "8px 10px",
-                    fontSize: 13,
-                    fontFamily: "inherit",
-                    background: color.cardBg,
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-          <Button onClick={handleSaveMetrics} disabled={savingMetrics} style={{ padding: "8px 16px", fontSize: 13 }}>
-            {savingMetrics ? "..." : "Enregistrer"}
-          </Button>
-        </Card>
-      )}
     </div>
   );
 }
