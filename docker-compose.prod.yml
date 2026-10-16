@@ -1,0 +1,95 @@
+# Pile de production sur un VPS unique — docs/DEPLOIEMENT_VPS.md.
+#
+#   docker compose -f docker-compose.prod.yml build
+#   docker compose -f docker-compose.prod.yml run --rm migrate
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Le fichier .env à la racine (copié depuis deploy/env.production.example) sert deux fois :
+# - Compose y lit les `${VAR}` ci-dessous (POSTGRES_PASSWORD, APP_DOMAIN, build args) ;
+# - l'app et le conteneur de migration le reçoivent entier via `env_file`.
+# Compose n'interpole pas à l'intérieur d'un env_file : DATABASE_URL y est donc écrit en clair,
+# avec le même mot de passe que POSTGRES_PASSWORD (voir le guide, §4).
+#
+# Seul Caddy expose des ports. Postgres et l'app ne sont joignables que sur le réseau interne.
+
+services:
+  postgres:
+    # Même image qu'en dev : pgvector est requis par la migration 0007 (drizzle/README_PGVECTOR.md).
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: creaflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD manquant dans .env}
+      POSTGRES_DB: creaflow
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U creaflow -d creaflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Conteneur jetable : applique les migrations Drizzle puis s'arrête. À lancer avant chaque
+  # `up` qui suit un build (deploy/update.sh le fait). Il part de l'étape `builder` du Dockerfile,
+  # la seule qui contient drizzle-kit et le dossier drizzle/.
+  migrate:
+    build:
+      context: .
+      target: builder
+      args:
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+        NEXT_PUBLIC_GOOGLE_PICKER_API_KEY: ${NEXT_PUBLIC_GOOGLE_PICKER_API_KEY:-}
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+        R2_PUBLIC_BASE_URL: ${R2_PUBLIC_BASE_URL:-}
+    env_file: .env
+    command: ["npx", "drizzle-kit", "migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["tools"]
+
+  app:
+    build:
+      context: .
+      target: runner
+      args:
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+        NEXT_PUBLIC_GOOGLE_PICKER_API_KEY: ${NEXT_PUBLIC_GOOGLE_PICKER_API_KEY:-}
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+        R2_PUBLIC_BASE_URL: ${R2_PUBLIC_BASE_URL:-}
+    restart: unless-stopped
+    env_file: .env
+    # Laisse le temps aux callbacks after() (composition automatique, apprentissage du style)
+    # de finir avant l'arrêt : Next termine les requêtes en vol sur SIGTERM (guide self-hosting).
+    stop_grace_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # L'image slim n'a ni curl ni wget ; fetch() de Node suffit. Page statique, sans base.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/legal/cgu').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN manquant dans .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

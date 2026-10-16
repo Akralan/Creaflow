@@ -1,0 +1,21 @@
+# Contexte de build Docker (Dockerfile) : tout ce qui n'est pas nécessaire à `next build`.
+# Les secrets n'entrent jamais dans l'image : ils sont injectés à l'exécution par env_file.
+.env*
+!.env.example
+node_modules
+.next
+out
+coverage
+.git
+.github
+.vercel
+.claude
+docs
+*.md
+!README.md
+docker-compose.yml
+docker-compose.prod.yml
+deploy
+scripts/baseline-*
+npm-debug.log*
+.DS_Store
