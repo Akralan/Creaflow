@@ -78,7 +78,7 @@ export default function LandingSources() {
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "6px 10px" }}>
           <span style={label}>Publie sur</span>
           <span style={{ fontSize: 14.5, fontWeight: 600, color: text.secondary, whiteSpace: "nowrap" }}>
-            LinkedIn · TikTok · Instagram · YouTube
+            LinkedIn · Instagram · X
           </span>
         </div>
       </div>

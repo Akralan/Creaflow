@@ -69,22 +69,6 @@ const mono = fontMono;
 const railIcon: CSSProperties = { width: 26, height: 26, borderRadius: 8, background: ink(0.06) };
 const railIconActive: CSSProperties = { ...railIcon, background: accentAlpha(0.16), boxShadow: `inset 0 0 0 1px ${accentAlpha(0.3)}` };
 
-const floatingChip: CSSProperties = {
-  position: "absolute",
-  zIndex: 2,
-  alignItems: "center",
-  gap: 8,
-  padding: "8px 13px 8px 10px",
-  borderRadius: 999,
-  background: bg.card,
-  border: `1px solid ${ink(0.09)}`,
-  boxShadow: `0 14px 30px -18px ${ink(0.5)}`,
-  fontSize: 12.5,
-  fontWeight: 600,
-  color: text.body,
-  whiteSpace: "nowrap",
-};
-
 const sourceChip: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
@@ -197,9 +181,9 @@ export default function LandingHero() {
               textWrap: "balance",
             }}
           >
-            <span className={styles.heroLine} style={{ animation: "cf-rise .9s cubic-bezier(.2,.75,.2,1) both" }}>Tes notes de travail</span>{" "}
-            <span className={styles.heroLine} style={{ animation: "cf-rise .9s cubic-bezier(.2,.75,.2,1) .1s both" }}>deviennent tes posts</span>{" "}
-            <span className={styles.heroLine} style={{ animation: "cf-rise .9s cubic-bezier(.2,.75,.2,1) .2s both", color: accent, whiteSpace: "nowrap" }}>de la semaine.</span>
+            <span className={styles.heroLine} style={{ animation: "cf-rise .9s cubic-bezier(.2,.75,.2,1) both" }}>Ton travail devient</span>{" "}
+            <span className={styles.heroLine} style={{ animation: "cf-rise .9s cubic-bezier(.2,.75,.2,1) .1s both" }}>ton meilleur</span>{" "}
+            <span className={styles.heroLine} style={{ animation: "cf-rise .9s cubic-bezier(.2,.75,.2,1) .2s both", color: accent, whiteSpace: "nowrap" }}>commercial.</span>
           </h1>
           <p
             style={{
@@ -263,15 +247,6 @@ export default function LandingHero() {
               pointerEvents: "none",
             }}
           />
-          <span className={styles.heroChip} style={{ ...floatingChip, top: 314, left: -26 }}>
-            <span style={{ width: 20, height: 20, borderRadius: 7, background: accentAlpha(0.14), color: accentText, display: "grid", placeItems: "center", fontFamily: mono, fontSize: 11 }}>✓</span>
-            Tiré de tes notes, rien d&apos;inventé
-          </span>
-          <span className={styles.heroChip} style={{ ...floatingChip, bottom: -16, right: 26 }}>
-            <span style={{ width: 20, height: 20, borderRadius: 7, background: "oklch(0.9 0.08 62)", color: "oklch(0.45 0.12 62)", display: "grid", placeItems: "center", fontFamily: mono, fontSize: 11 }}>0</span>
-            angle répété cette semaine
-          </span>
-
           <div className={styles.heroDemoTilt}>
             <div
               style={{

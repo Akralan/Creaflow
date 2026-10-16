@@ -54,7 +54,7 @@ export const personas: Persona[] = [
     ],
     schedule: [
       { title: "Pourquoi j'ai supprimé 1 200 lignes de code", meta: "LUN · LINKEDIN" },
-      { title: "Le bug qui m'a coûté une nuit", meta: "MER · TIKTOK", phoneHidden: true },
+      { title: "Le bug qui m'a coûté une nuit", meta: "MER · X", phoneHidden: true },
       { title: "3 décisions prises ce mois, et ce qu'elles coûtent", meta: "VEN · LINKEDIN · NOUVEAU", highlighted: true },
     ],
     post: {

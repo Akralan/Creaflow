@@ -253,15 +253,6 @@ export default function LandingOutcomes() {
               pointerEvents: "none",
             }}
           />
-          <span className={styles.outcomeChip} style={{ top: -10, left: -22 }} aria-hidden="true">
-            <span style={chipIcon(accentAlpha(0.14), accentText)}>✓</span>
-            Tiré de ton travail, rien d&apos;inventé
-          </span>
-          <span className={styles.outcomeChip} style={{ bottom: -8, right: -14 }} aria-hidden="true">
-            <span style={chipIcon("oklch(0.9 0.08 62)", "oklch(0.45 0.12 62)")}>0</span>
-            ligne écrite par toi
-          </span>
-
           <div className={`${styles.outcomeCollage} ${fadeClass}`} aria-hidden="true">
             {/* 01 : ton travail devient un post */}
             <div className={styles.outcomeBob} style={{ animationDuration: "6.2s" }}>

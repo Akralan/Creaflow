@@ -97,7 +97,7 @@ export default function LandingCtaFinal({ onShowPricing }: Props) {
             textWrap: "balance",
           }}
         >
-          Tes cinq premiers scripts t&apos;attendent
+          Ta première semaine t&apos;attend
         </h2>
         <p
           data-reveal=""
