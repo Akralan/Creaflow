@@ -1,0 +1,8 @@
+# Les fichiers lus par Linux (scripts, Dockerfile, Caddyfile) restent en LF même sur un poste
+# Windows avec core.autocrlf=true : un CRLF dans un shebang casse le script sur le VPS.
+*.sh text eol=lf
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+deploy/Caddyfile text eol=lf
+deploy/env.production.example text eol=lf
+docker-compose*.yml text eol=lf

@@ -75,6 +75,7 @@ Pour utiliser un Postgres déjà installé plutôt que Docker : il lui faut l'ex
 
 - `docs/PRODUCT.md` — vision produit et fonctionnalités.
 - `docs/TECH.md` — stack, modèle de données, endpoints, architecture des prompts.
+- `docs/DEPLOIEMENT_VPS.md` — mise en production sur un VPS (Docker Compose, Caddy, sauvegardes).
 - `docs/` — les specs par chantier (séries et rôles, rédacteur en chef, assistant agentique,
   ressources visuelles, onboarding développeur).
 

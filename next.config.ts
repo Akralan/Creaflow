@@ -67,6 +67,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Build autonome pour l'image Docker de production (Dockerfile, docs/DEPLOIEMENT_VPS.md) :
+  // .next/standalone contient server.js et les seuls node_modules nécessaires. Sans effet en dev.
+  output: "standalone",
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

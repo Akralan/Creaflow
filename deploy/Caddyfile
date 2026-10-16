@@ -1,0 +1,12 @@
+# Reverse proxy HTTPS devant l'app — docs/DEPLOIEMENT_VPS.md.
+#
+# Caddy obtient et renouvelle le certificat Let's Encrypt tout seul dès que le DNS de APP_DOMAIN
+# pointe sur le VPS et que les ports 80/443 sont ouverts. Il pose X-Forwarded-For sur chaque
+# requête, ce dont le rate limiting par IP a besoin (docs/TECH.md §7, getClientIp).
+# HSTS et les autres en-têtes de sécurité sont déjà émis par l'app (next.config.ts) : rien à
+# ajouter ici.
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app:3000
+}
