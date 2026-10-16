@@ -280,7 +280,7 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
   briefLines.push(`Type de contenu : ${contentType}. ${CONTENT_TYPE_GUIDANCE[contentType]}`);
   if (contentType === "visual" && brandAsset) {
     briefLines.push(
-      `Photo de référence disponible dans la bibliothèque de marque (base réelle du visuel — mise en scène uniquement : fond, lumière, cadrage autour du produit réel ; ne décris jamais un produit différent de celui-ci) : ${brandAsset.aiDescription}${
+      `Photo de référence disponible dans la bibliothèque de marque (elle sera utilisée telle quelle ou détourée dans la maquette, jamais modifiée ; ne décris jamais un produit différent de celui-ci) : ${brandAsset.aiDescription}${
         brandAsset.tags?.length ? ` (mots-clés : ${brandAsset.tags.join(", ")})` : ""
       }`
     );

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -10,6 +10,7 @@ import { enforceScriptQuota } from "@/lib/services/billingService";
 import { platformSchema, contentCategorySchema, contentTypeSchema, directiveSchema } from "@/lib/validation";
 import { handleApiError } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
+import { autoComposeDesign } from "@/lib/services/visualDesignService";
 import { normalizeVisualSpec, visualFormatFieldsSchema } from "@/lib/visualDesign/visualFormat";
 
 // contentCategoryId optionnel dès qu'une série est fournie — la série impose son rôle
@@ -83,6 +84,9 @@ export async function POST(request: NextRequest) {
       visual: context.visual,
     });
     await recordBeatDraftedIfNeeded(context, script.id);
+    // Maquette composée automatiquement en arrière-plan pour un post visuel
+    // (docs/SPEC_COMPOSITION_VISUELLE.md §2) — jamais bloquant, jamais compté dans le quota.
+    if (script.contentType === "visual") after(() => autoComposeDesign(userId, script.id));
 
     if (scheduledDate) {
       await db.insert(calendarEntries).values({

@@ -147,26 +147,37 @@ export interface DesignTheme {
 
 export interface DesignSlide {
   planNumber: number;
-  /** HTML passé par la liste blanche côté serveur — placeholders {{BASE_IMAGE}} / {{LOGO}} non résolus. */
+  /** HTML passé par la liste blanche côté serveur — placeholders {{IMG:p1}} / {{LOGO}} non résolus. */
   html: string;
   exportKey: string | null;
   exportUrl: string | null;
 }
 
-/** Maquette d'un post visuel (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §4). */
+export type DesignImageVariant = "original" | "cutout";
+
+/** Photo d'une maquette (docs/SPEC_COMPOSITION_VISUELLE.md §4), référencée par {{IMG:ref}} dans le HTML. */
+export interface DesignImage {
+  ref: string;
+  assetId: string;
+  variant: DesignImageVariant;
+  thumbnailUrl: string | null;
+  /** Le détouré est déjà calculé (bascule instantanée). */
+  hasCutout: boolean;
+}
+
+/** Maquette d'un post visuel (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §4, docs/SPEC_COMPOSITION_VISUELLE.md §4). */
 export interface VisualDesign {
   id: string;
   scriptId: string;
-  baseKind: "generated" | "asset" | "none";
-  baseGeneratedImageId: string | null;
-  baseAssetId: string | null;
+  images: DesignImage[];
+  /** Le serveur a un provider de détourage configuré. */
+  cutoutAvailable: boolean;
   width: number;
   height: number;
   theme: DesignTheme;
   slides: DesignSlide[];
   status: "draft" | "stale" | "exported";
   lastInstruction: string | null;
-  containsAiImagery: boolean;
   /** Animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) : null pour une maquette statique. */
   durationMs: number | null;
   timeline: TimelineEntry[] | null;
@@ -370,11 +381,8 @@ export interface Script {
   updatedAt: string;
   product?: Product | null;
   metrics?: PostMetrics | null;
-  /** Photo de marque utilisée comme référence, et image effectivement générée (contentType "visual"). */
+  /** Photo de marque trouvée par recherche sémantique à la génération (contentType "visual") — suggérée en premier pour la maquette. */
   brandAssetId: string | null;
-  generatedImageId: string | null;
-  /** Présent (avec `url`) uniquement sur la fiche script détaillée (GET /api/scripts/:id). */
-  generatedImage?: GeneratedImage | null;
   /** Maquette du post visuel — fiche détaillée uniquement, null tant qu'aucune n'a été composée. */
   visualDesign?: VisualDesign | null;
   /** Matière utilisée pour ce script — présent uniquement sur la fiche détaillée. */
@@ -493,20 +501,12 @@ export interface BrandAsset {
   userId: string;
   sourceType: "upload" | "google_drive";
   thumbnailUrl: string | null;
+  /** PNG détouré, une fois calculé (docs/SPEC_COMPOSITION_VISUELLE.md §2). */
+  cutoutUrl: string | null;
   status: "pending" | "ready" | "unreachable";
   aiDescription: string | null;
   tags: string[] | null;
   productId: string | null;
-  createdAt: string;
-}
-
-export interface GeneratedImage {
-  id: string;
-  userId: string;
-  scriptId: string | null;
-  storageKey: string;
-  url: string;
-  mode: string;
   createdAt: string;
 }
 
@@ -608,11 +608,21 @@ export const api = {
   saveBrandKit: (data: BrandKit) => patch<{ brandKit: BrandKit }>("/api/profile/brand-kit", data),
 
   // Maquette d'un post visuel (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §5.3)
-  createDesign: (scriptId: string, data: { baseKind: "generated" | "asset" | "none"; baseAssetId?: string | null; format?: string }) =>
+  createDesign: (scriptId: string, data: { assetIds: string[]; format?: string }) =>
     post<{ design: VisualDesign; rationale: string }>(`/api/scripts/${scriptId}/design`, data),
+  addDesignImage: (scriptId: string, assetId: string) => post<{ design: VisualDesign; ref: string }>(`/api/scripts/${scriptId}/design/images`, { assetId }),
   instructDesign: (scriptId: string, data: { instruction: string; planNumber?: number | null }) =>
     post<{ design: VisualDesign; rationale: string }>(`/api/scripts/${scriptId}/design/instruct`, data),
-  patchDesign: (scriptId: string, data: { slides?: { planNumber: number; html: string }[]; theme?: DesignTheme; timeline?: TimelineEntry[]; durationMs?: number }) =>
+  patchDesign: (
+    scriptId: string,
+    data: {
+      slides?: { planNumber: number; html: string }[];
+      theme?: DesignTheme;
+      images?: { ref: string; assetId: string; variant: DesignImageVariant }[];
+      timeline?: TimelineEntry[];
+      durationMs?: number;
+    }
+  ) =>
     patch<{ design: VisualDesign }>(`/api/scripts/${scriptId}/design`, data),
   deleteDesign: (scriptId: string) => del<{ ok: true }>(`/api/scripts/${scriptId}/design`),
   exportDesign: async (scriptId: string, files: { planNumber: number; blob: Blob }[]) => {
@@ -845,7 +855,8 @@ export const api = {
   resolveAssistantProposal: (id: string, action: "accept" | "reject", fields?: Record<string, unknown>) =>
     post<{ proposals: AssistantProposal[] }>(`/api/assistant/proposals/${id}/resolve`, { action, fields }),
 
-  getAssets: () => apiFetch<{ assets: BrandAsset[] }>("/api/assets"),
+  getAssets: () => apiFetch<{ assets: BrandAsset[]; cutoutAvailable: boolean }>("/api/assets"),
+  cutoutAsset: (id: string) => post<{ asset: BrandAsset }>(`/api/assets/${id}/cutout`, {}),
   uploadAssets: async (files: FileList | File[]) => {
     const formData = new FormData();
     Array.from(files).forEach((file) => formData.append("files", file));
@@ -860,8 +871,6 @@ export const api = {
   },
   finalizeAssetPicker: (fileIds: string[]) => post<{ assets: BrandAsset[] }>("/api/assets/picker", { fileIds }),
   deleteAsset: (id: string) => del<{ ok: true }>(`/api/assets/${id}`),
-  generateStagedImage: (data: { assetIds: string[]; instruction: string; scriptId?: string }) =>
-    post<{ generatedImage: GeneratedImage }>("/api/assets/generate-image", data),
 
   getGoogleDriveConnection: () => apiFetch<GoogleDriveConnection>("/api/google-drive/connection"),
   connectGoogleDrive: (code: string) =>

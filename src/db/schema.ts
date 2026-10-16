@@ -11,7 +11,6 @@ import {
   unique,
   uniqueIndex,
   vector,
-  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 
@@ -60,7 +59,6 @@ export const brandAssetSourceEnum = pgEnum("brand_asset_source", ["upload", "goo
 export const brandAssetStatusEnum = pgEnum("brand_asset_status", ["pending", "ready", "unreachable"]);
 export const brandAssetOrientationEnum = pgEnum("brand_asset_orientation", ["portrait", "landscape", "square"]);
 export const googleDriveConnectionStatusEnum = pgEnum("google_drive_connection_status", ["ok", "needs_reconnect"]);
-export const generatedImageStatusEnum = pgEnum("generated_image_status", ["ready", "failed"]);
 export const socialConnectionStatusEnum = pgEnum("social_connection_status", ["ok", "needs_reconnect"]);
 export const postMetricsSourceEnum = pgEnum("post_metrics_source", ["manual", "api"]);
 export const postMatchCandidateStatusEnum = pgEnum("post_match_candidate_status", ["pending", "confirmed", "dismissed"]);
@@ -71,7 +69,6 @@ export const scriptMicroEditKindEnum = pgEnum("script_micro_edit_kind", ["select
 // Format d'un post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §1) — propriété du script, pas
 // un type de contenu de plus.
 export const visualFormatEnum = pgEnum("visual_format", ["single", "carousel", "animation"]);
-export const visualDesignBaseKindEnum = pgEnum("visual_design_base_kind", ["generated", "asset", "none"]);
 export const visualDesignStatusEnum = pgEnum("visual_design_status", ["draft", "stale", "exported"]);
 // "connector" = document miroir d'une source externe branchée (dépôt GitHub aujourd'hui), par
 // opposition aux trois portes manuelles. Voir docs/superpowers/specs/2026-08-31-onboarding-dev-github-design.md §3.3.
@@ -458,6 +455,9 @@ export const brandAssets = pgTable("brand_assets", {
   height: integer("height"),
   originalKey: text("original_key"), // clé objet R2 de l'original — rempli seulement pour sourceType="upload"
   thumbnailKey: text("thumbnail_key"), // null tant que status="pending"
+  // Détourage en cache (docs/SPEC_COMPOSITION_VISUELLE.md §2) : PNG avec transparence sur R2,
+  // calculé une fois par photo à la première demande, invalidé si le checksum change.
+  cutoutKey: text("cutout_key"),
   productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
   aiDescription: text("ai_description"),
   tags: text("tags").array(),
@@ -597,11 +597,8 @@ export const scripts = pgTable("scripts", {
   durationMs: integer("duration_ms"),
   status: scriptStatusEnum("status").notNull().default("draft"),
   // Image de marque sélectionnée par recherche sémantique comme référence pour ce script (contentType
-  // "visual"), et image effectivement générée à partir d'elle le cas échéant.
+  // "visual") — suggérée en premier dans les photos de la maquette (docs/SPEC_COMPOSITION_VISUELLE.md §2).
   brandAssetId: uuid("brand_asset_id").references(() => brandAssets.id, { onDelete: "set null" }),
-  // Référence circulaire scripts <-> generatedImages : annotation de retour explicite requise pour
-  // que TypeScript casse le cycle d'inférence (pattern documenté de drizzle-orm).
-  generatedImageId: uuid("generated_image_id").references((): AnyPgColumn => generatedImages.id, { onDelete: "set null" }),
   // "generated" = passé par le LLM (génération ou régénération) ; "imported" = collé via
   // POST /api/scripts/import (écrit ailleurs) ; "manual" = né dans l'éditeur (naissance paresseuse,
   // docs/SPEC_MATIERE_EDITEUR.md §4.5). N'affecte ni le quota ni l'anti-répétition.
@@ -622,36 +619,18 @@ export const scripts = pgTable("scripts", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-// Image produite par édition conditionnée (Nano Banana) à partir d'une ou plusieurs BrandAsset.
-// Un seul mode existe en v1 : "staging" (mise en scène — fond/lumière/cadrage autour du produit réel).
-// Le mode "transformation du produit" (couleur/matière/forme) n'existe pas dans le code, cf.
-// docs/SPEC_RESSOURCES_VISUELLES.md §6.1 — ce n'est pas une option masquée, c'est une absence.
-export const generatedImages = pgTable("generated_images", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  scriptId: uuid("script_id").references((): AnyPgColumn => scripts.id, { onDelete: "set null" }),
-  sourceAssetIds: uuid("source_asset_ids").array().notNull(), // pas de FK sur array Postgres
-  mode: text("mode").notNull().default("staging"),
-  instruction: text("instruction"),
-  storageKey: text("storage_key").notNull(),
-  mimeType: text("mime_type").notNull(),
-  width: integer("width"),
-  height: integer("height"),
-  status: generatedImageStatusEnum("status").notNull().default("ready"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
 // Maquette d'un post visuel (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §4) : une slide HTML par entrée du
 // storyboard, thème commun, rendue en PNG dans le navigateur. Une seule version courante par
-// script (script_id UNIQUE) ; la jointure part d'ici, pas de FK depuis scripts (évite une seconde
-// référence circulaire du type generatedImageId). Objet du cœur, pas d'une verticale.
+// script (script_id UNIQUE) ; la jointure part d'ici, pas de FK depuis scripts. Objet du cœur, pas
+// d'une verticale.
 export const visualDesigns = pgTable("visual_designs", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   scriptId: uuid("script_id").notNull().unique().references(() => scripts.id, { onDelete: "cascade" }),
-  baseKind: visualDesignBaseKindEnum("base_kind").notNull(),
-  baseGeneratedImageId: uuid("base_generated_image_id").references(() => generatedImages.id, { onDelete: "set null" }),
-  baseAssetId: uuid("base_asset_id").references(() => brandAssets.id, { onDelete: "set null" }),
+  // Photos de la maquette (docs/SPEC_COMPOSITION_VISUELLE.md §4) : [{ ref: "p1", assetId, variant:
+  // "original" | "cutout" }], 6 au plus. Le HTML les désigne par {{IMG:p1}}. Pas de FK sur un
+  // tableau jsonb : une photo retirée de la bibliothèque laisse une référence morte, servie en 404.
+  images: jsonb("images").notNull().default([]),
   width: integer("width").notNull(),
   height: integer("height").notNull(),
   // { palette: string[], fontHeading, fontBody, mood }
@@ -660,9 +639,6 @@ export const visualDesigns = pgTable("visual_designs", {
   slides: jsonb("slides").notNull(),
   status: visualDesignStatusEnum("status").notNull().default("draft"),
   lastInstruction: text("last_instruction"),
-  // AI Act art. 50 (docs/SPEC_RESSOURCES_VISUELLES.md §6.2) : vrai si la base est une image
-  // générée — le PNG composé dans le navigateur ne conserve pas le marquage du fournisseur.
-  containsAiImagery: boolean("contains_ai_imagery").notNull().default(false),
   // Animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §4) : durée totale et ligne de temps
   // [{ layerId, enter, startMs, enterMs, exit, exitAtMs }]. Null pour une maquette statique.
   durationMs: integer("duration_ms"),
@@ -836,10 +812,6 @@ export const sourceMaterialCitationsRelations = relations(sourceMaterialCitation
   sourceMaterial: one(sourceMaterials, { fields: [sourceMaterialCitations.sourceMaterialId], references: [sourceMaterials.id] }),
 }));
 
-export const generatedImagesRelations = relations(generatedImages, ({ one }) => ({
-  script: one(scripts, { fields: [generatedImages.scriptId], references: [scripts.id] }),
-}));
-
 export const contentCategoriesRelations = relations(contentCategories, ({ many }) => ({
   scripts: many(scripts),
   calendarEntries: many(calendarEntries),
@@ -885,7 +857,6 @@ export const scriptsRelations = relations(scripts, ({ one, many }) => ({
   angle: one(contentAngles, { fields: [scripts.angleId], references: [contentAngles.id] }),
   series: one(contentSeries, { fields: [scripts.seriesId], references: [contentSeries.id] }),
   brandAsset: one(brandAssets, { fields: [scripts.brandAssetId], references: [brandAssets.id] }),
-  generatedImage: one(generatedImages, { fields: [scripts.generatedImageId], references: [generatedImages.id] }),
   visualDesign: one(visualDesigns, { fields: [scripts.id], references: [visualDesigns.scriptId] }),
   calendarEntries: many(calendarEntries),
   metrics: one(postMetrics, { fields: [scripts.id], references: [postMetrics.scriptId] }),
@@ -896,8 +867,6 @@ export const scriptsRelations = relations(scripts, ({ one, many }) => ({
 
 export const visualDesignsRelations = relations(visualDesigns, ({ one }) => ({
   script: one(scripts, { fields: [visualDesigns.scriptId], references: [scripts.id] }),
-  baseGeneratedImage: one(generatedImages, { fields: [visualDesigns.baseGeneratedImageId], references: [generatedImages.id] }),
-  baseAsset: one(brandAssets, { fields: [visualDesigns.baseAssetId], references: [brandAssets.id] }),
 }));
 
 export const postMetricsRelations = relations(postMetrics, ({ one }) => ({

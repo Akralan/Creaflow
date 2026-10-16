@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
-import BrandAssetLibrary from "@/components/BrandAssetLibrary/BrandAssetLibrary";
 import DesignEditor from "@/components/DesignEditor/DesignEditor";
 import BriefHeader from "@/components/ScriptEditor/BriefHeader";
 import EditableField from "@/components/ScriptEditor/EditableField";
@@ -57,7 +56,6 @@ export default function ScriptPage() {
   const [applyingNewIdea, setApplyingNewIdea] = useState(false);
   const [metricsDraft, setMetricsDraft] = useState(EMPTY_METRICS_DRAFT);
   const [savingMetrics, setSavingMetrics] = useState(false);
-  const [showAssetLibrary, setShowAssetLibrary] = useState(false);
   // Suggestion d'analyse de style après finalisation (docs/SPEC_APPRENTISSAGE_STYLE.md §6.2) :
   // nombre de scripts corrigés non analysés, affiché seulement à partir du seuil, jamais bloquant.
   const [styleSuggestion, setStyleSuggestion] = useState<number | null>(null);
@@ -93,6 +91,13 @@ export default function ScriptPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id]);
+
+  /** Relecture silencieuse (composition automatique de la maquette en arrière-plan) : ne touche
+   *  qu'à la maquette, pour ne pas écraser une saisie en cours ailleurs sur la fiche. */
+  const reloadQuietly = useCallback(async () => {
+    const { script: fresh } = await api.getScript(params.id);
+    setScript((prev) => (prev ? { ...prev, visualDesign: fresh.visualDesign ?? null } : fresh));
   }, [params.id]);
 
   /** Empile l'état courant avant toute écriture — chaque patch/micro-retouche est undo-able. */
@@ -496,34 +501,10 @@ export default function ScriptPage() {
             script={script}
             hasLogo={hasLogo}
             onDesignChange={(design) => setScript((prev) => (prev ? { ...prev, visualDesign: design } : prev))}
-            onOpenStagedPhoto={() => setShowAssetLibrary(true)}
+            onReload={reloadQuietly}
           />
-          {script.generatedImage && (
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 18, paddingTop: 14, borderTop: `1px solid ${color.divider}` }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={script.generatedImage.url} alt="" style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 8 }} />
-              <span style={{ fontSize: 12, color: color.textMuted, flex: 1 }}>Photo mise en scène de ce post.</span>
-              <Button variant="secondary" onClick={() => setShowAssetLibrary(true)} style={{ padding: "6px 12px", fontSize: 12 }}>
-                Regénérer avec d&apos;autres photos
-              </Button>
-            </div>
-          )}
         </Card>
       )}
-
-      <Modal open={showAssetLibrary} onClose={() => setShowAssetLibrary(false)} width={640}>
-        <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 20, margin: "0 0 4px" }}>Ressources visuelles</h2>
-        <p style={{ margin: "0 0 18px", fontSize: 13, color: color.textMuted }}>
-          Choisis une ou plusieurs photos de ta marque, puis décris la mise en scène souhaitée.
-        </p>
-        <BrandAssetLibrary
-          scriptId={script.id}
-          onGenerated={(image) => {
-            setScript((prev) => (prev ? { ...prev, generatedImageId: image.id, generatedImage: image } : prev));
-            setShowAssetLibrary(false);
-          }}
-        />
-      </Modal>
 
       <Modal open={confirmDelete} onClose={() => setConfirmDelete(false)} width={420}>
         <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, margin: "0 0 8px" }}>Supprimer ce brouillon ?</h2>

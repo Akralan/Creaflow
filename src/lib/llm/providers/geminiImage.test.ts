@@ -7,10 +7,9 @@ vi.mock("@google/genai", () => ({
     return { models: { generateContent: generateContentMock } };
   }),
   FunctionCallingConfigMode: { ANY: "ANY" },
-  Modality: { IMAGE: "IMAGE" },
 }));
 
-import { captionImage, generateStagedImage } from "./geminiImage";
+import { captionImage } from "./geminiImage";
 import type { LlmToolDefinition } from "../types";
 
 const tool: LlmToolDefinition = {
@@ -53,29 +52,5 @@ describe("captionImage", () => {
     await expect(captionImage(Buffer.from("x"), "image/jpeg", "system", tool)).rejects.toThrow(
       "n'a pas renvoyé de caption structurée"
     );
-  });
-});
-
-describe("generateStagedImage", () => {
-  it("extrait les bytes de la première partie inlineData de la réponse", async () => {
-    const pngBase64 = Buffer.from("fake-png-bytes").toString("base64");
-    generateContentMock.mockResolvedValue({
-      candidates: [{ content: { parts: [{ inlineData: { mimeType: "image/png", data: pngBase64 } }] } }],
-    });
-
-    const result = await generateStagedImage({
-      referenceImages: [{ bytes: Buffer.from("ref"), mimeType: "image/jpeg" }],
-      instruction: "Fond en bois clair",
-    });
-
-    expect(result.mimeType).toBe("image/png");
-    expect(result.bytes.toString()).toBe("fake-png-bytes");
-  });
-
-  it("lève une erreur si aucune partie inlineData n'est renvoyée", async () => {
-    generateContentMock.mockResolvedValue({ candidates: [{ content: { parts: [{ text: "désolé, non" }] } }] });
-    await expect(
-      generateStagedImage({ referenceImages: [{ bytes: Buffer.from("ref"), mimeType: "image/jpeg" }], instruction: "x" })
-    ).rejects.toThrow("n'a pas renvoyé d'image");
   });
 });

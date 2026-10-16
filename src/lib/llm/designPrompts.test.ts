@@ -6,10 +6,14 @@ vi.mock("./provider", () => ({
   callStructured: callStructuredMock,
 }));
 
-import { buildDesignSystemPrompt, composeDesign, reviseDesign, type DesignPromptContext } from "./designPrompts";
+import { buildDesignSystemPrompt, composeDesign, reviseDesign, type DesignImageContext, type DesignPromptContext } from "./designPrompts";
 import { DesignValidationError } from "@/lib/visualDesign/htmlSanitizer";
 
-const prompt: DesignPromptContext = { width: 1080, height: 1350, hasLogo: false, brandKitDescription: "", vertical: "artisan" };
+const images: DesignImageContext[] = [
+  { ref: "p1", description: "Bougie blanche dans un pot en verre ambré, lumière chaude", orientation: "portrait", productName: "Bougie Ambre", cutoutAvailable: true },
+  { ref: "p2", description: "Mains versant de la cire dans des moules", orientation: "landscape", productName: null, cutoutAvailable: false },
+];
+const prompt: DesignPromptContext = { width: 1080, height: 1350, hasLogo: false, brandKitDescription: "", vertical: "artisan", images };
 
 const post = {
   platform: "instagram",
@@ -21,8 +25,6 @@ const post = {
   ],
   brandName: "Cire & Co",
   tone: "chaleureux",
-  baseDescription: "Bougie blanche dans un pot en verre ambré, lumière chaude",
-  baseOrientation: "portrait",
 };
 
 const goodSlide = (n: number) =>
@@ -34,6 +36,7 @@ const goodResult = {
     { planNumber: 1, html: goodSlide(1) },
     { planNumber: 2, html: goodSlide(2) },
   ],
+  images: [],
   rationale: "Titre en haut, produit dégagé.",
 };
 
@@ -48,7 +51,18 @@ describe("buildDesignSystemPrompt", () => {
     expect(system).toContain("Inter, Space Grotesk, Playfair Display");
     expect(system).toContain("Artisan : la photo du produit est le sujet");
     expect(system).not.toContain("{{LOGO}}");
-    expect(buildDesignSystemPrompt({ ...prompt, hasLogo: true, brandKitDescription: "couleurs #111" })).toContain('ou src="{{LOGO}}"');
+    expect(buildDesignSystemPrompt({ ...prompt, hasLogo: true, brandKitDescription: "couleurs #111" })).toContain('et src="{{LOGO}}"');
+  });
+
+  it("liste les photos déclarées, le détourage et les éléments d'interface", () => {
+    const system = buildDesignSystemPrompt(prompt);
+    expect(system).toContain('src="{{IMG:p1}}", "{{IMG:p2}}"');
+    expect(system).toContain('"cutout"');
+    expect(system).toContain("étiquette de prix");
+    expect(system).toContain("Montages");
+    const noPhoto = buildDesignSystemPrompt({ ...prompt, images: [] });
+    expect(noPhoto).toContain("aucune (aucune photo fournie, pas de logo)");
+    expect(noPhoto).not.toContain("cutout");
   });
 });
 
@@ -62,7 +76,34 @@ describe("composeDesign", () => {
     expect(callStructuredMock).toHaveBeenCalledTimes(1);
     const userMessage: string = callStructuredMock.mock.calls[0][0].userMessage;
     expect(userMessage).toContain("1. Photo produit");
-    expect(userMessage).toContain("Description : Bougie blanche");
+    expect(userMessage).toContain("=== PHOTOS ===\np1 : Bougie blanche dans un pot en verre ambré, lumière chaude · portrait · produit : Bougie Ambre · détourage disponible");
+    expect(userMessage).toContain("p2 : Mains versant de la cire dans des moules · landscape · détourage non disponible");
+    expect(result.images).toEqual([]);
+  });
+
+  it("relève les photos utilisées, applique la variante demandée et replie sur l'original si le détourage manque", async () => {
+    const withPhotos = `<div style="position:relative;width:1080px;height:1350px"><div data-layer="a" data-type="image" style="position:absolute;top:0;left:0;width:1080px;height:700px"><img src="{{IMG:p1}}"></div><div data-layer="b" data-type="image" style="position:absolute;top:700px;left:0;width:1080px;height:650px"><img src="{{IMG:p2}}"></div></div>`;
+    callStructuredMock.mockResolvedValue({
+      ...goodResult,
+      slides: [{ planNumber: 1, html: withPhotos }],
+      images: [
+        { ref: "p1", variant: "cutout" },
+        { ref: "p2", variant: "cutout" },
+      ],
+    });
+    const result = await composeDesign({ prompt, post });
+    expect(result.images).toEqual([
+      { ref: "p1", variant: "cutout" },
+      { ref: "p2", variant: "original" },
+    ]);
+  });
+
+  it("refuse une photo non déclarée, puis accepte la seconde tentative", async () => {
+    const ghost = `<div style="position:relative;width:1080px;height:1350px"><div data-layer="a" data-type="image" style="position:absolute;top:0;left:0;width:1080px;height:700px"><img src="{{IMG:p5}}"></div></div>`;
+    callStructuredMock.mockResolvedValueOnce({ ...goodResult, slides: [{ planNumber: 1, html: ghost }] }).mockResolvedValueOnce(goodResult);
+    await composeDesign({ prompt, post });
+    expect(callStructuredMock).toHaveBeenCalledTimes(2);
+    expect(callStructuredMock.mock.calls[1][0].userMessage).toContain("photo « p5 » non déclarée");
   });
 
   it("retente une fois avec le rapport d'erreurs quand une slide est refusée", async () => {
@@ -93,9 +134,11 @@ describe("reviseDesign", () => {
       planNumber: 2,
       theme: goodResult.theme,
       slides: goodResult.slides,
+      currentVariants: [{ ref: "p1", variant: "cutout" }],
     });
     const userMessage: string = callStructuredMock.mock.calls[0][0].userMessage;
     expect(userMessage).toContain("Titre plus gros");
+    expect(userMessage).toContain("Variantes actuelles : p1 = cutout");
     expect(userMessage).toContain("Portée : slide 2 uniquement");
     expect(userMessage).toContain("--- slide 1 ---");
     expect(userMessage).toContain("Conserve les data-layer existants");
