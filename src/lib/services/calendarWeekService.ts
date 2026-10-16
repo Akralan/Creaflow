@@ -2,6 +2,7 @@ import { and, eq, gte, inArray, isNotNull, isNull, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { calendarEntries, creatorProfiles, narrativeState, postingGoals, visualDesigns } from "@/db/schema";
 import { imagesOf, slidesOf } from "@/lib/services/visualDesignService";
+import { releaseSlotsOfArchivedSeries } from "@/lib/services/seriesSlotRelease";
 
 /** Horizon des créneaux vides regardés pour attribuer les épisodes prévus et trouver le suivant. */
 const UPCOMING_LOOKAHEAD = 120;
@@ -72,6 +73,8 @@ const CAPTION_PREVIEW_CHARS = 280;
  * l'éditeur, via les routes d'images du script).
  */
 export async function listCalendarRange(userId: string, from: Date, to: Date) {
+  // Filet : une série supprimée avant la règle de réaffectation laissait des créneaux orphelins.
+  await releaseSlotsOfArchivedSeries(userId);
   const [entries, goals, profile] = await Promise.all([
     db.query.calendarEntries.findMany({
       where: and(eq(calendarEntries.userId, userId), gte(calendarEntries.scheduledDate, from), lt(calendarEntries.scheduledDate, to)),
