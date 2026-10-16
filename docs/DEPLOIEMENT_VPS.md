@@ -311,9 +311,8 @@ avec le guide, assumés pour cette première mise en ligne :
 - **Utilisateur `ubuntu`** (celui d'OVH, sudo sans mot de passe) à la place d'un utilisateur
   `creaflow` dédié. Connexion par clé uniquement, mot de passe SSH désactivé
   (`/etc/ssh/sshd_config.d/99-creaflow-keys-only.conf`). Alias `ssh creaflow` sur le poste.
-- **Branche déployée : `feature/deploiement-vps`**, pas `main`, parce que les fichiers de
-  déploiement n'y étaient pas encore. Après le merge : `cd /opt/creaflow && git checkout main`
-  une fois, puis `./deploy/update.sh` comme d'habitude.
+- **Branche déployée : `main`** depuis le merge du 2026-10-16 (les premières heures ont tourné sur
+  la branche de chantier, le temps du merge). `./deploy/update.sh` suit `main`.
 - **`.env` minimal** : aucune clé d'API. Landing, inscription et connexion marchent ; génération,
   photos, paiement et emails attendent leurs clés. `deploy/backup.sh` n'est pas planifié tant que
   R2 n'est pas configuré (`BACKUP_BUCKET` et les identifiants R2 manquent).

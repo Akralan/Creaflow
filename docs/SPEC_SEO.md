@@ -85,7 +85,6 @@ d'indexation) et dans le layout racine :
 
 ## Statut
 
-Implémenté le 2026-10-16 sur la branche `feature/seo` (empilée sur `feature/logo-unifie`, elle-même
-sur `feature/deploiement-vps`). Déployé sur le VPS de démo, qui reste volontairement non indexable
+Implémenté et mergé sur `main` le 2026-10-16. Déployé sur le VPS de démo, qui reste volontairement non indexable
 (hôte OVH) : on y vérifie l'image de partage, les balises et le HTML complet de la landing, pas
 l'indexation elle-même.
