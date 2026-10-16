@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { clearNavHighlight, NAV_HIGHLIGHT_EVENT, readNavHighlight } from "@/lib/navHighlight";
 import { CalendarDays, Compass, Settings, Sparkles, TrendingUp } from "lucide-react";
 import { api, type ContentCategory, type ContentSeries, type CreatorProfile, type User } from "@/lib/apiClient";
-import { accentAlpha, color, fontHeading } from "@/lib/design/tokens";
+import { accent, accentAlpha, color, fontHeading } from "@/lib/design/tokens";
 import BrandMark from "@/components/BrandMark";
 import { CategoryLabelsContext } from "@/contexts/CategoryLabelsContext";
 import { SeriesContext } from "@/contexts/SeriesContext";
@@ -26,6 +27,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [categories, setCategories] = useState<ContentCategory[]>([]);
   const [series, setSeries] = useState<ContentSeries[]>([]);
   const [checked, setChecked] = useState(false);
+  // Entrée du menu mise en lumière (src/lib/navHighlight.ts). La coquille ne rend rien avant
+  // `checked`, donc lire le stockage dès l'initialisation ne crée pas d'écart d'hydratation.
+  const [highlighted, setHighlighted] = useState<string | null>(readNavHighlight);
+
+  useEffect(() => {
+    const onHighlight = (e: Event) => setHighlighted((e as CustomEvent<string | null>).detail);
+    window.addEventListener(NAV_HIGHLIGHT_EVENT, onHighlight);
+    return () => window.removeEventListener(NAV_HIGHLIGHT_EVENT, onHighlight);
+  }, []);
+
+  // Elle s'éteint dès qu'on ouvre sa page.
+  useEffect(() => {
+    const current = readNavHighlight();
+    if (current && navItems.find((item) => item.href === current)?.match(pathname)) clearNavHighlight();
+  }, [pathname]);
 
   useEffect(() => {
     (async () => {
@@ -79,9 +95,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </span>
         </div>
 
+        <style>{`@keyframes cf-nav-glow{0%,100%{box-shadow:0 0 0 0 ${accentAlpha(0)}}50%{box-shadow:0 0 0 4px ${accentAlpha(0.14)}}}`}</style>
         <nav style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {navItems.map((item) => {
             const active = item.match(pathname);
+            const glowing = !active && highlighted === item.href;
             return (
               <Link
                 key={item.href}
@@ -98,7 +116,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   padding: "11px 14px",
                   borderRadius: 11,
                   cursor: "pointer",
-                  background: active ? accentAlpha(0.11) : "transparent",
+                  background: active || glowing ? accentAlpha(glowing ? 0.07 : 0.11) : "transparent",
+                  animation: glowing ? "cf-nav-glow 2.2s ease-in-out infinite" : undefined,
                   color: active ? "oklch(0.47 0.2 292)" : color.textSecondary,
                   fontWeight: active ? 600 : 500,
                 }}
@@ -107,6 +126,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   <item.icon size={18} strokeWidth={2} />
                 </span>
                 {item.label}
+                {glowing && (
+                  <span aria-label="Nouveau" style={{ marginLeft: "auto", width: 7, height: 7, borderRadius: "50%", background: accent }} />
+                )}
               </Link>
             );
           })}

@@ -11,7 +11,8 @@ import IconActionButton from "@/components/ui/IconActionButton";
 import EntryCard from "@/components/EntryCard";
 import GenerateScriptModal from "@/components/GenerateScriptModal";
 import ImportScriptModal from "@/components/ImportScriptModal";
-import { api, ApiClientError, type CalendarEntry, type ContentType, type PostingGoal, type Script } from "@/lib/apiClient";
+import ScriptFormatChooser from "@/components/ScriptFormatChooser";
+import { api, ApiClientError, type CalendarEntry, type PostingGoal, type Script } from "@/lib/apiClient";
 import { accent, color, platformMeta, statusMeta } from "@/lib/design/tokens";
 import { resolveCategoryMeta } from "@/lib/design/categoryDisplay";
 import { useContentCategories } from "@/contexts/CategoryLabelsContext";
@@ -19,7 +20,6 @@ import { useContentSeries } from "@/contexts/SeriesContext";
 import { KNOWN_PLATFORMS } from "@/lib/social/types";
 
 const WEEKDAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
-const CONTENT_TYPE_SHORT: Record<ContentType, string> = { visual: "Visuel", text: "Texte" };
 
 function monthKey(year: number, monthIndex: number) {
   return `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
@@ -67,6 +67,8 @@ export default function CalendarPage() {
   const [savingEntry, setSavingEntry] = useState(false);
 
   const [showGenerateModal, setShowGenerateModal] = useState(false);
+  // Créneau vide cliqué : choix du format en trois cases, puis rédaction immédiate.
+  const [choosingEntry, setChoosingEntry] = useState<CalendarEntry | null>(null);
   const [modalScheduledDate, setModalScheduledDate] = useState<string | undefined>(undefined);
   const [showImportModal, setShowImportModal] = useState(false);
   const [placingScript, setPlacingScript] = useState<Script | null>(null);
@@ -159,11 +161,6 @@ export default function CalendarPage() {
     }
   }
 
-  /** Ouvre l'éditeur en naissance paresseuse (docs/SPEC_MATIERE_EDITEUR.md §4.1) — le choix
-   *  "générer" vs "écrire à la main" se fait dès l'ouverture, plus en bloquant sur le calendrier. */
-  function openNewScript(entryId: string, contentType: ContentType) {
-    router.push(`/scripts/new?calendarEntryId=${entryId}&contentType=${contentType}`);
-  }
 
   async function saveGoals() {
     setError(null);
@@ -344,8 +341,10 @@ export default function CalendarPage() {
                           data={{ platform: entry.platform, contentCategory: entry.contentCategory, series: entry.series, title: entry.script?.title }}
                           onClick={() => {
                             if (placingScript) return; // remonte à la cellule parente, qui gère la pose
+                            // Un créneau vide propose ses trois formats ; le crayon ouvre l'édition du
+                            // créneau (série, rôle, suppression).
                             if (entry.script) router.push(`/scripts/${entry.script.id}`);
-                            else openEntryEditor(entry);
+                            else setChoosingEntry(entry);
                           }}
                           style={{ cursor: "pointer" }}
                         >
@@ -356,34 +355,26 @@ export default function CalendarPage() {
                               </span>
                             )
                           ) : (
-                            <div style={{ marginTop: "auto", display: "flex", gap: 3 }}>
-                              {(Object.keys(CONTENT_TYPE_SHORT) as ContentType[]).map((ct) => (
-                                <button
-                                  key={ct}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (placingScript) {
-                                      if (c.day !== null) placeAt(dayDateStr(year, monthIndex, c.day));
-                                      return;
-                                    }
-                                    openNewScript(entry.id, ct);
-                                  }}
-                                  title={`Générer un script ${CONTENT_TYPE_SHORT[ct].toLowerCase()}`}
-                                  style={{
-                                    flex: 1,
-                                    fontSize: 9,
-                                    fontWeight: 700,
-                                    color: "oklch(0.5 0.2 292)",
-                                    background: "none",
-                                    border: "1px dashed oklch(0.6 0.15 292)",
-                                    borderRadius: 6,
-                                    padding: "3px 2px",
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  {CONTENT_TYPE_SHORT[ct]}
-                                </button>
-                              ))}
+                            <div style={{ marginTop: "auto", display: "flex", justifyContent: "flex-end" }}>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (!placingScript) openEntryEditor(entry);
+                                }}
+                                title="Modifier ce créneau"
+                                aria-label="Modifier ce créneau"
+                                style={{
+                                  fontSize: 10,
+                                  color: color.textMuted,
+                                  background: "none",
+                                  border: `1px solid ${color.border}`,
+                                  borderRadius: 6,
+                                  padding: "3px 5px",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                ✎
+                              </button>
                             </div>
                           )}
                         </EntryCard>
@@ -518,33 +509,6 @@ export default function CalendarPage() {
           </Card>
 
           <button
-            onClick={() => {
-              setModalScheduledDate(undefined);
-              setShowGenerateModal(true);
-            }}
-            style={{
-              background: color.cardBg,
-              border: `1px solid ${color.border}`,
-              borderRadius: 16,
-              padding: "16px 18px",
-              textAlign: "left",
-              cursor: "pointer",
-              fontFamily: "inherit",
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-            }}
-          >
-            <span style={{ width: 38, height: 38, borderRadius: 11, background: "oklch(0.55 0.2 292 / 0.1)", color: "oklch(0.5 0.2 292)", display: "grid", placeItems: "center", fontSize: 18, flexShrink: 0 }}>
-              ✎
-            </span>
-            <span>
-              <span style={{ display: "block", fontWeight: 600, fontSize: 14, color: color.text }}>Générer un script libre</span>
-              <span style={{ display: "block", fontSize: 12, color: color.textMuted }}>Hors calendrier, à la demande</span>
-            </span>
-          </button>
-
-          <button
             onClick={() => setShowImportModal(true)}
             style={{
               background: color.cardBg,
@@ -569,6 +533,8 @@ export default function CalendarPage() {
           </button>
         </div>
       </div>
+
+      <ScriptFormatChooser entry={choosingEntry} onClose={() => setChoosingEntry(null)} />
 
       <ImportScriptModal
         open={showImportModal}
