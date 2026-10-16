@@ -12,8 +12,7 @@ import { useContentSeries } from "@/contexts/SeriesContext";
 import { KNOWN_PLATFORMS } from "@/lib/social/types";
 
 const CONTENT_TYPE_OPTIONS: Array<{ key: ContentType; label: string }> = [
-  { key: "video", label: "Vidéo" },
-  { key: "visual", label: "Visuel (image / carrousel)" },
+  { key: "visual", label: "Visuel (image, carrousel, animation)" },
   { key: "text", label: "Texte seul" },
 ];
 
@@ -25,8 +24,8 @@ export interface GenerateFormProps {
 export default function GenerateForm({ scheduledDate, onGenerated }: GenerateFormProps) {
   const categories = useContentCategories();
   const series = useContentSeries();
-  const [platform, setPlatform] = useState<Platform>("tiktok");
-  const [contentType, setContentType] = useState<ContentType>("video");
+  const [platform, setPlatform] = useState<Platform>("linkedin");
+  const [contentType, setContentType] = useState<ContentType>("text");
   const [visual, setVisual] = useState<VisualFormatFields>({ visualFormat: "single" });
   const [categoryId, setCategoryId] = useState<string>("");
   const [seriesId, setSeriesId] = useState<string>("");

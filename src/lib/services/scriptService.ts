@@ -241,9 +241,7 @@ function scriptColumnsFromGenerated(generated: GeneratedScript) {
     contentType: generated.contentType,
     hookVisual: "hookVisual" in generated ? generated.hookVisual : null,
     hookText: "hookText" in generated ? generated.hookText : null,
-    hookAudio: "hookAudio" in generated ? generated.hookAudio : null,
     storyboard: "storyboard" in generated ? generated.storyboard : null,
-    soundRecommendation: "soundRecommendation" in generated ? generated.soundRecommendation : null,
     // Annexe B.6 (docs/SPEC_REDACTEUR_EN_CHEF.md Lot B3) — consolidées dans NarrativeState.openPromises
     // à la publication (§5, Lot B4).
     promisesMade: generated.promisesMade,
@@ -357,11 +355,9 @@ export interface ScriptContentPatch {
   title?: string;
   hookVisual?: string;
   hookText?: string;
-  hookAudio?: string;
   storyboard?: { planNumber: number; description: string }[];
   caption?: string;
   hashtags?: string[];
-  soundRecommendation?: string;
 }
 
 /**

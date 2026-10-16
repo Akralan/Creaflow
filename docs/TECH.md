@@ -8,7 +8,8 @@
 
 - **Plateforme :** Web uniquement, usage desktop.
 - **Modules livrés :** A (Onboarding conversationnel), B (Moteur d'Idées & Scripts, anti-répétition, corpus de matière + éditeur de blocs), D (Calendrier Intelligent), E (Direction éditoriale & Assistant IA).
-- **Hors périmètre :** Module C (Matrice de Recyclage de Contenu).
+- **Hors périmètre :** Module C (Matrice de Recyclage de Contenu), abandonné avec la vidéo.
+- **Plus de vidéo** depuis le 2026-10-16 (`docs/SPEC_ONBOARDING_MVP.md` §6, migration `0036_fin_video`) : type de contenu `video`, champs propres à la vidéo et plateformes TikTok/YouTube supprimés. L'animation du post visuel exportée en MP4 reste (`visualFormat = animation`).
 - **Réseaux couverts :** voir `PRODUCT.md` §2.2 / `src/lib/social/types.ts`.
 
 ---
@@ -22,7 +23,7 @@
 - **Base de données :** PostgreSQL, ORM Drizzle (`src/db/schema.ts`).
 - **Authentification :** email / mot de passe (bcrypt), session via cookie JWT (`src/lib/auth/`). Chaque utilisateur a son propre espace. `getCurrentUserId` fait une lecture par clé primaire à chaque requête authentifiée : un jeton émis avant `users.sessionsInvalidatedBefore` (posé par tout reset ou changement de mot de passe) est refusé, et un cookie survivant à la suppression du compte n'est plus reconnu (`docs/SPEC_LEGAL_EMAIL_RGPD.md` §3.4).
 - **Emails de service :** `src/lib/email/` — interface `sendEmail`, adaptateur Brevo (API transactionnelle, `fetch` direct) ou `console` (dev : l'email est écrit dans les logs). Sélection par `EMAIL_PROVIDER`, mode console par défaut sans `BREVO_API_KEY`. Trois emails : lien de réinitialisation, mot de passe modifié, compte supprimé (`src/lib/email/templates.ts`). Aucune newsletter, aucun tracking.
-- **Intégrations réseaux sociaux :** APIs officielles par plateforme (TikTok Login Kit, Instagram Graph API, LinkedIn API, YouTube Data API v3, X API v2) pour TikTok/Instagram/LinkedIn/YouTube/X (`hasOAuth: true` dans le registre de plateformes, `src/lib/social/types.ts`). Les autres plateformes du registre sont "suivies" sans mécanique OAuth. L'échec de récupération des posts après connexion (ex : accès API restreint sur LinkedIn) n'invalide pas la connexion déjà enregistrée. Refresh de token **lazy à l'usage** pour toute plateforme dont le provider expose `refreshToken()` (`src/lib/services/socialConnectionService.ts`, calqué sur le pattern déjà utilisé pour Google Drive) — aucun cron n'existe dans ce repo. LinkedIn (métriques) et X (OAuth PKCE + métriques) sont posés côté code mais non activables en pratique : validation d'accès externe pour l'un, ouverture d'un compte de facturation pour l'autre — voir `docs/SPEC_METRIQUES_AUTO.md` §2.4/§2.5.
+- **Intégrations réseaux sociaux :** APIs officielles par plateforme (Instagram Graph API, LinkedIn API, X API v2) pour Instagram/LinkedIn/X (`hasOAuth: true` dans le registre de plateformes, `src/lib/social/types.ts`). Les autres plateformes du registre sont "suivies" sans mécanique OAuth. L'échec de récupération des posts après connexion (ex : accès API restreint sur LinkedIn) n'invalide pas la connexion déjà enregistrée. Refresh de token **lazy à l'usage** pour toute plateforme dont le provider expose `refreshToken()` (`src/lib/services/socialConnectionService.ts`, calqué sur le pattern déjà utilisé pour Google Drive) — aucun cron n'existe dans ce repo. LinkedIn (métriques) et X (OAuth PKCE + métriques) sont posés côté code mais non activables en pratique : validation d'accès externe pour l'un, ouverture d'un compte de facturation pour l'autre — voir `docs/SPEC_METRIQUES_AUTO.md` §2.4/§2.5.
 
 ---
 
@@ -164,7 +165,7 @@ ScriptMicroEditEvent (une ligne par micro-retouche — sélection→instruction 
 - createdAt
 - compté par un pool de quota distinct de ScriptGenerationEvent, voir §6
 
-SocialConnection (OAuth par plateforme — tiktok/instagram/linkedin/youtube/x)
+SocialConnection (OAuth par plateforme — instagram/linkedin/x)
 - id, userId
 - platform, accessToken, refreshToken, platformUserId, connectedAt
 - accessTokenExpiresAt (nullable — expiration inconnue/non exploitable pour certaines plateformes,
@@ -199,13 +200,15 @@ Script (document co-écrit — Module B, docs/SPEC_MATIERE_EDITEUR.md §4)
 - rejectedConcepts (jsonb array de strings, défaut [] — concepts écartés via "autre idée, même brief",
   appendés dans l'ordre ; réinjectés en contexte des générations suivantes du même script, plafonnés
   aux 5 plus récents à l'injection, §6.3)
-- hookVisual, hookText, hookAudio (nullable — pertinents selon contentType)
-- storyboard (jsonb, nullable — liste de {planNumber, description})
-- caption, hashtags (array), soundRecommendation (nullable)
+- hookVisual, hookText (nullable — pertinents selon contentType)
+- storyboard (jsonb, nullable — liste de {planNumber, description}, une entrée par slide du post visuel)
+- caption, hashtags (array)
+- (hookAudio et soundRecommendation supprimés avec la vidéo, migration `0036`)
 - contentCategoryId (FK NOT NULL vers ContentCategory)
 - angleId (FK nullable, ON DELETE SET NULL vers ContentAngle — angle imposé par l'anti-répétition)
 - seriesId (FK nullable, ON DELETE SET NULL vers ContentSeries)
-- contentType (video / visual / text, défaut "video")
+- contentType (visual / text, défaut "text" — `video` retiré de l'enum `content_type` par la migration `0036`,
+  qui supprime aussi les scripts vidéo existants)
 - visualFormat (single / carousel / animation, défaut "single" — `docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md` :
   choisi à la génération d'un post visuel, contraint le nombre d'entrées du storyboard), slideCount
   (carrousel, 2-10), durationMs (animation, 5 000-15 000)
@@ -342,7 +345,7 @@ Assistant **agentique** (`docs/SPEC_ASSISTANT_AGENTIQUE.md`) : il lit tout l'esp
 - `POST /api/scripts` `{ platform, contentCategoryId?, contentType, productId?, scheduledDate?, seriesId? }` — génération libre (flux secondaire), place directement au calendrier si `scheduledDate` fourni. `contentCategoryId` n'est requis qu'en post libre : avec `seriesId`, le rôle est dérivé de la série (`resolveCategoryForGeneration`, `seriesService.ts`).
 - `POST /api/scripts/:id/regenerate` — **désactivé côté produit** au profit de la micro-édition (aucun bouton ne l'appelle plus) et de `new-idea` ci-dessous, `docs/SPEC_PROMPT_GENERATION_TECH.md` note d'ouverture ; encore présent en code (régénère en conservant catégorie/plateforme/type/série, avec un nouvel angle **recalculé** par l'anti-répétition).
 - `POST /api/scripts/:id/new-idea` (corps vide) — « autre idée, même brief » (`docs/SPEC_PROMPT_GENERATION_TECH.md` §6) : remplace `regenerate` comme geste de ré-génération complète. 409 si `origin≠"generated"` ou `concept` absent (rien à remplacer). Brief **intégralement verrouillé**, angle **conservé** (pas recalculé, contrairement à `regenerate` ci-dessus) ; le `concept` remplacé rejoint `rejectedConcepts` et est réinjecté en contexte des générations suivantes (plafonné aux 5 plus récents). Mise à jour en place (`CalendarEntry.scriptId`/`createdAt` intacts), même quota qu'une génération complète (`ScriptGenerationEvent`). Confirmation systématique côté UI avant exécution (contenu actuel remplacé, y compris d'éventuelles éditions manuelles).
-- `PATCH /api/scripts/:id` `{ status?, title?, hookVisual?, hookText?, hookAudio?, storyboard?, caption?, hashtags?, soundRecommendation? }` — statut ET contenu (docs/SPEC_MATIERE_EDITEUR.md §4.5) ; `contentCategoryId`/`angleId`/`seriesId` volontairement absents, brief verrouillé (§4.2). Au moins un champ requis.
+- `PATCH /api/scripts/:id` `{ status?, title?, hookVisual?, hookText?, storyboard?, caption?, hashtags? }` — statut ET contenu (docs/SPEC_MATIERE_EDITEUR.md §4.5) ; `contentCategoryId`/`angleId`/`seriesId` volontairement absents, brief verrouillé (§4.2). Au moins un champ requis.
 - `DELETE /api/scripts/:id` — supprime un brouillon (cascade sur `ScriptGenerationEvent`/`ScriptMicroEditEvent`/`SourceMaterialCitation`/métriques ; `SET NULL` sur `CalendarEntry.scriptId`, le créneau redevient générable).
 - `POST /api/scripts/:id/micro-edit` `{ action: "selection_instruction", blockField, selectedText, instruction }` ou `{ action: "block_regenerate", block }` — les deux gestes de l'éditeur (§4.4) : reformulation contrainte d'un passage sélectionné, ou régénération d'un seul bloc (hook/storyboard/caption/hashtags) sans repasser par le script entier. Compté sur le pool micro-retouches (§6), pas le quota de génération.
 - `POST /api/scripts/import` `{ platform, contentCategoryId, contentType, productId?, seriesId?, scheduledDate? XOR calendarEntryId?, title?, caption?, hashtags, ... }` — crée un script sans appel LLM : `origin="imported"` pour un texte écrit ailleurs (§2), `origin="manual"` (même service, appelé par la page `/scripts/new`) pour la naissance paresseuse d'un créneau — au moins un champ de contenu requis, mais titre et légende peuvent chacun démarrer vides. Aucun `ScriptGenerationEvent`.
@@ -389,8 +392,8 @@ Prompt v2 (`docs/SPEC_PROMPT_GENERATION_TECH.md`, Lots 1-2) — remplace l'ancie
 
 - **Prompt système** (`SCRIPT_SYSTEM_PROMPT`) — rôle ("Directeur Marketing Virtuel de CreaFlow"), obsession de spécificité explicite ("un post publiable tel quel par un concurrent est un échec"), règles de qualité courtes (une seule idée par script formulée dans le champ `concept`, hook = manque jamais annonce, au moins un élément que seul ce créateur peut dire), interpole `EDITORIAL_WRITING_RULES` (constante partagée, anti-clichés/concret > abstrait — également consommée par `microEdit.ts::rewrite_selection` et `materialEpisodes.ts`, cf. §5.11/§5.12), puis interdits durs (anti-invention, `usedExcerpts` obligatoire).
 - **Contexte dynamique par appel** (`buildScriptUserMessage`, `buildGenerationContext` dans `scriptService.ts`) — blocs balisés à ordre fixe : `=== CONTEXTE MARQUE ===` (marque, **audience visée** — `Product.targetAudience ?? CreatorProfile.targetAudience`, §5 —, ton, valeurs, style, matériel, temps), `=== MATIÈRE ===` (§5.8), `=== BRIEF ===` (produit, plateforme + règle plateforme, catégorie, série, angle, type de contenu, photo de référence, directive d'épisode), `=== VARIÉTÉ ===` (sujets récents, performance, **concepts refusés** via "autre idée" — `rejectedConcepts`, plafonné aux 5 plus récents, §6.3), `=== PRIORITÉS ===` (bloc final, poids maximal : vérité factuelle > identité série/angle > voix de marque > codes plateforme, + rappel du test du concurrent).
-- **Champ `concept`** (`scriptSchema.ts`) — **première propriété, `required`**, sur les 3 tools de génération : l'ordre des propriétés JSON force le LLM à décider l'idée avant de rédiger le reste. Persisté sur `Script.concept` (§3), figé après la génération, jamais réécrit par la régénération de bloc (§5.11) ou la sélection→instruction — remplacé uniquement par "autre idée, même brief" (§6.3 ci-dessous).
-- **Sortie forcée en JSON strict** — un des 3 tools selon `contentType` (`generate_video_script` / `generate_visual_post` / `generate_text_post`, `scriptSchema.ts`), schéma correspondant aux colonnes de `Script` pertinentes pour ce type, descriptions de champs qualitatives (ex. `hookText` : "crée une tension ou une curiosité, jamais une annonce du sujet").
+- **Champ `concept`** (`scriptSchema.ts`) — **première propriété, `required`**, sur les 2 tools de génération : l'ordre des propriétés JSON force le LLM à décider l'idée avant de rédiger le reste. Persisté sur `Script.concept` (§3), figé après la génération, jamais réécrit par la régénération de bloc (§5.11) ou la sélection→instruction — remplacé uniquement par "autre idée, même brief" (§6.3 ci-dessous).
+- **Sortie forcée en JSON strict** — un des 2 tools selon `contentType` (`generate_visual_post` / `generate_text_post`, `scriptSchema.ts` ; `generate_video_script` supprimé avec la vidéo), schéma correspondant aux colonnes de `Script` pertinentes pour ce type, descriptions de champs qualitatives (ex. `hookText` : "crée une tension ou une curiosité, jamais une annonce du sujet").
 
 **"Autre idée, même brief"** (`POST /api/scripts/:id/new-idea`, remplace `regenerate` désactivé — voir §4) : brief intégralement verrouillé — contrairement à `regenerate`, l'**angle n'est jamais recalculé**. `buildGenerationContext` accepte un paramètre `lockedAngleId` (tout appelant sauf celui-ci l'omet = comportement normal, angle recalculé par `pickAngleForScript` comme avant) ; le concept remplacé rejoint `Script.rejectedConcepts`, réinjecté dans `[VARIÉTÉ]` au tour suivant. Confirmation UI systématique avant exécution (bouton dans l'en-tête du brief de l'éditeur).
 
@@ -398,7 +401,7 @@ Prompt v2 (`docs/SPEC_PROMPT_GENERATION_TECH.md`, Lots 1-2) — remplace l'ancie
 Cœur du mécanisme : `pickAngleForScript(userId, contentCategoryId, excludeScriptId?)` sélectionne l'angle actif le **moins récemment utilisé** par l'utilisateur dans la catégorie visée (`selectLeastRecentlyUsedAngle`, sur les 30 derniers scripts angle-non-null de la catégorie). Dégradation gracieuse : `null` si aucun angle actif (utilisateur legacy, avant génération d'angles). L'angle est injecté dans le prompt comme directive de structure/hook, invisible pour l'utilisateur final.
 
 ### 5.3 Chat d'onboarding — `src/lib/llm/onboardingChat.ts`
-Un seul tool (`update_onboarding_profile`) renvoie à la fois la réponse conversationnelle (`assistantReply`), les champs de profil déduits **cumulés depuis le début de la conversation** (pas seulement les nouveaux), et un booléen `complete` (vrai dès que nom/activité, temps disponible et au moins une plateforme suggérée sont connus). Une question à la fois, jamais de formulaire déguisé, aucune hypothèse sur le type d'activité (vidéo/produit physique). Cherche aussi à connaître l'**audience visée** (`targetAudience`, `docs/SPEC_PROMPT_GENERATION_TECH.md` §5) — question skippable, n'entre jamais dans les critères de `complete`.
+Un seul tool (`update_onboarding_profile`) renvoie à la fois la réponse conversationnelle (`assistantReply`), les champs de profil déduits **cumulés depuis le début de la conversation** (pas seulement les nouveaux), et un booléen `complete` (vrai dès que nom/activité, temps disponible et au moins une plateforme suggérée sont connus). Une question à la fois, jamais de formulaire déguisé, aucune hypothèse sur le type d'activité (produit physique ou non). Cherche aussi à connaître l'**audience visée** (`targetAudience`, `docs/SPEC_PROMPT_GENERATION_TECH.md` §5) — question skippable, n'entre jamais dans les critères de `complete`.
 
 ### 5.13 Boucle agentique — `callAgentic` (`src/lib/llm/provider.ts`, `providers/openai.ts`)
 Primitive multi-tours à N outils non imposés (`tool_choice: "auto"`), à côté de `callStructured` qui reste mono-tool et inchangée pour tout le reste. **Implémentée pour le seul provider OpenAI** et appelée en dur, indépendamment de `LLM_PROVIDER` — même parti pris que la génération d'images et le captioning vision, câblés sur Gemini pour la même raison (les embeddings, eux, sont passés à OpenAI — `docs/SPEC_RESSOURCES_VISUELLES.md` §8.4). Sans `OPENAI_API_KEY`, l'assistant échoue explicitement ; le reste de l'app tourne normalement.
@@ -444,7 +447,7 @@ Implémente `docs/SPEC_METRIQUES_AUTO.md` — pas d'appel LLM sur ce chemin, cal
 
 **Mécanique de re-pondération** (`src/lib/services/categoryReweightService.ts`) — répond aux risques de sur-réaction et d'emballement identifiés en `docs/SPEC_METRIQUES_AUTO.md` §6 :
 1. Taux d'engagement `(likes+comments+shares)/max(views,1)` par script, uniquement `PostMetrics.source="api"` (jamais la saisie manuelle non vérifiée).
-2. Z-score par rapport à la moyenne/écart-type de **sa plateforme** (`computeCategoryPlatformSignals`) — rend TikTok et LinkedIn comparables. Seuil minimal `MIN_SAMPLES_PER_CATEGORY_PLATFORM=5` par couple (catégorie, plateforme), plus haut que le `MIN_SAMPLES_FOR_SIGNAL=3` de la performance summary de génération de script (donnée structurelle persistante vs. phrase de prompt réversible).
+2. Z-score par rapport à la moyenne/écart-type de **sa plateforme** (`computeCategoryPlatformSignals`) — rend Instagram et LinkedIn comparables. Seuil minimal `MIN_SAMPLES_PER_CATEGORY_PLATFORM=5` par couple (catégorie, plateforme), plus haut que le `MIN_SAMPLES_FOR_SIGNAL=3` de la performance summary de génération de script (donnée structurelle persistante vs. phrase de prompt réversible).
 3. Agrégation inter-plateforme par catégorie (`aggregateCategorySignals`, moyenne pondérée par échantillon plafonnée à `PLATFORM_SAMPLE_CAP=20` par plateforme) — nécessaire car `ContentCategory.weight` est un champ global, pas par plateforme. Minimum `MIN_COMPARABLE_CATEGORIES=2` catégories avec signal pour produire une proposition.
 4. Delta plafonné (`MAX_DELTA_PER_CYCLE=8` points, protège contre un pic ponctuel) puis amorti (`DAMPING_FACTOR=0.5`, protège contre la dérive cumulative cycle après cycle), poids final borné à `[MIN_CATEGORY_WEIGHT=10, MAX_CATEGORY_WEIGHT=90]`.
 5. Cooldown `COOLDOWN_DAYS=14` entre deux propositions `category_reweight` (dérivé de `AssistantProposal.createdAt`, tout statut confondu — pas de nouvelle colonne).

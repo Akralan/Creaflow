@@ -43,15 +43,15 @@ describe("buildStyleBlock", () => {
     rules: [
       { text: "Jamais d'emoji.", platform: null },
       { text: "Pas de hashtag dans le corps.", platform: "linkedin" },
-      { text: "Le hook tient en une phrase.", platform: "tiktok" },
+      { text: "Le hook tient en une phrase.", platform: "instagram" },
     ],
     avoid: ["découvrez", "n'hésitez pas"],
     prefer: ["regarde", "on teste"],
   });
 
   it("renvoie une chaîne vide sans profil", () => {
-    expect(buildStyleBlock(null, "tiktok")).toBe("");
-    expect(buildStyleBlock(undefined, "tiktok")).toBe("");
+    expect(buildStyleBlock(null, "instagram")).toBe("");
+    expect(buildStyleBlock(undefined, "instagram")).toBe("");
   });
 
   it("injecte la voix, les règles globales et celles de la plateforme cible seulement", () => {
@@ -73,7 +73,7 @@ describe("buildStyleBlock", () => {
   });
 
   it("se limite à la voix pour un profil ancien sans règles", () => {
-    const block = buildStyleBlock(styleProfileSchema.parse(legacyProfile), "tiktok");
+    const block = buildStyleBlock(styleProfileSchema.parse(legacyProfile), "instagram");
     expect(block).toBe(`=== STYLE ===\nVoix : ${legacyProfile.summary}`);
   });
 });

@@ -15,7 +15,9 @@ import {
 import { relations, sql } from "drizzle-orm";
 
 export const scriptStatusEnum = pgEnum("script_status", ["draft", "planned", "shot", "published"]);
-export const contentTypeEnum = pgEnum("content_type", ["video", "visual", "text"]);
+// "video" retiré le 2026-10-16 (docs/SPEC_ONBOARDING_MVP.md §6) : le produit ne fait plus de script vidéo.
+// L'animation d'un post visuel n'en est pas un : c'est un visualFormat.
+export const contentTypeEnum = pgEnum("content_type", ["visual", "text"]);
 export const calendarStatusEnum = pgEnum("calendar_status", ["planned", "shot", "published"]);
 export const onboardingStatusEnum = pgEnum("onboarding_status", ["in_progress", "complete"]);
 export const assistantProposalKindEnum = pgEnum("assistant_proposal_kind", [
@@ -474,7 +476,7 @@ export const brandAssets = pgTable("brand_assets", {
 });
 
 // Connexion Google Drive (scope drive.file, via Google Picker) — distincte de socialConnections
-// qui ne couvre que tiktok/instagram/linkedin. Un seul refresh token par utilisateur, conservé pour
+// qui ne couvre que les réseaux de publication. Un seul refresh token par utilisateur, conservé pour
 // l'usage différé (files.get au captioning et à la génération d'image).
 export const googleDriveConnections = pgTable("google_drive_connections", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -584,15 +586,13 @@ export const scripts = pgTable("scripts", {
   promiseHonored: text("promise_honored"),
   hookVisual: text("hook_visual"),
   hookText: text("hook_text"),
-  hookAudio: text("hook_audio"),
   storyboard: jsonb("storyboard"),
   caption: text("caption"),
   hashtags: text("hashtags").array(),
-  soundRecommendation: text("sound_recommendation"),
   contentCategoryId: uuid("content_category_id").notNull().references(() => contentCategories.id),
   angleId: uuid("angle_id").references(() => contentAngles.id, { onDelete: "set null" }),
   seriesId: uuid("series_id").references(() => contentSeries.id, { onDelete: "set null" }),
-  contentType: contentTypeEnum("content_type").notNull().default("video"),
+  contentType: contentTypeEnum("content_type").notNull().default("text"),
   // Format du post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §4) : choisi à la génération,
   // contraint le nombre d'entrées du storyboard et la forme de la maquette. Sans objet hors
   // contentType="visual" (reste "single"). slideCount : carrousel ; durationMs : animation.

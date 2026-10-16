@@ -250,7 +250,7 @@ export async function runAssistantReadTool(userId: string, name: string, rawInpu
         role: script.contentCategory?.label ?? null,
         series: script.series?.label ?? null,
         concept: script.concept,
-        hook: { visual: script.hookVisual, text: script.hookText, audio: script.hookAudio },
+        hook: { visual: script.hookVisual, text: script.hookText },
         storyboard: script.storyboard,
         caption: script.caption,
         hashtags: script.hashtags,

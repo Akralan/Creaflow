@@ -127,7 +127,7 @@ describe("weeksInMonth", () => {
 describe("filterByPlatform", () => {
   it("inclut un élément sans plateforme assignée, quelle que soit la plateforme demandée", () => {
     const items = [{ id: "a", platforms: [] }];
-    expect(filterByPlatform(items, "tiktok")).toEqual(items);
+    expect(filterByPlatform(items, "instagram")).toEqual(items);
     expect(filterByPlatform(items, "slack")).toEqual(items);
   });
 
@@ -138,7 +138,7 @@ describe("filterByPlatform", () => {
     ];
     expect(filterByPlatform(items, "linkedin")).toEqual([items[0]]);
     expect(filterByPlatform(items, "slack")).toEqual([items[1]]);
-    expect(filterByPlatform(items, "tiktok")).toEqual([]);
+    expect(filterByPlatform(items, "instagram")).toEqual([]);
   });
 });
 

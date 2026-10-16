@@ -2,7 +2,7 @@ import { PlatformBadge, CategoryPill } from "@/components/ui/Badge";
 import type { Script } from "@/lib/apiClient";
 import { color, platformMeta } from "@/lib/design/tokens";
 
-const CONTENT_TYPE_LABEL: Record<string, string> = { video: "Vidéo", visual: "Visuel", text: "Texte" };
+const CONTENT_TYPE_LABEL: Record<string, string> = { visual: "Visuel", text: "Texte" };
 
 /**
  * Le brief du créneau — plateforme, catégorie, angle imposé, série — en en-tête visible du document

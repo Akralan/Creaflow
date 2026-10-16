@@ -51,7 +51,7 @@ describe("diffScript", () => {
   });
 
   it("traite null et vide comme équivalents", () => {
-    expect(diffScript({ hookAudio: null }, { hookAudio: "" })).toEqual([]);
+    expect(diffScript({ hookText: null }, { hookText: "" })).toEqual([]);
   });
 
   it("tronque les blocs longs au milieu", () => {
@@ -77,7 +77,7 @@ describe("computeEditStats", () => {
   const corrections: StyleCorrection[] = [
     {
       platform: "instagram",
-      contentType: "video",
+      contentType: "visual",
       diffs: [
         { field: "hookText", before: "Et si je vous disais que tout change ? Vraiment tout !", after: "Tout change." },
         { field: "caption", before: "Découvrez 🕯️✨ !!!", after: "Regarde." },
@@ -93,8 +93,8 @@ describe("computeEditStats", () => {
       ],
     },
     {
-      platform: "tiktok",
-      contentType: "video",
+      platform: "instagram",
+      contentType: "visual",
       diffs: [{ field: "hookText", before: "Court.", after: "Beaucoup plus long maintenant 🎉." }],
     },
   ];
@@ -127,13 +127,13 @@ describe("buildLearnStyleUserMessage", () => {
   it("assemble profil, statistiques, corrections et échantillons", () => {
     const message = buildLearnStyleUserMessage({
       currentProfile: null,
-      corrections: [{ platform: "tiktok", contentType: "video", diffs: [{ field: "caption", before: "A", after: "B" }] }],
+      corrections: [{ platform: "instagram", contentType: "visual", diffs: [{ field: "caption", before: "A", after: "B" }] }],
       samples: [{ platform: "linkedin", contentType: "text", text: "Mon texte." }],
       stats: computeEditStats([]),
     });
     expect(message).toContain("=== PROFIL ACTUEL ===\naucun (première analyse)");
     expect(message).toContain("=== STATISTIQUES SUR 1 CORRECTIONS ===");
-    expect(message).toContain("--- Script 1 · tiktok · video ---\n[caption]\nAVANT : A\nAPRÈS : B");
+    expect(message).toContain("--- Script 1 · instagram · visual ---\n[caption]\nAVANT : A\nAPRÈS : B");
     expect(message).toContain("=== TEXTES ÉCRITS PAR L'AUTEUR ===\n--- linkedin · text ---\nMon texte.");
   });
 

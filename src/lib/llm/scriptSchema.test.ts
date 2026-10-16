@@ -1,58 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
-  videoScriptSchema,
   visualScriptSchema,
   textScriptSchema,
   toolForContentType,
-  GENERATE_VIDEO_SCRIPT_TOOL_NAME,
   GENERATE_VISUAL_POST_TOOL_NAME,
   GENERATE_TEXT_POST_TOOL_NAME,
 } from "./scriptSchema";
-
-const validVideoScript = {
-  concept: "Montrer le geste précis derrière une commande personnalisée, pour donner envie d'en passer une.",
-  title: "Coulisses - Réalisation d'une commande",
-  hookVisual: "Gros plan sur les mains qui découpent le sticker",
-  hookText: "Regarde comment je fais ça",
-  hookAudio: "Musique tendance en fond",
-  storyboard: [
-    { planNumber: 1, description: "Découpe du sticker" },
-    { planNumber: 2, description: "Application presse à chaud" },
-  ],
-  caption: "Une commande comme on les aime ✨",
-  hashtags: ["#artisanat", "#faitmain"],
-  soundRecommendation: "Son tendance TikTok actuel",
-};
-
-describe("videoScriptSchema", () => {
-  it("accepte un script vidéo complet et valide", () => {
-    expect(() => videoScriptSchema.parse(validVideoScript)).not.toThrow();
-  });
-
-  it("rejette un script sans hashtags", () => {
-    const withoutHashtags: Partial<typeof validVideoScript> = { ...validVideoScript };
-    delete withoutHashtags.hashtags;
-    expect(() => videoScriptSchema.parse(withoutHashtags)).toThrow();
-  });
-
-  it("rejette un storyboard vide", () => {
-    expect(() => videoScriptSchema.parse({ ...validVideoScript, storyboard: [] })).toThrow();
-  });
-
-  it("rejette un plan de storyboard sans description", () => {
-    const invalid = { ...validVideoScript, storyboard: [{ planNumber: 1 }] };
-    expect(() => videoScriptSchema.parse(invalid)).toThrow();
-  });
-
-  it("rejette un planNumber non numérique", () => {
-    const invalid = { ...validVideoScript, storyboard: [{ planNumber: "un", description: "Découpe" }] };
-    expect(() => videoScriptSchema.parse(invalid)).toThrow();
-  });
-
-  it("rejette une liste de hashtags vide", () => {
-    expect(() => videoScriptSchema.parse({ ...validVideoScript, hashtags: [] })).toThrow();
-  });
-});
 
 describe("visualScriptSchema", () => {
   const validVisualPost = {
@@ -64,7 +17,7 @@ describe("visualScriptSchema", () => {
     hashtags: ["#nouveaute"],
   };
 
-  it("accepte un post visuel complet, sans champs vidéo", () => {
+  it("accepte un post visuel complet", () => {
     expect(() => visualScriptSchema.parse(validVisualPost)).not.toThrow();
   });
 
@@ -72,6 +25,23 @@ describe("visualScriptSchema", () => {
     const invalid: Partial<typeof validVisualPost> = { ...validVisualPost };
     delete invalid.hookVisual;
     expect(() => visualScriptSchema.parse(invalid)).toThrow();
+  });
+
+  it("rejette un storyboard vide", () => {
+    expect(() => visualScriptSchema.parse({ ...validVisualPost, storyboard: [] })).toThrow();
+  });
+
+  it("rejette une slide sans description", () => {
+    expect(() => visualScriptSchema.parse({ ...validVisualPost, storyboard: [{ planNumber: 1 }] })).toThrow();
+  });
+
+  it("rejette un planNumber non numérique", () => {
+    const invalid = { ...validVisualPost, storyboard: [{ planNumber: "un", description: "Slide" }] };
+    expect(() => visualScriptSchema.parse(invalid)).toThrow();
+  });
+
+  it("rejette une liste de hashtags vide", () => {
+    expect(() => visualScriptSchema.parse({ ...validVisualPost, hashtags: [] })).toThrow();
   });
 });
 
@@ -101,7 +71,6 @@ describe("textScriptSchema", () => {
 
 describe("toolForContentType", () => {
   it("sélectionne le bon tool selon le type de contenu", () => {
-    expect(toolForContentType("video").name).toBe(GENERATE_VIDEO_SCRIPT_TOOL_NAME);
     expect(toolForContentType("visual").name).toBe(GENERATE_VISUAL_POST_TOOL_NAME);
     expect(toolForContentType("text").name).toBe(GENERATE_TEXT_POST_TOOL_NAME);
   });

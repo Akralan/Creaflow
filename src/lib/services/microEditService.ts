@@ -20,7 +20,7 @@ import { getMaterialForSubject } from "@/lib/services/sourceMaterialService";
 import { reconcileCitationsAfterEdit, getCitationsForScript } from "@/lib/services/citationService";
 import { ApiError } from "@/lib/api/errors";
 
-export type SelectionBlockField = "title" | "hookVisual" | "hookText" | "hookAudio" | "caption" | `storyboard.${number}`;
+export type SelectionBlockField = "title" | "hookVisual" | "hookText" | "caption" | `storyboard.${number}`;
 
 async function loadOwnedScript(userId: string, scriptId: string) {
   const script = await db.query.scripts.findFirst({
@@ -46,14 +46,13 @@ function scriptTextForCitationCheck(script: {
   title: string | null;
   hookVisual: string | null;
   hookText: string | null;
-  hookAudio: string | null;
   caption: string | null;
   storyboard: unknown;
 }): string {
   const storyboardText = Array.isArray(script.storyboard)
     ? (script.storyboard as { description?: string }[]).map((s) => s.description ?? "").join(" ")
     : "";
-  return [script.title, script.hookVisual, script.hookText, script.hookAudio, script.caption, storyboardText]
+  return [script.title, script.hookVisual, script.hookText, script.caption, storyboardText]
     .filter(Boolean)
     .join(" ");
 }

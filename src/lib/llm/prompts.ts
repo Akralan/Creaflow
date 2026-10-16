@@ -2,7 +2,7 @@ import { buildStyleBlock, type StyleProfile } from "./styleProfile";
 import { buildFormatBlock, type VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
 
 export type Platform = string;
-export type ContentType = "video" | "visual" | "text";
+export type ContentType = "visual" | "text";
 
 export interface ContentCategoryContext {
   id: string;
@@ -11,8 +11,6 @@ export interface ContentCategoryContext {
 }
 
 const DEFAULT_CONTENT_TYPE_BY_PLATFORM: Record<string, ContentType> = {
-  tiktok: "video",
-  youtube: "video",
   instagram: "visual",
   linkedin: "text",
   x: "text",
@@ -26,20 +24,16 @@ export function defaultContentTypeForPlatform(platform: string): ContentType {
 }
 
 const CONTENT_TYPE_GUIDANCE: Record<ContentType, string> = {
-  video: "Format vidéo : pense l'accroche (visuel, texte à l'écran et audio séparément) et un découpage en plans filmables avec le matériel disponible.",
-  visual: "Format visuel statique (image unique ou carrousel) : décris la composition visuelle qui capte l'attention, pas d'audio, pas de plan filmé.",
+  visual: "Format visuel (image unique, carrousel ou animation courte) : décris la composition visuelle qui capte l'attention, sans audio.",
   text: "Format texte seul, sans visuel : l'accroche est la première phrase du texte.",
 };
 
 const PLATFORM_RULES: Record<string, string> = {
-  tiktok:
-    "TikTok : format vertical court (15-60 secondes), rythme rapide, hook visuel fort dans les 3 premières secondes, ton spontané et brut, hashtags larges + niche.",
   instagram:
-    "Instagram (Reels/Carrousels/Stories) : esthétique soignée, storytelling visuel, légende engageante avec appel à l'action, hashtags ciblés (10-15).",
+    "Instagram (posts et carrousels) : esthétique soignée, storytelling visuel, légende engageante avec appel à l'action, hashtags ciblés (10-15).",
   linkedin:
-    "LinkedIn : format texte long ou carrousel, registre professionnel / personal branding B2B, storytelling orienté valeur et expertise plutôt que vente directe, peu ou pas de vidéo courte type ASMR, hashtags sobres (3-5).",
-  x: "X (Twitter) : format texte court ou thread, ton direct et incisif, peut inclure une image ou vidéo courte, hashtags rares.",
-  youtube: "YouTube (Shorts ou format long) : hook visuel/verbal dès la première seconde, structure narrative plus développée qu'un short TikTok.",
+    "LinkedIn : format texte long ou carrousel, registre professionnel / personal branding B2B, storytelling orienté valeur et expertise plutôt que vente directe, hashtags sobres (3-5).",
+  x: "X (Twitter) : format texte court ou thread, ton direct et incisif, peut inclure une image, hashtags rares.",
   newsletter: "Newsletter : format texte structuré (objet + corps), ton personnel et direct, pas de hashtags, un seul appel à l'action clair.",
   blog: "Blog / site perso : format article structuré (titre, sous-titres), SEO-friendly, ton plus posé et développé.",
 };

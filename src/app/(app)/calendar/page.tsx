@@ -19,7 +19,7 @@ import { useContentSeries } from "@/contexts/SeriesContext";
 import { KNOWN_PLATFORMS } from "@/lib/social/types";
 
 const WEEKDAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
-const CONTENT_TYPE_SHORT: Record<ContentType, string> = { video: "Vidéo", visual: "Visuel", text: "Texte" };
+const CONTENT_TYPE_SHORT: Record<ContentType, string> = { visual: "Visuel", text: "Texte" };
 
 function monthKey(year: number, monthIndex: number) {
   return `${year}-${String(monthIndex + 1).padStart(2, "0")}`;

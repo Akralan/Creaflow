@@ -23,9 +23,7 @@ export interface ImportScriptParams {
   hashtags: string[];
   hookVisual?: string | null;
   hookText?: string | null;
-  hookAudio?: string | null;
   storyboard?: { planNumber: number; description: string }[] | null;
-  soundRecommendation?: string | null;
 }
 
 /**
@@ -43,7 +41,6 @@ export async function importScriptForUser(
     params.caption,
     params.hookVisual,
     params.hookText,
-    params.hookAudio,
   ].some((v) => v?.trim());
   if (!hasContent) {
     throw new ApiError(400, "Ajoute au moins un titre ou un texte avant d'enregistrer.");
@@ -104,11 +101,9 @@ export async function importScriptForUser(
         title: params.title ?? null,
         hookVisual: params.hookVisual ?? null,
         hookText: params.hookText ?? null,
-        hookAudio: params.hookAudio ?? null,
         storyboard: params.storyboard ?? null,
         caption: params.caption ?? null,
         hashtags: params.hashtags,
-        soundRecommendation: params.soundRecommendation ?? null,
         contentCategoryId: category.id,
         seriesId,
         contentType: params.contentType,

@@ -318,7 +318,7 @@ export interface StoryboardStep {
   description: string;
 }
 
-export type ContentType = "video" | "visual" | "text";
+export type ContentType = "visual" | "text";
 
 /** Format d'un post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) — propriété du script. */
 export type VisualFormat = "single" | "carousel" | "animation";
@@ -370,14 +370,12 @@ export interface Script {
   visualFormat: VisualFormat;
   slideCount: number | null;
   durationMs: number | null;
-  /** Présents seulement pour contentType "video" (et hookVisual/storyboard aussi pour "visual"). */
+  /** hookVisual/storyboard : posts visuels ; hookText : posts texte. */
   hookVisual: string | null;
   hookText: string | null;
-  hookAudio: string | null;
   storyboard: StoryboardStep[] | null;
   caption: string;
   hashtags: string[];
-  soundRecommendation: string | null;
   contentCategory: ContentCategorySummary;
   /** Angle imposé (mécanisme anti-répétition) — présent uniquement sur la fiche détaillée (GET /api/scripts/:id). */
   angle?: { id: string; label: string; description: string } | null;
@@ -763,11 +761,9 @@ export const api = {
       title: string;
       hookVisual: string;
       hookText: string;
-      hookAudio: string;
       storyboard: StoryboardStep[];
       caption: string;
       hashtags: string[];
-      soundRecommendation: string;
     }>
   ) => patch<{ script: Script }>(`/api/scripts/${id}`, data),
   deleteScript: (id: string) => del<{ ok: true }>(`/api/scripts/${id}`),
@@ -797,9 +793,7 @@ export const api = {
     hashtags: string[];
     hookVisual?: string;
     hookText?: string;
-    hookAudio?: string;
     storyboard?: StoryboardStep[];
-    soundRecommendation?: string;
   }) => post<{ script: Script }>("/api/scripts/import", data),
 
   getMaterials: (productId?: string) =>

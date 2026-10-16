@@ -18,11 +18,9 @@ const patchSchema = z
     title: z.string().min(1).optional(),
     hookVisual: z.string().min(1).optional(),
     hookText: z.string().min(1).optional(),
-    hookAudio: z.string().min(1).optional(),
     storyboard: z.array(storyboardStepSchema).min(1).optional(),
     caption: z.string().min(1).optional(),
     hashtags: z.array(z.string()).optional(),
-    soundRecommendation: z.string().min(1).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, { message: "Aucune modification fournie." });
 

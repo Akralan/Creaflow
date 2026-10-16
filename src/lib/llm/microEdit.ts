@@ -118,21 +118,6 @@ export type MicroEditBlock = "hook" | "storyboard" | "caption" | "hashtags";
 
 export function toolForBlock(block: MicroEditBlock, contentType: ContentType): LlmToolDefinition {
   if (block === "hook") {
-    if (contentType === "video") {
-      return {
-        name: "regenerate_hook",
-        description: "Régénère uniquement l'accroche (hook) du script vidéo — visuel, texte à l'écran et audio.",
-        input_schema: {
-          type: "object",
-          properties: {
-            hookVisual: { type: "string", description: "Description du visuel des 3 premières secondes." },
-            hookText: { type: "string", description: "Texte à afficher à l'écran pendant l'accroche." },
-            hookAudio: { type: "string", description: "Ce qui est dit ou entendu pendant l'accroche." },
-          },
-          required: ["hookVisual", "hookText", "hookAudio"],
-        },
-      };
-    }
     if (contentType === "visual") {
       return {
         name: "regenerate_hook",
@@ -171,13 +156,13 @@ export function toolForBlock(block: MicroEditBlock, contentType: ContentType): L
   if (block === "storyboard") {
     return {
       name: "regenerate_storyboard",
-      description: "Régénère uniquement le découpage en plans (vidéo) ou slides (visuel) du script.",
+      description: "Régénère uniquement les slides du post visuel.",
       input_schema: {
         type: "object",
         properties: {
           storyboard: {
             type: "array",
-            description: "Découpage en plans/slides simples et numérotés.",
+            description: "Slides simples et numérotées.",
             items: {
               type: "object",
               properties: { planNumber: { type: "integer" }, description: { type: "string" } },
@@ -217,7 +202,6 @@ const blockResultSchemas = {
   hook: z.object({
     hookVisual: z.string().optional(),
     hookText: z.string().optional(),
-    hookAudio: z.string().optional(),
     // Présent uniquement pour contentType "text" (cf. toolForBlock) — le titre ajusté si besoin.
     title: z.string().optional(),
   }),

@@ -156,7 +156,7 @@ describe("polices et formats", () => {
   });
 
   it("choisit un format par plateforme", () => {
-    expect(defaultFormatForPlatform("tiktok")).toBe("story");
+    expect(defaultFormatForPlatform("x")).toBe("landscape");
     expect(defaultFormatForPlatform("instagram")).toBe("portrait");
     expect(defaultFormatForPlatform("newsletter")).toBe("square");
     expect(DESIGN_FORMATS.portrait).toMatchObject({ width: 1080, height: 1350 });

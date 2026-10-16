@@ -16,7 +16,7 @@ describe("normalizeVisualSpec", () => {
   });
 
   it("lit une ligne script, y compris antérieure au chantier", () => {
-    expect(visualSpecFromScript({ contentType: "video" })).toBeNull();
+    expect(visualSpecFromScript({ contentType: "text" })).toBeNull();
     expect(visualSpecFromScript({ contentType: "visual" })).toEqual({ format: "single", slideCount: null, durationMs: null });
     expect(visualSpecFromScript({ contentType: "visual", visualFormat: "carousel", slideCount: 4 })?.slideCount).toBe(4);
   });
@@ -55,7 +55,7 @@ describe("enforceStoryboardCount", () => {
     expect(check.storyboard).toHaveLength(2);
   });
 
-  it("ne contraint rien sans format (vidéo, texte)", () => {
+  it("ne contraint rien sans format (texte)", () => {
     expect(enforceStoryboardCount(steps(7), null)).toEqual({ ok: true, storyboard: steps(7), reminder: null });
   });
 });

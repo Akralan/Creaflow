@@ -11,8 +11,7 @@ import { useContentCategories } from "@/contexts/CategoryLabelsContext";
 import { KNOWN_PLATFORMS } from "@/lib/social/types";
 
 const CONTENT_TYPE_OPTIONS: Array<{ key: ContentType; label: string }> = [
-  { key: "video", label: "Vidéo" },
-  { key: "visual", label: "Visuel (image / carrousel)" },
+  { key: "visual", label: "Visuel (image, carrousel, animation)" },
   { key: "text", label: "Texte seul" },
 ];
 
@@ -25,7 +24,7 @@ export interface ImportScriptFormProps {
 /** Écriture ailleurs, suivi ici (docs/SPEC_MATIERE_EDITEUR.md §2) — aucun appel LLM, aucun quota. */
 export default function ImportScriptForm({ scheduledDate, calendarEntryId, onImported }: ImportScriptFormProps) {
   const categories = useContentCategories();
-  const [platform, setPlatform] = useState<Platform>("tiktok");
+  const [platform, setPlatform] = useState<Platform>("linkedin");
   const [contentType, setContentType] = useState<ContentType>("text");
   const [categoryId, setCategoryId] = useState<string>("");
   const [productId, setProductId] = useState<string>("");

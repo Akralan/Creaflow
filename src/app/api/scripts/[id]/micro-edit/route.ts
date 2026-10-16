@@ -6,7 +6,7 @@ import { enforceMicroEditQuota } from "@/lib/services/billingService";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
 import { handleApiError } from "@/lib/api/errors";
 
-const BLOCK_FIELD_RE = /^(title|hookVisual|hookText|hookAudio|caption|storyboard\.\d+)$/;
+const BLOCK_FIELD_RE = /^(title|hookVisual|hookText|caption|storyboard\.\d+)$/;
 
 const schema = z.discriminatedUnion("action", [
   z.object({

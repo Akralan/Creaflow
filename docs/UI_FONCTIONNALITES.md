@@ -2,7 +2,9 @@
 
 Ce document liste, écran par écran, **ce que chaque vue doit permettre de faire** — pas comment l'agencer. Aucune indication de placement, de layout ou de composant visuel n'est donnée volontairement : c'est le rôle de la conception d'interface (Claude Design) à partir de ce document.
 
-Périmètre : Modules A (Onboarding), B (Scripts), D (Calendrier). Le Module C (Matrice de recyclage) est hors scope POC.
+Périmètre : Modules A (Onboarding), B (Scripts), D (Calendrier). Le Module C (Matrice de recyclage) est hors scope POC, puis abandonné avec la vidéo.
+
+> Mise à jour du 2026-10-16 (`docs/SPEC_ONBOARDING_MVP.md` §6) : la vidéo est sortie du produit. Plus de script vidéo, plus de TikTok ni de YouTube ; un script est un post visuel (image, carrousel, animation exportée en MP4) ou un post texte.
 
 ---
 
@@ -40,11 +42,11 @@ Périmètre : Modules A (Onboarding), B (Scripts), D (Calendrier). Le Module C (
 
 ## 3. Onboarding — Contraintes de production
 
-**Objectif :** capturer les moyens de tournage réels du créateur, pour que les scripts générés restent réalisables.
+**Objectif :** capturer les moyens de production réels du créateur, pour que les scripts générés restent réalisables.
 
 **Fonctionnalités :**
 - Sélectionner le matériel disponible parmi : smartphone, trépied, éclairage, micro (sélection multiple, extensible en texte libre si besoin).
-- Indiquer le temps disponible par semaine pour filmer (texte libre, ex: "2h le week-end").
+- Indiquer le temps disponible par semaine (texte libre, ex: "2h le week-end").
 - Enregistrer (fait partie du même profil que l'étape 2 — peut être la même soumission ou une étape séparée du même formulaire).
 
 **Endpoint :** `POST /api/profile` (mêmes champs que l'étape 2, `equipment` et `weeklyTimeAvailable`).
@@ -75,7 +77,7 @@ Périmètre : Modules A (Onboarding), B (Scripts), D (Calendrier). Le Module C (
 **Objectif :** connecter les comptes sociaux du créateur pour que l'IA analyse le style de communication déjà en place.
 
 **Fonctionnalités :**
-- Voir l'état de connexion des 3 plateformes (TikTok, Instagram, LinkedIn) : connecté / non connecté.
+- Voir l'état de connexion des plateformes à OAuth (Instagram, LinkedIn, X) : connecté / non connecté.
 - Lancer la connexion d'une plateforme (redirection vers l'autorisation OAuth de la plateforme, puis retour automatique dans l'app).
 - Voir une confirmation après un retour de connexion réussie.
 - Voir un message d'erreur si la connexion échoue ou si la récupération des publications échoue (cas notamment attendu sur LinkedIn selon les autorisations accordées par la plateforme — l'échec de récupération des publications ne doit pas être présenté comme un échec total de la connexion, le compte reste connecté).
@@ -91,16 +93,16 @@ Périmètre : Modules A (Onboarding), B (Scripts), D (Calendrier). Le Module C (
 
 ## 6. Calendrier mensuel
 
-**Objectif :** écran principal de l'application une fois l'onboarding terminé — donne au créateur une vue d'ensemble de son mois de publication et lui indique quoi tourner et quand.
+**Objectif :** écran principal de l'application une fois l'onboarding terminé — donne au créateur une vue d'ensemble de son mois de publication et lui indique quoi publier et quand.
 
 **Fonctionnalités :**
-- Définir/modifier l'objectif hebdomadaire de publication par plateforme (ex: 3 posts TikTok, 2 Reels Instagram par semaine).
+- Définir/modifier l'objectif hebdomadaire de publication par plateforme (ex: 3 posts LinkedIn, 2 posts Instagram par semaine).
 - Générer automatiquement le calendrier du mois à partir des objectifs définis (remplissage des créneaux avec le mix 30% vente / 50% coulisses / 20% éducatif). Action possible une seule fois par mois tant que le calendrier n'est pas déjà généré.
 - Naviguer d'un mois à l'autre.
 - Voir, pour chaque créneau du mois : la date, la plateforme visée, la catégorie de contenu prévue (vente / coulisses / éducatif), et si un script a déjà été généré pour ce créneau (avec son titre et son statut) ou non.
 - Depuis un créneau sans script : lancer la génération du script correspondant.
 - Depuis un créneau avec script : accéder à la fiche script complète (écran 7).
-- Voir en un coup d'œil la progression par rapport à l'objectif hebdomadaire par plateforme (ex: "2/3 posts TikTok programmés cette semaine").
+- Voir en un coup d'œil la progression par rapport à l'objectif hebdomadaire par plateforme (ex: "2/3 posts LinkedIn programmés cette semaine").
 - Accéder à la génération libre d'un script hors calendrier (écran 8), pour un usage spontané sans passer par un créneau.
 
 **États à prévoir :** aucun objectif défini (calendrier vide, message invitant à définir des objectifs), calendrier déjà généré pour le mois (le bouton de génération doit refléter cet état), mois sans aucun créneau (avant génération), génération en cours (peut prendre plusieurs secondes, un créneau à la fois).
@@ -111,15 +113,14 @@ Périmètre : Modules A (Onboarding), B (Scripts), D (Calendrier). Le Module C (
 
 ## 7. Fiche Script (détail)
 
-**Objectif :** présenter une fiche de tournage complète, prête à être utilisée pendant le tournage.
+**Objectif :** présenter une fiche de post complète, prête à être publiée.
 
 **Fonctionnalités :**
 - Afficher le titre du concept.
-- Afficher l'accroche (hook) sous ses trois composantes distinctes : visuel des 3 premières secondes, texte affiché à l'écran, audio/voix-off.
-- Afficher le storyboard sous forme de plans numérotés, chacun avec sa description.
+- Afficher l'accroche (hook) : accroche visuelle et texte affiché pour un post visuel, première phrase pour un post texte.
+- Pour un post visuel, afficher le découpage en slides numérotées, chacune avec sa description.
 - Afficher la légende rédigée.
 - Afficher la liste des hashtags recommandés.
-- Afficher la recommandation de son/musique/tendance.
 - Afficher le produit associé au script, si applicable (ou indiquer explicitement qu'aucun produit n'est associé).
 - Afficher la plateforme et la catégorie de contenu (vente/coulisses/éducatif) du script.
 - Régénérer le script (remplace le contenu généré en conservant la plateforme, la catégorie et le produit associé).
@@ -137,7 +138,7 @@ Périmètre : Modules A (Onboarding), B (Scripts), D (Calendrier). Le Module C (
 **Objectif :** permettre de générer un script à la demande, sans passer par un créneau de calendrier existant (flux secondaire, cf. `SPEC_POC.md` section 3).
 
 **Fonctionnalités :**
-- Choisir la plateforme cible (TikTok / Instagram / LinkedIn).
+- Choisir la plateforme cible (Instagram / LinkedIn / X / newsletter, blog…).
 - Choisir la catégorie de contenu visée (vente / coulisses / éducatif).
 - Choisir un produit du catalogue à associer (optionnel — un script peut être générique).
 - Lancer la génération, qui aboutit sur la fiche script complète (écran 7).

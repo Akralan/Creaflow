@@ -117,11 +117,9 @@ export default function ScriptPage() {
         title: previous.title ?? undefined,
         hookVisual: previous.hookVisual ?? undefined,
         hookText: previous.hookText ?? undefined,
-        hookAudio: previous.hookAudio ?? undefined,
         storyboard: previous.storyboard ?? undefined,
         caption: previous.caption,
         hashtags: previous.hashtags,
-        soundRecommendation: previous.soundRecommendation ?? undefined,
       });
       // patchScriptContent ne renvoie que les colonnes patchées, pas les relations jointes
       // (product/contentCategory/angle/série/citations...) — fusion, jamais un remplacement complet,
@@ -453,32 +451,6 @@ export default function ScriptPage() {
         )}
       </div>
 
-      {script.contentType === "video" && (
-        <Card style={{ padding: 24, marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-            <div style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, display: "flex", alignItems: "center", gap: 9 }}>
-              <span style={{ color: "oklch(0.55 0.2 292)" }}>◆</span>L&apos;accroche · 3 premières secondes
-            </div>
-            <RegenerateButton onClick={() => regenerateBlock("hook")} busy={regeneratingBlock === "hook"} />
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
-            {(["hookVisual", "hookText", "hookAudio"] as const).map((field, i) => (
-              <div key={field}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: color.textFaint, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>
-                  {["Visuel", "Texte à l'écran", "Audio / voix-off"][i]}
-                </div>
-                <EditableField
-                  value={script[field] ?? ""}
-                  minRows={3}
-                  onSave={(v) => saveField({ [field]: v })}
-                  onApplyInstruction={(text, instr, isMajority) => applyInstruction(field, text, instr, isMajority)}
-                />
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
       {script.contentType === "visual" && (
         <Card style={{ padding: 24, marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
@@ -589,7 +561,7 @@ export default function ScriptPage() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
               <div style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, display: "flex", alignItems: "center", gap: 9 }}>
                 <span style={{ color: "oklch(0.55 0.2 292)" }}>▤</span>
-                {script.contentType === "video" ? "Storyboard" : "Slides"}
+                Slides
               </div>
               <RegenerateButton onClick={() => regenerateBlock("storyboard")} busy={regeneratingBlock === "storyboard"} />
             </div>
@@ -660,17 +632,6 @@ export default function ScriptPage() {
               }}
             />
           </Card>
-          {script.contentType === "video" && (
-            <Card style={{ padding: 22 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: color.textSecondary, marginBottom: 10 }}>Son / tendance</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ width: 38, height: 38, borderRadius: 11, background: "oklch(0.62 0.12 250 / 0.14)", color: "oklch(0.45 0.14 250)", display: "grid", placeItems: "center", fontSize: 17, flexShrink: 0 }}>
-                  ♪
-                </span>
-                <div style={{ fontSize: 14, lineHeight: 1.4, color: color.text2 }}>{script.soundRecommendation}</div>
-              </div>
-            </Card>
-          )}
         </div>
       </div>
 

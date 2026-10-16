@@ -27,9 +27,7 @@ const schema = z
     hashtags: z.array(z.string()).default([]),
     hookVisual: z.string().optional(),
     hookText: z.string().optional(),
-    hookAudio: z.string().optional(),
     storyboard: z.array(storyboardStepSchema).optional(),
-    soundRecommendation: z.string().optional(),
   })
   .refine((data) => !(data.scheduledDate && data.calendarEntryId), {
     message: "scheduledDate et calendarEntryId sont mutuellement exclusifs.",
