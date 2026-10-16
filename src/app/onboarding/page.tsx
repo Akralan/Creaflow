@@ -49,11 +49,6 @@ function storeName(name: string) {
   }
 }
 
-function monthKeyNow(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-}
-
 /** Essais automatiques de la lecture avant de rendre la main (bouton « Réessayer »). */
 const MAX_READING_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 4000;
@@ -300,10 +295,8 @@ function OnboardingContent() {
       try {
         localStorage.removeItem(NAME_KEY);
       } catch {}
-      // Le calendrier du mois en cours, déjà rempli à l'arrivée. Non bloquant : le bouton
-      // « Générer » reste là si ça échoue.
-      await api.generateCalendar(monthKeyNow()).catch(() => {});
-      router.push("/calendar");
+      // On choisit ses séries sur Direction ; la validation y planifie et remplit le calendrier.
+      router.push("/direction?selection=1");
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Impossible de terminer, réessaie.");
       setBusy(false);
@@ -438,7 +431,7 @@ function OnboardingContent() {
               </Button>
               {step === "days" ? (
                 <Button onClick={finish} disabled={busy}>
-                  {busy ? "On prépare ton calendrier…" : "C'est parti"}
+                  {busy ? "On prépare tes séries…" : "C'est parti"}
                 </Button>
               ) : (
                 <Button onClick={goNext}>Continuer</Button>

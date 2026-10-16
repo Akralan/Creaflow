@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { llmFailureMessage, planSubjectGrouping } from "./onboardingService";
+import { planSubjectGrouping } from "./onboardingService";
+import { llmFailureMessage } from "@/lib/llm/errors";
 
 const sources = [
   { id: "gh", productId: "p-gh" },

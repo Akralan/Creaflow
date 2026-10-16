@@ -698,6 +698,10 @@ export const api = {
       platforms: string[];
     }>
   ) => post<{ series: ContentSeries[] }>("/api/series", { series }),
+  /** Validation des séries après l'onboarding : garde celles cochées, recalcule les pourcentages et
+   *  planifie la série principale. `planError` : la sélection est faite, seul le plan a échoué. */
+  confirmSeriesSelection: (keptIds: string[]) =>
+    post<{ plannedSeriesId: string | null; planError: string | null }>("/api/series/selection", { keptIds }),
   /** Bascule de mode et/ou sujet lié (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — endpoint dédié plutôt que
    *  saveContentSeries : ce dernier archive toute série active omise du tableau soumis, inadapté à
    *  l'édition d'un ou deux champs depuis une carte de la bibliothèque. */
