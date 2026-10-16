@@ -2,6 +2,13 @@ import Link from "next/link";
 import LegalPage, { sectionTitleStyle } from "@/components/LegalPage";
 import { PUBLISHER, SERVICE_NAME } from "@/lib/legal/publisher";
 import { FREE_TRIAL_MICRO_EDIT_LIMIT, FREE_TRIAL_SCRIPT_LIMIT, PLANS } from "@/lib/billing/plans";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Conditions Générales d'Utilisation et de Vente",
+  description: "Conditions d'utilisation du service CreaFlow et de souscription aux offres payantes.",
+  alternates: { canonical: "/legal/cgu" },
+};
 
 // CGU et CGV réunies en un seul document (docs/SPEC_LEGAL_EMAIL_RGPD.md §2.2) : un seul lien, une
 // seule case à cocher à l'inscription. Les quotas viennent de src/lib/billing/plans.ts pour ne

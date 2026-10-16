@@ -1,5 +1,12 @@
 import LegalPage, { sectionTitleStyle } from "@/components/LegalPage";
 import { PUBLISHER, SERVICE_NAME } from "@/lib/legal/publisher";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Mentions légales",
+  description: "Éditeur, hébergement et contact du service CreaFlow.",
+  alternates: { canonical: "/legal/mentions-legales" },
+};
 
 // Obligatoire en France pour tout site accessible au public (LCEN, art. 6-III). Tout le contenu
 // variable vient de src/lib/legal/publisher.ts — rien à modifier ici le jour où l'entité est arrêtée.

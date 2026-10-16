@@ -1,6 +1,13 @@
 import Link from "next/link";
 import LegalPage, { sectionTitleStyle } from "@/components/LegalPage";
 import { color } from "@/lib/design/tokens";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Politique de confidentialité",
+  description: "Quelles données CreaFlow traite, pourquoi, avec quels sous-traitants, et vos droits.",
+  alternates: { canonical: "/legal/confidentialite" },
+};
 import { PUBLISHER, SERVICE_NAME } from "@/lib/legal/publisher";
 
 const tableStyle: React.CSSProperties = { width: "100%", borderCollapse: "collapse", fontSize: 14, margin: "12px 0 20px" };

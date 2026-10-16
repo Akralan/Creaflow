@@ -139,10 +139,12 @@ assistant). Tout le reste s'ajoute plus tard, variable par variable, sans touche
 fonctionnalité dont la clé manque échoue à l'appel avec un message explicite ; la landing et les
 comptes ne sont jamais affectés.
 
-Deux variables sont **figées au build** et demandent un `deploy/update.sh` (ou un `build`) quand
+Six variables sont **figées au build** et demandent un `deploy/update.sh` (ou un `build`) quand
 elles changent : `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NEXT_PUBLIC_GOOGLE_PICKER_API_KEY`,
-`NEXT_PUBLIC_SENTRY_DSN` et `R2_PUBLIC_BASE_URL` (celle-ci entre dans la CSP). Toutes les autres
-sont lues à l'exécution : un `docker compose up -d` suffit après modification.
+`NEXT_PUBLIC_SENTRY_DSN`, `R2_PUBLIC_BASE_URL` (celle-ci entre dans la CSP), et `APP_URL` avec
+`SEO_INDEXABLE` (robots, sitemap, image de partage et canonical sont prérendus,
+`docs/SPEC_SEO.md` §3). Toutes les autres sont lues à l'exécution : un `docker compose up -d`
+suffit après modification.
 
 Le `.env` ne quitte jamais le serveur : il est exclu de l'image Docker (`.dockerignore`) et du dépôt
 (`.gitignore`).
