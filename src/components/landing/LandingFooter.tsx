@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import Link from "next/link";
 import { accentText, text } from "@/components/landing/theme";
 import { hoverHandlers } from "@/components/landing/hoverStyle";
-import BrandMark from "@/components/landing/BrandMark";
+import BrandMark from "@/components/BrandMark";
 import { getContactEmail } from "@/lib/legal/publisher";
 
 const linkStyle: CSSProperties = { fontSize: 14, color: text.muted };

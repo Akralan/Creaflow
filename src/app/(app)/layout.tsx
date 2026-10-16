@@ -5,7 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { CalendarDays, Compass, Settings, Sparkles, TrendingUp } from "lucide-react";
 import { api, type ContentCategory, type ContentSeries, type CreatorProfile, type User } from "@/lib/apiClient";
-import { accent, accentAlpha, color, fontHeading } from "@/lib/design/tokens";
+import { accentAlpha, color, fontHeading } from "@/lib/design/tokens";
+import BrandMark from "@/components/BrandMark";
 import { CategoryLabelsContext } from "@/contexts/CategoryLabelsContext";
 import { SeriesContext } from "@/contexts/SeriesContext";
 
@@ -72,22 +73,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 8px 24px" }}>
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 10,
-              background: accent,
-              color: "#fff",
-              display: "grid",
-              placeItems: "center",
-              fontFamily: fontHeading,
-              fontWeight: 700,
-              fontSize: 18,
-            }}
-          >
-            C
-          </div>
+          <BrandMark size={34} />
           <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 19, letterSpacing: "-0.02em" }}>
             CreaFlow
           </span>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { fontHeading } from "@/lib/design/tokens";
 import { text, ink } from "@/components/landing/theme";
 import { hoverHandlers } from "@/components/landing/hoverStyle";
-import BrandMark from "@/components/landing/BrandMark";
+import BrandMark from "@/components/BrandMark";
 import { OPEN_PRICING_EVENT, PRICING_ENABLED } from "@/components/landing/LandingOffer";
 import { FEATURES_ENABLED } from "@/components/landing/flags";
 
