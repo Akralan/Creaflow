@@ -512,6 +512,7 @@ export async function resolveDailyDirection(
   }
 ): Promise<DailyDirection | null> {
   try {
+    await releaseBeatsOfDeletedScripts(userId);
     let state = await resolveNarrativeState(userId, params.productId, params.seriesId);
     if (!state) return null; // pas d'état = pas de chef (§2)
 
@@ -653,6 +654,41 @@ export async function markBeatDrafted(stateId: string, beatId: string, scriptId:
   if (idx === -1) return;
   const updatedBeats = beats.map((b, i) => (i === idx ? { ...b, status: "drafted" as const, scriptId } : b));
   await db.update(narrativeState).set({ beats: updatedBeats, updatedAt: new Date() }).where(eq(narrativeState.id, stateId));
+}
+
+/**
+ * Un beat `drafted` dont le script a disparu redevient `planned` : sans ça, supprimer le script
+ * de l'épisode 2 faisait passer le chef à l'épisode 3 et l'épisode 2 devenait introuvable. Pur, pour
+ * être testé sans base ; `existingScriptIds` = scripts encore présents parmi ceux référencés.
+ */
+export function releaseOrphanedBeats(beats: NarrativeBeat[], existingScriptIds: Set<string>): NarrativeBeat[] | null {
+  let changed = false;
+  const next = beats.map((b) => {
+    if (b.status !== "drafted" || !b.scriptId || existingScriptIds.has(b.scriptId)) return b;
+    changed = true;
+    return { ...b, status: "planned" as const, scriptId: null };
+  });
+  return changed ? next : null;
+}
+
+/**
+ * Remet à rédiger les épisodes dont le script n'existe plus, pour tous les plans de l'utilisateur.
+ * Appelé après la suppression d'un script, et avant le choix du jour (filet pour les suppressions
+ * antérieures à cette règle). Sans LLM, idempotent.
+ */
+export async function releaseBeatsOfDeletedScripts(userId: string): Promise<void> {
+  const states = await db.query.narrativeState.findMany({ where: eq(narrativeState.userId, userId) });
+  const referenced = states.flatMap((s) => ((s.beats as NarrativeBeat[] | null) ?? []).map((b) => b.scriptId).filter((id): id is string => Boolean(id)));
+  if (referenced.length === 0) return;
+  const existing = await db.query.scripts.findMany({
+    where: and(eq(scripts.userId, userId), inArray(scripts.id, referenced)),
+    columns: { id: true },
+  });
+  const existingIds = new Set(existing.map((s) => s.id));
+  for (const state of states) {
+    const next = releaseOrphanedBeats((state.beats as NarrativeBeat[] | null) ?? [], existingIds);
+    if (next) await db.update(narrativeState).set({ beats: next, updatedAt: new Date() }).where(eq(narrativeState.id, state.id));
+  }
 }
 
 // ---------------------------------------------------------------------------------------------

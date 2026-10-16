@@ -17,7 +17,7 @@ import { pickAngleForScript } from "@/lib/services/angleService";
 import { findBestBrandAssetForScript } from "@/lib/services/brandAssetService";
 import { getMaterialForSubject } from "@/lib/services/sourceMaterialService";
 import { recordCitations, deleteCitationsForScript } from "@/lib/services/citationService";
-import { resolveDailyDirection, markBeatDrafted, applyPublishSideEffects } from "@/lib/services/narrativeDirector";
+import { resolveDailyDirection, markBeatDrafted, applyPublishSideEffects, releaseBeatsOfDeletedScripts } from "@/lib/services/narrativeDirector";
 import { resolveCategoryForGeneration } from "@/lib/services/seriesService";
 import { markDesignStale } from "@/lib/services/visualDesignService";
 import type { VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
@@ -400,5 +400,10 @@ export async function deleteScriptForUser(userId: string, scriptId: string) {
   if (!deleted) {
     throw new ApiError(404, "Script introuvable.");
   }
+  // L'épisode de série qui portait ce script redevient « à rédiger » (sinon le plan saute à l'épisode
+  // suivant). Jamais bloquant : la suppression a réussi.
+  await releaseBeatsOfDeletedScripts(userId).catch((error) =>
+    logger.error("Remise à rédiger de l'épisode après suppression impossible", error, { scriptId })
+  );
   return deleted;
 }
