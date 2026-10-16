@@ -11,7 +11,7 @@ import SlotEditorModal from "@/components/calendar/SlotEditorModal";
 import PlatformGoalsModal from "@/components/calendar/PlatformGoalsModal";
 import styles from "@/components/calendar/calendar.module.css";
 import { api, ApiClientError, type PostingGoal, type WeekEntry } from "@/lib/apiClient";
-import { color, fontHeading } from "@/lib/design/tokens";
+import { color, fontHeading, fontMono } from "@/lib/design/tokens";
 
 /** Lundi (local) de la semaine qui contient `d`. */
 function mondayOf(d: Date): Date {
@@ -67,6 +67,8 @@ export default function CalendarPage() {
   const [goals, setGoals] = useState<PostingGoal[]>([]);
   const [authorName, setAuthorName] = useState("");
   const [hasLogo, setHasLogo] = useState(false);
+  const [nextSlot, setNextSlot] = useState<WeekEntry | null>(null);
+  const [monthToPlan, setMonthToPlan] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [planning, setPlanning] = useState(false);
@@ -84,6 +86,8 @@ export default function CalendarPage() {
       setGoals(data.goals);
       setAuthorName(data.authorName);
       setHasLogo(data.hasLogo);
+      setNextSlot(data.nextSlot);
+      setMonthToPlan(data.monthToPlan);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Chargement du calendrier impossible.");
     } finally {
@@ -103,12 +107,10 @@ export default function CalendarPage() {
     return done;
   }, [entries]);
 
-  /** Semaine vide : on planifie les mois qu'elle couvre (un mois déjà planifié répond 409, sans
-   *  conséquence ici). */
-  async function planWeek() {
+  /** Planifie des mois (un mois déjà planifié répond 409, sans conséquence ici) puis recharge. */
+  async function planMonths(months: string[]) {
     setPlanning(true);
     setError(null);
-    const months = [...new Set([dayKey(monday).slice(0, 7), dayKey(addDays(monday, 6)).slice(0, 7)])];
     try {
       for (const month of months) {
         await api.generateCalendar(month).catch((err) => {
@@ -122,6 +124,18 @@ export default function CalendarPage() {
     } finally {
       setPlanning(false);
     }
+  }
+
+  /** Semaine vide : les mois qu'elle couvre. */
+  const planWeek = () => planMonths([...new Set([dayKey(monday).slice(0, 7), dayKey(addDays(monday, 6)).slice(0, 7)])]);
+
+  /** Plus aucun créneau vide à venir : le mois indiqué par le serveur, et le suivant s'il était déjà
+   *  planifié. */
+  function planMore() {
+    if (!monthToPlan) return;
+    const [y, m] = monthToPlan.split("-").map(Number);
+    const following = `${m === 12 ? y + 1 : y}-${String(m === 12 ? 1 : m + 1).padStart(2, "0")}`;
+    planMonths([monthToPlan, following]);
   }
 
   function open(entry: WeekEntry) {
@@ -171,7 +185,7 @@ export default function CalendarPage() {
 
       {error && <p style={{ color: color.danger, fontSize: 14, margin: "0 0 16px" }}>{error}</p>}
 
-      {entries.length === 0 ? (
+      {entries.length === 0 && !nextSlot ? (
         <div style={{ maxWidth: 520, padding: "36px 28px", borderRadius: 20, background: "#fffdfa", border: "1px solid rgba(34,29,25,0.08)" }}>
           <div style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 21, color: "#1b1713", marginBottom: 6 }}>Rien de prévu cette semaine.</div>
           {activeGoals.length > 0 ? (
@@ -205,11 +219,44 @@ export default function CalendarPage() {
                 onEditSlot={() => setEditingEntry(entry)}
               />
             ))}
+            {/* La semaine se prolonge : le prochain post à rédiger, même s'il tombe plus tard. */}
+            {nextSlot && (
+              <WeekPostCard
+                kicker="Post suivant"
+                entry={nextSlot}
+                authorName={authorName}
+                hasLogo={hasLogo}
+                isPast={false}
+                onOpen={() => open(nextSlot)}
+                onEditSlot={() => setEditingEntry(nextSlot)}
+              />
+            )}
+            {!nextSlot && monthToPlan && activeGoals.length > 0 && (
+              <div className={styles.slot}>
+                <div style={{ fontFamily: fontMono, fontSize: 11.5, letterSpacing: "0.06em", color: "#4d3778", fontWeight: 700 }}>
+                  LA SUITE
+                </div>
+                <button type="button" className={`${styles.card} ${styles.holo}`} onClick={planMore} disabled={planning}>
+                  <div style={{ position: "absolute", inset: 0, padding: 18, display: "flex", flexDirection: "column", justifyContent: "flex-end", zIndex: 1 }}>
+                    <p style={{ margin: 0, fontFamily: fontHeading, fontWeight: 700, fontSize: 21, lineHeight: 1.15, letterSpacing: "-0.02em", color: "#1b1713" }}>
+                      {planning ? "On planifie…" : "Planifier la suite"}
+                    </p>
+                    <p style={{ margin: "8px 0 0", fontSize: 13, color: "#574d45" }}>Tes prochains posts, sur tes jours de publication.</p>
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
           <div className={styles.list}>
             {entries.map((entry) => (
               <WeekPostRow key={entry.id} entry={entry} isPast={isPast(entry)} onOpen={() => open(entry)} />
             ))}
+            {nextSlot && <WeekPostRow kicker="Post suivant" entry={nextSlot} isPast={false} onOpen={() => open(nextSlot)} />}
+            {!nextSlot && monthToPlan && activeGoals.length > 0 && (
+              <Button variant="secondary" onClick={planMore} disabled={planning}>
+                {planning ? "On planifie…" : "Planifier la suite"}
+              </Button>
+            )}
           </div>
         </>
       )}

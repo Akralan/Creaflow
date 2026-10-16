@@ -452,8 +452,16 @@ export interface CalendarEntry {
   script: { id: string; title: string; status: ScriptStatus } | null;
 }
 
+/** Ce qu'un créneau vide va devenir : l'épisode prévu par le plan de sa série et le projet relié. */
+export interface UpcomingPost {
+  title: string | null;
+  project: string | null;
+}
+
 /** Créneau de la vue semaine : le post lui-même, pour l'afficher comme un post et non une case. */
 export interface WeekEntry extends Omit<CalendarEntry, "script"> {
+  /** Créneau vide uniquement (null pour un créneau passé). */
+  upcoming?: UpcomingPost | null;
   script: {
     id: string;
     title: string | null;
@@ -776,7 +784,16 @@ export const api = {
     apiFetch<{ entries: CalendarEntry[]; goals: PostingGoal[] }>(`/api/calendar?month=${month}`),
   /** Vue semaine : `to` exclu, dates au format YYYY-MM-DD. */
   getCalendarWeek: (from: string, to: string) =>
-    apiFetch<{ entries: WeekEntry[]; goals: PostingGoal[]; authorName: string; hasLogo: boolean }>(
+    apiFetch<{
+      entries: WeekEntry[];
+      goals: PostingGoal[];
+      authorName: string;
+      hasLogo: boolean;
+      /** Premier créneau vide à venir hors de la bande affichée : la carte « post suivant ». */
+      nextSlot: WeekEntry | null;
+      /** Plus rien de vide à venir : le mois à planifier pour trouver la suite. */
+      monthToPlan: string | null;
+    }>(
       `/api/calendar?from=${from}&to=${to}`
     ),
   getCalendarEntry: (id: string) => apiFetch<{ entry: CalendarEntry }>(`/api/calendar/${id}`),
