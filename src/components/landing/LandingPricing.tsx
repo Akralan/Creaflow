@@ -143,7 +143,7 @@ export default function LandingPricing({ onBack }: Props) {
           </h3>
         </div>
         <p style={{ margin: 0, fontSize: "1rem", color: text.secondary, lineHeight: 1.55, maxWidth: "40ch" }}>
-          Sans engagement. Changez de formule ou arrêtez quand vous voulez.
+          Sans engagement. Change de formule ou arrête quand tu veux.
         </p>
       </div>
 
@@ -152,7 +152,7 @@ export default function LandingPricing({ onBack }: Props) {
           <div>
             <p style={planName}>Essai gratuit</p>
             <p style={priceStyle}>0 €</p>
-            <p style={planDescription}>Pour voir ce que CreaFlow écrit avec votre marque.</p>
+            <p style={planDescription}>Pour voir ce que CreaFlow écrit avec ta marque.</p>
           </div>
           <ul style={featureList}>
             <li style={featureItem}><Check />5 scripts offerts, à vie</li>

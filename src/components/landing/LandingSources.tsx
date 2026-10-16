@@ -64,7 +64,7 @@ export default function LandingSources() {
         }}
       >
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 10 }}>
-          <span style={label}>Branchez</span>
+          <span style={label}>Branche</span>
           {sources.map((s) => (
             <span key={s.name} style={pill}>
               <SourceIcon kind={s.kind} style={{ color: text.secondary }} />
@@ -76,9 +76,9 @@ export default function LandingSources() {
           →
         </span>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "6px 10px" }}>
-          <span style={label}>Publiez sur</span>
+          <span style={label}>Publie sur</span>
           <span style={{ fontSize: 14.5, fontWeight: 600, color: text.secondary, whiteSpace: "nowrap" }}>
-            LinkedIn · TikTok · Instagram · YouTube
+            LinkedIn · Instagram · X
           </span>
         </div>
       </div>

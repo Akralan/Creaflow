@@ -36,9 +36,9 @@ const plannedDays = new Set([0, 2, 4]);
 
 const steps: Array<{ title: string; description: string; visual: ReactNode }> = [
   {
-    title: "Vous branchez ce que vous avez déjà",
+    title: "Tu branches ce que tu as déjà",
     description:
-      "GitHub, Notion ou Linear en un clic, ou vos notes collées. CreaFlow lit les fichiers, les pages, l'historique, les issues terminées. C'est votre matière, rien d'autre.",
+      "GitHub, Notion ou Linear en un clic, ou tes notes collées. CreaFlow lit les fichiers, les pages, l'historique, les issues terminées. C'est ta matière, rien d'autre.",
     visual: (
       <div className={styles.howVisual} aria-hidden="true">
         <span style={smallPill}><SourceIcon kind="github" style={{ color: text.secondary }} />GitHub</span>
@@ -49,9 +49,9 @@ const steps: Array<{ title: string; description: string; visual: ReactNode }> = 
     ),
   },
   {
-    title: "Votre ligne éditoriale se dessine",
+    title: "Ta ligne éditoriale se dessine",
     description:
-      "Deux ou trois questions : le ton, pour qui vous publiez, le temps dont vous disposez. Le reste est déduit de votre profil et de vos sujets : séries récurrentes, rôles, rythme.",
+      "Deux ou trois questions : le ton, pour qui tu publies, le temps dont tu disposes. Le reste est déduit de ton profil et de tes sujets : séries récurrentes, rôles, rythme.",
     visual: (
       <div className={styles.howVisual} aria-hidden="true">
         <span style={questionChip}>Quel ton ?</span>
@@ -61,9 +61,9 @@ const steps: Array<{ title: string; description: string; visual: ReactNode }> = 
     ),
   },
   {
-    title: "Vous relisez, vous publiez",
+    title: "Tu relis, tu publies",
     description:
-      "Chaque semaine, le calendrier se remplit de posts rédigés à partir de ce que vous avez vraiment fait. Vous retouchez une phrase si besoin, et c'est parti.",
+      "Chaque semaine, le calendrier se remplit de posts rédigés à partir de ce que tu as vraiment fait. Tu retouches une phrase si besoin, et c'est parti.",
     visual: (
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5, width: "100%", maxWidth: 260 }} aria-hidden="true">
         {days.map((d, i) => {
@@ -133,8 +133,8 @@ export default function LandingHowItWorks() {
             data-delay={120}
             style={{ margin: "14px auto 0", fontSize: "1.02rem", lineHeight: 1.6, color: text.secondary, maxWidth: "46ch", textWrap: "pretty" }}
           >
-            Pas de brief à rédiger, pas de prompt à maîtriser. Vous continuez à travailler, CreaFlow suit ce que vous
-            documentez.
+            Pas de brief à rédiger, pas de prompt à maîtriser. Tu continues à travailler, CreaFlow suit ce que tu
+            documentes.
           </p>
         </div>
 

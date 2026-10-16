@@ -97,14 +97,14 @@ export default function LandingCtaFinal({ onShowPricing }: Props) {
             textWrap: "balance",
           }}
         >
-          Vos cinq premiers scripts vous attendent
+          Ta première semaine t&apos;attend
         </h2>
         <p
           data-reveal=""
           data-delay={80}
           style={{ margin: "20px auto 0", fontSize: "1.06rem", lineHeight: 1.55, color: text.secondary, maxWidth: "44ch", textWrap: "pretty" }}
         >
-          Branchez une source, répondez à trois questions, et votre ligne éditoriale est prête. Gratuit, sans carte
+          Branche une source, réponds à trois questions, et ta ligne éditoriale est prête. Gratuit, sans carte
           bancaire.
         </p>
         <div
