@@ -34,16 +34,9 @@ interface Brief {
 }
 
 // Identiques à scripts/baseline-lot0-run.ts — ne pas modifier sans mettre à jour les deux fichiers.
+// Briefs vidéo retirés le 2026-10-16 avec le type de contenu (docs/SPEC_ONBOARDING_MVP.md §6) ;
+// leurs sorties archivées restent dans docs/baseline/.
 const BRIEFS: Brief[] = [
-  {
-    slug: "01-rich-video-serie",
-    note: "Matière riche (23 docs, MyTwin Leaderboard) · vidéo TikTok · série imposée (Coulisses du Vendredi)",
-    platform: "tiktok",
-    contentType: "video",
-    contentCategoryId: "8fe7a710-2f88-42ad-aa72-e637ab845b4e", // Coulisses
-    productId: "ee94584a-708c-4de6-987e-7e30b8ab538d", // MyTwin Leaderboard
-    seriesId: "9b913624-4ae0-4c07-a928-945f44d8f0fd", // Coulisses du Vendredi
-  },
   {
     slug: "02-medium-text-sans-serie",
     note: "Matière moyenne (6 docs, PPO HotlineMiami) · texte LinkedIn · pas de série",
@@ -69,15 +62,6 @@ const BRIEFS: Brief[] = [
     contentType: "text",
     contentCategoryId: "0eb95cff-5382-46e0-9d7c-abe4a0adbab9", // Actu & Trends
     productId: null,
-    seriesId: null,
-  },
-  {
-    slug: "05-rich-video-autre-format-sans-serie",
-    note: "Même matière riche que le brief 1 (MyTwin Leaderboard) mais YouTube, pas de série — compare le rendu du même corpus sur un autre format",
-    platform: "youtube",
-    contentType: "video",
-    contentCategoryId: "8fe7a710-2f88-42ad-aa72-e637ab845b4e", // Coulisses
-    productId: "ee94584a-708c-4de6-987e-7e30b8ab538d", // MyTwin Leaderboard
     seriesId: null,
   },
 ];

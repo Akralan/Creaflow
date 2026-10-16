@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   adjustCategoryWeightsForMaterialScarcity,
   categoryWeightsFromCategories,
+  datesForWeekdays,
   distributeCategories,
-  distributeDays,
   distributeSeriesOverrides,
   filterByPlatform,
   parseMonth,
+  publishingDaysLabel,
   renormalizeCategoryWeights,
   seriesWeightsFromSeries,
-  weeksInMonth,
   type CategoryWeight,
   type SeriesWeight,
 } from "./calendarService";
@@ -81,25 +81,36 @@ describe("distributeCategories", () => {
   });
 });
 
-describe("distributeDays", () => {
-  it("renvoie un tableau vide pour n <= 0", () => {
-    expect(distributeDays(0, 31)).toEqual([]);
+describe("datesForWeekdays", () => {
+  it("renvoie les mercredis et samedis d'octobre 2026 (le 1er est un jeudi)", () => {
+    expect(datesForWeekdays(2026, 9, [3, 6])).toEqual([3, 7, 10, 14, 17, 21, 24, 28, 31]);
   });
 
-  it("renvoie n jours valides (entre 1 et daysInMonth) sans doublon quand n <= daysInMonth", () => {
-    const daysInMonth = 31;
-    for (const n of [1, 4, 8, 13, 20, 31]) {
-      const result = distributeDays(n, daysInMonth);
-      expect(result).toHaveLength(n);
-      expect(result.every((d) => d >= 1 && d <= daysInMonth)).toBe(true);
-      expect(new Set(result).size).toBe(n);
-    }
+  it("traite le dimanche comme le jour 7 (ISO)", () => {
+    // 1er février 2026 : un dimanche.
+    expect(datesForWeekdays(2026, 1, [7])).toEqual([1, 8, 15, 22]);
   });
 
-  it("répartit les jours en ordre croissant sur le mois", () => {
-    const result = distributeDays(4, 28);
-    const sorted = [...result].sort((a, b) => a - b);
-    expect(result).toEqual(sorted);
+  it("renvoie tous les jours du mois quand les sept jours sont cochés", () => {
+    expect(datesForWeekdays(2024, 1, [1, 2, 3, 4, 5, 6, 7])).toHaveLength(29);
+  });
+
+  it("renvoie un tableau vide sans jour coché", () => {
+    expect(datesForWeekdays(2026, 9, [])).toEqual([]);
+  });
+
+  it("ne dépend pas de l'ordre ni des doublons des jours fournis", () => {
+    expect(datesForWeekdays(2026, 9, [6, 3, 3])).toEqual(datesForWeekdays(2026, 9, [3, 6]));
+  });
+});
+
+describe("publishingDaysLabel", () => {
+  it("écrit les jours en clair, dans l'ordre de la semaine", () => {
+    expect(publishingDaysLabel([6, 3])).toBe("mercredi, samedi");
+  });
+
+  it("ignore les doublons et les valeurs hors de 1..7", () => {
+    expect(publishingDaysLabel([7, 7, 0, 8, 1])).toBe("lundi, dimanche");
   });
 });
 
@@ -117,17 +128,10 @@ describe("parseMonth", () => {
   });
 });
 
-describe("weeksInMonth", () => {
-  it("renvoie une valeur fractionnaire cohérente", () => {
-    expect(weeksInMonth(28)).toBe(4);
-    expect(weeksInMonth(31)).toBeCloseTo(31 / 7, 5);
-  });
-});
-
 describe("filterByPlatform", () => {
   it("inclut un élément sans plateforme assignée, quelle que soit la plateforme demandée", () => {
     const items = [{ id: "a", platforms: [] }];
-    expect(filterByPlatform(items, "tiktok")).toEqual(items);
+    expect(filterByPlatform(items, "instagram")).toEqual(items);
     expect(filterByPlatform(items, "slack")).toEqual(items);
   });
 
@@ -138,7 +142,7 @@ describe("filterByPlatform", () => {
     ];
     expect(filterByPlatform(items, "linkedin")).toEqual([items[0]]);
     expect(filterByPlatform(items, "slack")).toEqual([items[1]]);
-    expect(filterByPlatform(items, "tiktok")).toEqual([]);
+    expect(filterByPlatform(items, "instagram")).toEqual([]);
   });
 });
 

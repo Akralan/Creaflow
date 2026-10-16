@@ -4,7 +4,7 @@ import { getRedirectUri } from "./types";
 /**
  * LinkedIn OAuth 2.0 (3-legged).
  *
- * ATTENTION — limite réelle à connaître : contrairement à TikTok/Instagram, lister les
+ * ATTENTION — limite réelle à connaître : contrairement à Instagram, lister les
  * posts d'un profil personnel via l'API LinkedIn nécessite le produit "Community
  * Management API", qui est soumis à validation manuelle par LinkedIn et n'est PAS
  * accordé par défaut même à une app développeur approuvée. Sans cet accès, l'étape

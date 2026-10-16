@@ -61,11 +61,9 @@ function textColumns(row: typeof scripts.$inferSelect): ScriptTextColumns {
     title: row.title,
     hookVisual: row.hookVisual,
     hookText: row.hookText,
-    hookAudio: row.hookAudio,
     caption: row.caption,
     hashtags: row.hashtags,
     storyboard: (row.storyboard as { planNumber: number; description: string }[] | null) ?? null,
-    soundRecommendation: row.soundRecommendation,
   };
 }
 

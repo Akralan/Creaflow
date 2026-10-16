@@ -3,13 +3,16 @@ import { contentCategorySchema, platformSchema } from "./validation";
 
 describe("platformSchema", () => {
   it("accepte les plateformes valides, avec ou sans provider OAuth", () => {
-    for (const platform of ["tiktok", "instagram", "linkedin", "x", "youtube", "newsletter", "blog", "other"]) {
+    for (const platform of ["instagram", "linkedin", "x", "newsletter", "blog", "other"]) {
       expect(() => platformSchema.parse(platform)).not.toThrow();
     }
   });
 
   it("rejette une plateforme inconnue", () => {
     expect(() => platformSchema.parse("facebook")).toThrow();
+    // Retirées avec la vidéo (docs/SPEC_ONBOARDING_MVP.md §6).
+    expect(() => platformSchema.parse("tiktok")).toThrow();
+    expect(() => platformSchema.parse("youtube")).toThrow();
   });
 });
 

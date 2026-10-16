@@ -48,8 +48,7 @@ export async function generateCategoriesForUser(userId: string) {
   const suggested = await suggestContentCategories({
     brandName: profile.brandName,
     activityType: profile.activityType,
-    tone: profile.tone,
-    values: profile.values,
+    expectations: profile.expectations,
     products: productList.map((p) => ({ name: p.name, description: p.description })),
   });
 

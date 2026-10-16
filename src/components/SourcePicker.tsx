@@ -19,10 +19,13 @@ export default function SourcePicker({
   provider,
   onConnected,
   variant = "onboarding",
+  preselect = 0,
 }: {
   provider: string;
   onConnected: () => void;
   variant?: "onboarding" | "settings";
+  /** Coche d'avance les N premiers éléments proposés (docs/SPEC_ONBOARDING_MVP.md §2 écran 2). */
+  preselect?: number;
 }) {
   const [candidates, setCandidates] = useState<SourceCandidate[]>([]);
   const [texts, setTexts] = useState({ displayName: "", emptyMessage: "", footnote: "" });
@@ -41,6 +44,12 @@ export default function SourcePicker({
       .then((data) => {
         if (cancelled) return;
         setCandidates(data.candidates);
+        setSelected(
+          data.candidates
+            .filter((c) => !c.alreadyConnected)
+            .slice(0, Math.min(preselect, MAX_PRODUCTS))
+            .map((c) => c.externalId)
+        );
         setTexts({ displayName: data.displayName, emptyMessage: data.emptyMessage, footnote: data.footnote });
       })
       .catch((err) => {
@@ -50,6 +59,8 @@ export default function SourcePicker({
     return () => {
       cancelled = true;
     };
+    // preselect ne sert qu'au premier chargement : le changer ensuite ne doit pas écraser les choix.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [provider]);
 
   function toggle(externalId: string) {
@@ -92,11 +103,9 @@ export default function SourcePicker({
       <div>
         <p style={{ color: color.textMuted, fontSize: 15, margin: "0 0 16px" }}>
           {message}
-          {variant === "onboarding" &&
-            " Tu peux décrire tes sujets à la main — la matière se colle ensuite depuis l'écran du sujet."}
+          {variant === "onboarding" && " Tu peux brancher une autre source ou coller tes notes."}
         </p>
         {error && <p style={{ color: color.danger, fontSize: 13, marginBottom: 12 }}>{error}</p>}
-        {variant === "onboarding" && <Button onClick={onConnected}>Décrire mes sujets à la main</Button>}
       </div>
     );
   }

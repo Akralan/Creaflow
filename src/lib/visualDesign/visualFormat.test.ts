@@ -16,13 +16,21 @@ describe("normalizeVisualSpec", () => {
   });
 
   it("lit une ligne script, y compris antérieure au chantier", () => {
-    expect(visualSpecFromScript({ contentType: "video" })).toBeNull();
+    expect(visualSpecFromScript({ contentType: "text" })).toBeNull();
     expect(visualSpecFromScript({ contentType: "visual" })).toEqual({ format: "single", slideCount: null, durationMs: null });
     expect(visualSpecFromScript({ contentType: "visual", visualFormat: "carousel", slideCount: 4 })?.slideCount).toBe(4);
   });
 });
 
 describe("buildFormatBlock", () => {
+  it("demande un vrai texte de post quand le visuel l'accompagne, une légende courte sinon", () => {
+    const withText = buildFormatBlock(normalizeVisualSpec({ visualFormat: "animation" }));
+    const visualOnly = buildFormatBlock(normalizeVisualSpec({ visualFormat: "animation", withText: false }));
+    expect(withText).toContain("Texte du post : la légende est un vrai post rédigé");
+    expect(visualOnly).toContain("Légende courte : une ou deux phrases au plus");
+    expect(visualOnly).not.toContain("Texte du post");
+  });
+
   it("décrit chaque format au rédacteur", () => {
     expect(buildFormatBlock(null)).toBe("");
     expect(buildFormatBlock(normalizeVisualSpec({}))).toContain("exactement 1 entrée");
@@ -55,7 +63,7 @@ describe("enforceStoryboardCount", () => {
     expect(check.storyboard).toHaveLength(2);
   });
 
-  it("ne contraint rien sans format (vidéo, texte)", () => {
+  it("ne contraint rien sans format (texte)", () => {
     expect(enforceStoryboardCount(steps(7), null)).toEqual({ ok: true, storyboard: steps(7), reminder: null });
   });
 });

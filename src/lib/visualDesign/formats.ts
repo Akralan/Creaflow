@@ -20,8 +20,6 @@ export const DESIGN_FORMATS: Record<DesignFormatId, DesignFormat> = {
 
 export function defaultFormatForPlatform(platform: string): DesignFormatId {
   switch (platform) {
-    case "tiktok":
-      return "story";
     case "x":
       return "landscape";
     case "instagram":

@@ -253,6 +253,20 @@
       "when": 1792144059955,
       "tag": "0035_slippery_landau",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1792183475039,
+      "tag": "0036_fin_video",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1792184306964,
+      "tag": "0037_onboarding_mvp",
+      "breakpoints": true
     }
   ]
 }

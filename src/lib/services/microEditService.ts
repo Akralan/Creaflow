@@ -20,7 +20,7 @@ import { getMaterialForSubject } from "@/lib/services/sourceMaterialService";
 import { reconcileCitationsAfterEdit, getCitationsForScript } from "@/lib/services/citationService";
 import { ApiError } from "@/lib/api/errors";
 
-export type SelectionBlockField = "title" | "hookVisual" | "hookText" | "hookAudio" | "caption" | `storyboard.${number}`;
+export type SelectionBlockField = "title" | "hookVisual" | "hookText" | "caption" | `storyboard.${number}`;
 
 async function loadOwnedScript(userId: string, scriptId: string) {
   const script = await db.query.scripts.findFirst({
@@ -46,14 +46,13 @@ function scriptTextForCitationCheck(script: {
   title: string | null;
   hookVisual: string | null;
   hookText: string | null;
-  hookAudio: string | null;
   caption: string | null;
   storyboard: unknown;
 }): string {
   const storyboardText = Array.isArray(script.storyboard)
     ? (script.storyboard as { description?: string }[]).map((s) => s.description ?? "").join(" ")
     : "";
-  return [script.title, script.hookVisual, script.hookText, script.hookAudio, script.caption, storyboardText]
+  return [script.title, script.hookVisual, script.hookText, script.caption, storyboardText]
     .filter(Boolean)
     .join(" ");
 }
@@ -72,7 +71,7 @@ export async function applySelectionInstruction(
 
   const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
   const brandContext = profile
-    ? `Marque : ${profile.brandName} (${profile.activityType})${profile.tone ? ` — ton : ${profile.tone}` : ""}`
+    ? `Marque : ${profile.brandName} (${profile.activityType})`
     : "";
   // La matière du sujet est fournie ici aussi (pas seulement à la génération complète) : sans elle,
   // une instruction comme "base-toi sur le premier run" ou "parle plutôt de X" est impossible à
@@ -169,7 +168,7 @@ export async function regenerateBlock(userId: string, scriptId: string, block: M
   if (block === "hook" && script.contentType === "text") {
     const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
     const brandContext = profile
-      ? `Marque : ${profile.brandName} (${profile.activityType})${profile.tone ? ` — ton : ${profile.tone}` : ""}`
+      ? `Marque : ${profile.brandName} (${profile.activityType})`
       : "";
     const args = await callStructured({
       system:

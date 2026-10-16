@@ -1,7 +1,6 @@
 import { callStructured } from "./provider";
 import {
   toolForContentType,
-  videoScriptSchema,
   visualScriptSchema,
   textScriptSchema,
   type GeneratedScript,
@@ -23,9 +22,6 @@ export async function generateScript(context: ScriptGenerationContext): Promise<
     });
   const args = await call(userMessage);
 
-  if (context.contentType === "video") {
-    return { contentType: "video", ...videoScriptSchema.parse(args) };
-  }
   if (context.contentType === "visual") {
     // Le format impose le nombre d'entrées du storyboard (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md
     // §5.1) : un écart vaut un second appel avec rappel ; s'il persiste, on tronque ou on garde —

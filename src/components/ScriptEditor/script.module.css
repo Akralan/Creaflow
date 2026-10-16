@@ -1,0 +1,46 @@
+/* Fiche d'un post : le post à gauche, ce qui l'accompagne à droite (colonne fixe au défilement).
+   Une seule colonne sur les écrans étroits, le post d'abord. */
+
+.page {
+  padding: clamp(18px, 3.5vw, 32px) clamp(16px, 3.5vw, 40px) 64px;
+  max-width: 1480px;
+  margin: 0 auto;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+  gap: 28px;
+  align-items: start;
+}
+
+.aside {
+  position: sticky;
+  top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sources summary {
+  cursor: pointer;
+  list-style: none;
+}
+.sources summary::-webkit-details-marker {
+  display: none;
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .aside {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .hideOnPhone {
+    display: none;
+  }
+}

@@ -28,6 +28,7 @@ import { ensureCutout, extFromMime, fetchAssetBytes, fetchCutoutBytes, type Bran
 import { isBackgroundRemovalAvailable } from "@/lib/imaging/backgroundRemoval";
 import { durationMsSchema, normalizeTimeline, TimelineValidationError, type Timeline } from "@/lib/visualDesign/timeline";
 import { visualSpecFromScript } from "@/lib/visualDesign/visualFormat";
+import { parseStoredStyleProfile } from "@/lib/llm/styleProfile";
 import type { VerticalId } from "@/lib/verticals/types";
 
 /**
@@ -258,7 +259,8 @@ export async function createDesignForScript(userId: string, scriptId: string, pa
       hookVisual: script.hookVisual,
       storyboard,
       brandName: profile.brandName,
-      tone: profile.tone,
+      // Ton appris des retouches (styleProfile) : plus de ton déclaré dans le profil.
+      tone: parseStoredStyleProfile(profile.styleProfile)?.tone ?? null,
     },
   });
 

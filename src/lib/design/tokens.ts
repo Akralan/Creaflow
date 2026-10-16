@@ -54,11 +54,9 @@ export const categoryPalette: Array<{ base: string; bg: string; border: string; 
 /** Couvre toutes les clés de KNOWN_PLATFORMS (src/lib/social/types.ts) — PlatformBadge
  *  applique un repli générique si une plateforme inconnue devait malgré tout apparaître. */
 export const platformMeta: Record<string, { label: string; badge: string; badgeBg: string }> = {
-  tiktok: { label: "TikTok", badge: "TT", badgeBg: "#111" },
   instagram: { label: "Instagram", badge: "IG", badgeBg: "oklch(0.6 0.2 15)" },
   linkedin: { label: "LinkedIn", badge: "IN", badgeBg: "oklch(0.5 0.14 250)" },
   x: { label: "X (Twitter)", badge: "X", badgeBg: "#000" },
-  youtube: { label: "YouTube", badge: "YT", badgeBg: "oklch(0.55 0.2 25)" },
   newsletter: { label: "Newsletter", badge: "NL", badgeBg: "oklch(0.55 0.12 250)" },
   blog: { label: "Blog / site perso", badge: "BL", badgeBg: "oklch(0.5 0.1 150)" },
   slack: { label: "Slack", badge: "SL", badgeBg: "oklch(0.5 0.13 320)" },
@@ -70,7 +68,7 @@ export const genericPlatformMeta = { badge: "?", badgeBg: "#6b6259" };
 export const statusMeta: Record<ScriptStatus, { label: string; bg: string; fg: string }> = {
   draft: { label: "Brouillon", bg: color.trackBg, fg: "#8a8078" },
   planned: { label: "Planifié", bg: accentAlpha(0.14), fg: accentText },
-  shot: { label: "Tourné", bg: "oklch(0.62 0.13 60 / 0.16)", fg: "oklch(0.5 0.13 60)" },
+  shot: { label: "Prêt", bg: "oklch(0.62 0.13 60 / 0.16)", fg: "oklch(0.5 0.13 60)" },
   published: { label: "Publié", bg: "oklch(0.62 0.13 150 / 0.16)", fg: "oklch(0.42 0.14 150)" },
 };
 

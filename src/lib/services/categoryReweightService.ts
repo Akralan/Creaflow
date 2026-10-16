@@ -81,7 +81,7 @@ export function clamp(value: number, min: number, max: number): number {
 }
 
 /** Étape 1+2 : z-score de chaque échantillon par rapport à la moyenne/écart-type de SA
- *  plateforme (rend TikTok et LinkedIn comparables — §6.1), puis moyenne par (catégorie,
+ *  plateforme (rend Instagram et LinkedIn comparables — §6.1), puis moyenne par (catégorie,
  *  plateforme). Couples sous MIN_SAMPLES_PER_CATEGORY_PLATFORM exclus (pas de signal). */
 export function computeCategoryPlatformSignals(samples: EngagementSample[]): CategoryPlatformSignal[] {
   const byPlatform = new Map<string, EngagementSample[]>();
@@ -128,7 +128,7 @@ export function computeCategoryPlatformSignals(samples: EngagementSample[]): Cat
 }
 
 /** Étape 3 : agrégation inter-plateforme par catégorie — nécessaire car ContentCategory.weight
- *  est un champ global, pas par plateforme (une catégorie suivie sur TikTok et LinkedIn n'a
+ *  est un champ global, pas par plateforme (une catégorie suivie sur Instagram et LinkedIn n'a
  *  qu'un seul poids). Moyenne pondérée par échantillon, plafonnée à PLATFORM_SAMPLE_CAP par
  *  plateforme pour qu'un fort volume sur une plateforme ne noie pas le signal d'une autre. */
 export function aggregateCategorySignals(platformSignals: CategoryPlatformSignal[]): CategorySignal[] {

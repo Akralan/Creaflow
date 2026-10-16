@@ -17,7 +17,7 @@ import { pickAngleForScript } from "@/lib/services/angleService";
 import { findBestBrandAssetForScript } from "@/lib/services/brandAssetService";
 import { getMaterialForSubject } from "@/lib/services/sourceMaterialService";
 import { recordCitations, deleteCitationsForScript } from "@/lib/services/citationService";
-import { resolveDailyDirection, markBeatDrafted, applyPublishSideEffects } from "@/lib/services/narrativeDirector";
+import { resolveDailyDirection, markBeatDrafted, applyPublishSideEffects, releaseBeatsOfDeletedScripts } from "@/lib/services/narrativeDirector";
 import { resolveCategoryForGeneration } from "@/lib/services/seriesService";
 import { markDesignStale } from "@/lib/services/visualDesignService";
 import type { VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
@@ -159,6 +159,10 @@ export async function buildGenerationContext(
     process.env.NARRATIVE_DIRECTOR_ENABLED === "false"
       ? null
       : await resolveDailyDirection(userId, {
+          // Réécriture d'un script (« autre idée ») : on garde son épisode.
+          lockedBeatId: excludeScriptId
+            ? ((await db.query.scripts.findFirst({ where: eq(scripts.id, excludeScriptId), columns: { beatId: true } }))?.beatId ?? null)
+            : null,
           productId: effectiveProductId,
           seriesId: seriesId ?? null,
           platform,
@@ -179,10 +183,7 @@ export async function buildGenerationContext(
     creatorProfile: {
       brandName: profile.brandName,
       activityType: profile.activityType,
-      tone: profile.tone,
-      values: profile.values,
-      equipment: profile.equipment,
-      weeklyTimeAvailable: profile.weeklyTimeAvailable,
+      expectations: profile.expectations,
       targetAudience: profile.targetAudience,
     },
     styleProfile: parseStoredStyleProfile(profile.styleProfile),
@@ -241,9 +242,7 @@ function scriptColumnsFromGenerated(generated: GeneratedScript) {
     contentType: generated.contentType,
     hookVisual: "hookVisual" in generated ? generated.hookVisual : null,
     hookText: "hookText" in generated ? generated.hookText : null,
-    hookAudio: "hookAudio" in generated ? generated.hookAudio : null,
     storyboard: "storyboard" in generated ? generated.storyboard : null,
-    soundRecommendation: "soundRecommendation" in generated ? generated.soundRecommendation : null,
     // Annexe B.6 (docs/SPEC_REDACTEUR_EN_CHEF.md Lot B3) — consolidées dans NarrativeState.openPromises
     // à la publication (§5, Lot B4).
     promisesMade: generated.promisesMade,
@@ -357,11 +356,9 @@ export interface ScriptContentPatch {
   title?: string;
   hookVisual?: string;
   hookText?: string;
-  hookAudio?: string;
   storyboard?: { planNumber: number; description: string }[];
   caption?: string;
   hashtags?: string[];
-  soundRecommendation?: string;
 }
 
 /**
@@ -407,5 +404,10 @@ export async function deleteScriptForUser(userId: string, scriptId: string) {
   if (!deleted) {
     throw new ApiError(404, "Script introuvable.");
   }
+  // L'épisode de série qui portait ce script redevient « à rédiger » (sinon le plan saute à l'épisode
+  // suivant). Jamais bloquant : la suppression a réussi.
+  await releaseBeatsOfDeletedScripts(userId).catch((error) =>
+    logger.error("Remise à rédiger de l'épisode après suppression impossible", error, { scriptId })
+  );
   return deleted;
 }

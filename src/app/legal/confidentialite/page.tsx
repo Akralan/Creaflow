@@ -165,7 +165,7 @@ export default function ConfidentialitePage() {
             <td style={tdStyle}>États-Unis</td>
           </tr>
           <tr>
-            <td style={tdStyle}>TikTok, Meta (Instagram), LinkedIn, Google (YouTube, Drive), X</td>
+            <td style={tdStyle}>Meta (Instagram), LinkedIn, Google (Drive), X</td>
             <td style={tdStyle}>Lecture de vos posts, métriques et images — uniquement si vous connectez le compte concerné</td>
             <td style={tdStyle}>Variable selon la plateforme</td>
           </tr>

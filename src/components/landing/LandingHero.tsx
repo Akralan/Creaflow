@@ -209,7 +209,7 @@ export default function LandingHero() {
               animation: "cf-rise 1s cubic-bezier(.2,.75,.2,1) .42s both",
             }}
           >
-            <Link href="/login?mode=signup" style={ctaStyle} {...hoverHandlers(ctaStyle, ctaHover)}>
+            <Link href="/onboarding" style={ctaStyle} {...hoverHandlers(ctaStyle, ctaHover)}>
               Démarrer gratuitement
               <span style={{ fontFamily: mono, fontSize: 15 }}>→</span>
             </Link>

@@ -509,9 +509,12 @@ export async function resolveDailyDirection(
     contentType: string;
     directive?: string | null;
     rejectedConcepts?: string[];
+    /** « Autre idée, même brief » : l'épisode du script qu'on réécrit, à garder. */
+    lockedBeatId?: string | null;
   }
 ): Promise<DailyDirection | null> {
   try {
+    await releaseBeatsOfDeletedScripts(userId);
     let state = await resolveNarrativeState(userId, params.productId, params.seriesId);
     if (!state) return null; // pas d'état = pas de chef (§2)
 
@@ -529,6 +532,11 @@ export async function resolveDailyDirection(
         // directive du jour, réservée à l'appel choix du jour qui suit.
         directive: null,
       });
+    }
+
+    // Plan épuisé : on le prolonge avant de choisir, sinon le chef n'aurait plus d'épisode à donner.
+    if (mode === "feuilleton" && !params.lockedBeatId && nextEpisode(state.beats, null) === null && state.beats.length > 0) {
+      state = await planNarrativeForSubject(userId, { productId: state.productId, seriesId: state.seriesId, directive: null });
     }
 
     const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
@@ -556,8 +564,11 @@ export async function resolveDailyDirection(
         ? {
             ...baseContext,
             arcSummary: state.arcSummary,
-            beats: state.beats
-              .filter((b): b is NarrativeBeat & { status: "planned" | "drafted" } => b.status === "planned" || b.status === "drafted")
+            // UN seul épisode proposé : le suivant dans l'ordre du plan (ou celui du script réécrit).
+            // Laisser le modèle choisir parmi planned + drafted lui faisait reprendre un épisode déjà
+            // rédigé — trois scripts sur le même épisode, et Direction qui en comptait un seul.
+            beats: [nextEpisode(state.beats, params.lockedBeatId ?? null)]
+              .filter((b): b is NarrativeBeat & { status: "planned" | "drafted" } => b !== null && (b.status === "planned" || b.status === "drafted"))
               .map(
                 (b): DailyDirectionBeatCandidate => ({ id: b.id, title: b.title, kind: b.kind, status: b.status, rationale: b.rationale })
               ),
@@ -579,7 +590,11 @@ export async function resolveDailyDirection(
 
     const result = await chooseDailyDirection(dailyContext);
 
-    const beat = result.beatId ? state.beats.find((b) => b.id === result.beatId) : undefined;
+    // En feuilleton, l'épisode est imposé, pas laissé au modèle : il lui arrivait de répondre « aucun
+    // épisode » alors qu'un seul lui était proposé — le script naissait sans épisode, et le plan
+    // reproposait indéfiniment le même. Le modèle décide du concept, pas de la place dans l'arc.
+    const imposed = mode === "feuilleton" ? nextEpisode(state.beats, params.lockedBeatId ?? null) : null;
+    const beat = imposed ?? (result.beatId ? state.beats.find((b) => b.id === result.beatId) : undefined);
     return {
       stateId: state.id,
       beatId: beat ? beat.id : null, // ignore un beatId halluciné ne correspondant à aucun beat connu
@@ -651,8 +666,60 @@ export async function markBeatDrafted(stateId: string, beatId: string, scriptId:
   const beats = (state.beats as NarrativeBeat[] | null) ?? [];
   const idx = beats.findIndex((b) => b.id === beatId);
   if (idx === -1) return;
+  // Garde-fou : un épisode déjà rattaché à un autre script n'est pas réattribué en silence.
+  if (beats[idx].status === "drafted" && beats[idx].scriptId && beats[idx].scriptId !== scriptId) {
+    logger.warn("Épisode déjà rédigé pour un autre script — rattachement ignoré", { beatId, scriptId, existing: beats[idx].scriptId });
+    return;
+  }
   const updatedBeats = beats.map((b, i) => (i === idx ? { ...b, status: "drafted" as const, scriptId } : b));
   await db.update(narrativeState).set({ beats: updatedBeats, updatedAt: new Date() }).where(eq(narrativeState.id, stateId));
+}
+
+/**
+ * L'épisode à écrire : celui du script réécrit s'il est donné (« autre idée, même brief »), sinon le
+ * premier `planned` dans l'ordre du plan. Jamais un épisode déjà rédigé pour un autre script.
+ */
+export function nextEpisode(beats: NarrativeBeat[], lockedBeatId: string | null): NarrativeBeat | null {
+  if (lockedBeatId) {
+    const locked = beats.find((b) => b.id === lockedBeatId);
+    if (locked) return locked;
+  }
+  return beats.find((b) => b.status === "planned") ?? null;
+}
+
+/**
+ * Un beat `drafted` dont le script a disparu redevient `planned` : sans ça, supprimer le script
+ * de l'épisode 2 faisait passer le chef à l'épisode 3 et l'épisode 2 devenait introuvable. Pur, pour
+ * être testé sans base ; `existingScriptIds` = scripts encore présents parmi ceux référencés.
+ */
+export function releaseOrphanedBeats(beats: NarrativeBeat[], existingScriptIds: Set<string>): NarrativeBeat[] | null {
+  let changed = false;
+  const next = beats.map((b) => {
+    if (b.status !== "drafted" || !b.scriptId || existingScriptIds.has(b.scriptId)) return b;
+    changed = true;
+    return { ...b, status: "planned" as const, scriptId: null };
+  });
+  return changed ? next : null;
+}
+
+/**
+ * Remet à rédiger les épisodes dont le script n'existe plus, pour tous les plans de l'utilisateur.
+ * Appelé après la suppression d'un script, et avant le choix du jour (filet pour les suppressions
+ * antérieures à cette règle). Sans LLM, idempotent.
+ */
+export async function releaseBeatsOfDeletedScripts(userId: string): Promise<void> {
+  const states = await db.query.narrativeState.findMany({ where: eq(narrativeState.userId, userId) });
+  const referenced = states.flatMap((s) => ((s.beats as NarrativeBeat[] | null) ?? []).map((b) => b.scriptId).filter((id): id is string => Boolean(id)));
+  if (referenced.length === 0) return;
+  const existing = await db.query.scripts.findMany({
+    where: and(eq(scripts.userId, userId), inArray(scripts.id, referenced)),
+    columns: { id: true },
+  });
+  const existingIds = new Set(existing.map((s) => s.id));
+  for (const state of states) {
+    const next = releaseOrphanedBeats((state.beats as NarrativeBeat[] | null) ?? [], existingIds);
+    if (next) await db.update(narrativeState).set({ beats: next, updatedAt: new Date() }).where(eq(narrativeState.id, state.id));
+  }
 }
 
 // ---------------------------------------------------------------------------------------------

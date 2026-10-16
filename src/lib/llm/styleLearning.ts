@@ -14,11 +14,9 @@ export interface ScriptTextColumns {
   title?: string | null;
   hookVisual?: string | null;
   hookText?: string | null;
-  hookAudio?: string | null;
   caption?: string | null;
   hashtags?: string[] | null;
   storyboard?: { planNumber: number; description: string }[] | null;
-  soundRecommendation?: string | null;
 }
 
 export interface FieldDiff {
@@ -60,10 +58,8 @@ function textFieldsOf(columns: ScriptTextColumns): Record<string, string> {
     title: normalize(columns.title),
     hookVisual: normalize(columns.hookVisual),
     hookText: normalize(columns.hookText),
-    hookAudio: normalize(columns.hookAudio),
     caption: normalize(columns.caption),
     hashtags: (columns.hashtags ?? []).join(" ").trim(),
-    soundRecommendation: normalize(columns.soundRecommendation),
   };
   for (const step of columns.storyboard ?? []) {
     fields[`storyboard.${step.planNumber}`] = normalize(step.description);
@@ -139,7 +135,7 @@ function deltaPct(before: string, after: string): number | null {
   return Math.round(((after.length - before.length) / before.length) * 100);
 }
 
-/** Le « hook » d'un script : hookText (vidéo, texte) sinon hookVisual (visuel). */
+/** Le « hook » d'un script : hookText (texte) sinon hookVisual (visuel). */
 function hookDiff(diffs: FieldDiff[]): FieldDiff | undefined {
   return diffs.find((d) => d.field === "hookText") ?? diffs.find((d) => d.field === "hookVisual");
 }

@@ -4,6 +4,8 @@ import { contentSeries, contentSeriesCategories, contentSeriesPlatforms, creator
 import { suggestContentSeries } from "@/lib/llm/seriesLabels";
 import { listActiveCategoriesForUser, resolveCategoryLabelToId } from "@/lib/services/categoryLabelsService";
 import { findNarrativeStatesForSeries } from "@/lib/services/narrativeDirector";
+// Import circulaire assumé (seriesSlotRelease relit les séries actives) : aucun usage au chargement.
+import { releaseSlotsOfArchivedSeries } from "@/lib/services/seriesSlotRelease";
 import { ApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
 
@@ -126,6 +128,7 @@ export async function archiveSeriesForUser(userId: string, seriesId: string) {
   if (!archived) {
     throw new ApiError(404, "Série introuvable.");
   }
+  await releaseSlotsOfArchivedSeries(userId);
   return archived;
 }
 
@@ -144,6 +147,7 @@ export async function keepOnlySeries(userId: string, keptIds: string[]) {
       .update(contentSeries)
       .set({ archived: true })
       .where(and(eq(contentSeries.userId, userId), inArray(contentSeries.id, toArchive)));
+    await releaseSlotsOfArchivedSeries(userId);
   }
   return listActiveSeriesForUser(userId);
 }
@@ -165,8 +169,7 @@ export async function generateSeriesForUser(userId: string) {
   const suggested = await suggestContentSeries({
     brandName: profile.brandName,
     activityType: profile.activityType,
-    tone: profile.tone,
-    values: profile.values,
+    expectations: profile.expectations,
     products: productList.map((p) => ({ name: p.name, description: p.description })),
     categories: activeCategories.map((c) => ({ label: c.label, description: c.description })),
   });
@@ -178,7 +181,7 @@ export async function generateSeriesForUser(userId: string) {
     .map((s) => ({ ...s, categoryId: resolveCategoryLabelToId(s.categoryLabel, activeCategories) }))
     .filter((s): s is typeof s & { categoryId: string } => s.categoryId !== null);
 
-  return db.transaction(async (tx) => {
+  const generated = await db.transaction(async (tx) => {
     await tx
       .update(contentSeries)
       .set({ archived: true })
@@ -209,6 +212,9 @@ export async function generateSeriesForUser(userId: string) {
       };
     });
   });
+  // L'ancien jeu vient d'être archivé : ses créneaux à venir passent au nouveau.
+  await releaseSlotsOfArchivedSeries(userId);
+  return generated;
 }
 
 interface SeriesInput {
@@ -285,6 +291,7 @@ export async function saveSeriesForUser(userId: string, items: SeriesInput[]) {
       await upsertSeriesItem(tx, userId, item);
     }
   });
+  await releaseSlotsOfArchivedSeries(userId);
 
   return listActiveSeriesForUser(userId); // relit pour renvoyer la forme jointe à jour
 }

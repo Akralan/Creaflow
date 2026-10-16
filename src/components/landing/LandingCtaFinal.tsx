@@ -112,7 +112,7 @@ export default function LandingCtaFinal({ onShowPricing }: Props) {
           data-delay={160}
           style={{ marginTop: 32, display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: 14 }}
         >
-          <Link href="/login?mode=signup" style={ctaStyle} {...hoverHandlers(ctaStyle, ctaHover)}>
+          <Link href="/onboarding" style={ctaStyle} {...hoverHandlers(ctaStyle, ctaHover)}>
             Démarrer gratuitement
             <span style={{ fontFamily: fontMono, fontSize: 15 }}>→</span>
           </Link>

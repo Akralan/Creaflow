@@ -125,10 +125,10 @@ export interface CreatorProfile {
   userId: string;
   brandName: string;
   activityType: string;
-  tone: string | null;
-  values: string | null;
-  equipment: string[] | null;
-  weeklyTimeAvailable: string | null;
+  /** « Qu'est-ce que tu attends de nous ? » (docs/SPEC_ONBOARDING_MVP.md §3). */
+  expectations: string | null;
+  /** Jours de publication, ISO : 1 = lundi … 7 = dimanche. Jamais vide. */
+  publishingDays: number[];
   /** Audience de marque (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — fallback pour Product.targetAudience. */
   targetAudience: string | null;
   styleProfile: StyleProfile | null;
@@ -318,7 +318,7 @@ export interface StoryboardStep {
   description: string;
 }
 
-export type ContentType = "video" | "visual" | "text";
+export type ContentType = "visual" | "text";
 
 /** Format d'un post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) — propriété du script. */
 export type VisualFormat = "single" | "carousel" | "animation";
@@ -328,6 +328,8 @@ export interface VisualFormatFields {
   slideCount?: number;
   /** Animation : 5 000 à 15 000. */
   durationMs?: number;
+  /** Faux = visuel seul, légende courte ; absent ou vrai = un post texte + visuel. */
+  withText?: boolean;
 }
 
 export interface PostMetrics {
@@ -370,14 +372,12 @@ export interface Script {
   visualFormat: VisualFormat;
   slideCount: number | null;
   durationMs: number | null;
-  /** Présents seulement pour contentType "video" (et hookVisual/storyboard aussi pour "visual"). */
+  /** hookVisual/storyboard : posts visuels ; hookText : posts texte. */
   hookVisual: string | null;
   hookText: string | null;
-  hookAudio: string | null;
   storyboard: StoryboardStep[] | null;
   caption: string;
   hashtags: string[];
-  soundRecommendation: string | null;
   contentCategory: ContentCategorySummary;
   /** Angle imposé (mécanisme anti-répétition) — présent uniquement sur la fiche détaillée (GET /api/scripts/:id). */
   angle?: { id: string; label: string; description: string } | null;
@@ -452,19 +452,70 @@ export interface CalendarEntry {
   script: { id: string; title: string; status: ScriptStatus } | null;
 }
 
+/** Ce qu'un créneau vide va devenir : l'épisode prévu par le plan de sa série et le projet relié. */
+export interface UpcomingPost {
+  title: string | null;
+  project: string | null;
+}
+
+/** Créneau de la vue semaine : le post lui-même, pour l'afficher comme un post et non une case. */
+export interface WeekEntry extends Omit<CalendarEntry, "script"> {
+  /** Créneau vide uniquement (null pour un créneau passé). */
+  upcoming?: UpcomingPost | null;
+  script: {
+    id: string;
+    title: string | null;
+    status: ScriptStatus;
+    contentType: ContentType;
+    visualFormat: VisualFormat;
+    slideCount: number | null;
+    durationMs: number | null;
+    hookText: string | null;
+    /** Début du texte du post seulement. */
+    caption: string | null;
+    /** Première slide de la maquette (placeholders non résolus), null tant qu'elle n'est pas composée. */
+    preview: {
+      html: string;
+      width: number;
+      height: number;
+      slideCount: number;
+      images: Array<{ ref: string; assetId: string; variant: DesignImageVariant }>;
+    } | null;
+  } | null;
+}
+
 export interface OnboardingMessage {
   role: "user" | "assistant";
   content: string;
 }
 
-/** Séries générées à la fin du chat d'onboarding — l'utilisateur coche celles qu'il garde
- *  (composant SeriesPicker) avant de continuer, le reste est archivé via series-selection. */
-export interface OnboardingSeriesProposal {
-  id: string;
-  label: string;
+/** État de l'onboarding (docs/SPEC_ONBOARDING_MVP.md §2) — `signedIn: false` à l'écran 1, avant
+ *  que le premier branchement ne crée le compte. */
+export type OnboardingState =
+  | { signedIn: false }
+  | {
+      signedIn: true;
+      hasProfile: boolean;
+      connectedProviders: Array<{ id: string; displayName: string }>;
+      suggestedName: string;
+      sources: Array<{ id: string; provider: string; providerLabel: string; label: string; productId: string }>;
+      notes: Array<{ id: string; excerpt: string }>;
+    };
+
+/** Sujet proposé par la lecture de la matière : `keys` = `source:<id>` / `note:<id>` regroupés. */
+export interface OnboardingSubjectDraft {
+  name: string;
   description: string;
-  mode: "feuilleton" | "rendez_vous";
-  categoryLabel: string | null;
+  keys: string[];
+}
+
+export interface OnboardingDraft {
+  activityType: string;
+  targetAudience: string;
+  subjects: OnboardingSubjectDraft[];
+  extracted: boolean;
+  /** Raison lisible quand la lecture par l'IA a échoué. */
+  failureReason: string | null;
 }
 
 /** Fichier déposé dans la conversation de l'assistant, en attente d'être rangé en matière
@@ -496,7 +547,8 @@ export interface AssistantProposal {
     | "angle_archive"
     | "category_reweight"
     | "profile_update"
-    | "style_profile_update";
+    | "style_profile_update"
+    | "publishing_days_update";
   targetId: string | null;
   payload: Record<string, unknown>;
   status: "pending" | "accepted" | "rejected";
@@ -608,11 +660,9 @@ export const api = {
   saveProfile: (data: {
     brandName: string;
     activityType: string;
-    tone?: string;
-    values?: string;
-    equipment?: string[];
-    weeklyTimeAvailable?: string;
     targetAudience?: string;
+    expectations?: string;
+    publishingDays?: number[];
   }) => post<{ profile: CreatorProfile }>("/api/profile", data),
   /** Passe d'apprentissage du style (docs/SPEC_APPRENTISSAGE_STYLE.md). `proposalId` null = profil
    *  écrit directement (première analyse), sinon une proposition à valider a été créée. */
@@ -682,6 +732,10 @@ export const api = {
       platforms: string[];
     }>
   ) => post<{ series: ContentSeries[] }>("/api/series", { series }),
+  /** Validation des séries après l'onboarding : garde celles cochées, recalcule les pourcentages et
+   *  planifie la série principale. `planError` : la sélection est faite, seul le plan a échoué. */
+  confirmSeriesSelection: (keptIds: string[]) =>
+    post<{ plannedSeriesId: string | null; planError: string | null }>("/api/series/selection", { keptIds }),
   /** Bascule de mode et/ou sujet lié (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — endpoint dédié plutôt que
    *  saveContentSeries : ce dernier archive toute série active omise du tableau soumis, inadapté à
    *  l'édition d'un ou deux champs depuis une carte de la bibliothèque. */
@@ -723,11 +777,25 @@ export const api = {
   getConnections: () => apiFetch<{ connections: Connection[] }>("/api/connections"),
 
   getPostingGoals: () => apiFetch<{ goals: PostingGoal[] }>("/api/posting-goals"),
-  savePostingGoal: (platform: Platform, targetCountPerWeek: number) =>
-    post<{ goal: PostingGoal }>("/api/posting-goals", { platform, targetCountPerWeek }),
+  savePostingGoal: (platform: Platform, active: boolean) =>
+    post<{ goal: PostingGoal }>("/api/posting-goals", { platform, active }),
 
   getCalendar: (month: string) =>
     apiFetch<{ entries: CalendarEntry[]; goals: PostingGoal[] }>(`/api/calendar?month=${month}`),
+  /** Vue semaine : `to` exclu, dates au format YYYY-MM-DD. */
+  getCalendarWeek: (from: string, to: string) =>
+    apiFetch<{
+      entries: WeekEntry[];
+      goals: PostingGoal[];
+      authorName: string;
+      hasLogo: boolean;
+      /** Premier créneau vide à venir hors de la bande affichée : la carte « post suivant ». */
+      nextSlot: WeekEntry | null;
+      /** Plus rien de vide à venir : le mois à planifier pour trouver la suite. */
+      monthToPlan: string | null;
+    }>(
+      `/api/calendar?from=${from}&to=${to}`
+    ),
   getCalendarEntry: (id: string) => apiFetch<{ entry: CalendarEntry }>(`/api/calendar/${id}`),
   generateCalendar: (month: string) => post<{ entries: CalendarEntry[] }>("/api/calendar/generate", { month }),
   placeScript: (scriptId: string, scheduledDate: string) =>
@@ -763,11 +831,9 @@ export const api = {
       title: string;
       hookVisual: string;
       hookText: string;
-      hookAudio: string;
       storyboard: StoryboardStep[];
       caption: string;
       hashtags: string[];
-      soundRecommendation: string;
     }>
   ) => patch<{ script: Script }>(`/api/scripts/${id}`, data),
   deleteScript: (id: string) => del<{ ok: true }>(`/api/scripts/${id}`),
@@ -797,9 +863,7 @@ export const api = {
     hashtags: string[];
     hookVisual?: string;
     hookText?: string;
-    hookAudio?: string;
     storyboard?: StoryboardStep[];
-    soundRecommendation?: string;
   }) => post<{ script: Script }>("/api/scripts/import", data),
 
   getMaterials: (productId?: string) =>
@@ -844,13 +908,18 @@ export const api = {
     data: Partial<{ views: number; likes: number; comments: number; shares: number }>
   ) => put<{ metrics: PostMetrics }>(`/api/scripts/${id}/metrics`, data),
 
-  getOnboardingChat: () => apiFetch<{ messages: OnboardingMessage[]; complete: boolean }>("/api/onboarding/chat"),
-  sendOnboardingMessage: (message: string) =>
-    post<{ reply: string; complete: boolean; series: OnboardingSeriesProposal[] }>("/api/onboarding/chat", {
-      message,
-    }),
-  applyOnboardingSeriesSelection: (keptIds: string[]) =>
-    post<{ series: unknown[] }>("/api/onboarding/series-selection", { keptIds }),
+  getOnboardingState: () => apiFetch<OnboardingState>("/api/onboarding/state"),
+  addOnboardingNotes: (text: string) => post<{ note: { id: string; excerpt: string } }>("/api/onboarding/notes", { text }),
+  draftOnboardingProfile: (name: string) => post<{ draft: OnboardingDraft }>("/api/onboarding/draft", { name }),
+  completeOnboarding: (data: {
+    name: string;
+    activityType: string;
+    targetAudience?: string;
+    expectations?: string;
+    publishingDays: number[];
+    platforms: string[];
+    subjects: Array<{ name: string; description?: string; keys: string[] }>;
+  }) => post<{ ok: true }>("/api/onboarding/complete", data),
 
   getAssistantChat: () =>
     apiFetch<{ messages: OnboardingMessage[]; proposals: AssistantProposal[]; attachments: AssistantAttachment[] }>(

@@ -28,24 +28,24 @@ describe("clamp", () => {
 describe("computeCategoryPlatformSignals", () => {
   it("ignore un couple (catégorie, plateforme) sous le seuil minimal d'échantillons", () => {
     const samples = Array.from({ length: MIN_SAMPLES_PER_CATEGORY_PLATFORM - 1 }, () =>
-      sample("cat-a", "tiktok", 1000, 100)
+      sample("cat-a", "instagram", 1000, 100)
     );
     expect(computeCategoryPlatformSignals(samples)).toEqual([]);
   });
 
   it("calcule un signal dès que le seuil minimal est atteint", () => {
     const samples = Array.from({ length: MIN_SAMPLES_PER_CATEGORY_PLATFORM }, () =>
-      sample("cat-a", "tiktok", 1000, 100)
+      sample("cat-a", "instagram", 1000, 100)
     );
     const signals = computeCategoryPlatformSignals(samples);
     expect(signals).toHaveLength(1);
-    expect(signals[0]).toMatchObject({ categoryId: "cat-a", platform: "tiktok", sampleCount: MIN_SAMPLES_PER_CATEGORY_PLATFORM });
+    expect(signals[0]).toMatchObject({ categoryId: "cat-a", platform: "instagram", sampleCount: MIN_SAMPLES_PER_CATEGORY_PLATFORM });
   });
 
   it("donne un z-score positif à une catégorie qui engage mieux que la moyenne de sa plateforme", () => {
     const samples = [
-      ...Array.from({ length: 5 }, () => sample("cat-fort", "tiktok", 1000, 200)), // rate = 0.2
-      ...Array.from({ length: 5 }, () => sample("cat-faible", "tiktok", 1000, 20)), // rate = 0.02
+      ...Array.from({ length: 5 }, () => sample("cat-fort", "instagram", 1000, 200)), // rate = 0.2
+      ...Array.from({ length: 5 }, () => sample("cat-faible", "instagram", 1000, 20)), // rate = 0.02
     ];
     const signals = computeCategoryPlatformSignals(samples);
     const fort = signals.find((s) => s.categoryId === "cat-fort")!;
@@ -54,10 +54,10 @@ describe("computeCategoryPlatformSignals", () => {
     expect(faible.zAvg).toBeLessThan(0);
   });
 
-  it("normalise indépendamment par plateforme (TikTok et LinkedIn ne se mélangent pas)", () => {
+  it("normalise indépendamment par plateforme (Instagram et LinkedIn ne se mélangent pas)", () => {
     // Même catégorie, deux plateformes à des ordres de grandeur totalement différents.
     const samples = [
-      ...Array.from({ length: 5 }, () => sample("cat-a", "tiktok", 100000, 5000)),
+      ...Array.from({ length: 5 }, () => sample("cat-a", "instagram", 100000, 5000)),
       ...Array.from({ length: 5 }, () => sample("cat-a", "linkedin", 500, 10)),
     ];
     const signals = computeCategoryPlatformSignals(samples);
@@ -73,7 +73,7 @@ describe("computeCategoryPlatformSignals", () => {
 describe("aggregateCategorySignals", () => {
   it("agrège plusieurs plateformes pour une même catégorie par moyenne pondérée par échantillon", () => {
     const result = aggregateCategorySignals([
-      { categoryId: "cat-a", platform: "tiktok", zAvg: 1, sampleCount: 10 },
+      { categoryId: "cat-a", platform: "instagram", zAvg: 1, sampleCount: 10 },
       { categoryId: "cat-a", platform: "linkedin", zAvg: -1, sampleCount: 10 },
     ]);
     expect(result).toHaveLength(1);
@@ -82,17 +82,17 @@ describe("aggregateCategorySignals", () => {
 
   it("plafonne la contribution d'une plateforme à fort volume (PLATFORM_SAMPLE_CAP)", () => {
     const result = aggregateCategorySignals([
-      { categoryId: "cat-a", platform: "tiktok", zAvg: 1, sampleCount: 1000 },
+      { categoryId: "cat-a", platform: "instagram", zAvg: 1, sampleCount: 1000 },
       { categoryId: "cat-a", platform: "linkedin", zAvg: -1, sampleCount: 20 },
     ]);
-    // Les deux plateformes sont plafonnées au même cap (20) => moyenne exactement 0, pas noyée par tiktok.
+    // Les deux plateformes sont plafonnées au même cap (20) => moyenne exactement 0, pas noyée par instagram.
     expect(result[0].categoryScore).toBeCloseTo(0, 5);
   });
 
   it("garde les catégories séparées", () => {
     const result = aggregateCategorySignals([
-      { categoryId: "cat-a", platform: "tiktok", zAvg: 1, sampleCount: 10 },
-      { categoryId: "cat-b", platform: "tiktok", zAvg: -1, sampleCount: 10 },
+      { categoryId: "cat-a", platform: "instagram", zAvg: 1, sampleCount: 10 },
+      { categoryId: "cat-b", platform: "instagram", zAvg: -1, sampleCount: 10 },
     ]);
     expect(result).toHaveLength(2);
   });
@@ -132,15 +132,15 @@ describe("buildReweightItems", () => {
 
   it("renvoie [] si moins de 2 catégories ont un signal comparable", () => {
     const samples = Array.from({ length: MIN_SAMPLES_PER_CATEGORY_PLATFORM }, () =>
-      sample("cat-fort", "tiktok", 1000, 100)
+      sample("cat-fort", "instagram", 1000, 100)
     );
     expect(buildReweightItems(categories, samples)).toEqual([]);
   });
 
   it("produit des items uniquement pour les catégories avec un delta non nul", () => {
     const samples = [
-      ...Array.from({ length: 8 }, () => sample("cat-fort", "tiktok", 1000, 300)), // rate 0.3
-      ...Array.from({ length: 8 }, () => sample("cat-faible", "tiktok", 1000, 10)), // rate 0.01
+      ...Array.from({ length: 8 }, () => sample("cat-fort", "instagram", 1000, 300)), // rate 0.3
+      ...Array.from({ length: 8 }, () => sample("cat-faible", "instagram", 1000, 10)), // rate 0.01
     ];
     const items = buildReweightItems(categories, samples);
     const ids = items.map((i) => i.targetId);
@@ -156,8 +156,8 @@ describe("buildReweightItems", () => {
 
   it("n'inclut jamais un item dont le poids proposé égale le poids actuel", () => {
     const samples = [
-      ...Array.from({ length: 8 }, () => sample("cat-fort", "tiktok", 1000, 100)),
-      ...Array.from({ length: 8 }, () => sample("cat-faible", "tiktok", 1000, 100)),
+      ...Array.from({ length: 8 }, () => sample("cat-fort", "instagram", 1000, 100)),
+      ...Array.from({ length: 8 }, () => sample("cat-faible", "instagram", 1000, 100)),
     ];
     // Mêmes taux d'engagement => z-scores ~0 des deux côtés => pas de delta.
     expect(buildReweightItems(categories, samples)).toEqual([]);

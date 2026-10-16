@@ -159,7 +159,7 @@ export default function LandingPricing({ onBack }: Props) {
             <li style={featureItem}><Check />30 micro-retouches dans l&apos;éditeur</li>
             <li style={featureItem}><Check />Sans carte bancaire</li>
           </ul>
-          <Link href="/login?mode=signup" style={outlineCta} {...hoverHandlers(outlineCta, outlineCtaHover)}>
+          <Link href="/onboarding" style={outlineCta} {...hoverHandlers(outlineCta, outlineCtaHover)}>
             Créer mon compte
           </Link>
         </article>
@@ -178,7 +178,7 @@ export default function LandingPricing({ onBack }: Props) {
             <li style={featureItem}><Check />150 micro-retouches par mois</li>
             <li style={featureItem}><Check />Toutes les fonctionnalités</li>
           </ul>
-          <Link href="/login?mode=signup" style={outlineCta} {...hoverHandlers(outlineCta, outlineCtaHover)}>
+          <Link href="/onboarding" style={outlineCta} {...hoverHandlers(outlineCta, outlineCtaHover)}>
             Choisir Starter
           </Link>
         </article>
@@ -204,7 +204,7 @@ export default function LandingPricing({ onBack }: Props) {
             <li style={featureItem}><Check />600 micro-retouches par mois</li>
             <li style={featureItem}><Check />Toutes les fonctionnalités</li>
           </ul>
-          <Link href="/login?mode=signup" style={primaryCta} {...hoverHandlers(primaryCta, primaryCtaHover)}>
+          <Link href="/onboarding" style={primaryCta} {...hoverHandlers(primaryCta, primaryCtaHover)}>
             Choisir Pro
           </Link>
         </article>

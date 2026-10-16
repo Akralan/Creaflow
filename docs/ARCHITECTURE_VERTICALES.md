@@ -68,7 +68,7 @@ faisable plus tard. L'inverse n'est pas vrai.
 | # | Chantier | Statut |
 |---|---|---|
 | 1 | Registre de connecteurs de matière | ✅ fait |
-| 2 | Onboarding déclaratif par verticale | ✅ fait |
+| 2 | Onboarding déclaratif par verticale | ✅ fait, puis retiré le 2026-10-16 (un seul parcours, voir la note du chantier 2) |
 | 3 | `users.onboardingTrack` → `users.vertical` | ✅ fait |
 | 4 | Règle : une verticale n'ajoute pas de table | ✅ gardée par un test |
 
@@ -136,6 +136,15 @@ qu'un écran générique ne peut pas inventer, portés par le connecteur pour la
 `emptyMessage`.
 
 ### Chantier 2 — Onboarding déclaratif
+
+> **Note du 2026-10-16 — registre retiré.** `docs/SPEC_ONBOARDING_MVP.md` a remplacé les parcours
+> par verticale par **un seul parcours** en six écrans, quelle que soit la porte d'entrée. Le
+> registre décrit ci-dessous n'existe donc plus : `src/lib/verticals/{registry,creator,sourceFirst,shared,server}`
+> sont supprimés, il ne reste que `src/lib/verticals/types.ts` (`VerticalId`, lu par les prompts de
+> maquette). La colonne `users.vertical` (chantier 3) reste, posée à la création du compte, mais
+> n'aiguille plus le parcours. Le chantier 4 — une verticale n'ajoute pas de table et ne partitionne
+> pas le modèle de données, gardé par `src/db/schemaInvariants.test.ts` — tient toujours. Le texte
+> qui suit est conservé tel quel, comme historique de la décision.
 
 `src/app/onboarding/page.tsx` branchait sur `track === "dev"` à six endroits : rendu de chaque
 étape, garde de validation, avancement après le chat, affichage du bouton « Continuer », libellés

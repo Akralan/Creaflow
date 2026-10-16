@@ -58,8 +58,7 @@ export async function generateAnglesForUser(userId: string) {
   const suggested = await suggestContentAngles({
     brandName: profile.brandName,
     activityType: profile.activityType,
-    tone: profile.tone,
-    values: profile.values,
+    expectations: profile.expectations,
     products: productList.map((p) => ({ name: p.name, description: p.description })),
   });
 

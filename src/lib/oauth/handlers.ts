@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import crypto from "crypto";
-import { setSessionCookie } from "@/lib/auth/session";
+import { getCurrentUserId, setSessionCookie } from "@/lib/auth/session";
 import { resolveOAuthAccount } from "@/lib/services/oauthAccountService";
 import { enforceRateLimit, getClientIp } from "@/lib/services/rateLimitService";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 import { getIdentityProvider } from "./registry";
+import { isOnboardingComplete } from "@/lib/services/onboardingService";
 
 /**
  * Les deux moitiés du trajet OAuth d'un fournisseur d'identité, paramétrées par son identifiant.
@@ -22,6 +23,24 @@ function stateCookieName(providerId: string): string {
   return `oauth_state_${providerId}`;
 }
 
+function returnCookieName(providerId: string): string {
+  return `oauth_return_${providerId}`;
+}
+
+/** Chemin interne uniquement : un `returnTo` absolu, en `//hôte`, ou glissant une tabulation ou un
+ *  retour à la ligne (que l'analyseur d'URL supprime : « /<tab>/evil.com » devient « //evil.com »)
+ *  ferait de la route une redirection ouverte. On n'accepte que l'ASCII imprimable, puis on vérifie
+ *  que l'URL résolue reste sur l'origine. */
+export function safeReturnPath(value: string | null | undefined): string | null {
+  if (!value || !/^\/(?![/\\])[\x21-\x7e]*$/.test(value)) return null;
+  const base = "http://creaflow.invalid";
+  return new URL(value, base).origin === base ? value : null;
+}
+
+function withError(path: string, message: string): string {
+  return `${path}${path.includes("?") ? "&" : "?"}oauthError=${encodeURIComponent(message)}`;
+}
+
 function resolveProvider(providerId: string) {
   const provider = getIdentityProvider(providerId);
   if (!provider) {
@@ -35,9 +54,11 @@ function resolveProvider(providerId: string) {
   return provider;
 }
 
-/** Pas de `requireUserId()` : c'est une porte d'entrée (inscription ET connexion), pas une
- *  connexion de compte posée depuis l'app — contrairement à /api/auth/[platform]/connect. */
-export async function handleOAuthStart(providerId: string): Promise<NextResponse> {
+/** Pas de `requireUserId()` : c'est une porte d'entrée (inscription ET connexion). Mais quand une
+ *  session est déjà ouverte, le même trajet BRANCHE le compte tiers sur l'utilisateur connecté
+ *  (docs/SPEC_ONBOARDING_MVP.md §3) — c'est le callback qui le décide, en lisant la session.
+ *  `returnTo` (chemin interne) dit où revenir : l'écran de l'onboarding ou des paramètres. */
+export async function handleOAuthStart(providerId: string, returnTo: string | null = null): Promise<NextResponse> {
   try {
     const provider = resolveProvider(providerId);
 
@@ -50,6 +71,18 @@ export async function handleOAuthStart(providerId: string): Promise<NextResponse
       path: "/",
       maxAge: STATE_COOKIE_MAX_AGE,
     });
+    const returnPath = safeReturnPath(returnTo);
+    if (returnPath) {
+      cookieStore.set(returnCookieName(providerId), returnPath, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: STATE_COOKIE_MAX_AGE,
+      });
+    } else {
+      cookieStore.delete(returnCookieName(providerId));
+    }
 
     return NextResponse.redirect(provider.buildAuthorizeUrl(state));
   } catch (error) {
@@ -58,6 +91,9 @@ export async function handleOAuthStart(providerId: string): Promise<NextResponse
 }
 
 export async function handleOAuthCallback(request: NextRequest, providerId: string): Promise<NextResponse> {
+  const cookieStore = await cookies();
+  const returnPath = safeReturnPath(cookieStore.get(returnCookieName(providerId))?.value);
+  cookieStore.delete(returnCookieName(providerId));
   try {
     const provider = resolveProvider(providerId);
 
@@ -75,7 +111,6 @@ export async function handleOAuthCallback(request: NextRequest, providerId: stri
       throw new ApiError(400, "Code OAuth manquant.");
     }
 
-    const cookieStore = await cookies();
     const expectedState = cookieStore.get(stateCookieName(providerId))?.value;
     cookieStore.delete(stateCookieName(providerId));
     if (!state || state !== expectedState) {
@@ -87,11 +122,20 @@ export async function handleOAuthCallback(request: NextRequest, providerId: stri
       throw new ApiError(502, `${provider.displayName} n'a pas renvoyé d'identifiant de compte exploitable.`);
     }
 
-    const { userId, isNew } = await resolveOAuthAccount(providerId, identity, tokens);
-    await setSessionCookie(userId);
+    const sessionUserId = await getCurrentUserId();
+    const { userId, isNew } = await resolveOAuthAccount(providerId, identity, tokens, sessionUserId);
+    if (userId !== sessionUserId) await setSessionCookie(userId);
 
-    return NextResponse.redirect(new URL(isNew ? "/onboarding" : "/calendar", request.url));
+    // Sans profil, l'onboarding n'est pas terminé : on y retourne, même pour un compte existant.
+    const hasProfile = !isNew && (await isOnboardingComplete(userId));
+    const destination = returnPath ?? (hasProfile ? "/calendar" : "/onboarding");
+    return NextResponse.redirect(new URL(destination, request.url));
   } catch (error) {
+    // Le trajet est une suite de redirections : une erreur métier (compte déjà utilisé, email non
+    // vérifié) revient sur l'écran de départ, lisible, plutôt qu'en JSON brut dans le navigateur.
+    if (error instanceof ApiError && error.status < 500) {
+      return NextResponse.redirect(new URL(withError(returnPath ?? "/login", error.message), request.url));
+    }
     return handleApiError(error);
   }
 }

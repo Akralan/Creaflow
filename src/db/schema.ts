@@ -15,9 +15,10 @@ import {
 import { relations, sql } from "drizzle-orm";
 
 export const scriptStatusEnum = pgEnum("script_status", ["draft", "planned", "shot", "published"]);
-export const contentTypeEnum = pgEnum("content_type", ["video", "visual", "text"]);
+// "video" retiré le 2026-10-16 (docs/SPEC_ONBOARDING_MVP.md §6) : le produit ne fait plus de script vidéo.
+// L'animation d'un post visuel n'en est pas un : c'est un visualFormat.
+export const contentTypeEnum = pgEnum("content_type", ["visual", "text"]);
 export const calendarStatusEnum = pgEnum("calendar_status", ["planned", "shot", "published"]);
-export const onboardingStatusEnum = pgEnum("onboarding_status", ["in_progress", "complete"]);
 export const assistantProposalKindEnum = pgEnum("assistant_proposal_kind", [
   "product_create",
   "product_update",
@@ -27,7 +28,11 @@ export const assistantProposalKindEnum = pgEnum("assistant_proposal_kind", [
   "category_update",
   "angle_create",
   "angle_update",
+  // Depuis docs/SPEC_ONBOARDING_MVP.md §5 : payload { platform, active } — on active ou coupe une
+  // plateforme, le nombre de posts par semaine se déduit des jours de publication.
   "posting_goal_update",
+  // Jours de publication (docs/SPEC_ONBOARDING_MVP.md §5) — payload { publishingDays }, targetId null.
+  "publishing_days_update",
   // Mise à jour de l'audience de marque (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — payload
   // { targetAudience }, targetId toujours null (une seule cible : CreatorProfile de l'utilisateur,
   // pas d'id à référencer). L'override par sujet, lui, réutilise "product_update" (le champ vit sur
@@ -129,16 +134,6 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const onboardingSessions = pgTable("onboarding_sessions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
-  messages: jsonb("messages").notNull(),
-  extractedProfile: jsonb("extracted_profile"),
-  status: onboardingStatusEnum("status").notNull().default("in_progress"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
 export const assistantSessions = pgTable("assistant_sessions", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
@@ -148,7 +143,7 @@ export const assistantSessions = pgTable("assistant_sessions", {
 });
 
 // Deuxième porte d'alimentation du corpus (docs/SPEC_MATIERE_EDITEUR.md §3.7/§8.8) : une session par
-// sujet (productId nullable = niveau marque), pattern jsonb messages identique à onboardingSessions/
+// sujet (productId nullable = niveau marque), pattern jsonb messages identique à feu onboardingSessions/
 // assistantSessions. Limite connue et acceptée : Postgres ne déduplique pas les NULL dans une
 // contrainte unique — deux sessions "niveau marque" pourraient coexister en cas de double création
 // concurrente (même ordre de tolérance que le check-then-write non atomique d'enforceScriptQuota).
@@ -205,10 +200,13 @@ export const creatorProfiles = pgTable("creator_profiles", {
   userId: uuid("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
   brandName: text("brand_name").notNull(),
   activityType: text("activity_type").notNull(),
-  tone: text("tone"),
-  values: text("values"),
-  equipment: text("equipment").array(),
-  weeklyTimeAvailable: text("weekly_time_available"),
+  // « Qu'est-ce que tu attends de nous ? » (docs/SPEC_ONBOARDING_MVP.md §3) — texte libre de
+  // l'onboarding, éditable en paramètres. Remplace ton, valeurs, matériel et temps disponible : le
+  // ton s'apprend aux retouches (styleProfile), le rythme se lit dans publishingDays.
+  expectations: text("expectations"),
+  // Jours de publication, ISO : 1 = lundi … 7 = dimanche. Un créneau par jour coché et par
+  // plateforme active (api/calendar/generate). Jamais vide : le service refuse le dernier décoché.
+  publishingDays: integer("publishing_days").array().notNull().default([3, 6]),
   // Audience de marque (docs/SPEC_PROMPT_GENERATION_TECH.md §2/§5) — qui lit/achète, ce qui
   // l'intéresse, ce qu'il doit retenir ou faire ; texte libre, extrait de l'onboarding ou édité en
   // paramètres. Fallback pour Product.targetAudience quand ce dernier est null.
@@ -474,7 +472,7 @@ export const brandAssets = pgTable("brand_assets", {
 });
 
 // Connexion Google Drive (scope drive.file, via Google Picker) — distincte de socialConnections
-// qui ne couvre que tiktok/instagram/linkedin. Un seul refresh token par utilisateur, conservé pour
+// qui ne couvre que les réseaux de publication. Un seul refresh token par utilisateur, conservé pour
 // l'usage différé (files.get au captioning et à la génération d'image).
 export const googleDriveConnections = pgTable("google_drive_connections", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -584,15 +582,13 @@ export const scripts = pgTable("scripts", {
   promiseHonored: text("promise_honored"),
   hookVisual: text("hook_visual"),
   hookText: text("hook_text"),
-  hookAudio: text("hook_audio"),
   storyboard: jsonb("storyboard"),
   caption: text("caption"),
   hashtags: text("hashtags").array(),
-  soundRecommendation: text("sound_recommendation"),
   contentCategoryId: uuid("content_category_id").notNull().references(() => contentCategories.id),
   angleId: uuid("angle_id").references(() => contentAngles.id, { onDelete: "set null" }),
   seriesId: uuid("series_id").references(() => contentSeries.id, { onDelete: "set null" }),
-  contentType: contentTypeEnum("content_type").notNull().default("video"),
+  contentType: contentTypeEnum("content_type").notNull().default("text"),
   // Format du post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §4) : choisi à la génération,
   // contraint le nombre d'entrées du storyboard et la forme de la maquette. Sans objet hors
   // contentType="visual" (reste "single"). slideCount : carrousel ; durationMs : animation.

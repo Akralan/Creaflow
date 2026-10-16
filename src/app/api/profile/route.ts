@@ -7,15 +7,15 @@ import { requireUserId } from "@/lib/auth/session";
 import { listConnectedProviders } from "@/lib/services/oauthAccountService";
 import { getStyleLearningStatus } from "@/lib/services/styleLearningService";
 import { handleApiError } from "@/lib/api/errors";
+import { expectationsSchema, publishingDaysSchema } from "@/lib/validation";
+import { syncGoalCountsToPublishingDays } from "@/lib/services/postingGoalsService";
 
 const profileSchema = z.object({
   brandName: z.string().min(1),
   activityType: z.string().min(1),
-  tone: z.string().optional(),
-  values: z.string().optional(),
-  equipment: z.array(z.string()).optional(),
-  weeklyTimeAvailable: z.string().optional(),
   targetAudience: z.string().optional(),
+  expectations: expectationsSchema.optional(),
+  publishingDays: publishingDaysSchema.optional(),
 });
 
 export async function GET() {
@@ -72,6 +72,8 @@ export async function POST(request: NextRequest) {
           .insert(creatorProfiles)
           .values({ userId, ...body })
           .returning();
+
+    if (body.publishingDays) await syncGoalCountsToPublishingDays(userId, body.publishingDays);
 
     return NextResponse.json({ profile }, { status: existing ? 200 : 201 });
   } catch (error) {

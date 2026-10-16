@@ -9,15 +9,11 @@ export interface PlatformDefinition {
  *  proposent pas de connexion OAuth : les autres sont "suivies" (calendrier + objectifs)
  *  sans mécanique de SocialConnection. */
 export const KNOWN_PLATFORMS: PlatformDefinition[] = [
-  { key: "tiktok", label: "TikTok", hasOAuth: true },
   { key: "instagram", label: "Instagram", hasOAuth: true },
   { key: "linkedin", label: "LinkedIn", hasOAuth: true },
   // Corrigé (docs/SPEC_METRIQUES_AUTO.md §8) : provider écrit dans src/lib/social/x.ts —
   // l'activation réelle reste bloquée tant qu'aucun compte de facturation X n'est ouvert (§2.5).
   { key: "x", label: "X (Twitter)", hasOAuth: true },
-  // Corrigé (docs/SPEC_METRIQUES_AUTO.md §8) : ce classement sous-estimait largement YouTube
-  // (Data API v3 gratuite, aucune notion de compte business) — provider dans src/lib/social/youtube.ts.
-  { key: "youtube", label: "YouTube", hasOAuth: true },
   { key: "newsletter", label: "Newsletter", hasOAuth: false },
   { key: "blog", label: "Blog / site perso", hasOAuth: false },
   { key: "slack", label: "Slack", hasOAuth: false },

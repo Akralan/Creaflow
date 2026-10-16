@@ -8,7 +8,6 @@ vi.mock("./provider", () => ({
 
 import { generateScript } from "./generateScript";
 import {
-  GENERATE_VIDEO_SCRIPT_TOOL_NAME,
   GENERATE_VISUAL_POST_TOOL_NAME,
   GENERATE_TEXT_POST_TOOL_NAME,
 } from "./scriptSchema";
@@ -18,24 +17,19 @@ const baseContext = {
   creatorProfile: {
     brandName: "Bougies Test",
     activityType: "Artisan bougies",
-    tone: "chaleureux",
   },
-  platform: "tiktok",
+  platform: "linkedin",
   contentCategory: { id: "cat-1", label: "Vente", description: "Contenu orienté vente." },
 };
 
-const videoContext: ScriptGenerationContext = { ...baseContext, contentType: "video" };
+const textContext: ScriptGenerationContext = { ...baseContext, contentType: "text" };
 
-const validVideoInput = {
+const validTextInput = {
   concept: "Idée unique du post, à qui elle s'adresse, ce qu'il doit en retenir.",
   title: "Titre",
-  hookVisual: "Visuel",
   hookText: "Texte",
-  hookAudio: "Audio",
-  storyboard: [{ planNumber: 1, description: "Plan 1" }],
   caption: "Légende",
   hashtags: ["#test"],
-  soundRecommendation: "Son",
 };
 
 beforeEach(() => {
@@ -44,28 +38,20 @@ beforeEach(() => {
 
 describe("generateScript", () => {
   it("renvoie le script structuré renvoyé par le provider, avec le contentType attaché", async () => {
-    callStructuredMock.mockResolvedValue(validVideoInput);
+    callStructuredMock.mockResolvedValue(validTextInput);
 
-    const result = await generateScript(videoContext);
-    expect(result).toEqual({ contentType: "video", ...validVideoInput, usedExcerpts: [], promisesMade: [] });
+    const result = await generateScript(textContext);
+    expect(result).toEqual({ contentType: "text", ...validTextInput, usedExcerpts: [], promisesMade: [] });
   });
 
   it("propage l'erreur si le provider ne renvoie pas de réponse structurée", async () => {
     callStructuredMock.mockRejectedValue(new Error("Le modèle n'a pas renvoyé de réponse structurée."));
-    await expect(generateScript(videoContext)).rejects.toThrow("n'a pas renvoyé de réponse structurée");
+    await expect(generateScript(textContext)).rejects.toThrow("n'a pas renvoyé de réponse structurée");
   });
 
   it("lève une erreur si le contenu renvoyé ne respecte pas le schéma attendu", async () => {
     callStructuredMock.mockResolvedValue({ title: "Incomplet" });
-    await expect(generateScript(videoContext)).rejects.toThrow();
-  });
-
-  it("appelle le provider avec l'outil generate_video_script pour un contentType video", async () => {
-    callStructuredMock.mockResolvedValue(validVideoInput);
-    await generateScript(videoContext);
-    expect(callStructuredMock).toHaveBeenCalledWith(
-      expect.objectContaining({ tool: expect.objectContaining({ name: GENERATE_VIDEO_SCRIPT_TOOL_NAME }) })
-    );
+    await expect(generateScript(textContext)).rejects.toThrow();
   });
 
   it("appelle le provider avec l'outil generate_visual_post pour un contentType visual", async () => {
@@ -117,7 +103,7 @@ describe("bloc STYLE (docs/SPEC_APPRENTISSAGE_STYLE.md §5.4)", () => {
     summary: "Direct, sans emoji.",
     rules: [
       { text: "Jamais d'emoji.", platform: null },
-      { text: "Pas de hashtag dans le corps.", platform: "linkedin" },
+      { text: "Pas de hashtag dans le corps.", platform: "x" },
     ],
     avoid: ["découvrez"],
     prefer: [],
@@ -125,8 +111,8 @@ describe("bloc STYLE (docs/SPEC_APPRENTISSAGE_STYLE.md §5.4)", () => {
   };
 
   it("injecte la voix et les règles de la plateforme cible dans le message", async () => {
-    callStructuredMock.mockResolvedValue(validVideoInput);
-    await generateScript({ ...videoContext, styleProfile });
+    callStructuredMock.mockResolvedValue(validTextInput);
+    await generateScript({ ...textContext, styleProfile });
     const userMessage: string = callStructuredMock.mock.calls[0][0].userMessage;
     expect(userMessage).toContain("=== STYLE ===\nVoix : Direct, sans emoji.");
     expect(userMessage).toContain("- Jamais d'emoji.");
@@ -135,8 +121,8 @@ describe("bloc STYLE (docs/SPEC_APPRENTISSAGE_STYLE.md §5.4)", () => {
   });
 
   it("n'émet aucun bloc STYLE sans profil", async () => {
-    callStructuredMock.mockResolvedValue(validVideoInput);
-    await generateScript(videoContext);
+    callStructuredMock.mockResolvedValue(validTextInput);
+    await generateScript(textContext);
     const userMessage: string = callStructuredMock.mock.calls[0][0].userMessage;
     expect(userMessage).not.toContain("=== STYLE ===");
   });
@@ -173,9 +159,9 @@ describe("format du post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §5.1)"
     expect(result.contentType === "visual" && result.storyboard).toHaveLength(3);
   });
 
-  it("n'émet pas de bloc FORMAT pour une vidéo", async () => {
-    callStructuredMock.mockResolvedValue(validVideoInput);
-    await generateScript(videoContext);
+  it("n'émet pas de bloc FORMAT pour un post texte", async () => {
+    callStructuredMock.mockResolvedValue(validTextInput);
+    await generateScript(textContext);
     expect(callStructuredMock.mock.calls[0][0].userMessage).not.toContain("=== FORMAT ===");
   });
 });
