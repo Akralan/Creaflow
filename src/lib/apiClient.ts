@@ -362,6 +362,43 @@ export interface ContentSeries {
   /** Jours de publication de la série (docs/SPEC_RYTHME_DES_SERIES.md) — null = pas de rythme,
    *  la série ne pose aucun créneau. */
   rhythm: SeriesRhythm | null;
+  /** Le lecteur unique de la série (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4) : un label du portrait
+   *  du sujet. Null tant qu'il n'est pas choisi. */
+  readerLabel: string | null;
+  /** La forme de la série pour ce lecteur — null tant qu'elle n'est pas écrite. */
+  form: SeriesForm | null;
+}
+
+/** La forme d'une série pour son lecteur (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4). */
+export interface SeriesForm {
+  wants: string;
+  episodeShape: string;
+  avoid: string;
+  words: string[];
+  jargon: string[];
+  register: string;
+  generatedAt: string | null;
+  editedByUser: boolean;
+}
+
+/** Un événement vu par le plan d'une série. */
+export interface PlannedEvent {
+  id: string;
+  date: string | null;
+  datePrecision: MaterialEventDatePrecision;
+  title: string;
+  whatHappened: string;
+  whatChanged: string | null;
+  kind: MaterialEventKind;
+  audiences: string[];
+  told: boolean;
+  scriptId: string | null;
+}
+
+export interface SeriesPlan {
+  readerLabel: string | null;
+  events: PlannedEvent[];
+  next: PlannedEvent | null;
 }
 
 /** Ce que l'enregistrement a changé au calendrier pour une série (docs/SPEC_RYTHME_DES_SERIES.md §4). */
@@ -856,6 +893,21 @@ export const api = {
   ) => post<{ categories: ContentCategory[] }>("/api/profile/content-categories", { categories }),
 
   getContentSeries: () => apiFetch<{ series: ContentSeries[] }>("/api/series"),
+  // Lecteur, forme et plan d'une série (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4).
+  getSeriesReaders: (seriesId: string) => apiFetch<{ readers: PortraitReader[] }>(`/api/series/${seriesId}/reader`),
+  setSeriesReader: (seriesId: string, readerLabel: string) =>
+    apiFetch<{ series: ContentSeries | null }>(`/api/series/${seriesId}/reader`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ readerLabel }),
+    }),
+  saveSeriesForm: (seriesId: string, form: Omit<SeriesForm, "generatedAt" | "editedByUser">) =>
+    apiFetch<{ series: ContentSeries | null }>(`/api/series/${seriesId}/form`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    }),
+  getSeriesPlan: (seriesId: string) => apiFetch<{ plan: SeriesPlan }>(`/api/series/${seriesId}/plan`),
   getFramingOptions: (
     seriesId: string,
     data: {

@@ -282,6 +282,12 @@ export const contentSeries = pgTable("content_series", {
   // Cadrage choisi par l'auteur avant le premier épisode (docs/SPEC_CADRAGE_SERIE.md §2) : posture,
   // voix propre à la série, récit, signature, extraits choisis et écartés. Null = série pas cadrée.
   framing: jsonb("framing"),
+  // Le lecteur unique de la série (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4) : un label du portrait
+  // des lecteurs du sujet (products.readerPortrait). Null = pas encore choisi.
+  readerLabel: text("reader_label"),
+  // La forme de la série pour ce lecteur (§4), écrite par la machine puis corrigée par l'auteur :
+  // ce qu'il vient chercher, de quoi est fait un bon épisode, ce qui le fait partir, ses mots.
+  form: jsonb("form"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -699,6 +705,9 @@ export const scripts = pgTable("scripts", {
   // lecteur visé, moments candidats, accroches, selfCheck, résultat des contrôles. Jamais publiée,
   // sert à comprendre un post raté. Réécrite à chaque génération complète ; null hors génération V3.
   generationTrace: jsonb("generation_trace"),
+  // L'événement raconté par ce post (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5). SET NULL : le post
+  // survit à la suppression de l'événement. Null pour les posts d'avant le chantier et les imports.
+  eventId: uuid("event_id").references(() => materialEvents.id, { onDelete: "set null" }),
   // Null tant qu'aucune passe d'apprentissage du style n'a lu ce script. Posé par la passe qui l'a
   // lu, que la proposition qui en résulte soit acceptée ou non (refuser des règles n'est pas une
   // raison de reproposer les mêmes scripts). Le compteur « scripts corrigés depuis la dernière

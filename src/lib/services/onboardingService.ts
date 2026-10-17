@@ -8,6 +8,7 @@ import { generateAnglesForUser, listActiveAnglesForUser } from "@/lib/services/a
 import { generateSeriesForUser, listActiveSeriesForUser } from "@/lib/services/seriesService";
 import { createPastedMaterial } from "@/lib/services/sourceMaterialService";
 import { scheduleEventReading } from "@/lib/services/materialEventService";
+import { refreshStaleReaderPortraits } from "@/lib/services/readerPortraitService";
 import { listConnectedProviders } from "@/lib/services/oauthAccountService";
 import { identityProviderLabel } from "@/lib/oauth/registry";
 import { expectationsSchema, MAX_PRODUCTS, platformSchema, publishingDaysSchema } from "@/lib/validation";
@@ -314,6 +315,11 @@ export async function completeOnboarding(userId: string, input: CompleteOnboardi
       else await tx.insert(postingGoals).values({ userId, platform, targetCountPerWeek });
     }
   });
+
+  // Le portrait des lecteurs de chaque sujet est une étape à part entière, pas une tâche de fond
+  // (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4) : les séries qui suivent choisissent leur lecteur dedans.
+  // Jamais bloquant (un échec se voit dans le sujet, « Refaire le portrait » relance).
+  await refreshStaleReaderPortraits(userId);
 
   try {
     if ((await listActiveCategoriesForUser(userId)).length === 0) await generateCategoriesForUser(userId);

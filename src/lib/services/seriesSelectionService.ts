@@ -1,5 +1,6 @@
 import { keepOnlySeries, listActiveSeriesForUser } from "@/lib/services/seriesService";
 import { planNarrativeForSubject } from "@/lib/services/narrativeDirector";
+import { ensureReaderForSeries } from "@/lib/services/seriesReaderService";
 import { llmFailureMessage } from "@/lib/llm/errors";
 import { ApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
@@ -16,6 +17,11 @@ export async function confirmSeriesSelection(userId: string, keptIds: string[]) 
     throw new ApiError(400, "Garde au moins une série.");
   }
   await keepOnlySeries(userId, keptIds);
+
+  // Chaque série gardée reçoit le public principal de son sujet et sa forme
+  // (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4) ; l'auteur change de lecteur ensuite dans la série.
+  // Un appel LLM par série, jamais bloquant.
+  for (const id of keptIds) await ensureReaderForSeries(userId, id);
 
   // La série la plus lourde qui se planifie : une série rendez_vous n'a pas de plan (épisodes
   // autonomes), on passe à la suivante.

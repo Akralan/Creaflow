@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, Check, RefreshCw, X } from "lucide-react";
 import Button from "@/components/ui/Button";
 import SeriesFramingPanel from "@/components/SeriesFramingPanel";
+import SeriesReaderPanel from "@/components/SeriesReaderPanel";
 import { PlatformBadge } from "@/components/ui/Badge";
 import {
   api,
@@ -594,6 +595,9 @@ export default function SeriesDetail({
       </div>
 
       {error && <p style={{ margin: "0 0 12px", fontSize: 13, color: color.danger }}>{error}</p>}
+
+      {/* Le lecteur, la forme et le plan tiré de la ligne de temps (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4). */}
+      <SeriesReaderPanel series={series} onSeriesUpdate={onSeriesUpdate} />
 
       {/* Cadrage de la série par des choix (docs/SPEC_CADRAGE_SERIE.md §5). */}
       <SeriesFramingPanel series={series} onSeriesUpdate={onSeriesUpdate} />

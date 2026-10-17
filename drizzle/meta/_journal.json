@@ -316,6 +316,13 @@
       "when": 1792241331325,
       "tag": "0044_evenements_de_matiere",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1792242848940,
+      "tag": "0045_lecteur_et_forme_de_serie",
+      "breakpoints": true
     }
   ]
 }
