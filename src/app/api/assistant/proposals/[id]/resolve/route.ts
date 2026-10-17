@@ -5,6 +5,7 @@ import { requireUserId } from "@/lib/auth/session";
 import { handleApiError } from "@/lib/api/errors";
 import { resolveProposal } from "@/lib/services/assistantService";
 import { summarizeMaterialDocument } from "@/lib/services/sourceMaterialService";
+import { refreshStaleReaderPortraits } from "@/lib/services/readerPortraitService";
 import { logger } from "@/lib/logger";
 
 const schema = z.object({
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const userId = await requireUserId();
     const { id } = await params;
     const { action, fields } = schema.parse(await request.json());
-    const { proposals, summarizeMaterialId } = await resolveProposal(userId, id, action, fields);
+    const { proposals, summarizeMaterialId, portraitProductIds } = await resolveProposal(userId, id, action, fields);
     // Résumé orienté potentiel narratif produit hors requête, jamais bloquant — même pipeline que
     // POST /api/materials/upload (docs/SPEC_REDACTEUR_EN_CHEF.md §3.1).
     if (summarizeMaterialId) {
@@ -25,6 +26,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         summarizeMaterialDocument(summarizeMaterialId).catch((err) =>
           logger.error("Résumé de matière échoué", err, { materialId: summarizeMaterialId })
         )
+      );
+    }
+    if (portraitProductIds?.length) {
+      // Un sujet créé ou modifié : portrait à (re)faire s'il manque ou si son « Pour qui » a changé.
+      after(() =>
+        refreshStaleReaderPortraits(userId, portraitProductIds).catch((err) => logger.error("Portraits des lecteurs échoués", err, { userId }))
       );
     }
     return NextResponse.json({ proposals });

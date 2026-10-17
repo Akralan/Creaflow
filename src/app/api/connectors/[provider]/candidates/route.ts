@@ -46,10 +46,13 @@ const connectSchema = z.object({
 });
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
+  // Hors du try : le catch doit savoir reconnaître l'erreur d'accès propre au fournisseur.
+  let resolvedConnector: ReturnType<typeof getConnector> | undefined;
   try {
     const userId = await requireUserId();
     const { provider } = await params;
     const { type, connector } = resolve(provider);
+    resolvedConnector = connector;
 
     // `alreadyConnected` : rebrancher une source déjà branchée créerait un sujet doublon et
     // violerait l'unicité de material_sources — l'écran les grise plutôt que de laisser l'erreur
@@ -77,6 +80,10 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     // Le quota atteint n'est pas une panne : 429 et message daté, pas un 500 « Erreur serveur ».
     if (error instanceof ConnectorRateLimitError) {
       return handleApiError(new ApiError(429, error.message));
+    }
+    // Accès révoqué ou expiré : à reconnecter, pas une panne.
+    if (resolvedConnector?.isAuthError(error)) {
+      return handleApiError(new ApiError(409, (error as Error).message));
     }
     return handleApiError(error);
   }

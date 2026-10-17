@@ -1,93 +1,35 @@
-export interface CategoryWeight {
-  id: string;
-  weight: number; // fraction 0-1
-}
+import {
+  datesForRhythm,
+  toIsoDate,
+  type SeriesRhythm,
+} from "@/lib/seriesRhythm";
+
+/**
+ * Logique pure du calendrier. Depuis docs/SPEC_RYTHME_DES_SERIES.md, les créneaux ne sont plus
+ * tirés au sort chaque mois selon des poids : chaque série les pose sur son rythme (planSeriesSlots),
+ * et le service seriesSlotSync tient l'horizon à jour.
+ */
 
 /** Filtre une liste de catégories/séries selon la plateforme ciblée. Un élément dont `platforms`
  *  est vide est visible sur tous les réseaux (comportement historique, rétrocompatible). */
-export function filterByPlatform<T extends { platforms: string[] }>(items: T[], platform: string): T[] {
-  return items.filter((item) => item.platforms.length === 0 || item.platforms.includes(platform));
+export function filterByPlatform<T extends { platforms: string[] }>(
+  items: T[],
+  platform: string,
+): T[] {
+  return items.filter(
+    (item) => item.platforms.length === 0 || item.platforms.includes(platform),
+  );
 }
 
-/** Renormalise un sous-ensemble de poids de catégorie pour qu'ils somment à 1 — nécessaire quand
- *  categoryWeightsFromCategories est appliqué après un filtrage par plateforme (les poids globaux
- *  ne somment plus à 100% sur un sous-ensemble). Sans effet si le sous-ensemble est déjà complet. */
-export function renormalizeCategoryWeights(weights: CategoryWeight[]): CategoryWeight[] {
-  const total = weights.reduce((sum, w) => sum + w.weight, 0);
-  if (total <= 0) return weights;
-  return weights.map((w) => ({ ...w, weight: w.weight / total }));
-}
-
-/** Convertit les catégories de contenu (poids 0-100) du profil en fractions utilisables par distributeCategories. */
-export function categoryWeightsFromCategories(
-  categories: Array<{ id: string; weight: number }>
-): CategoryWeight[] {
-  return categories.map((c) => ({ id: c.id, weight: c.weight / 100 }));
-}
-
-/**
- * Aiguillage matière×catégorie (docs/SPEC_MATIERE_EDITEUR.md §5.3) : quand le corpus est sec, réduit
- * à zéro le poids des catégories "gourmandes en matière" (storytelling/coulisses) et redistribue
- * proportionnellement le reste — sans jamais retoucher un calendrier déjà généré (§8.7, tranché),
- * cette fonction n'agit qu'au moment de la génération d'un nouveau mois. Si toutes les catégories
- * fournies sont gourmandes, les poids sont renvoyés inchangés — mieux vaut un calendrier normal
- * qu'un calendrier vide (rien vers quoi réorienter).
- */
-export function adjustCategoryWeightsForMaterialScarcity(
-  weights: CategoryWeight[],
-  hungryIds: Set<string>,
-  hasSufficientMaterial: boolean
-): CategoryWeight[] {
-  if (hasSufficientMaterial || hungryIds.size === 0) return weights;
-  const allHungry = weights.every((w) => hungryIds.has(w.id));
-  if (allHungry) return weights; // rien à réoriger vers : mieux vaut un calendrier normal que vide
-  const zeroed = weights.map((w) => (hungryIds.has(w.id) ? { ...w, weight: 0 } : w));
-  return renormalizeCategoryWeights(zeroed);
-}
-
-/** Répartit n créneaux entre catégories selon le mix fourni, en évitant les regroupements. Renvoie les id de catégorie. */
-export function distributeCategories(n: number, weights: CategoryWeight[]): string[] {
-  if (n <= 0 || weights.length === 0) return [];
-
-  const counts = weights.map((w) => ({ id: w.id, count: Math.round(w.weight * n) }));
-  const diff = n - counts.reduce((sum, c) => sum + c.count, 0);
-  const maxIndex = counts.reduce((best, c, i) => (c.count > counts[best].count ? i : best), 0);
-  counts[maxIndex] = { ...counts[maxIndex], count: counts[maxIndex].count + diff };
-
-  const result: (string | null)[] = new Array(n).fill(null);
-  for (const { id, count } of counts) {
-    if (count <= 0) continue;
-    const step = n / count;
-    for (let i = 0; i < count; i++) {
-      let pos = Math.round(i * step);
-      pos = Math.min(pos, n - 1);
-      while (pos < n && result[pos] !== null) pos++;
-      if (pos >= n) pos = result.findIndex((r) => r === null);
-      result[pos] = id;
-    }
-  }
-
-  const fallbackId = weights[0].id;
-  return result.map((id) => id ?? fallbackId);
-}
-
-/**
- * Jours du mois (1..31) qui tombent sur l'un des jours de semaine donnés — ISO, 1 = lundi … 7 =
- * dimanche (docs/SPEC_ONBOARDING_MVP.md §5 : un créneau par jour coché). Calculé en UTC, comme les
- * dates insérées par la génération du calendrier. Ordre croissant, sans doublon.
- */
-export function datesForWeekdays(year: number, monthIndex: number, weekdays: number[]): number[] {
-  const wanted = new Set(weekdays);
-  const daysInMonth = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
-  const result: number[] = [];
-  for (let day = 1; day <= daysInMonth; day++) {
-    const isoWeekday = new Date(Date.UTC(year, monthIndex, day)).getUTCDay() || 7; // dimanche : 0 → 7
-    if (wanted.has(isoWeekday)) result.push(day);
-  }
-  return result;
-}
-
-const WEEKDAY_NAMES = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
+const WEEKDAY_NAMES = [
+  "lundi",
+  "mardi",
+  "mercredi",
+  "jeudi",
+  "vendredi",
+  "samedi",
+  "dimanche",
+];
 
 /** Jours de publication en clair, dans l'ordre de la semaine : [6, 3] → « mercredi, samedi ». */
 export function publishingDaysLabel(weekdays: number[]): string {
@@ -98,7 +40,11 @@ export function publishingDaysLabel(weekdays: number[]): string {
     .join(", ");
 }
 
-export function parseMonth(month: string): { year: number; monthIndex: number; daysInMonth: number } {
+export function parseMonth(month: string): {
+  year: number;
+  monthIndex: number;
+  daysInMonth: number;
+} {
   const [yearStr, monthStr] = month.split("-");
   const year = Number(yearStr);
   const monthIndex = Number(monthStr) - 1; // 0-based pour Date
@@ -106,58 +52,87 @@ export function parseMonth(month: string): { year: number; monthIndex: number; d
   return { year, monthIndex, daysInMonth };
 }
 
-export interface SeriesWeight {
+export interface RhythmSeries {
   id: string;
-  weight: number; // fraction 0-1, PAS renormalisée pour sommer à 1 (contrairement à CategoryWeight)
-  categoryId: string; // rôle unique de la série (docs/SPEC_SERIES_ET_ROLES.md §1)
+  rhythm: SeriesRhythm | null;
+  /** Vide = tous les réseaux actifs. */
+  platforms: string[];
+  /** Créneaux retirés à la main (`slotKey`) : jamais recréés. */
+  skippedSlots?: string[];
 }
 
-/** Convertit les séries (poids % absolu, pas de normalisation à 100 comme pour les catégories).
- *  Une série sans rôle (données antérieures à la migration) est écartée. */
-export function seriesWeightsFromSeries(
-  series: Array<{ id: string; weight: number; categoryId: string | null }>
-): SeriesWeight[] {
-  return series
-    .filter((s): s is typeof s & { categoryId: string } => s.categoryId !== null)
-    .map((s) => ({ id: s.id, weight: s.weight / 100, categoryId: s.categoryId }));
+/** Clé d'un créneau dans la liste des retirés d'une série : `YYYY-MM-DD|plateforme`. */
+export function slotKey(date: Date, platform: string): string {
+  return `${toIsoDate(date)}|${platform}`;
 }
 
-export interface SeriesSlotAssignment {
+export interface ExistingSlot {
+  id: string;
   seriesId: string;
-  categoryId: string;
+  platform: string;
+  scheduledDate: Date;
+  /** Un créneau rédigé ou publié ne bouge jamais. */
+  locked: boolean;
 }
 
 /**
- * Décide, parmi n créneaux (indices 0..n-1), lesquels sont promus dans une série active.
- * Contrairement à distributeCategories :
- *  - ne force JAMAIS 100% de couverture (les indices non retenus sont simplement absents de la Map,
- *    l'appelant garde alors la catégorie "plate" calculée par distributeCategories) ;
- *  - ne redistribue jamais les poids à la hausse si leur somme est < 1 ;
- *  - plafonne défensivement à la baisse (scale) si leur somme dépasse 1, pour ne jamais tenter
- *    d'assigner plus de créneaux qu'il n'y en a — sans jamais forcer à combler le reste.
+ * Créneaux d'une série (§3) : à créer, entre `from` et `to`, les couples (date, réseau) de son
+ * rythme qu'elle n'a pas encore et que l'auteur n'a pas retirés ; à supprimer, ses créneaux vides à
+ * partir de `from` — y compris au-delà de `to`, posés par l'ancien calendrier mensuel — qui ne
+ * tombent plus sur son rythme ou sur un réseau actif. Un créneau verrouillé (rédigé, publié) compte
+ * comme présent et n'est jamais supprimé.
  */
-export function distributeSeriesOverrides(n: number, seriesWeights: SeriesWeight[]): Map<number, SeriesSlotAssignment> {
-  const result = new Map<number, SeriesSlotAssignment>();
-  if (n <= 0 || seriesWeights.length === 0) return result;
+export function planSeriesSlots(input: {
+  series: RhythmSeries;
+  activePlatforms: string[];
+  existing: ExistingSlot[];
+  from: Date;
+  to: Date;
+}): {
+  toCreate: Array<{ platform: string; scheduledDate: Date }>;
+  toDelete: string[];
+} {
+  const { series, from, to } = input;
+  const platforms = input.activePlatforms.filter(
+    (p) => series.platforms.length === 0 || series.platforms.includes(p),
+  );
+  const mine = input.existing.filter(
+    (s) =>
+      s.seriesId === series.id && s.scheduledDate.getTime() >= from.getTime(),
+  );
+  const lastExisting = Math.max(
+    to.getTime(),
+    ...mine.map((s) => s.scheduledDate.getTime()),
+  );
+  const dates = series.rhythm
+    ? datesForRhythm(series.rhythm, from, new Date(lastExisting))
+    : [];
+  const skipped = new Set(series.skippedSlots ?? []);
+  const wanted = new Set(
+    dates
+      .flatMap((d) => platforms.map((p) => slotKey(d, p)))
+      .filter((k) => !skipped.has(k)),
+  );
 
-  const totalWeight = seriesWeights.reduce((sum, s) => sum + s.weight, 0);
-  const scale = totalWeight > 1 ? 1 / totalWeight : 1;
+  const present = new Set(
+    mine.map((s) => slotKey(s.scheduledDate, s.platform)),
+  );
+  const toDelete = mine
+    .filter(
+      (s) => !s.locked && !wanted.has(slotKey(s.scheduledDate, s.platform)),
+    )
+    .map((s) => s.id);
 
-  for (const { id, weight, categoryId } of seriesWeights) {
-    const count = Math.min(Math.round(weight * scale * n), n);
-    if (count <= 0) continue;
-
-    const step = n / count;
-    for (let i = 0; i < count; i++) {
-      let pos = Math.min(Math.round(i * step), n - 1);
-      let attempts = 0;
-      while (result.has(pos) && attempts < n) {
-        pos = (pos + 1) % n;
-        attempts++;
-      }
-      if (result.has(pos)) continue; // plus de créneau libre : on abandonne cette occurrence plutôt que d'écraser une autre série
-      result.set(pos, { seriesId: id, categoryId });
-    }
-  }
-  return result;
+  const toCreate = dates
+    .filter((date) => date.getTime() <= to.getTime())
+    .flatMap((date) =>
+      platforms
+        .filter(
+          (platform) =>
+            wanted.has(slotKey(date, platform)) &&
+            !present.has(slotKey(date, platform)),
+        )
+        .map((platform) => ({ platform, scheduledDate: date })),
+    );
+  return { toCreate, toDelete };
 }

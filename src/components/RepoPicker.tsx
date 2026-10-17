@@ -5,6 +5,7 @@ import Button from "@/components/ui/Button";
 import { api, ApiClientError, type ConnectRepoResult, type GithubRepoOption } from "@/lib/apiClient";
 import { accent, accentAlpha, color } from "@/lib/design/tokens";
 import { MAX_PRODUCTS } from "@/lib/validation";
+import { oauthStartUrl } from "@/components/onboarding/OnboardingWelcome";
 
 /** Sélecteur de dépôts publics : étape « Projets » de l'onboarding dev, et paramètres > Sujets
  *  (`variant="settings"`) pour connecter de nouveaux dépôts après coup. En variante settings, pas
@@ -25,6 +26,8 @@ export default function RepoPicker({
   const [connecting, setConnecting] = useState(false);
   const [results, setResults] = useState<ConnectRepoResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Jeton GitHub révoqué ou expiré (409) : on propose de reconnecter au lieu de dire « aucun dépôt ».
+  const [needsReconnect, setNeedsReconnect] = useState(false);
 
   useEffect(() => {
     api
@@ -37,7 +40,10 @@ export default function RepoPicker({
           .slice(0, Math.min(preselect, MAX_PRODUCTS));
         setSelected(recent.map((r) => r.externalId));
       })
-      .catch((err) => setError(err instanceof ApiClientError ? err.message : "Impossible de lire tes dépôts GitHub."))
+      .catch((err) => {
+        setError(err instanceof ApiClientError ? err.message : "Impossible de lire tes dépôts GitHub.");
+        setNeedsReconnect(err instanceof ApiClientError && err.status === 409);
+      })
       .finally(() => setLoading(false));
     // preselect ne sert qu'au premier chargement.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -68,6 +74,24 @@ export default function RepoPicker({
   }
 
   if (loading) return <p style={{ color: color.textMuted, fontSize: 14 }}>Lecture de tes dépôts…</p>;
+
+  // Lecture impossible : l'erreur seule, jamais « aucun dépôt public » qui ferait croire le compte vide.
+  if (error && repos.length === 0) {
+    return (
+      <div>
+        <p style={{ color: color.danger, fontSize: 14, margin: "0 0 12px" }}>{error}</p>
+        {needsReconnect && (
+          <Button
+            onClick={() => {
+              window.location.href = oauthStartUrl("github", window.location.pathname + window.location.search);
+            }}
+          >
+            Reconnecter GitHub
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   const selectable = repos.filter((r) => !r.alreadyConnected);
 

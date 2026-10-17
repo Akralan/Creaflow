@@ -1,6 +1,9 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
-import { contentCategories, contentSeries, contentSeriesCategories } from "@/db/schema";
+import { contentCategories, contentSeries, contentSeriesCategories, creatorProfiles } from "@/db/schema";
+import { listActiveSeriesForUser } from "@/lib/services/seriesService";
+import { syncSeriesSlots } from "@/lib/services/seriesSlotSync";
+import { parseStoredRhythm, suggestDays, type SeriesRhythm } from "@/lib/seriesRhythm";
 import { planNarrativeForSubject } from "@/lib/services/narrativeDirector";
 import { getMaterialForSubject } from "@/lib/services/sourceMaterialService";
 import { ApiError } from "@/lib/api/errors";
@@ -62,6 +65,17 @@ export async function generateSeriesFromMaterial(userId: string, params: Generat
       throw new ApiError(404, "Rôle introuvable.");
     }
     category = role;
+    // Rythme d'office (docs/SPEC_RYTHME_DES_SERIES.md §4) : les jours où l'auteur peut publier
+    // qu'aucune autre série n'occupe ; il l'ajuste ensuite dans Direction.
+    const [profile, others] = await Promise.all([
+      db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId), columns: { publishingDays: true } }),
+      listActiveSeriesForUser(userId),
+    ]);
+    const rhythm: SeriesRhythm = {
+      days: suggestDays(profile?.publishingDays ?? [], others.flatMap((s) => parseStoredRhythm(s.rhythm)?.days ?? [])),
+      every: 1,
+      anchor: null,
+    };
     const [created] = await db
       .insert(contentSeries)
       .values({
@@ -69,6 +83,7 @@ export async function generateSeriesFromMaterial(userId: string, params: Generat
         label: params.newSeries!.label,
         description: params.newSeries!.description,
         weight: params.newSeries!.weight ?? DEFAULT_SERIES_WEIGHT,
+        rhythm,
         // Une série née d'un corpus de matière raconte une progression par construction — feuilleton,
         // pas le défaut rendez_vous générique (§1 : l'inférence LLM normale, Annexe B.8, ne s'applique
         // qu'à la génération globale de séries depuis l'activité, pas à ce geste dédié).
@@ -78,6 +93,7 @@ export async function generateSeriesFromMaterial(userId: string, params: Generat
       })
       .returning();
     await db.insert(contentSeriesCategories).values({ seriesId: created.id, categoryId: role.id });
+    await syncSeriesSlots(userId);
     series = created;
   }
 
@@ -99,6 +115,7 @@ export async function generateSeriesFromMaterial(userId: string, params: Generat
       ...series,
       category,
       platforms: [] as string[],
+      rhythm: parseStoredRhythm(series.rhythm),
       narrativeState: state,
       product: null as { id: string; name: string } | null,
     },

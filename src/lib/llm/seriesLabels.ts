@@ -5,11 +5,13 @@ import { callStructured } from "./provider";
 export const seriesEntrySchema = z.object({
   label: z.string().min(1),
   description: z.string().min(1),
-  weight: z.number().int().min(0).max(60),
   // Un rôle unique par série (docs/SPEC_SERIES_ET_ROLES.md §1) — libellé exact d'un rôle actif.
   categoryLabel: z.string().min(1),
   // docs/SPEC_REDACTEUR_EN_CHEF.md §4.5, Annexe B.8 — inférence à la création, éditable ensuite.
   mode: z.enum(["feuilleton", "rendez_vous"]),
+  // Sujet dont la série tire sa matière — chaîne vide = niveau marque. Avant le 2026-10-17 les
+  // séries générées naissaient sans sujet, donc sans matière ni portrait des lecteurs.
+  subjectName: z.string().default(""),
 });
 
 export type SeriesEntry = z.infer<typeof seriesEntrySchema>;
@@ -22,7 +24,7 @@ const SUGGEST_CONTENT_SERIES_TOOL_NAME = "suggest_content_series";
 
 /** L'enum sur categoryLabel force le modèle à choisir parmi les libellés existants tels
  *  quels, au lieu de recopier le bloc "Label — Description" fourni en contexte. */
-function buildSuggestContentSeriesTool(categoryLabels: string[]): LlmToolDefinition {
+function buildSuggestContentSeriesTool(categoryLabels: string[], subjectNames: string[]): LlmToolDefinition {
   return {
     name: SUGGEST_CONTENT_SERIES_TOOL_NAME,
     description:
@@ -33,7 +35,7 @@ function buildSuggestContentSeriesTool(categoryLabels: string[]): LlmToolDefinit
         series: {
           type: "array",
           description:
-            "Liste de 0 à 5 séries récurrentes (ex: \"Le mythe du mercredi\", \"Behind the scenes du vendredi\", \"Témoignage client\"). Si le métier ne s'y prête vraiment pas, renvoie une liste vide plutôt que d'inventer une série artificielle.",
+            "Liste de 0 à 5 séries récurrentes (ex: \"Le mythe du mercredi\", \"Behind the scenes du vendredi\", \"Témoignage client\"), de la plus importante à la moins importante pour ce créateur. Si le métier ne s'y prête vraiment pas, renvoie une liste vide plutôt que d'inventer une série artificielle.",
           minItems: 0,
           maxItems: 5,
           items: {
@@ -43,10 +45,6 @@ function buildSuggestContentSeriesTool(categoryLabels: string[]): LlmToolDefinit
               description: {
                 type: "string",
                 description: "Identité de la série en une ou deux phrases : angle, ton, structure à respecter à chaque script de cette série.",
-              },
-              weight: {
-                type: "integer",
-                description: "Pourcentage approximatif des créneaux mensuels que cette série devrait occuper (0 à 60, pas besoin de sommer à 100 avec les autres séries).",
               },
               categoryLabel: {
                 type: "string",
@@ -59,8 +57,14 @@ function buildSuggestContentSeriesTool(categoryLabels: string[]): LlmToolDefinit
                 description:
                   'Détermine le mode de la série : "feuilleton" si les épisodes se suivent et construisent une progression (devlog, coulisses d\'un projet, avancement d\'un chantier) ; "rendez_vous" si les épisodes sont autonomes et ne partagent qu\'un format (news de la semaine, sélection, FAQ, top). En cas de doute, choisis "rendez_vous".',
               },
+              subjectName: {
+                type: "string",
+                enum: [...subjectNames, ""],
+                description:
+                  "Le projet dont la série raconte l'avancement ou tire sa matière, recopié parmi ceux fournis. Chaîne vide seulement si la série porte sur l'activité en général et sur aucun projet précis.",
+              },
             },
-            required: ["label", "description", "weight", "categoryLabel", "mode"],
+            required: ["label", "description", "categoryLabel", "mode", "subjectName"],
           },
         },
       },
@@ -71,7 +75,7 @@ function buildSuggestContentSeriesTool(categoryLabels: string[]): LlmToolDefinit
 
 const SYSTEM_PROMPT = `Tu conçois la direction éditoriale d'un créateur ou d'une entreprise, adaptée précisément à son activité.
 
-Propose entre 0 et 5 "séries" : des formats de contenu récurrents et nommés (ex: pour un coach sportif : "Le mythe du mercredi" en éducatif, "Transformation du mois" en témoignage ; pour un freelance produit web : "Build in public hebdo" en coulisses). Une série donne une identité reconnaissable (même angle, même structure, même ton à chaque publication) et sert UN SEUL rôle éditorial parmi ceux déjà définis pour l'utilisateur — utilise leur libellé EXACT tel que fourni. Si une idée de série hésite entre deux rôles, c'est qu'il y a deux séries : découpe-la. N'invente pas de série artificielle si le métier ne s'y prête pas : une liste vide est un résultat parfaitement valide. Le poids de chaque série est un pourcentage approximatif des créneaux mensuels (0 à 60), sans obligation de sommer à 100 — une partie du calendrier reste hors série.`;
+Propose entre 0 et 5 "séries" : des formats de contenu récurrents et nommés (ex: pour un coach sportif : "Le mythe du mercredi" en éducatif, "Transformation du mois" en témoignage ; pour un freelance produit web : "Build in public hebdo" en coulisses). Une série donne une identité reconnaissable (même angle, même structure, même ton à chaque publication) et sert UN SEUL rôle éditorial parmi ceux déjà définis pour l'utilisateur — utilise leur libellé EXACT tel que fourni. Si une idée de série hésite entre deux rôles, c'est qu'il y a deux séries : découpe-la. N'invente pas de série artificielle si le métier ne s'y prête pas : une liste vide est un résultat parfaitement valide. Range les séries de la plus importante à la moins importante : les jours de publication de l'auteur leur sont répartis dans cet ordre.`;
 
 export interface SeriesLabelsContext {
   brandName: string;
@@ -94,7 +98,10 @@ export async function suggestContentSeries(context: SeriesLabelsContext): Promis
   const args = await callStructured({
     system: SYSTEM_PROMPT,
     userMessage: lines.join("\n"),
-    tool: buildSuggestContentSeriesTool(context.categories.map((c) => c.label)),
+    tool: buildSuggestContentSeriesTool(
+      context.categories.map((c) => c.label),
+      context.products.map((p) => p.name)
+    ),
     maxTokens: 1536,
   });
 

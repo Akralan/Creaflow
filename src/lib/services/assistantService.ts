@@ -37,6 +37,8 @@ import { applyStyleProfile } from "@/lib/services/styleLearningService";
 import { styleProfileSchema } from "@/lib/llm/styleProfile";
 import { markStaleForMaterialIngestion } from "@/lib/services/narrativeDirector";
 import { ApiError } from "@/lib/api/errors";
+import { syncSeriesSlots } from "@/lib/services/seriesSlotSync";
+import { mondayOf, seriesRhythmSchema, toIsoDate } from "@/lib/seriesRhythm";
 
 // Fenêtre d'historique bornée par le VOLUME et non par le nombre de messages
 // (docs/SPEC_ASSISTANT_AGENTIQUE.md §6.5) : un plafond fixe à 20 messages coupait le début d'une
@@ -200,7 +202,15 @@ export async function runAssistantChatTurnForUser(userId: string, message: strin
       payload: {
         label: s.label,
         description: s.description,
-        weight: s.weight,
+        ...(s.rhythmDays
+          ? {
+              rhythm: {
+                days: s.rhythmDays,
+                every: s.everyOtherWeek ? 2 : 1,
+                anchor: s.everyOtherWeek ? toIsoDate(mondayOf(new Date())) : null,
+              },
+            }
+          : {}),
         categoryLabel: s.categoryLabel,
         categoryId,
         platforms: s.platforms,
@@ -318,7 +328,9 @@ const productPayloadSchema = z.object({
 const seriesPayloadSchema = z.object({
   label: z.string().min(1),
   description: z.string().min(1),
-  weight: z.number().int().min(0).max(100),
+  // Propositions d'avant docs/SPEC_RYTHME_DES_SERIES.md : un poids, ignoré.
+  weight: z.number().int().min(0).max(100).optional(),
+  rhythm: seriesRhythmSchema.nullable().optional(),
   categoryLabel: z.string().optional(),
   categoryId: z.string().nullable().optional(),
   platforms: z.array(z.string()).optional().default([]),
@@ -438,10 +450,12 @@ export async function resolveProposal(
   // Le résumé d'un document de matière est produit hors de la requête, par la route via after() —
   // convention du repo : aucun service n'importe next/server (cf. api/materials/upload).
   let summarizeMaterialId: string | null = null;
+  // Sujets dont le portrait des lecteurs est à revoir, même convention (docs/SPEC_PROMPT_GENERATION_V3.md §2.2).
+  const portraitProductIds: string[] = [];
 
   if (proposal.kind === "product_create") {
     const data = productPayloadSchema.parse(merged);
-    await createProductsForUser(userId, [
+    const created = await createProductsForUser(userId, [
       {
         name: data.name,
         description: data.description ?? undefined,
@@ -449,6 +463,7 @@ export async function resolveProposal(
         targetAudience: data.targetAudience ?? undefined,
       },
     ]);
+    portraitProductIds.push(...created.map((p) => p.id));
   } else if (proposal.kind === "product_update") {
     if (!proposal.targetId) {
       throw new ApiError(400, "Proposition invalide : cible manquante.");
@@ -460,6 +475,7 @@ export async function resolveProposal(
       valueProposition: data.valueProposition ?? undefined,
       targetAudience: data.targetAudience ?? undefined,
     });
+    portraitProductIds.push(proposal.targetId);
   } else if (proposal.kind === "series_create" || proposal.kind === "series_update") {
     const data = seriesPayloadSchema.parse(merged);
     const categoryId =
@@ -486,7 +502,7 @@ export async function resolveProposal(
         id: proposal.kind === "series_update" ? (proposal.targetId ?? undefined) : undefined,
         label: data.label,
         description: data.description,
-        weight: data.weight,
+        ...(data.rhythm !== undefined && { rhythm: data.rhythm }),
         categoryId,
         platforms: data.platforms,
         mode: data.mode,
@@ -497,6 +513,8 @@ export async function resolveProposal(
         throw new ApiError(404, "Série introuvable.");
       }
     });
+    // Une série créée ou un rythme changé : le calendrier suit (docs/SPEC_RYTHME_DES_SERIES.md §3).
+    await syncSeriesSlots(userId);
   } else if (proposal.kind === "category_create" || proposal.kind === "category_update") {
     const data = categoryPayloadSchema.parse(merged);
     const active = await listActiveCategoriesForUser(userId);
@@ -711,5 +729,5 @@ export async function resolveProposal(
   }
 
   await db.update(assistantProposals).set({ status: "accepted", resolvedAt: new Date() }).where(eq(assistantProposals.id, proposal.id));
-  return { proposals: await listPendingProposals(userId), summarizeMaterialId };
+  return { proposals: await listPendingProposals(userId), summarizeMaterialId, portraitProductIds };
 }

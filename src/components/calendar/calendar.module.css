@@ -156,11 +156,20 @@
   overflow: hidden;
 }
 
+/* Une ligne par série, l'une sous l'autre (docs/SPEC_RYTHME_DES_SERIES.md §4) ; avec une seule
+   série, une seule ligne sans en-tête. */
+.lanes {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
 .list {
   display: none;
 }
 
 @media (max-width: 640px) {
+  .lanes,
   .strip {
     display: none;
   }

@@ -4,6 +4,7 @@ import { callAgentic } from "./provider";
 import { KNOWN_PLATFORMS, platformLabel } from "@/lib/social/types";
 import { publishingDaysSchema } from "@/lib/validation";
 import { publishingDaysLabel } from "@/lib/services/calendarService";
+import { rhythmLabel, type SeriesRhythm } from "@/lib/seriesRhythm";
 
 export interface AssistantMessage {
   role: "user" | "assistant";
@@ -32,7 +33,10 @@ export const seriesProposalSchema = z.object({
   targetId: z.string().optional(),
   label: z.string().min(1),
   description: z.string().min(1),
-  weight: z.number().int().min(0).max(60),
+  // Rythme (docs/SPEC_RYTHME_DES_SERIES.md §6) : les jours où la série publie, et une semaine sur
+  // deux ou non. Optionnels ici comme mode : absent = rythme inchangé sur un update.
+  rhythmDays: z.array(z.number().int().min(1).max(7)).min(1).max(7).optional(),
+  everyOtherWeek: z.boolean().optional(),
   // Un rôle unique par série (docs/SPEC_SERIES_ET_ROLES.md §1).
   categoryLabel: z.string().min(1),
   platforms: z.array(z.string()),
@@ -203,14 +207,14 @@ function buildPublishingDaysTool(): LlmToolDefinition {
   return {
     name: PUBLISHING_DAYS_TOOL_NAME,
     description:
-      "Propose de changer les jours de publication du créateur. Une case cochée = un post ce jour-là, sur chaque plateforme active. Réservé à une demande claire de l'utilisateur (changer de rythme, publier un autre jour). Rien n'est appliqué avant sa validation.",
+      "Propose de changer les jours où le créateur peut publier. Ils ne placent pas les posts : ce sont les rythmes des séries qui le font. Ils servent à proposer les jours d'une nouvelle série. Réservé à une demande claire de l'utilisateur. Rien n'est appliqué avant sa validation.",
     input_schema: {
       type: "object",
       properties: {
         publishingDays: {
           type: "array",
           description:
-            "Liste COMPLÈTE des jours de publication après changement (pas seulement ceux à ajouter), au format ISO : 1 = lundi, 2 = mardi, 3 = mercredi, 4 = jeudi, 5 = vendredi, 6 = samedi, 7 = dimanche. Au moins un jour.",
+            "Liste COMPLÈTE des jours où le créateur peut publier après changement (pas seulement ceux à ajouter), au format ISO : 1 = lundi, 2 = mardi, 3 = mercredi, 4 = jeudi, 5 = vendredi, 6 = samedi, 7 = dimanche. Au moins un jour.",
           items: { type: "integer", minimum: 1, maximum: 7 },
           minItems: 1,
           maxItems: 7,
@@ -288,7 +292,13 @@ function buildAssistantTool(context: {
               targetId: enumField(context.seriesIds, "Id EXACT de la série existante à modifier — uniquement si action='update'."),
               label: { type: "string", description: "Nom court et mémorable de la série." },
               description: { type: "string", description: "Identité de la série : angle, ton, structure à respecter." },
-              weight: { type: "integer", description: "Pourcentage approximatif des créneaux mensuels (0 à 60)." },
+              rhythmDays: {
+                type: "array",
+                items: { type: "integer", enum: [1, 2, 3, 4, 5, 6, 7] },
+                description:
+                  "Jours où la série publie (1 = lundi … 7 = dimanche). Deux séries peuvent partager un jour. Pour une mise à jour, reprends les jours actuels sauf changement demandé.",
+              },
+              everyOtherWeek: { type: "boolean", description: "Vrai si la série ne publie qu'une semaine sur deux." },
               categoryLabel: enumField(
                 context.categoryLabels,
                 "Libellé exact du rôle éditorial (unique) que sert cette série. Si tu hésites entre deux rôles, propose deux séries."
@@ -302,7 +312,7 @@ function buildAssistantTool(context: {
               },
               productId: productIdField,
             },
-            required: ["action", "label", "description", "weight", "categoryLabel", "platforms", "mode"],
+            required: ["action", "label", "description", "rhythmDays", "everyOtherWeek", "categoryLabel", "platforms", "mode"],
           },
         },
         categoryProposals: {
@@ -406,7 +416,7 @@ Règles :
 - La SÉRIE est l'objet que l'utilisateur manipule. Quand il décrit un format, un rendez-vous, une idée récurrente, propose une SÉRIE (rattachée à un rôle existant) — pas un rôle. Ne propose la création ou la modification d'un rôle que si l'utilisateur le demande explicitement, ou si aucun rôle existant ne peut accueillir la série et qu'il en manque manifestement un. Le poids des rôles évolue surtout à partir des performances réelles : ne le retouche que sur demande claire.
 - Pose une seule question à la fois, de façon conversationnelle.
 - Ne propose une création/modification que quand tu as assez d'info — la plupart des tours ne doivent rien proposer (tableaux vides).
-- Le rythme ne se règle pas en nombre de posts : une plateforme est ACTIVE ou COUPÉE (postingGoalProposals, la plateforme identifie la cible), et chaque plateforme active reçoit un post par JOUR DE PUBLICATION. Pour changer les jours, utilise propose_publishing_days avec la liste complète des jours voulus — seulement sur demande claire de l'utilisateur.
+- Le rythme ne se règle pas en nombre de posts : chaque SÉRIE a ses jours (rhythmDays, et everyOtherWeek pour une semaine sur deux), et publie ces jours-là sur ses plateformes actives. Pour faire publier une série un autre jour ou plus souvent, propose un update de la série avec ses nouveaux jours. Deux séries peuvent partager un jour (deux posts ce jour-là). Une plateforme est ACTIVE ou COUPÉE (postingGoalProposals). Il n'y a pas de posts libres automatiques. propose_publishing_days ne change que les jours où l'auteur peut publier, proposés à la création d'une série — seulement sur demande claire de l'utilisateur.
 - L'archivage (propose_archive) ne s'efface jamais : il retire un élément de la circulation sans toucher aux contenus déjà produits. Ne le propose que sur demande claire de l'utilisateur, jamais de ta propre initiative pour "faire le ménage".
 - MATIÈRE : quand l'utilisateur te raconte une information factuelle exploitable (une actualité sur un de ses sujets, une anecdote d'atelier, un chiffre, une décision, un retour d'expérience), propose de l'ajouter à sa matière avec propose_material — c'est ce qui nourrira ses prochains contenus. Rapporte fidèlement ce qu'il a dit, sans rien ajouter ni romancer. N'en propose pas à chaque phrase : seulement quand il y a une vraie information à conserver. Si tu ne sais pas à quel sujet la rattacher, demande-lui plutôt que de deviner.
 - FICHIERS : quand l'utilisateur dépose un fichier dans la conversation, tu en vois le nom, JAMAIS le contenu. Ne prétends jamais savoir ce qu'il contient et ne le résume pas. C'est son message qui te dit quoi en faire ; s'il n'est pas clair sur le sujet de rattachement, demande — tu pourras le ranger plus tard, le fichier reste disponible.
@@ -435,7 +445,7 @@ export interface AssistantChatContext {
     id: string;
     label: string;
     description: string;
-    weight: number;
+    rhythm: SeriesRhythm | null;
     category: { label: string } | null;
     platforms: string[];
     mode: "feuilleton" | "rendez_vous";
@@ -498,7 +508,7 @@ export async function runAssistantChatTurn(context: AssistantChatContext): Promi
       ? `Séries existantes : ${context.series
           .map(
             (s) =>
-              `[id:${s.id}] ${s.label} (${s.weight}%) — ${s.description} [rôle : ${s.category?.label ?? "aucun"}]${
+              `[id:${s.id}] ${s.label} (${rhythmLabel(s.rhythm)}, jours ${s.rhythm?.days.join(",") ?? "aucun"}) — ${s.description} [rôle : ${s.category?.label ?? "aucun"}]${
                 s.platforms.length > 0 ? ` [plateformes : ${s.platforms.join(", ")}]` : " [tous réseaux]"
               } [mode : ${s.mode}]${s.product ? ` [matière du sujet : ${s.product.name} (id:${s.product.id})]` : " [aucun sujet lié]"}`
           )
@@ -517,7 +527,7 @@ export async function runAssistantChatTurn(context: AssistantChatContext): Promi
     context.angles.length > 0
       ? `Angles actifs : ${context.angles.map((a) => `[id:${a.id}] ${a.label} — ${a.description}`).join(" ; ")}`
       : "Aucun angle actif pour l'instant.",
-    `Jours de publication : ${publishingDaysLabel(context.publishingDays)} (un post par jour coché, sur chaque plateforme active).`,
+    `Jours où l'auteur peut publier : ${publishingDaysLabel(context.publishingDays)} (proposés aux nouvelles séries ; ce sont les rythmes des séries qui placent les posts).`,
     context.postingGoals.length > 0
       ? `Plateformes : ${context.postingGoals
           .map((g) => `${platformLabel(g.platform)} : ${g.targetCountPerWeek > 0 ? "active" : "coupée"}`)

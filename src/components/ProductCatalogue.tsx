@@ -7,6 +7,8 @@ import { api, ApiClientError, type Product } from "@/lib/apiClient";
 import { color } from "@/lib/design/tokens";
 import { MAX_PRODUCTS } from "@/lib/validation";
 import MaterialPanel from "@/components/MaterialPanel";
+import ReaderPortraitPanel from "@/components/ReaderPortraitPanel";
+import InspirationsPanel from "@/components/InspirationsPanel";
 
 /** Override d'audience par sujet (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — null = fallback sur
  *  l'audience de marque (paramètres > Identité). Panneau dépliable, même pattern que "Matière". */
@@ -31,8 +33,8 @@ function AudienceOverridePanel({ product, onUpdated }: { product: Product; onUpd
   return (
     <div style={{ display: "grid", gap: 8 }}>
       <TextAreaField
-        label="Audience de ce sujet"
-        helper="Laisse vide pour utiliser l'audience de marque définie dans les paramètres."
+        label="Pour qui"
+        helper="Les gens que ce sujet sert. Laisse vide pour utiliser l'audience de marque définie dans les paramètres."
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="Qui achète ou lit, ce qui l'intéresse, ce qu'il doit retenir de ce sujet précis"
@@ -43,6 +45,7 @@ function AudienceOverridePanel({ product, onUpdated }: { product: Product; onUpd
         </Button>
         {error && <span style={{ fontSize: 12, color: color.danger }}>{error}</span>}
       </div>
+      <ReaderPortraitPanel product={product} onUpdated={onUpdated} />
     </div>
   );
 }
@@ -56,6 +59,7 @@ export default function ProductCatalogue({ onCountChange }: { onCountChange?: (c
   const [error, setError] = useState<string | null>(null);
   const [expandedMaterialId, setExpandedMaterialId] = useState<string | null>(null);
   const [expandedAudienceId, setExpandedAudienceId] = useState<string | null>(null);
+  const [expandedInspirationId, setExpandedInspirationId] = useState<string | null>(null);
 
   useEffect(() => {
     api.getProducts().then(({ products }) => {
@@ -147,7 +151,22 @@ export default function ProductCatalogue({ onCountChange }: { onCountChange?: (c
                   flexShrink: 0,
                 }}
               >
-                {expandedAudienceId === p.id ? "Fermer" : "Audience"}
+                {expandedAudienceId === p.id ? "Fermer" : "Lecteurs"}
+              </button>
+              <button
+                onClick={() => setExpandedInspirationId((cur) => (cur === p.id ? null : p.id))}
+                style={{
+                  fontSize: 13,
+                  color: color.text3,
+                  border: `1px solid ${color.border}`,
+                  borderRadius: 8,
+                  padding: "6px 10px",
+                  background: "none",
+                  cursor: "pointer",
+                  flexShrink: 0,
+                }}
+              >
+                {expandedInspirationId === p.id ? "Fermer" : "Inspirations"}
               </button>
               <button
                 onClick={() => setExpandedMaterialId((cur) => (cur === p.id ? null : p.id))}
@@ -186,6 +205,11 @@ export default function ProductCatalogue({ onCountChange }: { onCountChange?: (c
                   product={p}
                   onUpdated={(updated) => setProducts((prev) => prev.map((prod) => (prod.id === updated.id ? updated : prod)))}
                 />
+              </div>
+            )}
+            {expandedInspirationId === p.id && (
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${color.border}` }}>
+                <InspirationsPanel productId={p.id} />
               </div>
             )}
             {expandedMaterialId === p.id && (

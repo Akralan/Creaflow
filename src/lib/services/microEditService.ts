@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { creatorProfiles, scriptMicroEditEvents, scripts } from "@/db/schema";
 import { callStructured } from "@/lib/llm/provider";
-import { SCRIPT_SYSTEM_PROMPT, buildScriptUserMessage } from "@/lib/llm/prompts";
+import { SCRIPT_CORE_PROMPT, buildScriptUserMessage } from "@/lib/llm/prompts";
 import { buildStyleBlock, parseStoredStyleProfile } from "@/lib/llm/styleProfile";
 import { visualSpecFromScript } from "@/lib/visualDesign/visualFormat";
 import {
@@ -195,7 +195,9 @@ export async function regenerateBlock(userId: string, scriptId: string, block: M
   }
 
   const args = await callStructured({
-    system: `${SCRIPT_SYSTEM_PROMPT}\n\nTu dois régénérer UNIQUEMENT le bloc demandé via l'outil fourni — laisse strictement de côté le reste du script, déjà figé et non transmis ici.`,
+    // Le cœur seul : la méthode en étapes suppose les champs de préparation, que les outils de bloc
+    // n'ont pas (docs/SPEC_PROMPT_GENERATION_V3.md §4.1).
+    system: `${SCRIPT_CORE_PROMPT}\n\nTu dois régénérer UNIQUEMENT le bloc demandé via l'outil fourni — laisse strictement de côté le reste du script, déjà figé et non transmis ici.`,
     userMessage: [buildScriptUserMessage(context), buildConceptContextLine(script.concept)].filter(Boolean).join("\n\n"),
     tool: toolForBlock(block, script.contentType),
     maxTokens: 1024,

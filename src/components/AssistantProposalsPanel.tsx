@@ -5,6 +5,8 @@ import { Check, SquarePen, X } from "lucide-react";
 import Card from "@/components/ui/Card";
 import IconActionButton from "@/components/ui/IconActionButton";
 import PublishingDaysPicker from "@/components/PublishingDaysPicker";
+import RhythmPicker from "@/components/RhythmPicker";
+import { parseStoredRhythm, rhythmLabel, type SeriesRhythm } from "@/lib/seriesRhythm";
 import { api, ApiClientError, type AssistantProposal, type StyleProfile } from "@/lib/apiClient";
 import { accentAlpha, color } from "@/lib/design/tokens";
 import { useContentCategories } from "@/contexts/CategoryLabelsContext";
@@ -137,7 +139,8 @@ interface ProductDraft {
 interface SeriesDraft {
   label: string;
   description: string;
-  weight: number;
+  /** Absent = rythme inchangé (proposition d'avant le rythme, ou update qui n'y touche pas). */
+  rhythm?: SeriesRhythm;
   categoryId: string;
   platforms: string[];
   mode: "feuilleton" | "rendez_vous";
@@ -202,7 +205,7 @@ function toSeriesDraft(payload: Record<string, unknown>): SeriesDraft {
   return {
     label: typeof payload.label === "string" ? payload.label : "",
     description: typeof payload.description === "string" ? payload.description : "",
-    weight: typeof payload.weight === "number" ? payload.weight : 0,
+    rhythm: parseStoredRhythm(payload.rhythm) ?? undefined,
     categoryId: typeof payload.categoryId === "string" ? payload.categoryId : "",
     platforms: Array.isArray(payload.platforms) ? (payload.platforms as string[]) : [],
     mode: payload.mode === "feuilleton" ? "feuilleton" : "rendez_vous",
@@ -381,7 +384,9 @@ function ProposalCard({
 
   const description =
     group === "series"
-      ? seriesDraft.description
+      ? seriesDraft.rhythm
+        ? `${seriesDraft.description} · ${rhythmLabel(seriesDraft.rhythm)}`
+        : seriesDraft.description
       : group === "category"
         ? categoryDraft.description
         : group === "angle"
@@ -427,13 +432,9 @@ function ProposalCard({
           <div style={{ display: "grid", gap: 8 }}>
             <input style={inputStyle} value={seriesDraft.label} onChange={(e) => setSeriesDraft((d) => ({ ...d, label: e.target.value }))} placeholder="Nom de la série" />
             <input style={inputStyle} value={seriesDraft.description} onChange={(e) => setSeriesDraft((d) => ({ ...d, description: e.target.value }))} placeholder="Identité de la série" />
-            <input
-              style={{ ...inputStyle, width: 100 }}
-              type="number"
-              min={0}
-              max={100}
-              value={seriesDraft.weight}
-              onChange={(e) => setSeriesDraft((d) => ({ ...d, weight: Number(e.target.value) }))}
+            <RhythmPicker
+              value={seriesDraft.rhythm ?? { days: [3], every: 1, anchor: null }}
+              onChange={(rhythm) => setSeriesDraft((d) => ({ ...d, rhythm }))}
             />
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {categories.map((c) => (

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { z } from "zod";
 import { and, count, eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -7,6 +7,8 @@ import { requireUserId } from "@/lib/auth/session";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 import { MIN_PRODUCTS } from "@/lib/validation";
 import { updateProductForUser } from "@/lib/services/productsService";
+import { refreshStaleReaderPortraits } from "@/lib/services/readerPortraitService";
+import { logger } from "@/lib/logger";
 
 const updateProductSchema = z.object({
   name: z.string().min(1).optional(),
@@ -29,6 +31,12 @@ export async function PUT(
     const body = updateProductSchema.parse(await request.json());
 
     const updated = await updateProductForUser(userId, id, body);
+    // Un « Pour qui » modifié périme le portrait (sauf s'il a été corrigé à la main).
+    if (body.targetAudience !== undefined) {
+      after(() =>
+        refreshStaleReaderPortraits(userId, [id]).catch((err) => logger.error("Portraits des lecteurs échoués", err, { userId }))
+      );
+    }
 
     return NextResponse.json({ product: updated });
   } catch (error) {

@@ -1,0 +1,257 @@
+{
+  "createdAt": "2026-10-17T00:28:03.764Z",
+  "baseline": true,
+  "forcedProductId": null,
+  "entries": [
+    {
+      "scriptId": "4b4ee15f-0b57-455c-a079-d07581c60adc",
+      "platform": "linkedin",
+      "contentType": "visual",
+      "visualFormat": "animation",
+      "durationMs": 8000,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Prompt en duel",
+        "beatId": "presentation-creaflow"
+      },
+      "post": {
+        "title": "CreaFlow en chantier — le problème avant le produit",
+        "concept": "Présenter Alix comme la personne qui construit CreaFlow pour résoudre un problème très concret des indépendants — produire régulièrement du contenu — en faisant de la transparence du chantier la raison de suivre la série sur LinkedIn.",
+        "hookText": null,
+        "hookVisual": "Fond unique sobre de chantier produit : interface abstraite de blocs de texte et de prompts en cours d’assemblage, avec le mot « chantier » barré puis remplacé par « CreaFlow ». Animation légère des blocs, sans audio.",
+        "storyboard": [
+          {
+            "planNumber": 1,
+            "description": "Texte à l’écran : « Créer du contenu. » Puis : « Le refaire, chaque semaine. »"
+          },
+          {
+            "planNumber": 2,
+            "description": "Texte à l’écran : « C’est le problème. »"
+          },
+          {
+            "planNumber": 3,
+            "description": "Texte à l’écran : « Je construis CreaFlow »"
+          },
+          {
+            "planNumber": 4,
+            "description": "Texte à l’écran : « avec des modèles de langage. »"
+          },
+          {
+            "planNumber": 5,
+            "description": "Texte à l’écran : « Je documente le chantier. »"
+          },
+          {
+            "planNumber": 6,
+            "description": "Texte à l’écran : « Suivez la construction. »"
+          }
+        ],
+        "caption": "Créer du contenu est une chose. Le refaire régulièrement en est une autre — surtout quand on construit son activité en indépendant.\n\nJe construis CreaFlow autour de ce problème, avec des modèles de langage. L’objectif : explorer comment des outils mieux conçus peuvent aider les indépendants à produire leurs contenus sans transformer chaque publication en nouveau chantier.\n\nJe partagerai ici les décisions de conception, les tests et les apprentissages au fil de la construction.\n\nCreaFlow en chantier commence maintenant. Suivez la construction.",
+        "hashtags": [
+          "#CreaFlow",
+          "#BuildInPublic",
+          "#Indépendants",
+          "#DéveloppementProduit"
+        ]
+      },
+      "design": {
+        "width": 1080,
+        "height": 1920,
+        "durationMs": 8000,
+        "slides": [
+          {
+            "planNumber": 1,
+            "html": "<div style=\"position:relative;width:1080px;height:1920px;overflow:hidden;background:#101418\"><div data-layer=\"l1\" data-type=\"shape\" style=\"position:absolute;top:0px;left:0px;width:1080px;height:1920px;background:linear-gradient(135deg,#101418 0%,#182129 55%,#101418 100%)\"></div><div data-layer=\"l2\" data-type=\"shape\" style=\"position:absolute;top:140px;left:90px;width:900px;height:2px;background:#28323C\"></div><div data-layer=\"l3\" data-type=\"shape\" style=\"position:absolute;top:1778px;left:90px;width:900px;height:2px;background:#28323C\"></div><div data-layer=\"l5\" data-type=\"text\" style=\"position:absolute;top:500px;left:90px;width:900px;height:210px;color:#E9EEF2;font-family:Space Grotesk;font-size:78px;line-height:1.08;font-weight:700\">Créer du contenu.<br>Le refaire, chaque semaine.</div><div data-layer=\"l6\" data-type=\"text\" style=\"position:absolute;top:500px;left:90px;width:900px;height:110px;color:#E9EEF2;font-family:Space Grotesk;font-size:78px;line-height:1.08;font-weight:700\">C’est le problème.</div><div data-layer=\"l7\" data-type=\"text\" style=\"position:absolute;top:500px;left:90px;width:900px;height:110px;color:#6EE7B7;font-family:Space Grotesk;font-size:78px;line-height:1.08;font-weight:700\">Je construis CreaFlow</div><div data-layer=\"l8\" data-type=\"text\" style=\"position:absolute;top:500px;left:90px;width:900px;height:110px;color:#E9EEF2;font-family:Space Grotesk;font-size:78px;line-height:1.08;font-weight:700\">avec des modèles de langage.</div><div data-layer=\"l9\" data-type=\"text\" style=\"position:absolute;top:500px;left:90px;width:900px;height:110px;color:#E9EEF2;font-family:Space Grotesk;font-size:78px;line-height:1.08;font-weight:700\">Je documente le chantier.</div><div data-layer=\"l10\" data-type=\"text\" style=\"position:absolute;top:500px;left:90px;width:900px;height:110px;color:#6EE7B7;font-family:Space Grotesk;font-size:78px;line-height:1.08;font-weight:700\">Suivez la construction.</div><div data-layer=\"l12\" data-type=\"text\" style=\"position:absolute;top:1570px;left:90px;width:900px;height:80px;color:#A7B0BA;font-family:Inter;font-size:28px;line-height:38px\">CreaFlow en chantier — le problème avant le produit</div></div>"
+          }
+        ],
+        "timeline": [
+          {
+            "exit": "fade",
+            "enter": "fade",
+            "enterMs": 500,
+            "layerId": "l5",
+            "startMs": 500,
+            "exitAtMs": 1800
+          },
+          {
+            "exit": "fade",
+            "enter": "slide-up",
+            "enterMs": 500,
+            "layerId": "l6",
+            "startMs": 2100,
+            "exitAtMs": 3000
+          },
+          {
+            "exit": "fade",
+            "enter": "slide-up",
+            "enterMs": 500,
+            "layerId": "l7",
+            "startMs": 3300,
+            "exitAtMs": 4200
+          },
+          {
+            "exit": "fade",
+            "enter": "slide-left",
+            "enterMs": 500,
+            "layerId": "l8",
+            "startMs": 4500,
+            "exitAtMs": 5300
+          },
+          {
+            "exit": "fade",
+            "enter": "fade",
+            "enterMs": 500,
+            "layerId": "l9",
+            "startMs": 5600,
+            "exitAtMs": 6500
+          },
+          {
+            "exit": null,
+            "enter": "zoom-in",
+            "enterMs": 500,
+            "layerId": "l10",
+            "startMs": 6800,
+            "exitAtMs": null
+          }
+        ],
+        "imageUrls": {},
+        "logoUrl": null
+      },
+      "trace": null
+    },
+    {
+      "scriptId": "03e8eea3-7d44-42e6-869c-d9a2d8dc5007",
+      "platform": "linkedin",
+      "contentType": "text",
+      "visualFormat": null,
+      "durationMs": null,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Autopsie de sortie",
+        "beatId": "notion-generation-contenus"
+      },
+      "post": {
+        "title": "Le modèle ne conçoit pas l’outil à votre place",
+        "concept": "Corriger l’idée reçue selon laquelle un modèle de langage remplace la conception produit, puis poser une grille en trois rôles — produit, modèle, utilisateur — pour guider les prochains épisodes de « CreaFlow en chantier » auprès de développeurs d’outils pour indépendants. Ils doivent retenir que la génération de contenus par modèles de langage est d’abord un arbitrage de conception, avant d’être un choix technique.",
+        "hookText": "Idée reçue : ajouter un modèle de langage à un outil de contenu revient à lui donner un rédacteur intégré.",
+        "hookVisual": null,
+        "storyboard": null,
+        "caption": "En réalité, le changement est plus profond.\n\nLa génération de contenus par modèles de langage oblige à redistribuer les rôles entre trois parties :\n\n— Le produit : il cadre le problème, les étapes et les contraintes.\n— Le modèle : il propose, transforme et adapte à partir des informations qu’on lui donne.\n— L’utilisateur : il apporte le contexte, arbitre et garde la responsabilité du résultat.\n\nC’est cette répartition qui doit guider la conception d’un outil pour indépendants.\n\nUn mauvais cadrage produit demande au modèle de compenser ce que l’interface, le brief ou le parcours n’ont pas clarifié. À l’inverse, un outil bien conçu ne cherche pas seulement à produire du texte : il aide l’utilisateur à fournir les bonnes informations au bon moment, puis à décider quoi garder.\n\nC’est la grille de lecture que j’utiliserai dans les prochains épisodes de « CreaFlow en chantier » : quelle part revient au produit, quelle part au modèle, et quelle décision reste entre les mains de l’utilisateur.\n\nAvant de suivre les choix techniques de CreaFlow, il faut donc regarder cet arbitrage de conception.",
+        "hashtags": [
+          "#IA",
+          " #ProductDesign",
+          " #SaaS",
+          " #Developpement"
+        ]
+      },
+      "design": null,
+      "trace": null
+    },
+    {
+      "scriptId": "9d464b43-9145-4700-be17-948865eee054",
+      "platform": "linkedin",
+      "contentType": "text",
+      "visualFormat": null,
+      "durationMs": null,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Brief vers résultat",
+        "beatId": "contexte-outils-independants"
+      },
+      "post": {
+        "title": "Pas un logiciel d’équipe en plus petit",
+        "concept": "Sur LinkedIn, opposer les logiciels pensés pour des équipes structurées au travail réel des indépendants, puis faire de ce contraste le point de départ de CreaFlow — avec une promesse claire de montrer au prochain épisode l’arbitrage concret qui en découle.",
+        "hookText": "Un indépendant ne travaille pas comme une équipe avec moins de personnes.",
+        "hookVisual": null,
+        "storyboard": null,
+        "caption": "Un indépendant ne travaille pas comme une équipe avec moins de personnes.\n\nDans un logiciel conçu pour une équipe structurée, on peut répartir les rôles, formaliser les étapes et faire circuler l’information entre plusieurs personnes.\n\nUn indépendant, lui, porte souvent plusieurs fonctions à la fois. Il avance entre production, relation client, administratif et développement de son activité. Ses décisions se prennent avec des contraintes très concrètes : peu de temps, peu de marge pour configurer l’outil, et des arbitrages à refaire chaque jour.\n\nC’est pour cela que les outils pour les indépendants ne peuvent pas seulement reprendre les logiques des logiciels d’équipe dans une interface plus simple.\n\nIls doivent partir de la manière dont une personne travaille réellement : ce qu’elle fait seule, ce qu’elle remet à plus tard, ce qu’elle doit décider vite et ce qu’elle ne peut pas maintenir au quotidien.\n\nC’est le point de départ de CreaFlow en chantier : avant de choisir des fonctionnalités, comprendre les contraintes qui doivent guider l’outil.\n\nDans un prochain épisode, je montrerai comment cette contrainte se traduit dans un arbitrage concret du chantier de CreaFlow.",
+        "hashtags": [
+          "#Indépendants",
+          "#ProductDevelopment",
+          "#SaaS",
+          "#BuildInPublic"
+        ]
+      },
+      "design": null,
+      "trace": null
+    },
+    {
+      "scriptId": "f824a98a-5418-4d4f-af02-78f4f721cbb0",
+      "platform": "linkedin",
+      "contentType": "visual",
+      "visualFormat": "single",
+      "durationMs": null,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Mythe contre test",
+        "beatId": "premier-choix-architecture"
+      },
+      "post": {
+        "title": "Le modèle n’est pas le processus",
+        "concept": "Sur LinkedIn, raconter le tout premier arbitrage de CreaFlow avant toute décision technique : montrer, à partir d’une intention de contenu d’indépendant, que le vrai chantier consiste à rendre le processus pilotable — cadrer l’objectif, les contraintes et les critères de sortie avant de demander quoi que ce soit à un modèle de langage.",
+        "hookText": null,
+        "hookVisual": "Image unique en vue de dessus : une phrase manuscrite « Je veux publier régulièrement » au centre, reliée par des flèches à trois cases nettes « pour qui ? », « avec quelles contraintes ? », « comment juger le résultat ? ». En bas, la signature de série « CreaFlow en chantier — épisode pédagogique ». Le contraste visuel oppose une intention floue à un processus cadré.",
+        "storyboard": [
+          {
+            "planNumber": 1,
+            "description": "Visuel statique minimaliste sur fond clair. En haut : « Un modèle de langage ne transforme pas une intention en processus. » Au centre, l’intention « Je veux publier régulièrement » est encerclée en rouge, puis trois blocs structurants apparaissent autour : « objectif », « contraintes », « critères de sortie ». En bas : « CreaFlow en chantier » et « Avant les arbitrages techniques, clarifier le problème. »"
+          }
+        ],
+        "caption": "CreaFlow en chantier — épisode pédagogique.\n\nPour un indépendant, le point de départ ressemble souvent à ça :\n\n« Je veux publier régulièrement. »\n\nC’est une intention. Pas encore un processus.\n\nBrancher un modèle de langage sur cette phrase peut produire du contenu. Mais cela ne répond pas aux questions qui rendent le travail pilotable :\n\n— Pour qui ce contenu est-il conçu ?\n— Quelles contraintes doit-il respecter ?\n— À quoi reconnaît-on une sortie acceptable ?\n— Que fait-on quand le résultat ne convient pas ?\n\nC’est là que se situe le problème que CreaFlow cherche à traiter pour les indépendants : pas seulement générer des contenus par modèles de langage, mais transformer une intention en étapes, en critères et en arbitrages explicites.\n\nPour les développeurs qui construisent des outils pour les indépendants, la conséquence est importante : le premier chantier n’est pas forcément le choix du modèle, du framework ou de l’interface. C’est la clarification du problème que l’outil doit aider à piloter.\n\nLes arbitrages du chantier viendront ensuite. Mais sans ce cadrage, on risque surtout d’automatiser une demande floue.\n\nC’est le point de départ de CreaFlow.",
+        "hashtags": [
+          "#CreaFlow",
+          "#ProductDevelopment",
+          "#GenerativeAI",
+          "#IndieHackers"
+        ]
+      },
+      "design": {
+        "width": 1080,
+        "height": 1350,
+        "durationMs": null,
+        "slides": [
+          {
+            "planNumber": 1,
+            "html": "<div style=\"position:relative;width:1080px;height:1350px;overflow:hidden;background:#F4F0E8\"><div data-layer=\"l1\" data-type=\"shape\" style=\"position:absolute;left:54px;top:54px;width:972px;height:6px;background:#D94A3D\"></div><div data-layer=\"l2\" data-type=\"text\" style=\"position:absolute;left:54px;top:94px;width:820px;height:150px;color:#171717;font-family:Space Grotesk;font-size:52px;line-height:1.08;font-weight:700;letter-spacing:-1px\">Un modèle de langage ne transforme pas une intention en processus.</div><div data-layer=\"l3\" data-type=\"shape\" style=\"position:absolute;left:282px;top:360px;width:516px;height:174px;border:5px solid #D94A3D;border-radius:50%;transform:rotate(-3deg)\"></div><div data-layer=\"l4\" data-type=\"text\" style=\"position:absolute;left:316px;top:412px;width:448px;height:62px;color:#171717;font-family:Caveat;font-size:46px;line-height:1.1;text-align:center;font-weight:700\">Je veux publier régulièrement</div><div data-layer=\"l5\" data-type=\"shape\" style=\"position:absolute;left:90px;top:704px;width:270px;height:150px;background:#171717;border-radius:18px\"></div><div data-layer=\"l6\" data-type=\"text\" style=\"position:absolute;left:90px;top:704px;width:270px;height:150px;color:#F4F0E8;font-family:Inter;font-size:34px;line-height:150px;text-align:center;font-weight:700\">objectif</div><div data-layer=\"l7\" data-type=\"shape\" style=\"position:absolute;left:405px;top:704px;width:270px;height:150px;background:#D8CFC0;border:3px solid #171717;border-radius:18px\"></div><div data-layer=\"l8\" data-type=\"text\" style=\"position:absolute;left:405px;top:704px;width:270px;height:150px;color:#171717;font-family:Inter;font-size:34px;line-height:150px;text-align:center;font-weight:700\">contraintes</div><div data-layer=\"l9\" data-type=\"shape\" style=\"position:absolute;left:720px;top:704px;width:270px;height:150px;background:#D94A3D;border-radius:18px\"></div><div data-layer=\"l10\" data-type=\"text\" style=\"position:absolute;left:720px;top:704px;width:270px;height:150px;color:#FFFFFF;font-family:Inter;font-size:34px;line-height:1.05;text-align:center;font-weight:700;padding-top:49px;box-sizing:border-box\">critères<br>de sortie</div><div data-layer=\"l11\" data-type=\"text\" style=\"position:absolute;left:54px;top:1120px;width:972px;height:48px;color:#D94A3D;font-family:Space Grotesk;font-size:30px;font-weight:700\">CreaFlow en chantier</div><div data-layer=\"l12\" data-type=\"text\" style=\"position:absolute;left:54px;top:1184px;width:820px;height:72px;color:#171717;font-family:Inter;font-size:28px;line-height:1.25\">Avant les arbitrages techniques, clarifier le problème.</div></div>"
+          }
+        ],
+        "timeline": null,
+        "imageUrls": {},
+        "logoUrl": null
+      },
+      "trace": null
+    },
+    {
+      "scriptId": "4ecd3194-ddb0-4acd-9917-b79d38ffe793",
+      "platform": "linkedin",
+      "contentType": "text",
+      "visualFormat": null,
+      "durationMs": null,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Itération en direct",
+        "beatId": "premier-echec-creaflow"
+      },
+      "post": {
+        "title": "Le travail que l’outil ne doit pas déplacer",
+        "concept": "Sur LinkedIn, poser d’abord le vrai arbitrage produit — aider un indépendant à publier avec des modèles de langage sans lui ajouter un outil qui demande encore du travail — puis annoncer que le prochain épisode montrera le premier résultat raté de CreaFlow. Le post s’adresse aux développeurs qui construisent pour les indépendants et doit leur faire retenir qu’un outil de génération de contenu se juge au travail qu’il enlève, pas au texte qu’il produit seul.",
+        "hookText": "Un outil peut accélérer la rédaction et laisser intact le problème qui faisait perdre du temps à l’indépendant.",
+        "hookVisual": null,
+        "storyboard": null,
+        "caption": "Un outil peut accélérer la rédaction et laisser intact le problème qui faisait perdre du temps à l’indépendant.\n\nPour un indépendant, produire du contenu avec des modèles de langage ne consiste pas seulement à obtenir un texte en quelques secondes.\n\nIl faut encore savoir quoi demander, donner le bon contexte, arbitrer entre plusieurs versions, vérifier que le résultat ressemble à sa manière de travailler, puis le transformer en contenu publiable.\n\nC’est là que les outils pour les indépendants deviennent intéressants — et difficiles à concevoir.\n\nLe modèle peut générer. L’outil doit aider à décider ce qui mérite d’être généré, avec quelles contraintes, et à quel moment le résultat est suffisamment exploitable.\n\nC’est l’arbitrage du chantier CreaFlow : chercher le bon niveau d’assistance sans déplacer le travail vers une nouvelle interface, une nouvelle méthode ou une nouvelle série de corrections.\n\nLa génération de contenus par modèles de langage n’est donc pas le produit en soi. C’est une capacité à intégrer dans un parcours où l’indépendant doit pouvoir avancer, pas simplement produire davantage de brouillons.\n\nDans un prochain épisode, je montrerai le premier résultat de CreaFlow qui ne fonctionne pas comme prévu.",
+        "hashtags": [
+          "#ProductDevelopment",
+          "#IndieHackers",
+          "#GenerativeAI",
+          "#SaaS"
+        ]
+      },
+      "design": null,
+      "trace": null
+    }
+  ]
+}

@@ -267,6 +267,48 @@
       "when": 1792184306964,
       "tag": "0037_onboarding_mvp",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1792192695565,
+      "tag": "0038_prompt_generation_v3",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1792195217587,
+      "tag": "0039_memoire_et_veille",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1792195850816,
+      "tag": "0040_inspiration_drop_votes",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1792199874835,
+      "tag": "0041_cadrage_serie",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1792230881722,
+      "tag": "0042_rythme_des_series",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1792232394819,
+      "tag": "0043_quotas_admin",
+      "breakpoints": true
     }
   ]
 }

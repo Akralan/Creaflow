@@ -74,18 +74,18 @@ export function expectedStoryboardRange(spec: VisualFormatSpec): { min: number; 
   return { min: 1, max: 1 };
 }
 
-/** Bloc `=== FORMAT ===` du message de génération (Annexe A.1). */
+/** Bloc <format> du message de génération (Annexe A.1 ; balisé depuis docs/SPEC_PROMPT_GENERATION_V3.md). */
 export function buildFormatBlock(spec: VisualFormatSpec | null | undefined): string {
   if (!spec) return "";
   if (spec.format === "carousel") {
     const n = spec.slideCount ?? DEFAULT_SLIDES;
-    return `=== FORMAT ===\nCarrousel de ${n} slides : le storyboard a exactement ${n} entrées, une par slide, dans l'ordre de lecture ; la première accroche, la dernière porte l'appel à l'action.${captionLine(spec)}`;
+    return `<format>\nCarrousel de ${n} slides : le storyboard a exactement ${n} entrées, une par slide, dans l'ordre de lecture ; la première accroche, la dernière porte l'appel à l'action.${captionLine(spec)}\n</format>`;
   }
   if (spec.format === "animation") {
     const seconds = Math.round((spec.durationMs ?? DEFAULT_DURATION_MS) / 1000);
-    return `=== FORMAT ===\nAnimation de ${seconds} secondes : le storyboard a entre ${ANIMATION_MOMENTS.min} et ${ANIMATION_MOMENTS.max} entrées ; chaque entrée est un MOMENT du texte à l'écran, dans l'ordre d'apparition, sur une seule image de fond. Le texte de tous les moments réunis doit se lire en ${seconds} secondes (environ 3 mots par seconde) : phrases très courtes.${captionLine(spec)}`;
+    return `<format>\nAnimation de ${seconds} secondes : le storyboard a entre ${ANIMATION_MOMENTS.min} et ${ANIMATION_MOMENTS.max} entrées ; chaque entrée est un MOMENT du texte à l'écran, dans l'ordre d'apparition, sur une seule image de fond. Le texte de tous les moments réunis doit se lire en ${seconds} secondes (environ 3 mots par seconde) : phrases très courtes.${captionLine(spec)}\n</format>`;
   }
-  return `=== FORMAT ===\nImage unique : le storyboard a exactement 1 entrée — ce qu'on voit et le texte affiché.${captionLine(spec)}`;
+  return `<format>\nImage unique : le storyboard a exactement 1 entrée — ce qu'on voit et le texte affiché.${captionLine(spec)}\n</format>`;
 }
 
 export interface StoryboardCheck<T> {

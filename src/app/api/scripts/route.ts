@@ -11,6 +11,7 @@ import { platformSchema, contentCategorySchema, contentTypeSchema, directiveSche
 import { handleApiError } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
 import { autoComposeDesign } from "@/lib/services/visualDesignService";
+import { refreshInspirationsIfStale } from "@/lib/services/inspirationService";
 import { normalizeVisualSpec, visualFormatFieldsSchema } from "@/lib/visualDesign/visualFormat";
 
 // contentCategoryId optionnel dès qu'une série est fournie — la série impose son rôle
@@ -87,6 +88,9 @@ export async function POST(request: NextRequest) {
     // Maquette composée automatiquement en arrière-plan pour un post visuel
     // (docs/SPEC_COMPOSITION_VISUELLE.md §2) — jamais bloquant, jamais compté dans le quota.
     if (script.contentType === "visual") after(() => autoComposeDesign(userId, script.id));
+    // Veille d'inspiration du sujet relancée en arrière-plan si elle a plus de 7 jours
+    // (docs/SPEC_MEMOIRE_ET_VEILLE.md §1) — jamais bloquant, sans effet sinon.
+    after(() => refreshInspirationsIfStale(userId, context.resolvedProductId ?? null));
 
     if (scheduledDate) {
       await db.insert(calendarEntries).values({

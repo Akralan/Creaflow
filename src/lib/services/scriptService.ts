@@ -12,6 +12,10 @@ import {
 import type { GeneratedScript } from "@/lib/llm/scriptSchema";
 import type { ContentCategoryContext, ContentType, Platform, ScriptGenerationContext } from "@/lib/llm/prompts";
 import { parseStoredStyleProfile } from "@/lib/llm/styleProfile";
+import { parseStoredReaderPortrait } from "@/lib/llm/readerPortrait";
+import { parseStoredChosenVoice, parseStoredFraming, type SeriesFraming } from "@/lib/llm/seriesFraming";
+import { loadRecentPostCards } from "@/lib/services/recentPostsService";
+import { applyInspirationFeedback, loadInspirationsForGeneration } from "@/lib/services/inspirationService";
 import { buildPerformanceSummary } from "@/lib/services/performanceService";
 import { pickAngleForScript } from "@/lib/services/angleService";
 import { findBestBrandAssetForScript } from "@/lib/services/brandAssetService";
@@ -26,6 +30,7 @@ import { logger } from "@/lib/logger";
 
 const RECENT_TOPICS_LIMIT = 15;
 const SERIES_RECENT_TOPICS_LIMIT = 10;
+
 
 /** Angle : recalculé normalement (mécanisme anti-répétition, pickAngleForScript) sauf si
  *  `lockedAngleId` est explicitement fourni (même `undefined` vs valeur — pas de sentinel exotique :
@@ -93,6 +98,7 @@ export async function buildGenerationContext(
 
   let series = null;
   let seriesProductId: string | null = null;
+  let framing: SeriesFraming | null = null;
   if (seriesId) {
     const found = await db.query.contentSeries.findFirst({
       where: and(eq(contentSeries.id, seriesId), eq(contentSeries.userId, userId)),
@@ -102,6 +108,8 @@ export async function buildGenerationContext(
     }
     series = { id: found.id, label: found.label, description: found.description };
     seriesProductId = found.productId;
+    // Cadrage choisi par l'auteur (docs/SPEC_CADRAGE_SERIE.md §4).
+    framing = parseStoredFraming(found.framing);
   }
 
   // Sujet effectif : celui explicitement fourni prime, sinon le sujet lié à la série (sélecteur de
@@ -121,7 +129,7 @@ export async function buildGenerationContext(
     }
   }
 
-  const [recentScripts, performanceSummary, angle, materialDocuments] = await Promise.all([
+  const [recentScripts, performanceSummary, angle, materialDocuments, recentPosts, inspirationCards] = await Promise.all([
     db.query.scripts.findMany({
       where: and(
         eq(scripts.userId, userId),
@@ -138,6 +146,11 @@ export async function buildGenerationContext(
     // — [] si le sujet n'a pas de corpus déposé. C'est le LLM qui décide quoi utiliser, aucune
     // présélection côté serveur.
     getMaterialForSubject(userId, effectiveProductId),
+    // Mémoire des derniers posts du sujet (docs/SPEC_MEMOIRE_ET_VEILLE.md §2) — elle donne aussi les
+    // publics visés récemment, pour alterner.
+    loadRecentPostCards(userId, effectiveProductId, excludeScriptId ?? null),
+    // Fiches de la veille d'inspiration du sujet (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.3).
+    loadInspirationsForGeneration(userId, effectiveProductId),
   ]);
 
   // Uniquement pour "visual" — un appel d'embedding serait un coût inutile sur les 2/3 des
@@ -195,6 +208,12 @@ export async function buildGenerationContext(
           targetAudience: product.targetAudience,
         }
       : null,
+    readers: parseStoredReaderPortrait(product?.readerPortrait)?.readers ?? null,
+    recentReaderLabels: recentPosts.map((p) => p.readerLabel).filter((l): l is string => l !== null),
+    recentPosts,
+    inspirations: inspirationCards,
+    framing,
+    chosenVoice: parseStoredChosenVoice(profile.chosenVoice),
     platform,
     contentCategory: { id: category.id, label: category.label, description: category.description },
     contentType,
@@ -291,6 +310,9 @@ export async function createScriptRecord(
         // réécrit ensuite, y compris par une régénération (updateScriptRecord ne le touche pas).
         firstDraftSnapshot: columns,
         ...columns,
+        // Hors de `columns` exprès : la trace n'a rien à faire dans le premier jet comparé par
+        // l'apprentissage du style.
+        generationTrace: generated.trace ?? null,
       })
       .returning();
     // Comptabilisé pour le quota de facturation (billingService.ts) — voir le commentaire sur
@@ -300,7 +322,18 @@ export async function createScriptRecord(
     // passages de matière utilisés, on les retrouve dans le texte source et on les enregistre.
     await recordCitations(tx, userId, script.id, productId, generated.usedExcerpts ?? []);
     return { ...script, contentCategory };
+  }).then(async (script) => {
+    await recordInspirationFeedback(userId, generated);
+    return script;
   });
+}
+
+/** Retours du rédacteur sur les fiches d'inspiration (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.3) — après
+ *  l'enregistrement, hors transaction : un échec ici ne doit jamais faire perdre le script. */
+async function recordInspirationFeedback(userId: string, generated: GeneratedScript): Promise<void> {
+  await applyInspirationFeedback(userId, generated.trace).catch((err) =>
+    logger.error("Retours sur les fiches d'inspiration non appliqués", err, { userId })
+  );
 }
 
 export async function updateScriptRecord(
@@ -336,6 +369,7 @@ export async function updateScriptRecord(
         ...(extras?.beatId !== undefined && { beatId: extras.beatId }),
         ...(extras?.promiseHonored !== undefined && { promiseHonored: extras.promiseHonored }),
         ...scriptColumnsFromGenerated(generated),
+        generationTrace: generated.trace ?? null,
         updatedAt: new Date(),
       })
       .where(eq(scripts.id, scriptId))
@@ -348,6 +382,9 @@ export async function updateScriptRecord(
     await deleteCitationsForScript(tx, script.id);
     await recordCitations(tx, userId, script.id, extras?.citationsProductId ?? script.productId, generated.usedExcerpts ?? []);
     return { ...script, contentCategory };
+  }).then(async (script) => {
+    await recordInspirationFeedback(userId, generated);
+    return script;
   });
 }
 
@@ -392,9 +429,9 @@ export async function patchScriptContent(userId: string, scriptId: string, patch
 
 /**
  * Suppression d'un brouillon (docs/SPEC_MATIERE_EDITEUR.md §4.5) — pendant de la naissance
- * paresseuse. Cascade DB déjà en place pour scriptGenerationEvents/scriptMicroEditEvents/
- * postMetrics/postMatchCandidates/visualDesigns ; SET NULL déjà en place pour calendarEntries.scriptId
- * (le créneau survit et redevient générable).
+ * paresseuse. Cascade DB déjà en place pour postMetrics/postMatchCandidates/visualDesigns ; SET NULL
+ * pour calendarEntries.scriptId (le créneau survit et redevient générable) et pour les événements
+ * de génération et de retouche, qui restent comptés dans le quota (docs/SPEC_QUOTAS_ADMIN.md).
  */
 export async function deleteScriptForUser(userId: string, scriptId: string) {
   const [deleted] = await db

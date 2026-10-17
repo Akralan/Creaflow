@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import type { ResponseInputItem } from "openai/resources/responses/responses";
-import type { AgenticCallParams, AgenticResult, AgenticToolCall } from "../types";
+import type { AgenticCallParams, AgenticResult, AgenticToolCall, WebResearchParams, WebResearchResult } from "../types";
 import type { StructuredCallParams } from "../types";
 import { logger } from "@/lib/logger";
 
@@ -57,6 +57,35 @@ export async function callOpenAI({ system, userMessage, tool, maxTokens, strict 
   }
 
   return JSON.parse(call.arguments);
+}
+
+/**
+ * Recherche web (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.2) : outil `web_search` intégré à l'API Responses,
+ * exécuté côté OpenAI — pas de boucle de notre côté. Renvoie le compte rendu et les pages citées.
+ */
+export async function callOpenAIWebResearch({ system, userMessage, maxTokens }: WebResearchParams): Promise<WebResearchResult> {
+  const response = await getClient().responses.create({
+    model: MODEL,
+    instructions: system,
+    input: userMessage,
+    max_output_tokens: maxTokens,
+    reasoning: { effort: "low" },
+    tools: [{ type: "web_search", search_context_size: "medium" }],
+    // « required » et pas « auto » : en auto, le modèle répondait parfois de mémoire sans chercher —
+    // aucune page consultée, donc aucun lien vérifiable, donc zéro fiche (observé au premier essai réel).
+    tool_choice: "required",
+  });
+  const sources: WebResearchResult["sources"] = [];
+  for (const item of response.output) {
+    if (item.type !== "message") continue;
+    for (const part of item.content) {
+      if (part.type !== "output_text") continue;
+      for (const annotation of part.annotations) {
+        if (annotation.type === "url_citation") sources.push({ url: annotation.url, title: annotation.title ?? null });
+      }
+    }
+  }
+  return { text: response.output_text ?? "", sources };
 }
 
 /** Garde-fou de volume (docs/SPEC_ASSISTANT_AGENTIQUE.md §2.3) : un retour d'outil peut peser plus

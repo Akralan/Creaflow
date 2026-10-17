@@ -29,15 +29,18 @@ describe("suggestContentSeries", () => {
 
   it("accepte une série avec un rôle unique et transmet l'enum des rôles à l'outil", async () => {
     callStructuredMock.mockResolvedValue({
-      series: [{ label: "Build in public", description: "Chaque semaine, l'avancement.", weight: 20, categoryLabel: "Coulisses", mode: "feuilleton" }],
+      series: [{ label: "Build in public", description: "Chaque semaine, l'avancement.", categoryLabel: "Coulisses", mode: "feuilleton" }],
     });
 
     const result = await suggestContentSeries(context);
 
     expect(result).toEqual([
-      { label: "Build in public", description: "Chaque semaine, l'avancement.", weight: 20, categoryLabel: "Coulisses", mode: "feuilleton" },
+      { label: "Build in public", description: "Chaque semaine, l'avancement.", categoryLabel: "Coulisses", mode: "feuilleton", subjectName: "" },
     ]);
     const tool = callStructuredMock.mock.calls[0][0].tool;
+    // Le sujet est choisi parmi ceux du compte (rattachement de la matière, 2026-10-17).
+    expect(tool.input_schema.properties.series.items.properties.subjectName.enum).toEqual([""]);
+    expect(tool.input_schema.properties.series.items.required).toContain("subjectName");
     const categoryField = tool.input_schema.properties.series.items.properties.categoryLabel;
     expect(categoryField.type).toBe("string");
     expect(categoryField.enum).toEqual(["Coulisses", "Expertise"]);

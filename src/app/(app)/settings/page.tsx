@@ -112,9 +112,12 @@ function IdentityTab() {
         placeholder="Je veux publier chaque semaine sans y passer mes soirées, et que les gens suivent la construction de mon produit jusqu'au lancement."
       />
       <div>
-        <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 12 }}>
-          Jours de publication
+        <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 4 }}>
+          Jours où tu peux publier
         </label>
+        <p style={{ margin: "0 0 12px", fontSize: 13, color: color.textMuted }}>
+          Proposés quand tu crées une série. Chaque série a ensuite son propre rythme, dans Direction.
+        </p>
         <PublishingDaysPicker value={publishingDays} onChange={setPublishingDays} />
       </div>
       {error && <p style={{ color: color.danger, fontSize: 13, margin: 0 }}>{error}</p>}

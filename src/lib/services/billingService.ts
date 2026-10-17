@@ -49,6 +49,20 @@ export function resolveQuotaStatus(used: number, limit: number, planName: string
   return { allowed: used < limit, used, limit, planName };
 }
 
+export const CUSTOM_QUOTA_NAME = "Quota personnalisé";
+
+/**
+ * Limite appliquée (docs/SPEC_QUOTAS_ADMIN.md) : le quota propre au compte, réglé depuis
+ * /admin/quotas, remplace celui de l'essai ou du plan ; null = limite normale.
+ */
+export function effectiveLimit(normal: { limit: number; planName: string }, custom: number | null | undefined) {
+  return custom === null || custom === undefined ? normal : { limit: custom, planName: CUSTOM_QUOTA_NAME };
+}
+
+async function customLimits(userId: string) {
+  return db.query.users.findFirst({ where: eq(users.id, userId), columns: { scriptLimit: true, microEditLimit: true } });
+}
+
 export async function getSubscriptionForUser(userId: string) {
   return db.query.subscriptions.findFirst({ where: eq(subscriptions.userId, userId) });
 }
@@ -69,16 +83,18 @@ async function countGenerationEvents(userId: string, since?: Date): Promise<numb
 }
 
 export async function getQuotaStatus(userId: string): Promise<QuotaStatus> {
-  const subscription = await getSubscriptionForUser(userId);
+  const [subscription, custom] = await Promise.all([getSubscriptionForUser(userId), customLimits(userId)]);
   if (subscription && ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status)) {
     const plan = getPlan(subscription.plan as PlanId);
     const periodStart = subscription.currentPeriodStart ?? subscription.createdAt;
     const used = await countGenerationEvents(userId, periodStart);
-    return resolveQuotaStatus(used, plan.scriptsPerMonth, plan.name);
+    const { limit, planName } = effectiveLimit({ limit: plan.scriptsPerMonth, planName: plan.name }, custom?.scriptLimit);
+    return resolveQuotaStatus(used, limit, planName);
   }
   // Pas d'abonnement actif : essai gratuit à vie (pas de reset périodique), cf. plans.ts.
   const used = await countGenerationEvents(userId);
-  return resolveQuotaStatus(used, FREE_TRIAL_SCRIPT_LIMIT, "Essai gratuit");
+  const { limit, planName } = effectiveLimit({ limit: FREE_TRIAL_SCRIPT_LIMIT, planName: "Essai gratuit" }, custom?.scriptLimit);
+  return resolveQuotaStatus(used, limit, planName);
 }
 
 /**
@@ -118,15 +134,17 @@ async function countMicroEditEvents(userId: string, since?: Date): Promise<numbe
 
 /** Miroir exact de getQuotaStatus, sur le pool micro-retouches (docs/SPEC_MATIERE_EDITEUR.md §4.6). */
 export async function getMicroEditQuotaStatus(userId: string): Promise<QuotaStatus> {
-  const subscription = await getSubscriptionForUser(userId);
+  const [subscription, custom] = await Promise.all([getSubscriptionForUser(userId), customLimits(userId)]);
   if (subscription && ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status)) {
     const plan = getPlan(subscription.plan as PlanId);
     const periodStart = subscription.currentPeriodStart ?? subscription.createdAt;
     const used = await countMicroEditEvents(userId, periodStart);
-    return resolveQuotaStatus(used, plan.microEditsPerMonth, plan.name);
+    const { limit, planName } = effectiveLimit({ limit: plan.microEditsPerMonth, planName: plan.name }, custom?.microEditLimit);
+    return resolveQuotaStatus(used, limit, planName);
   }
   const used = await countMicroEditEvents(userId);
-  return resolveQuotaStatus(used, FREE_TRIAL_MICRO_EDIT_LIMIT, "Essai gratuit");
+  const { limit, planName } = effectiveLimit({ limit: FREE_TRIAL_MICRO_EDIT_LIMIT, planName: "Essai gratuit" }, custom?.microEditLimit);
+  return resolveQuotaStatus(used, limit, planName);
 }
 
 /** À appeler avant toute micro-retouche (POST /api/scripts/:id/micro-edit). */

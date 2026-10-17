@@ -1,6 +1,15 @@
 import type { Platform, ScriptStatus, CalendarStatus } from "@/lib/design/tokens";
+import type { SeriesRhythm } from "@/lib/seriesRhythm";
 
-export class ApiClientError extends Error {}
+export class ApiClientError extends Error {
+  constructor(
+    message: string,
+    /** Statut HTTP de la réponse, pour distinguer un accès tiers expiré (409) d'une vraie panne. */
+    readonly status?: number
+  ) {
+    super(message);
+  }
+}
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -9,7 +18,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   });
   const body = await res.json().catch(() => null);
   if (!res.ok) {
-    throw new ApiClientError(body?.error || `Erreur ${res.status}`);
+    throw new ApiClientError(body?.error || `Erreur ${res.status}`, res.status);
   }
   return body as T;
 }
@@ -237,6 +246,43 @@ export interface Product {
   photoUrl: string | null;
   /** Override d'audience par sujet (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — null = fallback marque. */
   targetAudience: string | null;
+  /** Portrait des lecteurs (docs/SPEC_PROMPT_GENERATION_V3.md §2.2) — null tant qu'il n'est pas produit. */
+  readerPortrait: ReaderPortrait | null;
+}
+
+/** Fiche de la veille d'inspiration d'un sujet (docs/SPEC_MEMOIRE_ET_VEILLE.md §3). */
+export interface Inspiration {
+  id: string;
+  productId: string;
+  url: string;
+  title: string;
+  insight: string;
+  kind: string;
+  readerLabel: string | null;
+  platform: string | null;
+  status: "active" | "dismissed";
+  dismissedBy: "model" | "user" | "system" | null;
+  dismissReason: string | null;
+  shownCount: number;
+  usedCount: number;
+  createdAt: string;
+}
+
+export interface PortraitReader {
+  label: string;
+  who: string;
+  knows: string;
+  wants: string;
+  stopsFor: string;
+  turnsOff: string;
+  words: string[];
+}
+
+export interface ReaderPortrait {
+  readers: PortraitReader[];
+  generatedAt: string | null;
+  editedByUser: boolean;
+  basedOnAudience: string | null;
 }
 
 export interface Connection {
@@ -311,6 +357,51 @@ export interface ContentSeries {
   /** Sujet dont cette série tire sa matière (sélecteur de sujet, docs/SPEC_REDACTEUR_EN_CHEF.md) —
    *  null si la série n'est rattachée à aucun sujet précis (matière de niveau marque). */
   product: { id: string; name: string } | null;
+  /** Cadrage choisi par l'auteur (docs/SPEC_CADRAGE_SERIE.md) — null si la série n'est pas cadrée. */
+  framing: SeriesFraming | null;
+  /** Jours de publication de la série (docs/SPEC_RYTHME_DES_SERIES.md) — null = pas de rythme,
+   *  la série ne pose aucun créneau. */
+  rhythm: SeriesRhythm | null;
+}
+
+/** Ce que l'enregistrement a changé au calendrier pour une série (docs/SPEC_RYTHME_DES_SERIES.md §4). */
+export interface SeriesSlotChange {
+  created: number;
+  removed: number;
+  until: string;
+}
+
+export type FramingDimension = "posture" | "voice" | "story";
+
+export interface FramingChoice {
+  id: string;
+  label: string;
+  rule: string;
+  sample: string;
+}
+
+export interface ProposedFramingOption {
+  id: string;
+  label: string;
+  description: string;
+  rule: string;
+  sample: string;
+}
+
+export interface FramingSignature {
+  text: string;
+  placement: "ouverture" | "fin" | "titre";
+}
+
+export interface SeriesFraming {
+  moment: { title: string; docIds: string[] };
+  posture: FramingChoice;
+  voice: FramingChoice | null;
+  story: FramingChoice;
+  signature: FramingSignature | null;
+  rejected: Array<{ dimension: FramingDimension; id: string; label: string; sample: string }>;
+  remarks: string[];
+  completedAt: string | null;
 }
 
 export interface StoryboardStep {
@@ -506,6 +597,8 @@ export type OnboardingState =
 export interface OnboardingSubjectDraft {
   name: string;
   description: string;
+  /** « Pour qui » de ce sujet (docs/SPEC_PROMPT_GENERATION_V3.md §2.1). */
+  targetAudience: string;
   keys: string[];
 }
 
@@ -598,6 +691,15 @@ export interface GoogleDriveConnection {
   status: "ok" | "needs_reconnect" | null;
   driveAccountEmail: string | null;
   connectedAt: string | null;
+}
+
+/** Écran /admin/quotas (docs/SPEC_QUOTAS_ADMIN.md). `custom` null = limite normale. */
+export interface AdminAccountQuotas {
+  userId: string;
+  email: string;
+  subscription: { plan: string; status: string } | null;
+  scripts: { used: number; limit: number; planName: string; custom: number | null };
+  microEdits: { used: number; limit: number; planName: string; custom: number | null };
 }
 
 export const api = {
@@ -721,19 +823,52 @@ export const api = {
   ) => post<{ categories: ContentCategory[] }>("/api/profile/content-categories", { categories }),
 
   getContentSeries: () => apiFetch<{ series: ContentSeries[] }>("/api/series"),
+  getFramingOptions: (
+    seriesId: string,
+    data: {
+      dimension: FramingDimension;
+      chosen: { posture?: { id: string; sample: string } | null; voice?: { id: string; sample: string } | null };
+      excludeIds?: string[];
+      remark?: string;
+      moment?: { title: string; docIds: string[] };
+    }
+  ) =>
+    post<{
+      moment: { title: string; docIds: string[]; hasMaterial: boolean };
+      options: ProposedFramingOption[];
+      accountVoice: (FramingChoice & { chosenAt: string | null }) | null;
+    }>(`/api/series/${seriesId}/framing/options`, data),
+  getFramingSignature: (
+    seriesId: string,
+    data: { posture: { id: string; sample: string }; voice: { id: string; sample: string } | null; story: { id: string; sample: string } }
+  ) => post<FramingSignature & { why: string }>(`/api/series/${seriesId}/framing/signature`, data),
+  saveFraming: (
+    seriesId: string,
+    data: {
+      moment: { title: string; docIds: string[] };
+      posture: { id: string; sample: string };
+      voice: { id: string; sample: string } | null;
+      story: { id: string; sample: string };
+      signature: FramingSignature | null;
+      rejected: Array<{ dimension: FramingDimension; id: string; sample: string }>;
+      remarks: string[];
+    }
+  ) => put<{ series: ContentSeries }>(`/api/series/${seriesId}/framing`, data),
   generateContentSeries: () => post<{ series: ContentSeries[] }>("/api/series"),
   saveContentSeries: (
     series: Array<{
       id?: string;
       label: string;
       description: string;
-      weight: number;
+      weight?: number;
       categoryId: string;
       platforms: string[];
+      rhythm?: SeriesRhythm | null;
     }>
-  ) => post<{ series: ContentSeries[] }>("/api/series", { series }),
-  /** Validation des séries après l'onboarding : garde celles cochées, recalcule les pourcentages et
-   *  planifie la série principale. `planError` : la sélection est faite, seul le plan a échoué. */
+  ) => post<{ series: ContentSeries[]; slotChanges: Record<string, SeriesSlotChange> }>("/api/series", { series }),
+  /** Validation des séries après l'onboarding : garde celles cochées, leur répartit les jours de
+   *  publication, remplit le calendrier et planifie la série principale. `planError` : la sélection
+   *  est faite, seul le plan a échoué. */
   confirmSeriesSelection: (keptIds: string[]) =>
     post<{ plannedSeriesId: string | null; planError: string | null }>("/api/series/selection", { keptIds }),
   /** Bascule de mode et/ou sujet lié (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — endpoint dédié plutôt que
@@ -773,6 +908,16 @@ export const api = {
     data: Partial<{ name: string; description: string; valueProposition: string; photoUrl: string; targetAudience: string | null }>
   ) => put<{ product: Product }>(`/api/products/${id}`, data),
   deleteProduct: (id: string) => del<{ ok: true }>(`/api/products/${id}`),
+  regenerateReaderPortrait: (id: string) => post<{ readerPortrait: ReaderPortrait }>(`/api/products/${id}/reader-portrait`, {}),
+  getInspirations: (productId: string) =>
+    apiFetch<{ inspirations: Inspiration[]; refreshedAt: string | null }>(`/api/products/${productId}/inspirations`),
+  runInspirationResearch: (productId: string) =>
+    post<{ inspirations: Inspiration[]; refreshedAt: string | null }>(`/api/products/${productId}/inspirations`, {}),
+  setInspirationStatus: (id: string, status: "active" | "dismissed") =>
+    patch<{ inspiration: Inspiration }>(`/api/inspirations/${id}`, { status }),
+  deleteInspiration: (id: string) => del<{ ok: true }>(`/api/inspirations/${id}`),
+  saveReaderPortrait: (id: string, readers: PortraitReader[]) =>
+    put<{ readerPortrait: ReaderPortrait }>(`/api/products/${id}/reader-portrait`, { readers }),
 
   getConnections: () => apiFetch<{ connections: Connection[] }>("/api/connections"),
 
@@ -791,13 +936,10 @@ export const api = {
       hasLogo: boolean;
       /** Premier créneau vide à venir hors de la bande affichée : la carte « post suivant ». */
       nextSlot: WeekEntry | null;
-      /** Plus rien de vide à venir : le mois à planifier pour trouver la suite. */
-      monthToPlan: string | null;
     }>(
       `/api/calendar?from=${from}&to=${to}`
     ),
   getCalendarEntry: (id: string) => apiFetch<{ entry: CalendarEntry }>(`/api/calendar/${id}`),
-  generateCalendar: (month: string) => post<{ entries: CalendarEntry[] }>("/api/calendar/generate", { month }),
   placeScript: (scriptId: string, scheduledDate: string) =>
     post<{ entry: CalendarEntry }>("/api/calendar", { scriptId, scheduledDate }),
   updateCalendarEntryStatus: (id: string, status: CalendarStatus) =>
@@ -805,6 +947,11 @@ export const api = {
   updateCalendarEntry: (id: string, data: { contentCategoryId?: string; seriesId?: string | null }) =>
     patch<{ entry: CalendarEntry }>(`/api/calendar/${id}`, data),
   deleteCalendarEntry: (id: string) => del<{ ok: true }>(`/api/calendar/${id}`),
+
+  getAdminQuotas: (email: string) =>
+    apiFetch<{ account: AdminAccountQuotas }>(`/api/admin/quotas?email=${encodeURIComponent(email)}`),
+  setAdminQuotas: (data: { userId: string; scriptLimit: number | null; microEditLimit: number | null }) =>
+    put<{ account: AdminAccountQuotas }>("/api/admin/quotas", data),
 
   generateScriptForEntry: (calendarEntryId: string, contentType?: ContentType, productId?: string, directive?: string, visual?: VisualFormatFields) =>
     post<{ script: Script }>("/api/scripts/generate", { calendarEntryId, contentType, productId, directive, ...visual }),
@@ -918,7 +1065,7 @@ export const api = {
     expectations?: string;
     publishingDays: number[];
     platforms: string[];
-    subjects: Array<{ name: string; description?: string; keys: string[] }>;
+    subjects: Array<{ name: string; description?: string; targetAudience?: string; keys: string[] }>;
   }) => post<{ ok: true }>("/api/onboarding/complete", data),
 
   getAssistantChat: () =>
@@ -937,7 +1084,7 @@ export const api = {
     const res = await fetch("/api/assistant/attachments", { method: "POST", body: formData });
     const body = await res.json().catch(() => null);
     if (!res.ok) {
-      throw new ApiClientError(body?.error || `Erreur ${res.status}`);
+      throw new ApiClientError(body?.error || `Erreur ${res.status}`, res.status);
     }
     return body as { attachment: AssistantAttachment };
   },
@@ -955,7 +1102,7 @@ export const api = {
     const res = await fetch("/api/assets", { method: "POST", body: formData });
     const body = await res.json().catch(() => null);
     if (!res.ok) {
-      throw new ApiClientError(body?.error || `Erreur ${res.status}`);
+      throw new ApiClientError(body?.error || `Erreur ${res.status}`, res.status);
     }
     return body as { assets: BrandAsset[] };
   },

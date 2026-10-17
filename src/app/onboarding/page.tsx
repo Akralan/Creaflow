@@ -183,6 +183,8 @@ function OnboardingContent() {
 
   const [name, setName] = useState("");
   const [activityType, setActivityType] = useState("");
+  // Audience globale extraite, plus montrée (le « Pour qui » est par sujet, docs/SPEC_PROMPT_GENERATION_V3.md
+  // §2.1) mais enregistrée comme repli sur le profil.
   const [targetAudience, setTargetAudience] = useState("");
   const [subjects, setSubjects] = useState<OnboardingSubjectDraft[]>([]);
   const [extracted, setExtracted] = useState(true);
@@ -290,7 +292,12 @@ function OnboardingContent() {
         expectations: expectations.trim() || undefined,
         publishingDays,
         platforms,
-        subjects: subjects.map((s) => ({ name: s.name.trim(), description: s.description.trim() || undefined, keys: s.keys })),
+        subjects: subjects.map((s) => ({
+          name: s.name.trim(),
+          description: s.description.trim() || undefined,
+          targetAudience: s.targetAudience.trim() || undefined,
+          keys: s.keys,
+        })),
       });
       try {
         localStorage.removeItem(NAME_KEY);
@@ -361,7 +368,6 @@ function OnboardingContent() {
               </StepHeading>
               <TextField label="Ton nom" value={name} onChange={(e) => setName(e.target.value)} />
               <TextAreaField label="Ce que tu fais" value={activityType} onChange={(e) => setActivityType(e.target.value)} style={{ minHeight: 80 }} />
-              <TextAreaField label="Pour qui" optional value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} />
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 7 }}>Tes sujets</div>
                 <SubjectsEditor subjects={subjects} items={items} onChange={setSubjects} />
@@ -386,11 +392,12 @@ function OnboardingContent() {
           {step === "days" && (
             <div>
               <StepHeading title="Tes jours de publication">
-                Un jour coché, un post ce jour-là. Tu pourras changer ça quand tu veux.
+                Les jours où tu peux publier. On les répartit entre tes séries, et tu pourras changer les jours de
+                chacune quand tu veux.
               </StepHeading>
               <PublishingDaysPicker value={publishingDays} onChange={setPublishingDays} />
               <p style={{ fontSize: 14, color: color.textMuted, margin: "14px 0 26px" }}>
-                Un post chaque {publishingDaysLabel(publishingDays)}.
+                Tes séries publieront le {publishingDaysLabel(publishingDays)}.
               </p>
               <div style={{ fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 10 }}>Où tu publies</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>

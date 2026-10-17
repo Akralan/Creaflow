@@ -151,7 +151,7 @@ export const ASSISTANT_READ_TOOLS: LlmToolDefinition[] = [
   {
     name: "read_profile",
     description:
-      "Profil complet du créateur : marque, activité, ton, valeurs, équipement, temps disponible par semaine, audience de marque, profil de style (voix + règles apprises) s'il a été calculé, et styleLearning.pendingScripts = nombre de scripts finalisés dont les corrections n'ont pas encore été analysées (à partir de 5, suggère à l'utilisateur de lancer l'analyse depuis Paramètres — tu ne peux pas la lancer toi-même).",
+      "Profil complet du créateur : marque, activité, ce qu'il attend de CreaFlow, jours de publication, audience de marque, profil de style (voix + règles apprises) s'il a été calculé, et styleLearning.pendingScripts = nombre de scripts finalisés dont les corrections n'ont pas encore été analysées (à partir de 5, suggère à l'utilisateur de lancer l'analyse depuis Paramètres — tu ne peux pas la lancer toi-même).",
     input_schema: { type: "object", properties: {}, required: [] },
   },
 ];

@@ -17,34 +17,34 @@ beforeEach(() => callStructuredMock.mockReset());
 describe("normalizeSubjects", () => {
   it("garde les regroupements du modèle", () => {
     const result = normalizeSubjects(
-      [{ name: "CreaFlow", description: "Outil", keys: ["source:gh", "source:notion", "note:n1"] }, { name: "Autre", description: "", keys: ["source:linear"] }],
+      [{ name: "CreaFlow", description: "Outil", targetAudience: "Devs indés", keys: ["source:gh", "source:notion", "note:n1"] }, { name: "Autre", description: "", targetAudience: "", keys: ["source:linear"] }],
       items
     );
     expect(result).toEqual([
-      { name: "CreaFlow", description: "Outil", keys: ["source:gh", "source:notion", "note:n1"] },
-      { name: "Autre", description: "", keys: ["source:linear"] },
+      { name: "CreaFlow", description: "Outil", targetAudience: "Devs indés", keys: ["source:gh", "source:notion", "note:n1"] },
+      { name: "Autre", description: "", targetAudience: "", keys: ["source:linear"] },
     ]);
   });
 
   it("écarte les clés inconnues et les doublons, et supprime un sujet devenu vide", () => {
     const result = normalizeSubjects(
       [
-        { name: "A", description: "", keys: ["source:gh", "source:inventee"] },
-        { name: "B", description: "", keys: ["source:gh"] },
+        { name: "A", description: "", targetAudience: "", keys: ["source:gh", "source:inventee"] },
+        { name: "B", description: "", targetAudience: "", keys: ["source:gh"] },
       ],
       items.slice(0, 1)
     );
-    expect(result).toEqual([{ name: "A", description: "", keys: ["source:gh"] }]);
+    expect(result).toEqual([{ name: "A", description: "", targetAudience: "", keys: ["source:gh"] }]);
   });
 
   it("range une source oubliée dans son propre sujet, une note oubliée dans le premier", () => {
-    const result = normalizeSubjects([{ name: "CreaFlow", description: "", keys: ["source:gh"] }], items);
+    const result = normalizeSubjects([{ name: "CreaFlow", description: "", targetAudience: "", keys: ["source:gh"] }], items);
     expect(result.map((s) => s.keys)).toEqual([["source:gh", "note:n1"], ["source:notion"], ["source:linear"]]);
     expect(result[1].name).toBe("Journal de bord");
   });
 
   it("fait un sujet de la note seule quand il n'y a rien d'autre", () => {
-    expect(normalizeSubjects([], [items[3]])).toEqual([{ name: "Mes notes", description: "", keys: ["note:n1"] }]);
+    expect(normalizeSubjects([], [items[3]])).toEqual([{ name: "Mes notes", description: "", targetAudience: "", keys: ["note:n1"] }]);
   });
 });
 
@@ -53,7 +53,7 @@ describe("extractProfileFromMaterial", () => {
     callStructuredMock.mockResolvedValue({
       activityType: " Tu construis CreaFlow. ",
       targetAudience: "Développeurs",
-      subjects: [{ name: "CreaFlow", description: "Outil", keys: ["source:gh"] }],
+      subjects: [{ name: "CreaFlow", description: "Outil", targetAudience: "", keys: ["source:gh"] }],
     });
     const result = await extractProfileFromMaterial({
       name: "Alix",

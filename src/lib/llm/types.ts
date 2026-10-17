@@ -28,6 +28,20 @@ export interface AgenticToolCall {
   failed?: boolean;
 }
 
+/** Recherche web (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.2) — OpenAI uniquement, comme la boucle agentique. */
+export interface WebResearchParams {
+  system: string;
+  userMessage: string;
+  maxTokens: number;
+}
+
+export interface WebResearchResult {
+  /** Compte rendu rédigé par le modèle. */
+  text: string;
+  /** Pages réellement consultées (annotations url_citation) — seule preuve qu'un lien n'est pas inventé. */
+  sources: Array<{ url: string; title: string | null }>;
+}
+
 export interface AgenticResult {
   /** Réponse conversationnelle finale. Jamais vide : si la boucle atteint `maxTurns`, un dernier
    *  appel sans outils force le modèle à conclure. */

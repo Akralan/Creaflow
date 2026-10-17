@@ -2,7 +2,7 @@ import { and, eq, gte, inArray, isNotNull, isNull, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { calendarEntries, creatorProfiles, narrativeState, postingGoals, visualDesigns } from "@/db/schema";
 import { imagesOf, slidesOf } from "@/lib/services/visualDesignService";
-import { releaseSlotsOfArchivedSeries } from "@/lib/services/seriesSlotRelease";
+import { syncSeriesSlots } from "@/lib/services/seriesSlotSync";
 
 /** Posts rédigés montrés après la semaine affichée. */
 const LATER_HORIZON_DAYS = 28;
@@ -76,8 +76,8 @@ const CAPTION_PREVIEW_CHARS = 280;
  * l'éditeur, via les routes d'images du script).
  */
 export async function listCalendarRange(userId: string, from: Date, to: Date) {
-  // Filet : une série supprimée avant la règle de réaffectation laissait des créneaux orphelins.
-  await releaseSlotsOfArchivedSeries(userId);
+  // L'horizon de 28 jours avance avec les jours : on le complète à chaque ouverture (pas de cron).
+  await syncSeriesSlots(userId);
 
   const now = new Date();
   const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
@@ -85,10 +85,21 @@ export async function listCalendarRange(userId: string, from: Date, to: Date) {
   // « Post suivant » : le premier créneau vide à venir après la semaine affichée (ou après
   // aujourd'hui pour une semaine passée).
   const next = slots.find((sl) => sl.scheduledDate >= to) ?? null;
+  // Et celui de CHAQUE série : avec une ligne par série, chacune montre au moins son prochain post,
+  // même au-delà de la semaine (docs/SPEC_RYTHME_DES_SERIES.md §4).
+  // Borné à la fenêtre lue plus bas : sur une semaine passée, un « prochain » plus loin que la fenêtre
+  // ne serait pas dans `entries` et la ligne se croirait vide.
+  const until = new Date(to.getTime() + LATER_HORIZON_DAYS * 24 * 3600 * 1000);
+  const nextBySeries = new Set<string>();
+  const seenSeries = new Set<string>();
+  for (const sl of slots) {
+    if (sl.scheduledDate < to || sl.scheduledDate >= until || !sl.seriesId || seenSeries.has(sl.seriesId)) continue;
+    seenSeries.add(sl.seriesId);
+    nextBySeries.add(sl.id);
+  }
   // La bande se prolonge : tous les posts déjà rédigés des quatre semaines qui suivent restent
   // visibles, le « post suivant » se rangeant parmi eux à sa date. (S'arrêter au prochain créneau
   // vide cachait un post rédigé plus loin, qui « apparaissait » dès que le trou était comblé.)
-  const until = new Date(to.getTime() + LATER_HORIZON_DAYS * 24 * 3600 * 1000);
   const [entries, goals, profile] = await Promise.all([
     db.query.calendarEntries.findMany({
       where: and(
@@ -126,13 +137,6 @@ export async function listCalendarRange(userId: string, from: Date, to: Date) {
   const designByScript = new Map(designs.map((d) => [d.scriptId, d]));
   const hasLogo = Boolean((profile?.brandKit as { logoAssetId?: string | null } | null)?.logoAssetId);
 
-  // Sans aucun créneau vide à venir, c'est le mois en cours qu'on tente d'abord (l'écran passe au
-  // suivant s'il est déjà planifié) ; sinon le mois qui suit le dernier créneau vide.
-  const lastPlanned = slots.at(-1)?.scheduledDate;
-  const afterLast = lastPlanned
-    ? new Date(Date.UTC(lastPlanned.getUTCFullYear(), lastPlanned.getUTCMonth() + 1, 1))
-    : today;
-
   return {
     goals,
     authorName: profile?.brandName ?? "",
@@ -140,11 +144,8 @@ export async function listCalendarRange(userId: string, from: Date, to: Date) {
     nextSlot: next
       ? { ...next, series: next.series ? { id: next.series.id, label: next.series.label } : null, script: null, upcoming: upcoming.get(next.id) ?? null }
       : null,
-    // Plus aucun créneau vide à venir : le mois à planifier pour trouver la suite.
-    monthToPlan: next ? null : `${afterLast.getUTCFullYear()}-${String(afterLast.getUTCMonth() + 1).padStart(2, "0")}`,
-    // Au-delà de la semaine, seulement les posts rédigés (les créneaux vides de cette zone
-    // n'existent pas : le premier est `nextSlot`).
-    entries: entries.filter((entry) => entry.scheduledDate < to || entry.script).map((entry) => {
+    // Au-delà de la semaine, les posts rédigés et le prochain créneau vide de chaque série.
+    entries: entries.filter((entry) => entry.scheduledDate < to || entry.script || nextBySeries.has(entry.id)).map((entry) => {
       const script = entry.script;
       if (!script) return { ...entry, script: null, upcoming: upcoming.get(entry.id) ?? null };
       const design = designByScript.get(script.id);

@@ -104,6 +104,8 @@ export const materialSourceStatusEnum = pgEnum("material_source_status", ["ok", 
 // autonomes partageant un format (news de la semaine) — pas de beats, planification désactivée pour
 // ce mode. Défaut "rendez_vous" en cas de doute (inférence LLM à la création, Lot B3).
 export const contentSeriesModeEnum = pgEnum("content_series_mode", ["feuilleton", "rendez_vous"]);
+// Fiche d'inspiration (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.1) : écartée, jamais effacée d'office.
+export const inspirationStatusEnum = pgEnum("inspiration_status", ["active", "dismissed"]);
 export const subscriptionPlanEnum = pgEnum("subscription_plan", ["starter", "pro"]);
 // Sous-ensemble des statuts Stripe (Subscription.status) réellement distingués côté produit —
 // "paused" n'est pas utilisé (pas de fonctionnalité de pause self-service en v1). Le webhook
@@ -131,6 +133,10 @@ export const users = pgTable("users", {
   // resterait connecté 7 jours après que l'utilisateur a changé son mot de passe pour l'évincer.
   sessionsInvalidatedBefore: timestamp("sessions_invalidated_before"),
   vertical: verticalEnum("vertical").notNull().default("creator"),
+  // Quotas propres au compte, réglés depuis /admin/quotas (docs/SPEC_QUOTAS_ADMIN.md) : remplacent
+  // la limite de l'essai ou du plan. Null = limite normale.
+  scriptLimit: integer("script_limit"),
+  microEditLimit: integer("micro_edit_limit"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -204,14 +210,18 @@ export const creatorProfiles = pgTable("creator_profiles", {
   // l'onboarding, éditable en paramètres. Remplace ton, valeurs, matériel et temps disponible : le
   // ton s'apprend aux retouches (styleProfile), le rythme se lit dans publishingDays.
   expectations: text("expectations"),
-  // Jours de publication, ISO : 1 = lundi … 7 = dimanche. Un créneau par jour coché et par
-  // plateforme active (api/calendar/generate). Jamais vide : le service refuse le dernier décoché.
+  // Jours où l'auteur peut publier, ISO : 1 = lundi … 7 = dimanche. Ne placent plus les posts
+  // (docs/SPEC_RYTHME_DES_SERIES.md) : répartis entre les séries à l'onboarding, proposés à la
+  // création d'une série. Jamais vide : le service refuse le dernier décoché.
   publishingDays: integer("publishing_days").array().notNull().default([3, 6]),
   // Audience de marque (docs/SPEC_PROMPT_GENERATION_TECH.md §2/§5) — qui lit/achète, ce qui
   // l'intéresse, ce qu'il doit retenir ou faire ; texte libre, extrait de l'onboarding ou édité en
   // paramètres. Fallback pour Product.targetAudience quand ce dernier est null.
   targetAudience: text("target_audience"),
   styleProfile: jsonb("style_profile"),
+  // Voix choisie au premier cadrage de série (docs/SPEC_CADRAGE_SERIE.md §1) : point de départ du
+  // style avant que l'apprentissage par les corrections ait de quoi travailler.
+  chosenVoice: jsonb("chosen_voice"),
   styleProfileUpdatedAt: timestamp("style_profile_updated_at"),
   // Identité de marque pour les maquettes (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2) :
   // { primaryColor, secondaryColor, accentColor, fontHeading, fontBody, logoAssetId }. Optionnel —
@@ -248,9 +258,14 @@ export const contentSeries = pgTable("content_series", {
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   label: text("label").notNull(),
   description: text("description").notNull(),
-  // Pourcentage cible ABSOLU de créneaux, PAS normalisé à 100 comme contentCategories.weight —
-  // la couverture série n'est jamais forcée à 100%.
+  // Ancien pourcentage de créneaux : plus lu depuis docs/SPEC_RYTHME_DES_SERIES.md (le rythme le
+  // remplace), gardé en base pour ne pas faire de migration destructive. Sert encore d'ordre d'affichage.
   weight: integer("weight").notNull(),
+  // Rythme de publication `{ days, every, anchor }` (docs/SPEC_RYTHME_DES_SERIES.md §2) — lu par
+  // parseStoredRhythm. Null = pas encore de rythme : la série ne crée aucun créneau.
+  rhythm: jsonb("rhythm"),
+  // Créneaux du rythme retirés à la main (`YYYY-MM-DD|plateforme`) : le recalcul ne les recrée pas.
+  skippedSlots: jsonb("skipped_slots").$type<string[]>().notNull().default([]),
   archived: boolean("archived").notNull().default(false),
   // Lot B2 : colonne + toggle manuel. L'inférence LLM à la création (Annexe B.8) arrive au Lot B3.
   mode: contentSeriesModeEnum("mode").notNull().default("rendez_vous"),
@@ -259,6 +274,9 @@ export const contentSeries = pgTable("content_series", {
   // le rédacteur en chef retombe sur la matière de niveau marque. SET NULL à la suppression du sujet
   // (la série survit, perd juste son lien matière, même pattern que sourceMaterials.productId).
   productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
+  // Cadrage choisi par l'auteur avant le premier épisode (docs/SPEC_CADRAGE_SERIE.md §2) : posture,
+  // voix propre à la série, récit, signature, extraits choisis et écartés. Null = série pas cadrée.
+  framing: jsonb("framing"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -307,6 +325,41 @@ export const products = pgTable("products", {
   // CreatorProfile.targetAudience à l'injection (buildScriptUserMessage). Couvre le cas personal
   // branding multi-sujets : l'audience d'un projet ML ≠ celle d'un produit en dev.
   targetAudience: text("target_audience"),
+  // Portrait des lecteurs du sujet, 1 à 3 publics (docs/SPEC_PROMPT_GENERATION_V3.md §2.2) — dérivé
+  // de targetAudience et de la matière par describeReaders, corrigeable par l'auteur. Null tant
+  // qu'aucun portrait n'a été produit : la génération retombe sur targetAudience.
+  readerPortrait: jsonb("reader_portrait"),
+  // Dernière veille d'inspiration du sujet (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.1) — relancée seule en
+  // arrière-plan après une génération quand elle date de plus de 7 jours.
+  inspirationRefreshedAt: timestamp("inspiration_refreshed_at"),
+});
+
+// Fiches d'inspiration d'un sujet (docs/SPEC_MEMOIRE_ET_VEILLE.md §3) : ce que la veille a trouvé sur
+// le web et ce qu'on en apprend sur la FORME, réinjecté dans les prompts des posts suivants. Le
+// rédacteur peut en écarter une ; l'auteur peut la remettre.
+export const inspirations = pgTable("inspirations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  title: text("title").notNull(),
+  insight: text("insight").notNull(),
+  // format | accroche | structure | sujet | compte — texte libre plutôt qu'un enum : la liste est une
+  // consigne du prompt, pas un invariant de données.
+  kind: text("kind").notNull(),
+  readerLabel: text("reader_label"),
+  platform: text("platform"),
+  status: inspirationStatusEnum("status").notNull().default("active"),
+  // model | user | system
+  dismissedBy: text("dismissed_by"),
+  dismissReason: text("dismiss_reason"),
+  shownCount: integer("shown_count").notNull().default(0),
+  usedCount: integer("used_count").notNull().default(0),
+  // Générations qui l'ont signalée inutile depuis sa dernière utilisation : écartée par le rédacteur
+  // à la 2e seulement — un seul post confond « pas pour ce post » et « jamais pour ce sujet ».
+  dropVotes: integer("drop_votes").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Source connectée alimentant le corpus d'un sujet (docs/superpowers/specs/2026-08-31-onboarding-dev-github-design.md
@@ -608,6 +661,10 @@ export const scripts = pgTable("scripts", {
   // ensuite. Exploité par la passe d'apprentissage du style (docs/SPEC_APPRENTISSAGE_STYLE.md),
   // qui le compare à la version finale une fois le script finalisé.
   firstDraftSnapshot: jsonb("first_draft_snapshot"),
+  // Préparation et relecture du modèle à la génération (docs/SPEC_PROMPT_GENERATION_V3.md §3) :
+  // lecteur visé, moments candidats, accroches, selfCheck, résultat des contrôles. Jamais publiée,
+  // sert à comprendre un post raté. Réécrite à chaque génération complète ; null hors génération V3.
+  generationTrace: jsonb("generation_trace"),
   // Null tant qu'aucune passe d'apprentissage du style n'a lu ce script. Posé par la passe qui l'a
   // lu, que la proposition qui en résulte soit acceptée ou non (refuser des règles n'est pas une
   // raison de reproposer les mêmes scripts). Le compteur « scripts corrigés depuis la dernière
@@ -707,20 +764,23 @@ export const postMatchCandidates = pgTable(
 // bouge jamais sur une régénération (updateScriptRecord fait un UPDATE en place sur la même ligne).
 // C'est cette table, pas `scripts`, que billingService.ts compte pour le quota mensuel : le coût
 // LLM (donc le quota) est déclenché à chaque génération, régénération comprise.
+// `scriptId` passe à null quand le script est supprimé, l'événement reste compté : en cascade,
+// supprimer ses scripts remettait le compteur à zéro (docs/SPEC_QUOTAS_ADMIN.md).
 export const scriptGenerationEvents = pgTable("script_generation_events", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  scriptId: uuid("script_id").notNull().references(() => scripts.id, { onDelete: "cascade" }),
+  scriptId: uuid("script_id").references(() => scripts.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Micro-retouches dans l'éditeur (docs/SPEC_MATIERE_EDITEUR.md §4.6) — comptées à part du quota de
 // génération complète (scriptGenerationEvents) : un pool distinct, plus généreux, sans quoi le
-// comptage plein tarif tuerait l'itération qui est tout le but de l'éditeur.
+// comptage plein tarif tuerait l'itération qui est tout le but de l'éditeur. Même règle que
+// scriptGenerationEvents : supprimer le script ne rend pas les retouches déjà faites.
 export const scriptMicroEditEvents = pgTable("script_micro_edit_events", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  scriptId: uuid("script_id").notNull().references(() => scripts.id, { onDelete: "cascade" }),
+  scriptId: uuid("script_id").references(() => scripts.id, { onDelete: "set null" }),
   kind: scriptMicroEditKindEnum("kind").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

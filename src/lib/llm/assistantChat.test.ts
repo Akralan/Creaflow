@@ -37,7 +37,7 @@ function buildContext(overrides: Partial<AssistantChatContext> = {}): AssistantC
         id: "s1",
         label: "Journal d'atelier",
         description: "L'avancement de la semaine.",
-        weight: 20,
+        rhythm: { days: [3], every: 1, anchor: null },
         category: { label: "Coulisses" },
         platforms: [],
         mode: "feuilleton",
@@ -141,7 +141,8 @@ describe("runAssistantChatTurn", () => {
       action: "create",
       label,
       description: "Une idée reçue démontée.",
-      weight: 15,
+      rhythmDays: [2],
+      everyOtherWeek: false,
       categoryLabel: "Expertise",
       platforms: [],
       mode: "rendez_vous",
@@ -191,7 +192,8 @@ describe("runAssistantChatTurn", () => {
     );
 
     const { system, tools } = callAgenticMock.mock.calls[0][0];
-    expect(system).toContain("Jours de publication : mercredi, samedi");
+    expect(system).toContain("Jours où l'auteur peut publier : mercredi, samedi");
+    expect(system).toContain("[id:s1] Journal d'atelier (Mer., jours 3)");
     expect(system).toContain("LinkedIn : active");
     expect(system).toContain("Instagram : coupée");
     expect(system).not.toContain("/semaine");
@@ -250,7 +252,7 @@ describe("runAssistantChatTurn", () => {
         input: {
           productProposals: [],
           seriesProposals: [
-            { action: "create", label: "Sans mode", description: "X", weight: 15, categoryLabel: "Expertise", platforms: [] },
+            { action: "create", label: "Sans mode", description: "X", rhythmDays: [2], everyOtherWeek: false, categoryLabel: "Expertise", platforms: [] },
           ],
           categoryProposals: [],
           angleProposals: [],

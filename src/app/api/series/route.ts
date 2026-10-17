@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireUserId } from "@/lib/auth/session";
 import { generateSeriesForUser, listActiveSeriesForUser, saveSeriesForUser } from "@/lib/services/seriesService";
 import { platformSchema } from "@/lib/validation";
+import { seriesRhythmSchema } from "@/lib/seriesRhythm";
 import { handleApiError } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
 
@@ -12,10 +13,12 @@ const saveSchema = z.object({
       id: z.uuid().optional(),
       label: z.string().min(1),
       description: z.string().min(1),
-      weight: z.number().int().min(0).max(100),
+      // Ordre d'affichage seulement depuis docs/SPEC_RYTHME_DES_SERIES.md.
+      weight: z.number().int().min(0).max(100).optional(),
       // Un rôle unique par série (docs/SPEC_SERIES_ET_ROLES.md §1).
       categoryId: z.uuid(),
       platforms: z.array(platformSchema).default([]),
+      rhythm: seriesRhythmSchema.nullable().optional(),
     })
   ),
 });
@@ -38,8 +41,8 @@ export async function POST(request: NextRequest) {
     if (rawBody) {
       // Édition manuelle : on valide sans repasser par l'IA.
       const { series: items } = saveSchema.parse(JSON.parse(rawBody));
-      const series = await saveSeriesForUser(userId, items);
-      return NextResponse.json({ series });
+      const { series, slotChanges } = await saveSeriesForUser(userId, items);
+      return NextResponse.json({ series, slotChanges });
     }
 
     // Régénération complète des séries via l'IA (contrairement à l'édition manuelle ci-dessus) —
