@@ -19,7 +19,7 @@ type View = "cta" | "pricing";
 const FADE_OUT_MS = 240;
 
 /**
- * Two-sided final section: the "Your first week is waiting" CTA by
+ * Two-sided final section: the "Go back to building." CTA by
  * default, replaced with a fade by the pricing grid on demand ("See pricing" button,
  * the header's "Pricing" link, or landing directly on #tarifs). A "Back" button returns to the
  * CTA. The two are never shown together: the landing stays short.

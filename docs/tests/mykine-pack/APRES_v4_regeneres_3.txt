@@ -1,0 +1,60 @@
+Généré le 2026-10-17T22:15:07.721Z — modèle gpt-5.6-luna — lecteur : Développeurs santé et vision
+
+================================================================================
+Événement : 2025-11-16 — Le prototype rate une répétition sur trois sur l'iPhone 11
+TITRE : Le laptop ment par omission
+
+Sur mon laptop, le compteur de squats fonctionnait. Sur l’iPhone 11 de Julien, il ratait une répétition sur trois à 6 fps.
+
+Le prototype était une page web avec MediaPipe Pose en JavaScript. Il comptait un squat quand l’angle hanche-genou-cheville passait sous 100°.
+
+Pour le vérifier, Julien a fait 20 squats dans son salon. Le résultat n’était pas une petite variation de mesure : plusieurs répétitions n’existaient tout simplement pas pour le compteur.
+
+Le modèle de pose pouvait donc fonctionner dans une démo, puis perdre sa valeur dès que le calcul passait sur un téléphone utilisé à la maison.
+
+À ce stade, je n’ai pas encore corrigé le problème. Le seul fait établi est celui-ci : une page qui compte sur mon laptop ne suffit pas pour suivre une séance sur un iPhone 11.
+
+HASHTAGS : #ComputerVision #DigitalHealth
+TRACE : brouillons 1, contrôles {"failures":[],"retried":false}
+
+================================================================================
+Événement : 2025-11-23 — Le traitement est déplacé sur le téléphone
+TITRE : The VPS Was in the Camera Path
+
+Sur la 4G de Julien, envoyer les frames au serveur ajoutait 300 à 600 ms de latence.
+
+Et je stockais des images de lui en caleçon sur mon VPS.
+
+Le prototype tournait avec MediaPipe Pose en JavaScript. Sur son iPhone 11, il fonctionnait à 6 fps et ratait une répétition sur trois. J’ai essayé de faire tourner le modèle côté serveur pour sortir le calcul du téléphone.
+
+Le test du 23 novembre a tranché : tout doit tourner sur le téléphone.
+
+Le flux devient : caméra du téléphone → traitement local → compteur de squats. Les frames ne partent plus au serveur pour être traitées.
+
+C’est une décision d’architecture prise à partir d’une séance réelle, pas d’un schéma idéal. La 4G de Julien a rendu visible la latence. Le VPS a rendu visible la frontière de données que je ne voulais pas franchir.
+
+Le compromis est moins confortable pour moi : le modèle et le compteur doivent tenir sur l’appareil utilisé pendant la séance. Mais les images de Julien restent sur son téléphone.
+
+#ComputerVision #DigitalHealth
+
+HASHTAGS : #ComputerVision #DigitalHealth
+TRACE : brouillons 2, contrôles {"failures":[],"retried":false}
+
+================================================================================
+Événement : 2025-12-06 — Le tremblement fait compter trois fois une répétition
+TITRE : Three Counts at the Bottom
+
+The knee angle was calculated correctly. A tremor still made one squat count three times.
+
+On December 6, I checked the squat counter after moving the processing onto the phone. The angle uses the dot product of the hip→knee and ankle→knee vectors.
+
+The thresholds were clear: above 160° for the high position, below 100° for the low position.
+
+The problem appeared at the bottom of the movement. When the leg trembled, the angle passed around 100° three times. Each passage triggered the counter.
+
+So the formula gave me the right angle, but the repetition count was still wrong. That distinction matters in a rehabilitation session: the dashboard could show three repetitions when the patient had done one.
+
+I did not correct it on December 6. The failure stayed in the prototype, exactly where the next exercise tests would find it.
+
+HASHTAGS : #ComputerVision #DigitalHealth
+TRACE : brouillons 2, contrôles {"failures":[],"retried":false}

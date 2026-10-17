@@ -49,14 +49,14 @@ const steps: Array<{ title: string; description: string; visual: ReactNode }> = 
     ),
   },
   {
-    title: "Your editorial line takes shape",
+    title: "Tellovo finds your topics",
     description:
-      "Two or three questions: your tone, who you publish for, how much time you have. The rest is inferred from your profile and topics: recurring series, roles, rhythm.",
+      "It reads your material, works out who you write for, and sets up recurring series. You choose your posting days and networks.",
     visual: (
       <div className={styles.howVisual} aria-hidden="true">
-        <span style={questionChip}>What tone?</span>
-        <span style={questionChip}>For whom?</span>
-        <span style={questionChip}>How much time?</span>
+        <span style={questionChip}>Your topics</span>
+        <span style={questionChip}>Your readers</span>
+        <span style={questionChip}>Your days</span>
       </div>
     ),
   },

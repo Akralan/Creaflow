@@ -49,7 +49,7 @@ function Panel({
  * founders and developers who already have written material. One promise, one repeated CTA.
  *
  * Panel order: the hero promises and shows, "What changes" lays out the problem and its
- * answer on a single screen (you build your products, we build your audience), "How it works"
+ * answer on a single screen (your commits already say it), "How it works"
  * explains, the CTA concludes. The feature grid is hidden (FEATURES_ENABLED).
  */
 export default function LandingPage() {

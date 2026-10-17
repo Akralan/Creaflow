@@ -97,15 +97,14 @@ export default function LandingCtaFinal({ onShowPricing }: Props) {
             textWrap: "balance",
           }}
         >
-          Your first week is waiting
+          Go back to building.
         </h2>
         <p
           data-reveal=""
           data-delay={80}
           style={{ margin: "20px auto 0", fontSize: "1.06rem", lineHeight: 1.55, color: text.secondary, maxWidth: "44ch", textWrap: "pretty" }}
         >
-          Connect a source, answer three questions, and your editorial line is ready. Free, no credit
-          card.
+          Connect a source, pick your posting days, and your first week is drafted. Free, no credit card.
         </p>
         <div
           data-reveal=""

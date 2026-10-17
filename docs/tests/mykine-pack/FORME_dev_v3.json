@@ -1,0 +1,35 @@
+{
+  "wants": "They come to see how a health or computer-vision component survives contact with a real patient workflow. They want concrete architecture choices, measured trade-offs, failure modes, and privacy constraints they can compare with their own product decisions.",
+  "episodeShape": "A good episode follows one decision or failure through its technical and field consequences: state the observed situation with its device, exercise, user, or data constraint; show the smallest architecture or interaction change I made and the reason for choosing it; include a before-and-after measurement, a reproducible symptom, or a short code/data-flow detail; then make the compromise explicit, including what became harder or less reliable. For example, when the prototype missed one repetition out of three on an iPhone 11, the episode should show what was measured, why processing moved onto the phone, what this changed for latency and data exposure, and which limitation remained for the patient or kiné. Keep the account grounded in the actual API, camera angle, frame rate, exercise logic, or consentless patient flow rather than presenting a general computer-vision tutorial.",
+  "avoid": "They leave when the post gives a generic tutorial, claims privacy without describing what stays on the device, or presents an ideal architecture without field evidence. They also lose interest when there are no numbers, no visible limit, and no distinction between a demo result and a result that holds for patients.",
+  "words": [
+    "rate une répétition sur trois",
+    "traitement sur le téléphone",
+    "faux squat",
+    "caméra à 45°",
+    "24 fps",
+    "11 fps",
+    "sans compte",
+    "API",
+    "dashboard",
+    "adhésion",
+    "séance",
+    "amplitude"
+  ],
+  "jargon": [
+    "inférence",
+    "pipeline de vision",
+    "pose estimation",
+    "latence",
+    "edge computing",
+    "RGPD",
+    "minimisation des données",
+    "on-device",
+    "endpoint",
+    "schéma de données"
+  ],
+  "register": "Use 10 to 15 compact lines per episode, with direct technical prose and first-person singular. Address the reader as a peer; name devices, tools, APIs, tables, frame rates, and data flows when they matter, and give concrete numbers before abstractions. Do not turn the post into a tutorial, marketing copy, or a supposedly universal architecture; explain the field constraint and the privacy boundary in plain terms when they affect the decision.",
+  "signature": "Open with a concrete observation from a test or session, preferably including the device, exercise, or measured result, and state the decision in a plain sentence such as “I changed this because the test showed that…”",
+  "generatedAt": "2026-10-17T22:15:07.721Z",
+  "editedByUser": false
+}

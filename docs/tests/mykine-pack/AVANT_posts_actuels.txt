@@ -1,0 +1,208 @@
+POSTS ACTUELS DE MYKINÉ AVANT LE CHANTIER « exemples ghostwriting » (2026-10-17)
+Source : base de dev, compte mykine.test@example.com, tels que générés par le rédacteur par événements avec l'ancien METHOD_PROMPT.
+
+================================================================================
+Dans le téléphone, pas ailleurs | 2026-10-17 11:52 | événement 
+TITRE : Le squat s'arrête dans le téléphone
+
+Le patient pose son téléphone contre un meuble, à hauteur de hanche, puis lance sa séance.
+
+Pendant l'exercice, MyKiné traite l'image sur le téléphone :
+- les points de pose servent à calculer les angles articulaires ;
+- le compteur suit les répétitions ;
+- l'amplitude et les partielles sont enregistrées.
+
+La vidéo reste sur le téléphone. Elle n'est ni envoyée à l'API, ni stockée sur le serveur. Les coordonnées brutes des 33 points ne sortent pas non plus de l'appareil.
+
+À la fin, l'app envoie un compte-rendu : compteurs, séries d'angles échantillonnées à 10 Hz, amplitude moyenne et horodatage. L'API conserve ces données pour la séance.
+
+Dans le dashboard, le kiné retrouve les répétitions faites par rapport à la cible, les partielles, l'amplitude atteinte et la courbe d'angle. Il peut donc suivre ce qui s'est passé entre deux rendez-vous sans accéder à la vidéo du patient.
+
+C'est le flux que je veux garder simple à expliquer :
+
+1. Ce qui est traité : l'image et la pose, sur le téléphone.
+2. Ce qui est conservé : les angles et le compte-rendu de séance.
+3. Ce qui ne sort jamais du téléphone : les images, les vidéos et les coordonnées brutes.
+
+Les kinés qui veulent voir le parcours patient et le suivi côté dashboard peuvent demander un accès à MyKiné.
+
+HASHTAGS : {#Kiné,#SantéNumérique,#ComputerVision}
+
+================================================================================
+Dans le téléphone, pas ailleurs | 2026-10-17 11:53 | événement 
+TITRE : Ce que la caméra laisse sortir du téléphone
+
+« Votre application envoie les vidéos des patients sur un serveur ? » C'est la première question à laquelle je réponds quand je présente MyKiné à un kiné.
+
+La réponse tient dans l'architecture.
+
+Pendant l'exercice, le téléphone traite localement l'image : il estime la pose, calcule les angles articulaires, compte les répétitions et vérifie l'amplitude. Le flux caméra n'est jamais écrit sur le disque.
+
+À la fin de la séance, l'API reçoit uniquement ce dont le dashboard a besoin : des séries d'angles, des compteurs, les partielles, l'amplitude moyenne et les horodatages.
+
+Ce qui est conservé sert au suivi : le kiné peut voir les séances, les courbes d'angle et l'adhésion du patient. Les coordonnées brutes des 33 points ne sont pas envoyées. Les images et les vidéos ne sortent jamais du téléphone.
+
+Cette séparation est volontaire : l'analyse se fait là où l'image existe, et le serveur conserve le compte-rendu plutôt que la scène filmée.
+
+C'est le type de choix que je veux rendre vérifiable dans MyKiné : pour comprendre les données d'un patient, il faut pouvoir suivre leur trajet, étape par étape.
+
+Kinés et développeurs de produits santé : vous pouvez demander un accès à MyKiné si vous voulez examiner ce flux côté patient et côté dashboard.
+
+#SantéNumérique #ComputerVision
+
+HASHTAGS : {#SantéNumérique,#ComputerVision}
+
+================================================================================
+Dans le téléphone, pas ailleurs | 2026-10-17 11:54 | événement 
+TITRE : Le compte-rendu sans la vidéo
+
+Avant, le kiné demandait si les exercices avaient été faits. Après, il reçoit des angles et des compteurs — jamais la vidéo.
+
+Dans MyKiné, le téléphone fait l'analyse pendant l'exercice :
+- posture et angles articulaires ;
+- répétitions ;
+- amplitude atteinte.
+
+Cette analyse reste sur l'appareil.
+
+À la fin de la séance, le serveur conserve uniquement le compte-rendu :
+- les angles articulaires échantillonnés à 10 Hz ;
+- les compteurs de répétitions ;
+- les horodatages.
+
+Le dashboard permet ensuite au kiné de suivre les séances réalisées, les répétitions faites et l'amplitude moyenne atteinte. Il peut enfin observer ce qui s'est passé entre deux rendez-vous, au lieu de dépendre uniquement de la réponse du patient.
+
+Ce qui ne sort jamais du téléphone : les images et les vidéos de la caméra, ainsi que les coordonnées brutes des points détectés.
+
+C'est le choix d'architecture : traiter localement ce qui sert à comprendre le mouvement, conserver côté serveur ce qui sert au suivi, et ne pas stocker la scène filmée.
+
+Les kinés qui veulent voir le suivi côté dashboard ou demander un accès peuvent me contacter.
+
+HASHTAGS : {#SantéNumérique,#ComputerVision}
+
+================================================================================
+Dans le téléphone, pas ailleurs | 2026-10-17 11:55 | événement 
+TITRE : Le serveur ne voit pas la séance
+
+Au début, mon serveur recevait les images des séances. J'ai arrêté après avoir mesuré 300 à 600 ms de latence sur une 4G.
+
+Le prototype envoyait chaque frame au serveur pour y faire tourner MediaPipe. La séance était lente, et des images de patients transitaient par mon VPS.
+
+J'ai déplacé toute l'analyse sur le téléphone : pose estimation, calcul des angles et compteur de répétitions.
+
+Le flux est maintenant simple :
+
+- le téléphone traite les images ;
+- il conserve localement ce qui sert à l'analyse pendant la séance ;
+- l'API reçoit ensuite les angles articulaires, les compteurs et les horodatages ;
+- le dashboard permet au kiné de consulter la séance et l'adhésion.
+
+Aucune image, aucune vidéo et aucune coordonnée brute ne quittent le téléphone. Les données conservées côté serveur sont les angles dérivés et les résultats de séance.
+
+Le compromis est clair : les vieux téléphones peuvent être plus lents. Mais une vidéo de patient chez lui ne devient jamais une donnée à stocker, sauvegarder ou regarder côté serveur.
+
+C'est ce choix qui guide l'architecture de MyKiné : analyser au plus près du patient, transmettre seulement ce dont le kiné a besoin pour suivre la rééducation.
+
+Les kinés qui veulent voir le suivi côté dashboard ou demander un accès peuvent me contacter.
+
+HASHTAGS : {#SantéNumérique,#ComputerVision}
+
+================================================================================
+MyKiné en construction | 2026-10-17 13:56 | événement 9c7f3145
+TITRE : Le laptop ne suffit pas
+
+Ça marche sur mon laptop.
+
+Sur l’iPhone 11 de Julien, la page web tourne à 6 fps et rate une répétition sur trois, même quand Julien en fait 20 pour tester.
+
+Le prototype utilise MediaPipe Pose en JavaScript. Le compteur déclenche un squat quand l’angle hanche-genou-cheville passe sous 100°.
+
+Le test était donc correct dans une condition, mais pas dans celle qui m’intéressait pour une séance : sur un téléphone.
+
+Je n’ai pas encore de correction ni de mesure après optimisation à montrer. Le seul résultat de ce test est une limite nette : le prototype qui compte les squats sur mon laptop n’est pas fiable sur l’iPhone 11 de Julien.
+
+HASHTAGS : {#SantéNumérique,#ComputerVision}
+
+================================================================================
+MyKiné en construction | 2026-10-17 13:56 | événement 8ef209f9
+TITRE : Le téléphone reprend les frames
+
+Sur la 4G de Julien, chaque image envoyée au serveur ajoutait 300 à 600 ms de latence.
+
+J’avais essayé de faire tourner le modèle sur le serveur plutôt que sur son iPhone 11. L’idée était simple : le téléphone envoie les frames, l’API analyse, puis l’application récupère le résultat.
+
+En pratique, le délai rendait le comptage inutilisable pendant une séance.
+
+Puis j’ai vu le deuxième problème : ces frames étaient stockées sur mon VPS. Des images de Julien en caleçon y restaient.
+
+Le 23 novembre, j’ai donc pris une décision d’architecture : tout faire tourner sur le téléphone. Les images restent sur l’appareil. Le serveur n’a plus besoin de recevoir la vidéo pour compter les répétitions.
+
+Ce choix supprime la latence réseau et évite de stocker ces images. Il ne règle pas le problème qui précédait : sur l’iPhone 11, le prototype ne comptait déjà qu’environ deux répétitions sur trois.
+
+Déplacer le traitement sur le téléphone a donc réglé un problème de données et de délai. Pas encore celui de la fiabilité du comptage.
+
+C’est la limite que je garde pour la suite : une architecture plus maîtrisée ne rend pas automatiquement la vision plus juste.
+
+#SantéNumérique #VisionParOrdinateur
+
+HASHTAGS : {#SantéNumérique,#VisionParOrdinateur}
+
+================================================================================
+MyKiné en construction | 2026-10-17 13:57 | événement 205ae61d
+TITRE : Le seuil qui triple une répétition
+
+Quand on tremble en bas, l’angle passe trois fois autour de 100° et ça compte trois.
+
+Le calcul de l’angle du genou est correct : produit scalaire entre hanche→genou et cheville→genou.
+
+J’ai fixé deux seuils : au-dessus de 160°, la position est « haute ». En dessous de 100°, elle est « basse ».
+
+Sur le papier, une répétition doit donc passer de haut en bas, puis revenir en haut.
+
+Mais un tremblement en bas fait repasser l’angle autour du seuil de 100°. Le compteur voit trois passages et enregistre trois répétitions pour un seul mouvement.
+
+Le déplacement du traitement sur le téléphone règle la latence et évite que les images partent au serveur. Il ne règle pas ce problème de comptage.
+
+À cette date, l’angle est correctement calculé. Le compteur ne l’est pas encore.
+
+HASHTAGS : {#SantéNumérique,#VisionParOrdinateur}
+
+================================================================================
+MyKiné en construction | 2026-10-17 13:57 | événement 8bfd93d8
+TITRE : Les quatre premiers exercices debout
+
+Le 20 décembre, j’ai réduit le premier périmètre de MyKiné à 4 exercices debout.
+
+Julien m’a envoyé les 9 exercices qu’il prescrit le plus : 4 debout et 5 au sol.
+
+Le détail qui a décidé de l’ordre n’était pas une préférence d’architecture. Je ne savais pas encore faire les exercices au sol.
+
+J’ai donc commencé par les 4 exercices debout.
+
+Cela donne un premier périmètre directement relié aux séances de Julien, avec une limite nette : 5 des 9 exercices les plus prescrits restent à traiter.
+
+Je préfère garder cette limite visible plutôt que d’annoncer un suivi général des exercices de rééducation.
+
+À ce stade, MyKiné commence donc par une partie de la prescription réelle de Julien : les exercices debout. Les exercices au sol ne sont pas encore faisables.
+
+HASHTAGS : {#SantéNumérique,#VisionParOrdinateur}
+
+================================================================================
+MyKiné en construction | 2026-10-17 13:58 | événement 39b965a8
+TITRE : Le premier écart entre téléphones
+
+Le premier build Android a tenu 24 fps sur un Pixel 7.
+
+Après le passage à Expo, nous avons intégré TFLite et BlazePose lite dans le build. Sur le Pixel 4a racheté 60 € pour tester un téléphone plus ancien, il tient 15 fps.
+
+L’écart est de 9 images par seconde avec les mêmes briques et le même modèle. Le téléphone compte déjà dans le résultat autant que le modèle choisi.
+
+Mais la comparaison s’arrête là pour l’instant.
+
+L’iPhone de Julien n’a pas encore de build iOS. Nous ne pouvons donc pas comparer Android et iOS, ni savoir si ce choix technique tient sur l’appareil qui avait plafonné à 6 fps avec le prototype web.
+
+Le premier build nous donne une mesure Android : 24 fps sur un Pixel 7, 15 sur un Pixel 4a. Il ne nous donne pas encore une réponse pour une séance complète sur mobile.
+
+La prochaine vérification est iOS.
+
+HASHTAGS : {#Android,#TFLite}

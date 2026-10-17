@@ -43,9 +43,9 @@ const stepIcon: CSSProperties = {
 const stepIconAccent: CSSProperties = { ...stepIcon, background: accent, border: `1px solid ${accent}`, color: "#fffdfa", boxShadow: `0 10px 24px -12px ${accentAlpha(0.9)}` };
 
 const STEPS = [
-  { Icon: Code, label: "Autonomous content creation from your work.", accent: false },
-  { Icon: Users, label: "Reach people who need your product.", accent: false },
-  { Icon: TrendingUp, label: "Generate more revenue while shipping features.", accent: true },
+  { Icon: Code, label: "We read what you ship.", accent: false },
+  { Icon: Users, label: "We write the posts.", accent: false },
+  { Icon: TrendingUp, label: "Customers show up before launch.", accent: true },
 ];
 
 export default function LandingHero() {
@@ -102,8 +102,8 @@ export default function LandingHero() {
             animation: "cf-rise 1s cubic-bezier(.2,.75,.2,1) .3s both",
           }}
         >
-          Turn your GitHub and Notion activity into a weekly content plan for X and LinkedIn — built around your
-          SaaS, your future customers, and your voice.
+          Tellovo reads what you ship on GitHub, Notion or Linear and writes your posts for X and LinkedIn. You just
+          review.
         </p>
 
         <div style={{ marginTop: "clamp(20px, 4vh, 40px)", animation: "cf-rise 1s cubic-bezier(.2,.75,.2,1) .42s both" }}>
@@ -137,7 +137,7 @@ export default function LandingHero() {
               <ArrowRight size={17} strokeWidth={2.2} aria-hidden="true" />
             </button>
           </form>
-          <p style={{ margin: "14px 0 0", fontSize: 13.5, color: text.faint }}>No signup required. Just try it.</p>
+          <p style={{ margin: "14px 0 0", fontSize: 13.5, color: text.faint }}>Free to start. No credit card.</p>
         </div>
 
         <div className={styles.heroSteps} style={{ animation: "cf-rise 1s cubic-bezier(.2,.75,.2,1) .5s both" }}>

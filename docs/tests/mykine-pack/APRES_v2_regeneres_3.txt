@@ -1,0 +1,70 @@
+Généré le 2026-10-17T22:10:08.562Z — modèle gpt-5.6-luna — lecteur : Développeurs santé et vision
+
+================================================================================
+Événement : 2025-11-16 — Le prototype rate une répétition sur trois sur l'iPhone 11
+TITRE : Le laptop mentait sur les performances
+
+Sur mon laptop, le compteur de squats fonctionne. Sur l’iPhone 11 de Julien, il tourne à 6 fps et rate une répétition sur trois.
+
+Le prototype est une page web qui utilise MediaPipe Pose en JavaScript. Je compte une répétition quand l’angle hanche-genou-cheville passe sous 100°.
+
+Sur mon ordinateur, cette règle paraît suffisante. Sur le téléphone utilisé pour tester une séance, elle ne l’est plus.
+
+Julien a quand même fait 20 squats dans son salon. Le compteur en a raté environ 7.
+
+Ce n’est pas encore un problème de seuil ou d’amplitude. La première limite observée est plus basique : le téléphone ne traite pas assez d’images pour suivre correctement le mouvement.
+
+À ce stade, je n’ai pas de mesure sur d’autres iPhone, d’autres exercices ou d’autres conditions de lumière. Je sais seulement qu’un prototype qui marche sur un laptop ne tient pas encore sur l’iPhone 11 de Julien.
+
+HASHTAGS : #ComputerVision #DigitalHealth
+TRACE : brouillons 1, contrôles {"failures":[],"retried":false}
+
+================================================================================
+Événement : 2025-11-23 — Le traitement est déplacé sur le téléphone
+TITRE : The frames stayed on the phone
+
+On Julien’s 4G, sending camera frames to the server added 300–600 ms of latency. I was also storing images of him in his underwear on my VPS.
+
+That was enough to reject server-side processing for MyKiné.
+
+The previous test had already exposed the product problem: MediaPipe Pose in JavaScript ran at 6 fps on his iPhone 11, and the squat counter missed one repetition out of three. Sending the frames elsewhere did not remove the device constraint. It added a delay to each movement.
+
+So on November 23, I made the decision to run everything on the phone.
+
+The trade-off was clear. The phone had to handle the vision model and the counter, but the camera frames would not leave it. The VPS would no longer receive those images.
+
+This reduced the data exposure and removed the 4G dependency. It did not make the counting reliable yet: I had measured only one device, and the iPhone 11 was still missing one repetition out of three.
+
+Before calling this architecture reliable, I still needed a real device benchmark. At this stage, the only number I had was 6 fps on Julien’s iPhone 11.
+
+#DigitalHealth #ComputerVision #Privacy
+
+HASHTAGS : #DigitalHealth #ComputerVision #Privacy
+TRACE : brouillons 1, contrôles {"failures":[],"retried":false}
+
+================================================================================
+Événement : 2025-12-06 — Le tremblement fait compter trois fois une répétition
+TITRE : Threshold tremor
+
+A knee tremor made MyKiné count one repetition three times.
+
+The knee flexion angle was calculated correctly from the vectors hip→knee and ankle→knee.
+
+The thresholds were simple: above 160° for the high position, below 100° for the low position.
+
+The problem appeared at the bottom of the movement. When the leg trembled, the angle moved around 100° three times.
+
+Each passage was interpreted as a new repetition.
+
+This is the kind of failure that can stay invisible in a clean test: the angle is mathematically correct, but the count is wrong for the movement being measured.
+
+I had already moved the processing onto the phone after the prototype missed one repetition out of three on Julien’s iPhone 11. That removed the 300–600 ms 4G delay and the need to send frames to a server, but it did not make the repetition counter reliable.
+
+On December 6, I did not correct this issue. I kept the limitation visible instead of treating the threshold logic as finished.
+
+Before calling the counter reliable, I still need to measure tremor cases against a manual count, across the exercises and phones that MyKiné is meant to support.
+
+#ComputerVision #DigitalHealth
+
+HASHTAGS : #ComputerVision #DigitalHealth
+TRACE : brouillons 1, contrôles {"failures":[],"retried":false}

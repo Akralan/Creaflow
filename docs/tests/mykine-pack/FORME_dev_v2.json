@@ -1,0 +1,35 @@
+{
+  "wants": "They come to see how a health or computer-vision product survives real usage, not just how its components look on a diagram. They want concrete architecture decisions, failures, measurements, and privacy or field constraints they can compare with their own work.",
+  "episodeShape": "A good episode follows one verifiable event through the decision it forced: state the field or product problem, show the implementation or architecture involved, and give the measured result before and after when one exists. It names the compromise and the constraint behind it—such as moving processing onto the phone so no video leaves the device—then includes enough concrete detail to reuse the reasoning, for example the prototype missing one repetition out of three on an iPhone 11, the tremor counting one repetition three times, or the first Android build reaching 24 fps on a Pixel 7. It distinguishes what was observed in a demo or session from what is still an assumption, and can include code, data flow, table structure, device, frame rate, exercise, or test conditions when they explain the event. It shows the effect on the patient, kiné, or development workflow rather than presenting an ideal architecture detached from use.",
+  "avoid": "They leave when the post gives a generic computer-vision tutorial, claims privacy without describing where data goes, or promotes a feature without numbers, failure cases, or limits. They also leave when the architecture is presented without the field situation that made the choice necessary.",
+  "words": [
+    "répétition",
+    "amplitude",
+    "séance",
+    "adhésion",
+    "dashboard",
+    "iPhone 11",
+    "Pixel 7",
+    "fps",
+    "caméra à 45°",
+    "sur l’appareil",
+    "sans compte",
+    "Raspberry Pi"
+  ],
+  "jargon": [
+    "inférence",
+    "pose estimation",
+    "pipeline",
+    "latence",
+    "on-device",
+    "API",
+    "endpoint",
+    "schéma de données",
+    "RGPD",
+    "MVP"
+  ],
+  "register": "Keep each episode to roughly 10–15 short lines, with a precise technical subject rather than a broad product update. Speak as “I”, address the reader informally, name tools and devices when they matter, and give measurements, test conditions, and limits; do not use marketing language, abstract tutorials, or collective “we” unless another person is explicitly part of the event.",
+  "signature": "Chaque épisode peut ouvrir par le fait observé ou le test qui a résisté — par exemple « Le prototype rate une répétition sur trois sur l’iPhone 11. » — puis laisser les détails de l’événement déterminer la suite.",
+  "generatedAt": "2026-10-17T22:13:55.431Z",
+  "editedByUser": false
+}

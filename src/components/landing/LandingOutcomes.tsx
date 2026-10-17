@@ -172,15 +172,14 @@ export default function LandingOutcomes() {
               textWrap: "balance",
             }}
           >
-            You build the product. <span style={{ color: accent }}>We build the audience.</span>
+            Your commits <span style={{ color: accent }}>already say it.</span>
           </h2>
           <p
             data-reveal=""
             data-delay={80}
             style={{ margin: "20px 0 0", fontSize: "1.1rem", lineHeight: 1.55, color: text.secondary, maxWidth: "40ch", textWrap: "pretty" }}
           >
-            A great product with no audience doesn&apos;t sell. Tellovo turns what you&apos;re already building into posts,
-            every week.
+            Tellovo turns what you already write into a week of posts. You read, tweak, publish.
           </p>
 
           <ol className={styles.outcomeList} style={cssVar("--cycle", `${CYCLE_MS}ms`)}>

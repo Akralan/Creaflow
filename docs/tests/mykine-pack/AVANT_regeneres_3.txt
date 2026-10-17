@@ -1,0 +1,79 @@
+Généré le 2026-10-17T21:50:23.438Z — modèle gpt-5.6-luna — lecteur : Développeurs santé et vision
+
+================================================================================
+Événement : 2025-11-16 — Le prototype rate une répétition sur trois sur l'iPhone 11
+TITRE : The 6 FPS Boundary
+
+On Julien’s iPhone 11, the squat counter ran at 6 fps and missed one repetition out of three.
+He still did 20 squats in his living room so I could measure the failure.
+
+The prototype was a web page using MediaPipe Pose in JavaScript.
+
+It counted a squat when the hip-knee-ankle angle went below 100°.
+On my laptop, that worked.
+
+On Julien’s phone, the same page ran at 6 fps.
+The counter missed one repetition out of three.
+
+That was the first useful limit of the prototype: a result on a laptop did not tell me how it would behave on a phone used during a real session.
+
+I could measure the miss. I could not yet explain whether the bottleneck came from the frame rate, the counting rule, or both.
+
+So I did not have a fix to report yet. I had one device, one exercise, and 20 repetitions.
+
+Before calling the counter reliable, I still needed to measure it across phones and decide where the processing should run.
+
+#ComputerVision #DigitalHealth
+
+HASHTAGS : #ComputerVision #DigitalHealth
+TRACE : brouillons 1, contrôles {"failures":[],"retried":false}
+
+================================================================================
+Événement : 2025-11-23 — Le traitement est déplacé sur le téléphone
+TITRE : Le serveur n’a pas tenu la séance
+
+300 à 600 ms de latence sur la 4G de Julien : l’envoi des frames au serveur ne tenait pas pour compter ses squats.
+
+Le prototype faisait déjà 6 fps sur son iPhone 11 et ratait une répétition sur trois. Ajouter l’aller-retour réseau rendait le comptage encore moins prévisible sur le terrain.
+
+J’ai donc testé l’autre option : envoyer chaque image au serveur, y faire tourner le modèle, puis renvoyer le résultat au téléphone.
+
+La mesure était mauvaise. Et j’ai découvert un problème plus grave : des images de Julien en caleçon étaient stockées sur mon VPS.
+
+Le 23 novembre, j’ai décidé de déplacer tout le traitement sur le téléphone. Les frames restent sur l’appareil ; le serveur n’a plus besoin de recevoir les images de la séance.
+
+Cet arbitrage réduit l’exposition des données de santé et supprime cette latence réseau. Il coûte en revanche de la puissance et de la couverture matérielle : un modèle qui tourne sur un iPhone 11 ne sera pas automatiquement fiable sur tous les téléphones.
+
+À ce stade, je n’avais donc pas prouvé que le comptage était fiable. J’avais seulement retiré un aller-retour de 300 à 600 ms et fermé une mauvaise voie pour les données.
+
+La prochaine mesure à faire reste la même : comparer les performances du traitement sur téléphone, appareil par appareil, avant de considérer ce choix comme fiable.
+
+#VisionParOrdinateur #SantéNumérique #RGPD
+
+HASHTAGS : #VisionParOrdinateur #SantéNumérique #RGPD
+TRACE : brouillons 1, contrôles {"failures":[],"retried":false}
+
+================================================================================
+Événement : 2025-12-06 — Le tremblement fait compter trois fois une répétition
+TITRE : Le seuil qui comptait trois fois
+
+Un tremblement en bas du squat faisait compter une répétition trois fois.
+
+Le calcul de l’angle était pourtant correct : produit scalaire entre hanche → genou et cheville → genou.
+
+J’avais posé deux seuils simples :
+au-dessus de 160°, la jambe est en haut ;
+en dessous de 100°, elle est en bas.
+
+Le problème apparaissait autour du seuil bas. En tremblant, l’angle repassait plusieurs fois autour de 100°. Le compteur voyait alors trois passages en position basse au lieu d’une seule répétition.
+
+À ce stade, je ne corrige pas encore le problème. Je préfère garder clairement séparés ce que j’ai mesuré et ce que j’en déduis : la géométrie fonctionne, mais le compteur ne sait pas encore distinguer un tremblement d’une nouvelle répétition.
+
+Le prochain test devra mesurer ce comportement sur plusieurs amplitudes et plusieurs téléphones avant que je puisse considérer le comptage comme fiable.
+
+C’est un petit bug de seuil, mais il touche directement la séance : un chiffre faux à l’écran peut donner l’impression que l’exercice est correctement suivi alors qu’il ne l’est pas.
+
+#ComputerVision #SantéNumérique #Mobile
+
+HASHTAGS : #ComputerVision #SantéNumérique #Mobile
+TRACE : brouillons 1, contrôles {"failures":[],"retried":false}

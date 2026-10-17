@@ -1,0 +1,74 @@
+Généré le 2026-10-17T21:51:32.081Z — modèle gpt-5.6-luna — lecteur : Développeurs santé et vision
+
+================================================================================
+Événement : 2025-11-16 — Le prototype rate une répétition sur trois sur l'iPhone 11
+TITRE : The 6 FPS Gap
+
+On my laptop, the squat counter worked. On Julien’s iPhone 11, it ran at 6 fps and missed one repetition out of three.
+
+The prototype was a web page using MediaPipe Pose in JavaScript.
+
+The counter looked simple: it detected a squat when the hip-knee-ankle angle went below 100°.
+
+That rule was good enough on my laptop. It was not good enough on the phone Julien would actually use.
+
+He still did 20 squats in his living room so I could measure the failure.
+
+The issue was not the exercise definition alone. The camera stream was too slow, so the counter did not see enough of the movement to count every repetition.
+
+At 6 fps, one repetition in three disappeared.
+
+That made the prototype unusable for a patient session, even though the same page appeared to work on my laptop.
+
+This was one iPhone 11 and one exercise, not a device benchmark. Before calling the approach reliable, I still needed to measure the count across phones and repetitions.
+
+HASHTAGS : #ComputerVision #DigitalHealth
+TRACE : brouillons 1, contrôles {"failures":[],"retried":false}
+
+================================================================================
+Événement : 2025-11-23 — Le traitement est déplacé sur le téléphone
+TITRE : Le traitement quitte le VPS
+
+300 à 600 ms de latence sur la 4G de Julien : l'envoi des frames au serveur ne tenait pas pour le test.
+
+J'avais essayé de faire tourner le modèle sur le serveur. Puis je me suis rendu compte que je stockais des images de lui en caleçon sur mon VPS.
+
+Une semaine plus tôt, sur son iPhone 11, le prototype tournait à 6 fps et ratait une répétition sur trois.
+
+Le serveur ne réglait donc pas le problème du téléphone. Il déplaçait le traitement, tout en ajoutant 300 à 600 ms entre la caméra et le comptage.
+
+Le 23 novembre, j'ai pris la décision de tout faire tourner sur le téléphone.
+
+C'était un arbitrage entre deux limites visibles : un traitement local encore trop lent sur l'iPhone 11, et des images envoyées puis stockées sur un VPS.
+
+Je ne peux pas présenter ce choix comme une solution déjà validée. À ce moment-là, je savais seulement que le prototype local était à 6 fps, que le serveur ajoutait 300 à 600 ms, et que je stockais ces images.
+
+La mesure suivante devait porter sur le traitement sur téléphone : vérifier ce que le comptage donnait après avoir supprimé l'envoi des frames au serveur.
+
+HASHTAGS : #SantéNumérique #VisionParOrdinateur
+TRACE : brouillons 2, contrôles {"failures":[],"retried":false}
+
+================================================================================
+Événement : 2025-12-06 — Le tremblement fait compter trois fois une répétition
+TITRE : The threshold counted the tremor
+
+One tremor at the bottom of a squat became three repetitions.
+
+On December 6, the knee angle itself was correct. I calculate it with the dot product of the hip-to-knee and ankle-to-knee vectors.
+
+The thresholds were simple: above 160° for the high position, below 100° for the low position.
+
+The failure appeared at the lower threshold. When the leg trembles around 100°, the angle crosses that boundary three times. The counter records three repetitions.
+
+The failure is in the counting transition, not in the angle calculation. A measurement can be technically correct and still produce a bad session.
+
+I did not correct it in this version.
+
+At this point, I know the angle calculation and the two thresholds work in a stable case. I do not yet have a reliable count when the patient trembles at the bottom.
+
+The missing reliability check is clear: measure the count on repetitions with tremor, not only on a clean movement.
+
+#ComputerVision #DigitalHealth
+
+HASHTAGS : #ComputerVision #DigitalHealth
+TRACE : brouillons 1, contrôles {"failures":[],"retried":false}
