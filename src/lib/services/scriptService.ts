@@ -13,7 +13,6 @@ import type { GeneratedScript } from "@/lib/llm/scriptSchema";
 import type { ContentCategoryContext, ContentType, Platform, ScriptGenerationContext } from "@/lib/llm/prompts";
 import { parseStoredStyleProfile } from "@/lib/llm/styleProfile";
 import { parseStoredReaderPortrait } from "@/lib/llm/readerPortrait";
-import { parseStoredChosenVoice, parseStoredFraming, type SeriesFraming } from "@/lib/llm/seriesFraming";
 import { loadRecentPostCards } from "@/lib/services/recentPostsService";
 import { applyInspirationFeedback, loadInspirationsForGeneration } from "@/lib/services/inspirationService";
 import { buildPerformanceSummary } from "@/lib/services/performanceService";
@@ -98,7 +97,6 @@ export async function buildGenerationContext(
 
   let series = null;
   let seriesProductId: string | null = null;
-  let framing: SeriesFraming | null = null;
   let seriesHasReader = false;
   if (seriesId) {
     const found = await db.query.contentSeries.findFirst({
@@ -109,8 +107,6 @@ export async function buildGenerationContext(
     }
     series = { id: found.id, label: found.label, description: found.description };
     seriesProductId = found.productId;
-    // Cadrage choisi par l'auteur (docs/SPEC_CADRAGE_SERIE.md §4).
-    framing = parseStoredFraming(found.framing);
     seriesHasReader = Boolean(found.readerLabel && found.form);
   }
 
@@ -208,8 +204,6 @@ export async function buildGenerationContext(
     recentReaderLabels: recentPosts.map((p) => p.readerLabel).filter((l): l is string => l !== null),
     recentPosts,
     inspirations: inspirationCards,
-    framing,
-    chosenVoice: parseStoredChosenVoice(profile.chosenVoice),
     platform,
     contentCategory: { id: category.id, label: category.label, description: category.description },
     contentType,

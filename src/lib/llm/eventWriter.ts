@@ -138,6 +138,7 @@ export function buildEventWriterUserMessage(context: EventWriterContext): string
       `Un bon épisode pour lui : ${f.episodeShape}`,
       `Ce qui le fait partir : ${f.avoid}`,
       `Longueur et registre : ${f.register}`,
+      f.signature ? `Signature de la série, à replacer naturellement : ${f.signature}` : null,
       f.words.length ? `Ses mots : ${f.words.join(", ")}` : null,
       f.jargon.length ? `À éviter, ou à expliquer par l'effet : ${f.jargon.join(", ")}` : null,
     ].filter((l): l is string => l !== null))

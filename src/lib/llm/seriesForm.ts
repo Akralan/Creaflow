@@ -22,6 +22,8 @@ export const seriesFormSchema = z.object({
   jargon: z.array(z.string().trim().min(1)).max(12).default([]),
   /** Longueur et registre qui lui conviennent sur la plateforme de la série. */
   register: z.string().trim().min(1),
+  /** Ce qui revient à chaque épisode (une phrase, un geste de fin, une ouverture) — vide si rien. */
+  signature: z.string().trim().default(""),
   generatedAt: z.string().nullable().default(null),
   editedByUser: z.boolean().default(false),
 });
@@ -52,8 +54,9 @@ const describeSeriesFormTool: LlmToolDefinition = {
       words: { type: "array", items: { type: "string" }, description: "6 à 12 mots ou expressions qu'il emploie vraiment." },
       jargon: { type: "array", items: { type: "string" }, description: "Les mots du projet qu'il ne comprend pas (à éviter ou à expliquer). Vide s'il est du métier." },
       register: { type: "string", description: "Longueur et registre pour lui sur la plateforme : nombre de lignes, tutoiement ou non, première personne, ce qu'on ne fait pas." },
+      signature: { type: "string", description: "Ce qui peut revenir à chaque épisode pour que le lecteur reconnaisse la série : une phrase, une façon d'ouvrir ou de finir. Chaîne vide si rien ne s'impose : une signature forcée fait fuir." },
     },
-    required: ["wants", "episodeShape", "avoid", "words", "jargon", "register"],
+    required: ["wants", "episodeShape", "avoid", "words", "jargon", "register", "signature"],
   },
 };
 

@@ -77,7 +77,7 @@ Un événement raconté n'est pas verrouillé : il peut resservir sous un autre 
 - les mots qu'il emploie, ceux qu'il ne comprend pas ;
 - la longueur et le registre qui lui conviennent sur la plateforme de la série.
 
-Stocké sur `contentSeries` (`readerLabel`, `form` jsonb). Remplace le cadrage posture/voix/récit, qui reste en base sans être lu.
+Stocké sur `contentSeries` (`readerLabel`, `form` jsonb). Remplace le cadrage posture/voix/récit, **retiré du code le 2026-10-17** (ses colonnes restent en base sans être lues) ; la forme porte une `signature` facultative, ce qui revient à chaque épisode, transmise au rédacteur.
 
 **Le plan d'une série** n'est plus un objet à part : c'est la ligne de temps filtrée sur le lecteur de la série (événements marqués pour ce public, ou sans public), dans l'ordre des dates, en sautant ce qui a déjà été raconté. Un post = le prochain événement de cette liste. L'auteur peut en sauter un ou en imposer un (« raconte celui-là »).
 

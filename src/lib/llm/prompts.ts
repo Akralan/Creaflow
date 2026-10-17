@@ -2,7 +2,6 @@ import { buildStyleBlock, type StyleProfile } from "./styleProfile";
 import { platformRuleText } from "./platformRules";
 import type { Reader } from "./readerPortrait";
 import type { RecentPostCard } from "./recentPosts";
-import type { ChosenVoice, FramingChoice, SeriesFraming } from "./seriesFraming";
 import { buildFormatBlock, type VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
 import type { EventBrief } from "./eventWriter";
 
@@ -152,10 +151,6 @@ export interface ScriptGenerationContext {
   recentReaderLabels?: string[];
   /** Fiches des derniers posts du sujet, du plus récent au plus ancien (docs/SPEC_MEMOIRE_ET_VEILLE.md §2). */
   recentPosts?: RecentPostCard[];
-  /** Cadrage de la série choisi par l'auteur (docs/SPEC_CADRAGE_SERIE.md) — null si pas cadrée. */
-  framing?: SeriesFraming | null;
-  /** Voix choisie pour le compte au premier cadrage — la série peut la remplacer (framing.voice). */
-  chosenVoice?: ChosenVoice | null;
   /** Fiches actives de la veille d'inspiration du sujet, numérotées i1…i10 (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.3). */
   inspirations?: InspirationCard[];
   platform: Platform;
@@ -239,25 +234,6 @@ export function buildReadersBlock(context: Pick<ScriptGenerationContext, "reader
 
 const SHORT_DATE = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" });
 
-/** Bloc <cadrage> (docs/SPEC_CADRAGE_SERIE.md Annexe A.4) — vide pour une série pas cadrée. La voix
- *  n'y figure pas : elle est dans <style>, une seule fois. */
-export function buildFramingBlock(framing: SeriesFraming | null | undefined): string {
-  if (!framing) return "";
-  const lines = [
-    "Manière choisie par l'auteur pour cette série. Elle s'applique à chaque épisode et prime sur l'angle.",
-    `- Posture : ${framing.posture.label} — ${framing.posture.rule}`,
-    `- Récit : ${framing.story.label} — ${framing.story.rule}`,
-  ];
-  if (framing.signature) lines.push(`- Signature (${framing.signature.placement}) : ${framing.signature.text}`);
-  const chosen = [framing.posture.sample, framing.story.sample].filter(Boolean);
-  if (chosen.length) {
-    lines.push("Extraits qu'il a choisis, comme exemples de MANIÈRE (n'en reprends ni les faits ni les formules) :", ...chosen.map((s) => `« ${s} »`));
-  }
-  const rejected = framing.rejected.slice(0, 3).map((r) => r.sample).filter(Boolean);
-  if (rejected.length) lines.push("Extraits qu'il a écartés (à ne pas imiter) :", ...rejected.map((s) => `« ${s} »`));
-  return tag("cadrage", lines);
-}
-
 /** Bloc <derniers_posts> (docs/SPEC_MEMOIRE_ET_VEILLE.md Annexe A.1) — vide sans post récent. */
 export function buildRecentPostsBlock(cards: RecentPostCard[] | undefined): string {
   if (!cards?.length) return "";
@@ -318,17 +294,9 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
 
   // Voix + règles apprises des corrections de l'auteur (docs/SPEC_APPRENTISSAGE_STYLE.md §5.4),
   // filtrées sur la plateforme cible. Même contenu que dans les micro-retouches, autre enveloppe.
-  // Voix + règles apprises des corrections, plus la voix choisie au cadrage (celle de la série si elle
-  // en a une, sinon celle du compte — docs/SPEC_CADRAGE_SERIE.md §4).
   const styleLines = buildStyleBlock(styleProfile, platform).split("\n").slice(1).filter(Boolean);
-  const voice: FramingChoice | null = context.framing?.voice ?? context.chosenVoice ?? null;
-  if (voice) {
-    styleLines.unshift(`Voix choisie par l'auteur : ${voice.label} — ${voice.rule}${voice.sample ? ` Exemple qu'il a préféré : « ${voice.sample} »` : ""}`);
-  }
   if (styleLines.length) sections.push(tag("style", styleLines));
 
-  const framingBlock = buildFramingBlock(context.framing);
-  if (framingBlock) sections.push(framingBlock);
 
 
   if (materialDocuments?.length) {
@@ -356,10 +324,7 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
   if (series) {
     briefLines.push(`Série à respecter (identité et ton reconnaissables d'un épisode à l'autre) : ${series.label} — ${series.description}`);
   }
-  // Une série cadrée garde l'angle pour l'accroche seulement : sa structure vient du récit choisi.
-  const angleLabel = context.framing
-    ? "Angle (forme de l'accroche seulement, la structure vient du récit choisi)"
-    : "Angle (forme de l'accroche et de la structure)";
+  const angleLabel = "Angle (forme de l'accroche et de la structure)";
   if (angle) {
     briefLines.push(`${angleLabel} : ${angle.label} — ${angle.description}`);
   }
