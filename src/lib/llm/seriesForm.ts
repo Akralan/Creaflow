@@ -73,9 +73,9 @@ export interface SeriesFormContext {
 function buildSystemPrompt(context: SeriesFormContext): string {
   return `Tu prépares le travail d'un ghostwriter. ${context.brandName} (${context.activityType}) raconte ${context.subjectName} dans une série de posts, « ${context.seriesLabel} », écrite pour UN SEUL lecteur. Tu écris la forme de cette série pour ce lecteur : ce qu'il vient y chercher, de quoi est fait un bon épisode pour lui, ce qui le fait partir, ses mots, la longueur et le registre.
 
-Un bon épisode, c'est un événement raconté : ce qui s'est passé, ce que ça a changé, pour cette personne-là. La forme dit comment on le raconte à CE lecteur. Deux exemples de ce qu'on attend, pour deux lecteurs différents d'un même projet :
-- un kiné du sport : « un patient précis, ce qui n'allait pas, ce que l'app a montré, ce que le kiné a fait ensuite, en six à dix lignes, sans un mot de technique » ;
-- un développeur : « ce qu'on croyait, ce qui a cassé, ce qu'on a changé, le chiffre avant et après, en dix à quinze lignes, avec le nom des outils ».
+Un bon épisode, c'est un événement raconté : ce qui s'est passé, ce que ça a changé, pour cette personne-là. La forme dit comment on le raconte à CE lecteur. Deux exemples fictifs de ce qu'on attend, pour deux lecteurs différents d'un même projet (ne les recopie pas, ils servent à montrer le niveau de précision) :
+- celui qui utilise ce que l'auteur construit (un client, un joueur, un patient…) : « une situation précise vécue par quelqu'un comme lui, ce qui n'allait pas, ce que le produit a montré ou permis, ce que cette personne a fait ensuite, en six à dix lignes, sans un mot de technique » ;
+- un pair de l'auteur (un autre développeur, un autre artisan…) : « ce qu'on croyait, ce qui a cassé, ce qu'on a changé, le chiffre avant et après, en dix à quinze lignes, avec le nom des outils ».
 Écris pour le lecteur fourni, à partir de qui il est vraiment, et appuie l'exemple de structure sur un des événements réels listés. Ne décris jamais le projet lui-même : décris comment on le raconte.`;
 }
 

@@ -1,20 +1,22 @@
-=== C (rédacteur par événements, cible kiné) | MyKiné en construction | événement: Julien demande si la caméra peut compter les squats (2025-11-09) | brouillons: 1 | soumissions: 1 | contrôles: {"retried": false, "failures": []} | tours: 4
-TITRE : Le premier squat sur iPhone 11
+=== C (rédacteur par événements, cible kiné) | MyKiné en construction | événement: Julien demande si la caméra peut compter les squats (2025-11-09) | brouillons: 3 | soumissions: 1 | contrôles: {"retried": false, "failures": []} | tours: 6
+TITRE : La question des 40 patients
 
 Environ 6 patients sur 10 ne font pas leurs exercices à la maison.
 
-C’est ce que Julien m’a dit le 9 novembre 2025. Il suivait 40 patients et n’avait aucun moyen de vérifier leur adhésion entre deux rendez-vous, à part leur demander — et ils lui mentaient.
+Julien les suit entre deux rendez-vous. Il n’a aucun moyen de le savoir à part leur demander. Et, d’après lui, ils mentent.
 
-Il m’a demandé si « ton truc de caméra » pouvait compter les squats. Pour lui, la première chose à vérifier était simple : est-ce qu’une séance faite à la maison pouvait au moins produire un nombre de répétitions exploitable au cabinet ?
+Il a 40 patients en cours. À chaque séance, il prescrit des exercices, puis attend le rendez-vous suivant pour savoir ce qui s’est passé chez eux.
 
-Une semaine plus tard, le prototype tournait à 6 images par seconde sur son iPhone 11. Il ratait une répétition sur trois.
+Autour d’une bière, il m’a demandé si « ton truc de caméra » pouvait compter les squats.
 
-Julien a quand même fait 20 squats dans son salon pour le tester.
+À ce moment-là, je n’avais qu’un prototype de pose estimation du Lab, et pas encore de réponse à lui donner.
 
-À ce stade, la caméra ne permettait pas encore de suivre sérieusement l’exécution d’un exercice prescrit entre deux rendez-vous. Elle comptait parfois. Elle ne permettait pas encore de s’y fier.
+Seulement cette question : est-ce qu’une caméra peut compter les répétitions d’un exercice prescrit entre deux rendez-vous ?
+
+C’est avec cette question que MyKiné a commencé.
 
 HASHTAGS : 
-VERDICTS : [true] Je comprends immédiatement le problème de Julien et je lis jusqu’au bout pour connaître la limite du prototype. Le chiffre est contextualisé par l’iPhone 11 et les 20 squats, et le ton reste honnête, même si la fin répète un peu l’idée de fiabilité.
+VERDICTS : [false] Je comprends immédiatement le problème de cabinet et la demande de Julien. Je lis jusqu’au bout parce que la scène est concrète, mais la fin transforme un échange en promesse de produit et sonne un peu comme une présentation marketing, alors que rien n’a encore changé. || [true] Je m’arrête sur le chiffre et je comprends le problème concret de Julien. J’arrive au bout : la fin reste honnête, sans prétendre que le prototype fonctionne déjà, et le texte ressemble davantage à une note personnelle qu’à une annonce. || [true] Je m’arrête sur le chiffre et je comprends le problème concret de Julien. J’arrive au bout : la fin reste honnête, sans prétendre que le prototype fonctionne déjà, et le texte ressemble davantage à une note personnelle qu’à une annonce.
 
 
 === C (rédacteur par événements, cible kiné) | MyKiné en construction | événement: Le prototype rate une répétition sur trois sur l'iPhone 11 (2025-11-16) | brouillons: 2 | soumissions: 1 | contrôles: {"retried": false, "failures": []} | tours: 5

@@ -143,7 +143,7 @@ export function buildEventReaderTools(params: { audienceLabels: string[] }): Llm
         properties: {
           date: { type: "string", description: "AAAA-MM-JJ. Au mois près : AAAA-MM-01. Chaîne vide si la précision est unknown." },
           datePrecision: { type: "string", enum: [...DATE_PRECISIONS], description: "day : le texte donne le jour. month : le mois seulement. unknown : aucune date dans le texte." },
-          title: { type: "string", description: "Le moment, pas un thème. « Marion arrête la démo au bout de 40 secondes », jamais « La démo »." },
+          title: { type: "string", description: "Le moment, pas un thème. « Le testeur lâche la manette au bout de 40 secondes », jamais « Le test »." },
           whatHappened: { type: "string", description: "2 à 5 phrases : les faits, avec les chiffres et les noms tels qu'ils sont dans le texte. Rien d'autre." },
           whatChanged: { type: "string", description: "Ce que ça a changé ensuite d'après le texte (une décision, un abandon, un chiffre qui bouge). Chaîne vide si le texte ne le dit pas." },
           kind: { type: "string", enum: [...EVENT_KINDS], description: "failure : quelque chose a cassé ou raté. decision : un choix pris. result : une mesure, un chiffre. feedback : ce qu'une personne a dit ou fait. milestone : une étape franchie, une première fois." },
@@ -170,7 +170,7 @@ export interface EventReaderPromptContext {
 export function buildEventReaderSystemPrompt(context: EventReaderPromptContext): string {
   return `Tu es le lecteur de la matière de ${context.brandName}, sur le sujet « ${context.subjectName} ». Tu lis tout ce qui a été déposé et tu en sors les événements : ce qui s'est passé, quand, et ce que ça a changé. Tu n'écris jamais de post : d'autres s'en serviront pour raconter.
 
-Un événement est un moment précis : un échec, une décision, un résultat mesuré, ce qu'une personne a dit ou fait, une étape franchie. Ce n'est ni un thème, ni une fonctionnalité, ni une description de comment le système marche. « Marion arrête la démo au bout de 40 secondes parce que le squelette saute sur le genou », jamais « La démo » ni « Le compteur de répétitions ».
+Un événement est un moment précis : un échec, une décision, un résultat mesuré, ce qu'une personne a dit ou fait, une étape franchie. Ce n'est ni un thème, ni une fonctionnalité, ni une description de comment le système marche. « Le premier testeur lâche la manette au bout de 40 secondes parce que le saut semble mou », jamais « Le test » ni « La mécanique de saut ». (Exemple fictif : ne le réutilise jamais.)
 
 <methode>
 1. Appelle ${LIST_DOCUMENTS_TOOL}.

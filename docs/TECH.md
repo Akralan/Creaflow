@@ -314,6 +314,14 @@ CalendarEntry (Module D)
 - reminderSent (bool — colonne présente, mécanisme de rappel non implémenté)
 ```
 
+### Ligne de temps d'un sujet (`docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md`)
+
+- **`material_events`** — l'unité que le rédacteur raconte : `date` (texte `AAAA-MM-JJ`, le 1er du mois au mois près, null sans date), `datePrecision` (`day` | `month` | `unknown`), `title`, `whatHappened`, `whatChanged`, `kind` (`failure` | `decision` | `result` | `feedback` | `milestone`), `audiences text[]` (labels du portrait des lecteurs du sujet ; vide = pour tous), `sourceMaterialId` (SET NULL) + `excerpt` (le passage copié tel quel qui prouve l'événement), `origin` (`reader` | `user`). CASCADE sur `products` comme les documents connectés : un événement sans son sujet n'a aucun sens. Écrits par le lecteur d'événements (`materialEventService.readEventsForSubject`, agent `src/lib/llm/eventReader.ts`) ou à la main.
+- **`source_materials.eventsReadAt`** — null = à lire par le lecteur d'événements ; remis à null quand un re-sync change le document, comme `summary`.
+- **`content_series.readerLabel`** + **`content_series.form`** (jsonb `SeriesForm`, `src/lib/llm/seriesForm.ts`) — le lecteur unique de la série (un label du portrait de son sujet) et la forme écrite pour lui. Le plan d'une série n'est plus un objet à part : c'est la ligne de temps du sujet filtrée sur ce lecteur, dans l'ordre, en sautant ce qu'un post de la série a déjà raconté (`seriesReaderService.planForSeries`).
+- **`scripts.eventId`** (SET NULL) — l'événement raconté par le post ; null pour les posts d'avant le chantier, les imports et les séries sans lecteur. C'est lui qui marque un événement comme raconté.
+- `narrative_state`, `content_series.mode`, `content_series.framing`, `inspirations` restent en base ; le chef ne sert plus qu'aux séries sans lecteur (Lot 4 à venir : retrait).
+
 ### Relation Script ↔ CalendarEntry
 
 Les deux entités sont indépendantes mais reliées par `CalendarEntry.scriptId` (nullable) :
@@ -431,6 +439,12 @@ Assistant **agentique** (`docs/SPEC_ASSISTANT_AGENTIQUE.md`) : il lit tout l'esp
 - `GET/POST /api/materials/interview?productId=` — interview-chat (§3.7) : `GET` renvoie l'historique, `POST { message }` fait tourner un tour de conversation (`runInterviewTurn`, pattern hérité de l'ancien chat d'onboarding, supprimé depuis) et, si une information factuelle est extraite, crée un `SourceMaterial(kind="interview")`, immédiatement utilisable.
 - `POST /api/series/from-material` `{ productId?, seriesId | newSeries, platform, contentCategoryId, contentType, episodeCount }` — génère une série depuis le corpus (§3.8) : propose un découpage en épisodes à partir du texte brut complet du sujet (`materialEpisodes.ts`, `{episodeTitle, angleHint}` par épisode, pas d'assignation de fragments), génère un script complet par épisode (réutilise `buildGenerationContext`/`createScriptRecord` avec une directive d'épisode injectée dans le prompt — le LLM choisit lui-même dans le texte brut complet ce qui correspond à l'angle, une génération complète par épisode donc quota inchangé dans son principe), place chaque script sur le calendrier (réutilise `placeScriptOnCalendar`, espacés de 3 jours par défaut). S'arrête au quota plutôt que d'annuler les épisodes déjà générés.
 
+### Ligne de temps, lecteur et forme (`docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md`)
+
+- `GET /api/events?productId=` — la ligne de temps du sujet (événements triés par date, non datés en fin) et le nombre de documents pas encore lus ; `POST /api/events` — « Il s'est passé ça », un événement écrit à la main ; `PATCH`/`DELETE /api/events/[id]`. `POST /api/events/read` — « Relire la matière » : lit les documents du sujet pas encore lus, synchrone (plusieurs minutes possibles), renvoie un rapport (documents lus, événements enregistrés et refusés, tours). La lecture part aussi en arrière-plan à chaque ingestion (`scheduleEventReading`, `after()`), une à la fois par sujet dans le processus.
+- `GET /api/series/[id]/reader` — les publics possibles de la série (portrait de son sujet) ; `PUT` — choisir le lecteur, ce qui écrit la forme (un appel LLM) ; `PUT /api/series/[id]/form` — corriger la forme à la main ; `GET /api/series/[id]/plan` — la ligne de temps vue par la série (`told`, `next`).
+- Écrans : `EventTimeline` dans le panneau de matière du sujet (liste, relecture, ajout à la main) ; `SeriesReaderPanel` dans le détail d'une série (lecteur, forme, prochains épisodes). Fin d'onboarding : portrait des lecteurs en synchrone dans `completeOnboarding`, puis lecteur principal et forme attribués à chaque série gardée (`confirmSeriesSelection`).
+
 ### Performance & rééquilibrage (Module D/E) — écran `/performance`
 - `POST /api/performance/refresh` — point de déclenchement lazy (aucun cron dans ce repo, `docs/SPEC_METRIQUES_AUTO.md` §7.5) : fetch les métriques de chaque plateforme connectée avec `hasMetricsFetch` (`fetchAndMatchPostsForUser`, par plateforme, via `Promise.allSettled` — l'échec d'une plateforme n'affecte jamais les autres), puis évalue une seule fois `maybeGenerateCategoryReweightProposal` (agrège le signal sur toutes les plateformes). Appelé au montage de la page.
 - `GET /api/performance/match-candidates` — candidats de rattachement `pending` en attente de confirmation, triés par score.
@@ -511,6 +525,13 @@ Les trois reçoivent `expectations` (« Ce que l'auteur attend de CreaFlow : …
 - `src/lib/llm/readerPortrait.ts` — 1 à 3 publics par sujet, tirés de l'audience et de la matière du sujet. Le rédacteur en chef choisit chaque jour le public visé (`readerLabel`), en évitant celui des derniers posts.
 - `src/lib/llm/inspirationResearch.ts` — deux appels : une recherche web (`callWebResearch`, outil `web_search` d'OpenAI avec `tool_choice: "required"`, sinon le modèle répond de mémoire), puis une mise en fiches. Seules les URL réellement consultées (annotations `url_citation`) sont gardées.
 - `src/lib/llm/seriesFraming.ts` — catalogue fixe de 6 options par dimension (posture, voix, récit) ; le modèle en retient 3 et écrit pour chacune un extrait de 80 mots au plus sur un même vrai moment de la matière (choisi par `pickFramingMoment` sur les résumés, hors documents d'installation), puis propose une signature.
+
+### 5.16 Le rédacteur par événements — `eventReader.ts`, `seriesForm.ts`, `eventWriter.ts` (`docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md`)
+
+Trois prompts (`docs/PROMPTS.md` 21 à 23) qui remplacent le chef (5.1 direction, prompts 6 et 7) dès qu'une série a un lecteur et une forme :
+- **Le lecteur d'événements** (`callAgentic`, trois outils) lit toute la matière d'un sujet en entier, par parties de 12 000 caractères, et enregistre les événements au fil de la lecture ; un événement dont le passage n'est pas retrouvé tel quel dans le document est refusé et renvoyé au modèle. Déclenché à chaque ingestion et sur bouton ; les documents déjà lus (`eventsReadAt`) ne sont pas relus.
+- **La forme de la série** (`callStructured`) est écrite une fois pour le lecteur choisi, à partir des événements réels, puis corrigée à la main.
+- **Le rédacteur** (`callAgentic`, quatre outils, 14 tours) reçoit un brief à cinq blocs — l'événement et ses voisins, le lecteur, la forme, le style appris, les derniers posts, la plateforme — relit la source, écrit un brouillon, le juge comme le lecteur (`review_draft`, trois brouillons au plus), soumet ; les contrôles de `scriptChecks.ts` tournent dans `submit_post` (deux soumissions au plus, la moins fautive gardée). Trace V4 sur `scripts.generationTrace`. Branché dans `generateScript` via `context.eventBrief` (`buildEventBriefForSeries`) ; `EVENT_WRITER_ENABLED=false` rend le chemin V3. Angle, rôle, inspirations et cadrage ne lui sont pas transmis.
 
 ### 5.7 Récupération automatique des métriques & re-pondération (Module D/E)
 

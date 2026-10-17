@@ -144,9 +144,18 @@ On s'arrête après le Lot 2 pour regarder les posts avant d'aller plus loin.
 
 ---
 
-## 9. Points ouverts
+## 9. Ce que les essais du 2026-10-17 ont fait changer
+
+- **Lecteur d'événements.** Première lecture : le premier moment du projet (la conversation qui l'a déclenché) et plusieurs entrées du journal manquaient ; une doc « dernière mise à jour : octobre 2026 » datait ses faits d'octobre. Prompt complété : chaque entrée datée d'un journal est un événement, le premier moment compte, la date de mise à jour d'un document ne date pas ce qu'il rapporte. Relecture du journal : 31 événements sur 32 entrées, tous datés, dans l'ordre.
+- **Déduplication trop large.** Un fait déjà connu sous une date vague (doc technique) a fait sauter sa version datée au jour (journal). Point ouvert ci-dessous.
+- **Rédacteur.** Les quatre premiers posts étaient des événements datés, dans l'ordre, avec les détails de la source, et aucun n'a été refusé par les contrôles. Deux défauts : le premier post racontait aussi l'événement suivant (pris dans ses voisins), et deux posts disaient « nous » pour un auteur seul. Prompt complété (le post s'arrête avant l'événement suivant ; première personne du singulier sauf équipe déclarée) ; le premier post régénéré s'arrête bien à son événement.
+- **Exemples des prompts.** Les exemples écrits pendant le test portaient sur le pack (kiné, Marion). Remplacés par des exemples fictifs sans rapport (un testeur, un joueur, un pair), marqués comme tels, pour ne pas orienter les générations vers ce domaine.
+
+## 10. Points ouverts
 
 - L'interview de matière devrait pouvoir écrire des événements directement (une question = un événement), c'est le geste de ghostwriter le plus naturel. Pas dans ce chantier.
 - Les posts visuels : le brief vaut aussi pour eux (storyboard dans `submit_post`), la maquette reste inchangée. À vérifier au Lot 2.
 - Le rythme des séries, le calendrier, le style appris : inchangés.
-- Un document de 100 Ko (journal de commits) : lecture par tranches, à borner au Lot 0.
+- Un document de 100 Ko (journal de commits) : lu par parties de 12 000 caractères, plafond de tours `12 + 4 × parties`.
+- Quand un événement existe déjà avec une date vague et qu'un document mieux daté le raconte, le lecteur le saute : il faudrait accepter la version mieux datée et retirer l'autre.
+- Les événements lus avant que le portrait des lecteurs existe ont `audiences` vide (= pour tous) : une requalification après création du portrait reste à faire.
