@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { after } from "next/server";
 import { requireUserId } from "@/lib/auth/session";
 import { createFileMaterial, summarizeMaterialDocument } from "@/lib/services/sourceMaterialService";
-import { markStaleForMaterialIngestion } from "@/lib/services/narrativeDirector";
 import { scheduleEventReading } from "@/lib/services/materialEventService";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
@@ -37,8 +36,6 @@ export async function POST(request: NextRequest) {
       title: file.name,
       rawText,
     });
-    // Ingestion de matière (§5, Lot B4) : marque isStale l'état du sujet + des séries liées.
-    await markStaleForMaterialIngestion(userId, resolvedProductId);
     after(() =>
       summarizeMaterialDocument(material.id).catch((err) =>
         logger.error("Résumé de matière échoué", err, { materialId: material.id })

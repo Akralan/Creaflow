@@ -7,8 +7,6 @@ export const seriesEntrySchema = z.object({
   description: z.string().min(1),
   // Un rôle unique par série (docs/SPEC_SERIES_ET_ROLES.md §1) — libellé exact d'un rôle actif.
   categoryLabel: z.string().min(1),
-  // docs/SPEC_REDACTEUR_EN_CHEF.md §4.5, Annexe B.8 — inférence à la création, éditable ensuite.
-  mode: z.enum(["feuilleton", "rendez_vous"]),
   // Sujet dont la série tire sa matière — chaîne vide = niveau marque. Avant le 2026-10-17 les
   // séries générées naissaient sans sujet, donc sans matière ni portrait des lecteurs.
   subjectName: z.string().default(""),
@@ -51,12 +49,6 @@ function buildSuggestContentSeriesTool(categoryLabels: string[], subjectNames: s
                 description: "Le rôle éditorial (unique) que sert cette série. Si tu hésites entre deux rôles, ce sont deux séries.",
                 enum: categoryLabels,
               },
-              mode: {
-                type: "string",
-                enum: ["feuilleton", "rendez_vous"],
-                description:
-                  'Détermine le mode de la série : "feuilleton" si les épisodes se suivent et construisent une progression (devlog, coulisses d\'un projet, avancement d\'un chantier) ; "rendez_vous" si les épisodes sont autonomes et ne partagent qu\'un format (news de la semaine, sélection, FAQ, top). En cas de doute, choisis "rendez_vous".',
-              },
               subjectName: {
                 type: "string",
                 enum: [...subjectNames, ""],
@@ -64,7 +56,7 @@ function buildSuggestContentSeriesTool(categoryLabels: string[], subjectNames: s
                   "Le projet dont la série raconte l'avancement ou tire sa matière, recopié parmi ceux fournis. Chaîne vide seulement si la série porte sur l'activité en général et sur aucun projet précis.",
               },
             },
-            required: ["label", "description", "categoryLabel", "mode", "subjectName"],
+            required: ["label", "description", "categoryLabel", "subjectName"],
           },
         },
       },

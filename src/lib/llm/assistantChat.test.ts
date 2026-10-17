@@ -40,7 +40,6 @@ function buildContext(overrides: Partial<AssistantChatContext> = {}): AssistantC
         rhythm: { days: [3], every: 1, anchor: null },
         category: { label: "Coulisses" },
         platforms: [],
-        mode: "feuilleton",
         product: { id: "p1", name: "Atelier céramique" },
       },
     ],
@@ -79,7 +78,6 @@ describe("runAssistantChatTurn", () => {
     expect(system).toContain("Fait main, série limitée.");
     expect(system).toContain("Collectionneurs de déco artisanale.");
     // Série : mode et sujet dont elle tire sa matière.
-    expect(system).toContain("[mode : feuilleton]");
     expect(system).toContain("Atelier céramique (id:p1)");
     // Rôle : la consigne éditoriale et l'aiguillage matière.
     expect(system).toContain("Montrer l'envers du décor.");
@@ -107,7 +105,6 @@ describe("runAssistantChatTurn", () => {
     const series = proposalTool.input_schema.properties.seriesProposals.items.properties;
     const category = proposalTool.input_schema.properties.categoryProposals.items.properties;
     expect(product.targetAudience).toBeDefined();
-    expect(series.mode.enum).toEqual(["feuilleton", "rendez_vous"]);
     expect(series.productId.enum).toEqual(["p1"]);
     expect(category.materialHungry.type).toBe("boolean");
     // La réponse à l'utilisateur est du texte libre, plus un champ de l'outil.
@@ -145,7 +142,6 @@ describe("runAssistantChatTurn", () => {
       everyOtherWeek: false,
       categoryLabel: "Expertise",
       platforms: [],
-      mode: "rendez_vous",
     });
 
     callAgenticMock.mockImplementation(async ({ onToolCall }: { onToolCall: (c: unknown) => Promise<unknown> }) => {
@@ -245,26 +241,4 @@ describe("runAssistantChatTurn", () => {
     expect(materialTool.input_schema.properties.attachmentId.enum).toEqual(["a1"]);
   });
 
-  it("ne fait pas échouer le tour quand le modèle omet le mode d'une série", async () => {
-    callAgenticMock.mockImplementation(async ({ onToolCall }: { onToolCall: (c: unknown) => Promise<unknown> }) => {
-      await onToolCall({
-        name: "propose_changes",
-        input: {
-          productProposals: [],
-          seriesProposals: [
-            { action: "create", label: "Sans mode", description: "X", rhythmDays: [2], everyOtherWeek: false, categoryLabel: "Expertise", platforms: [] },
-          ],
-          categoryProposals: [],
-          angleProposals: [],
-          postingGoalProposals: [],
-          profileProposals: [],
-        },
-      });
-      return { reply: "Ok.", toolCalls: [], turns: 2, stoppedAtMaxTurns: false };
-    });
-
-    const result = await runAssistantChatTurn(buildContext());
-
-    expect(result.proposals.seriesProposals[0].mode).toBeUndefined();
-  });
 });

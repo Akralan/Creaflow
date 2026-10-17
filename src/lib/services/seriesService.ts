@@ -3,7 +3,6 @@ import { db } from "@/db";
 import { contentSeries, contentSeriesCategories, contentSeriesPlatforms, creatorProfiles, products } from "@/db/schema";
 import { suggestContentSeries } from "@/lib/llm/seriesLabels";
 import { listActiveCategoriesForUser, resolveCategoryLabelToId } from "@/lib/services/categoryLabelsService";
-import { findNarrativeStatesForSeries } from "@/lib/services/narrativeDirector";
 import { syncSeriesSlots } from "@/lib/services/seriesSlotSync";
 import { distributeDays, parseStoredRhythm, type SeriesRhythm } from "@/lib/seriesRhythm";
 import { ApiError } from "@/lib/api/errors";
@@ -13,7 +12,6 @@ type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /** Écran Direction — endpoint agrégé (docs/SPEC_REDACTEUR_EN_CHEF.md §6 : "pas de nouvel endpoint de
  *  lecture, étendre l'endpoint agrégé existant") : chaque série porte son état narratif le cas
- *  échéant (`null` si jamais planifiée, ou mode rendez_vous).
  *
  *  Une série porte exactement UN rôle (docs/SPEC_SERIES_ET_ROLES.md §1) — la jonction
  *  contentSeriesCategories est conservée physiquement, l'invariant est imposé ici et dans
@@ -31,16 +29,11 @@ export async function listActiveSeriesForUser(userId: string) {
       product: { columns: { id: true, name: true } },
     },
   });
-  const narrativeStates = await findNarrativeStatesForSeries(
-    userId,
-    rows.map((r) => r.id)
-  );
   return rows.map(({ contentSeriesCategories: joins, contentSeriesPlatforms: platformJoins, ...s }) => ({
     ...s,
     category: joins[0]?.category ?? null,
     platforms: platformJoins.map((j) => j.platform),
     rhythm: parseStoredRhythm(s.rhythm),
-    narrativeState: narrativeStates.get(s.id) ?? null,
   }));
 }
 
@@ -86,17 +79,9 @@ export async function resolveCategoryForGeneration(
   return input.contentCategoryId;
 }
 
-/** Bascule de mode et/ou changement du sujet lié (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — n'affecte
- *  jamais l'état narratif existant : ni la bascule de mode (rendez_vous conserve les beats, masque
- *  seulement la planification côté UI), ni le changement de sujet (l'état d'un plan déjà en cours
- *  n'est pas migré — nouvelle matière lue à la prochaine planification/génération, cf.
- *  narrativeDirector.ts::resolveSubject qui lit `ContentSeries.productId` à chaque appel, jamais
- *  une valeur figée sur NarrativeState). */
-export async function updateSeriesFields(
-  userId: string,
-  seriesId: string,
-  fields: { mode?: (typeof contentSeries.$inferInsert)["mode"]; productId?: string | null }
-) {
+/** Changement du sujet lié d'une série (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4) : le lecteur se
+ *  choisit ensuite dans le portrait du nouveau sujet. */
+export async function updateSeriesFields(userId: string, seriesId: string, fields: { productId?: string | null }) {
   if (fields.productId) {
     const product = await db.query.products.findFirst({ where: and(eq(products.id, fields.productId), eq(products.userId, userId)) });
     if (!product) {
@@ -106,7 +91,6 @@ export async function updateSeriesFields(
   const [updated] = await db
     .update(contentSeries)
     .set({
-      ...(fields.mode !== undefined && { mode: fields.mode }),
       ...(fields.productId !== undefined && { productId: fields.productId }),
     })
     .where(and(eq(contentSeries.id, seriesId), eq(contentSeries.userId, userId)))
@@ -215,7 +199,7 @@ export async function generateSeriesForUser(userId: string) {
 
     const inserted = await tx
       .insert(contentSeries)
-      .values(resolved.map((s) => ({ userId, label: s.label, description: s.description, weight: s.weight, mode: s.mode, productId: s.productId, rhythm: s.rhythm })))
+      .values(resolved.map((s) => ({ userId, label: s.label, description: s.description, weight: s.weight, productId: s.productId, rhythm: s.rhythm })))
       .returning();
 
     await tx.insert(contentSeriesCategories).values(inserted.map((series, i) => ({ seriesId: series.id, categoryId: resolved[i].categoryId })));
@@ -232,7 +216,6 @@ export async function generateSeriesForUser(userId: string) {
         rhythm: resolved[i].rhythm as SeriesRhythm,
         // Toujours null : ce sont des lignes fraîchement insérées, un état narratif ne peut exister
         // que pour un seriesId déjà connu.
-        narrativeState: null,
         product: (() => {
           const product = productList.find((p) => p.id === resolved[i].productId);
           return product ? { id: product.id, name: product.name } : null;
@@ -256,9 +239,6 @@ interface SeriesInput {
   platforms: string[];
   /** `undefined` laisse le rythme inchangé ; null = pas de rythme (aucun créneau). */
   rhythm?: SeriesRhythm | null;
-  /** docs/SPEC_REDACTEUR_EN_CHEF.md §4.5 — `undefined` laisse le mode inchangé (défaut base
-   *  "rendez_vous" à la création) : l'édition manuelle de l'écran Direction ne le passe pas. */
-  mode?: (typeof contentSeries.$inferInsert)["mode"];
   /** Sujet dont la série tire sa matière — `undefined` laisse le rattachement inchangé.
    *  L'appelant est responsable de vérifier que le sujet appartient bien à l'utilisateur
    *  (cf. updateSeriesFields, qui le fait pour la porte d'édition directe). */
@@ -278,7 +258,6 @@ export async function upsertSeriesItem(tx: Tx, userId: string, item: SeriesInput
         description: item.description,
         ...(item.weight !== undefined && { weight: item.weight }),
         ...(item.rhythm !== undefined && { rhythm: item.rhythm }),
-        ...(item.mode !== undefined && { mode: item.mode }),
         ...(item.productId !== undefined && { productId: item.productId }),
       })
       .where(and(eq(contentSeries.id, item.id), eq(contentSeries.userId, userId)))
@@ -296,7 +275,6 @@ export async function upsertSeriesItem(tx: Tx, userId: string, item: SeriesInput
         description: item.description,
         weight: item.weight ?? 50,
         rhythm: item.rhythm ?? null,
-        ...(item.mode !== undefined && { mode: item.mode }),
         ...(item.productId !== undefined && { productId: item.productId }),
       })
       .returning();

@@ -4,7 +4,6 @@ import { db } from "@/db";
 import { calendarEntries, creatorProfiles, scripts, sourceMaterials } from "@/db/schema";
 import type { LlmToolDefinition } from "@/lib/llm/types";
 import { getMaterialForUser, listMaterialsForSubject } from "@/lib/services/sourceMaterialService";
-import { resolveNarrativeState } from "@/lib/services/narrativeDirector";
 import { getStyleLearningStatus } from "@/lib/services/styleLearningService";
 import { ApiError } from "@/lib/api/errors";
 
@@ -36,7 +35,6 @@ const listScriptsSchema = z.object({
 const readScriptSchema = z.object({ scriptId: z.string().min(1) });
 const readCalendarSchema = z.object({ from: z.string().min(1), to: z.string().min(1) });
 const readPerformanceSchema = z.object({ platform: z.string().optional() });
-const narrativeSchema = z.object({ productId: z.string().nullish(), seriesId: z.string().nullish() });
 
 function parseDay(value: string, field: string): Date {
   const parsed = new Date(value);
@@ -132,19 +130,6 @@ export const ASSISTANT_READ_TOOLS: LlmToolDefinition[] = [
     input_schema: {
       type: "object",
       properties: { platform: { type: "string", description: "Restreindre à une plateforme." } },
-      required: [],
-    },
-  },
-  {
-    name: "read_narrative_state",
-    description:
-      "État narratif tenu par le rédacteur en chef pour un sujet ou une série en mode feuilleton : arc en cours, épisodes prévus (beats), promesses faites à l'audience et non tenues, détails récurrents.",
-    input_schema: {
-      type: "object",
-      properties: {
-        productId: { type: "string", description: "Id du sujet." },
-        seriesId: { type: "string", description: "Id de la série. Prioritaire sur productId." },
-      },
       required: [],
     },
   },
@@ -324,25 +309,6 @@ export async function runAssistantReadTool(userId: string, name: string, rawInpu
       };
     }
 
-    case "read_narrative_state": {
-      const { productId, seriesId } = narrativeSchema.parse(rawInput);
-      const state = await resolveNarrativeState(userId, productId ?? null, seriesId ?? null);
-      if (!state) return { exists: false };
-      return {
-        exists: true,
-        // resolveNarrativeState retombe sur l'état de niveau marque quand le sujet/la série demandé
-        // n'en a pas : on rend le périmètre effectif explicite, sinon le modèle croit lire l'état du
-        // sujet qu'il a demandé.
-        scope: state.seriesId ? { seriesId: state.seriesId } : state.productId ? { productId: state.productId } : "marque",
-        arcSummary: state.arcSummary,
-        formatContract: state.formatContract,
-        beats: state.beats,
-        openPromises: state.openPromises,
-        callbacks: state.callbacks,
-        isStale: state.isStale,
-        lastPlannedAt: state.lastPlannedAt,
-      };
-    }
 
     case "read_profile": {
       const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });

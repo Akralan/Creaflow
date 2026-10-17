@@ -103,6 +103,8 @@ export const materialSourceStatusEnum = pgEnum("material_source_status", ["ok", 
 // beats maintenus par le rédacteur en chef (devlog, coulisses d'un projet) ; "rendez_vous" = épisodes
 // autonomes partageant un format (news de la semaine) — pas de beats, planification désactivée pour
 // ce mode. Défaut "rendez_vous" en cas de doute (inférence LLM à la création, Lot B3).
+// RETIRÉ (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md Lot 4) : plus de mode, toute série raconte sa ligne de
+// temps. Colonne conservée sans migration destructive, plus lue.
 export const contentSeriesModeEnum = pgEnum("content_series_mode", ["feuilleton", "rendez_vous"]);
 // Fiche d'inspiration (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.1) : écartée, jamais effacée d'office.
 export const inspirationStatusEnum = pgEnum("inspiration_status", ["active", "dismissed"]);
@@ -506,6 +508,8 @@ export const sourceMaterialCitations = pgTable("source_material_citations", {
 // Contrainte unique tolérante aux NULL, même pattern que subjectInterviewSessions (commentaire plus
 // haut) : deux états "niveau marque" pourraient coexister en cas de double création concurrente,
 // même ordre de tolérance qu'ailleurs dans ce repo.
+// RETIRÉ (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md Lot 4, 2026-10-17) : le rédacteur en chef n'existe plus,
+// cette table n'est plus ni lue ni écrite. Conservée sans migration destructive ; à supprimer un jour.
 export const narrativeState = pgTable(
   "narrative_state",
   {
@@ -663,6 +667,7 @@ export const scripts = pgTable("scripts", {
   // d'un beat dans NarrativeState.beats (jsonb, pas de FK possible). Null hors chef ou hors plan
   // (détour assumé). Écrit à la génération (Lot B3), passe le beat en "drafted" puis "published"
   // selon le statut de ce script (Lot B4).
+  // RETIRÉ avec le chef (Lot 4) : plus jamais écrit, remplacé par eventId.
   beatId: text("beat_id"),
   // Promesses explicites faites par ce script à l'audience (Annexe B.6) — consolidées dans
   // NarrativeState.openPromises au passage en "published" (§5, Lot B4).

@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { creatorProfiles, contentSeries, products, sourceMaterials } from "@/db/schema";
+import { creatorProfiles, contentSeries, products, sourceMaterials, materialEvents } from "@/db/schema";
 import { ApiError } from "@/lib/api/errors";
 import { parseStoredReaderPortrait } from "@/lib/llm/readerPortrait";
 import {
@@ -18,7 +18,7 @@ import {
   type SeriesFraming,
 } from "@/lib/llm/seriesFraming";
 import { listActiveSeriesForUser } from "@/lib/services/seriesService";
-import { nextEpisode, resolveNarrativeState } from "@/lib/services/narrativeDirector";
+import { planForSeries } from "@/lib/services/seriesReaderService";
 
 /**
  * Cadrage d'une série par des choix (docs/SPEC_CADRAGE_SERIE.md). Sans état côté serveur pendant le
@@ -64,14 +64,18 @@ async function resolveMoment(
       : [];
     return { title: given.title, docs };
   }
-  const state = await resolveNarrativeState(userId, series.productId, series.id);
-  const beat = state ? nextEpisode(state.beats, null) : null;
-  if (beat && beat.focusDocIds.length > 0) {
-    const docs = await db.query.sourceMaterials.findMany({
-      where: and(eq(sourceMaterials.userId, userId), inArray(sourceMaterials.id, beat.focusDocIds)),
-      columns: { id: true, title: true, rawText: true },
-    });
-    if (docs.length > 0) return { title: beat.title, docs };
+  // Le prochain événement de la ligne de temps vu par la série (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md
+  // §4) : c'est le moment le plus juste pour écrire les extraits, avec son document source.
+  const nextEvent = (await planForSeries(userId, series.id).catch(() => null))?.next ?? null;
+  if (nextEvent) {
+    const event = await db.query.materialEvents.findFirst({ where: eq(materialEvents.id, nextEvent.id), columns: { sourceMaterialId: true } });
+    const doc = event?.sourceMaterialId
+      ? await db.query.sourceMaterials.findFirst({
+          where: and(eq(sourceMaterials.userId, userId), eq(sourceMaterials.id, event.sourceMaterialId)),
+          columns: { id: true, title: true, rawText: true },
+        })
+      : null;
+    if (doc) return { title: nextEvent.title, docs: [doc] };
   }
   if (series.productId) {
     const docs = await db.query.sourceMaterials.findMany({
@@ -85,7 +89,7 @@ async function resolveMoment(
     const doc = (picked && docs.find((d) => d.id === picked.docId)) ?? docs[0];
     if (doc) return { title: picked?.title ?? doc.summary ?? doc.title ?? "Le dernier document de ta matière", docs: [doc] };
   }
-  return { title: beat?.title ?? "La présentation de ce que tu construis", docs: [] };
+  return { title: "La présentation de ce que tu construis", docs: [] };
 }
 
 async function buildContext(
@@ -105,7 +109,6 @@ async function buildContext(
       series: {
         label: series.label,
         description: series.description,
-        mode: series.mode === "feuilleton" ? "feuilleton : les épisodes se suivent" : "rendez-vous : épisodes autonomes au même format",
         roleLabel: series.contentSeriesCategories[0]?.category?.label ?? null,
       },
       readers: (parseStoredReaderPortrait(product?.readerPortrait)?.readers ?? []).map((r) => ({ label: r.label, who: r.who })),

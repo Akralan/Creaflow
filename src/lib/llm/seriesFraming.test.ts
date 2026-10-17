@@ -9,7 +9,7 @@ import { buildFramingBlock, buildScriptUserMessage, SCRIPT_CORE_PROMPT } from ".
 const context: FramingContext = {
   subjectName: "Creaflow",
   subjectDescription: "Outil de posts",
-  series: { label: "CreaFlow en chantier", description: "Le devlog", mode: "feuilleton", roleLabel: "Coulisses" },
+  series: { label: "CreaFlow en chantier", description: "Le devlog", roleLabel: "Coulisses" },
   readers: [{ label: "Devs", who: "Développeurs d'outils IA" }],
   moment: { title: "Cinq briefs rejoués", documents: [{ title: "Journal", text: "J'ai rejoué 5 briefs." }] },
 };

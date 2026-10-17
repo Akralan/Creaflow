@@ -33,13 +33,6 @@ describe("buildReadersBlock", () => {
     expect(block).not.toContain("Audience visée");
   });
 
-  it("transmet le public choisi par la direction éditoriale plutôt que les publics récents", () => {
-    const direction = { stateId: "s", beatId: null, beatTitle: null, concept: "c", kind: "material" as const, callbackToUse: null, promiseToHonor: null, promiseToMake: null, angleHint: null, readerLabel: "Devs indés" };
-    const block = buildReadersBlock({ ...base, readers: [players, devs], recentReaderLabels: ["Joueurs"], direction });
-    expect(block).toContain("La direction éditoriale a choisi le public de ce post : Devs indés.");
-    expect(block).not.toContain("Publics visés par les derniers posts");
-  });
-
   it("rappelle les publics récents seulement s'il y en a plusieurs à alterner", () => {
     expect(buildReadersBlock({ ...base, readers: [players, devs], recentReaderLabels: ["Joueurs", "Joueurs"] })).toContain(
       "Publics visés par les derniers posts de ce sujet, du plus récent au plus ancien : Joueurs, Joueurs."

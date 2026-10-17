@@ -133,7 +133,7 @@ export function BriefInfo({ script }: { script: Script }) {
   ];
   if (script.angle) rows.push(["Angle", script.angle.label]);
   if (script.product) rows.push(["Sujet", script.product.name]);
-  if (script.beatTitle) rows.push(["Épisode", script.beatTitle]);
+  if (script.eventTitle) rows.push(["Événement", script.eventTitle]);
 
   return (
     <div ref={ref} style={{ position: "relative" }} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>

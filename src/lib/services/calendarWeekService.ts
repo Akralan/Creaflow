@@ -1,6 +1,7 @@
-import { and, eq, gte, inArray, isNotNull, isNull, lt } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lt } from "drizzle-orm";
 import { db } from "@/db";
-import { calendarEntries, creatorProfiles, narrativeState, postingGoals, visualDesigns } from "@/db/schema";
+import { calendarEntries, creatorProfiles, postingGoals, visualDesigns } from "@/db/schema";
+import { planForSeries } from "@/lib/services/seriesReaderService";
 import { imagesOf, slidesOf } from "@/lib/services/visualDesignService";
 import { syncSeriesSlots } from "@/lib/services/seriesSlotSync";
 
@@ -10,8 +11,8 @@ const LATER_HORIZON_DAYS = 28;
 /** Horizon des créneaux vides regardés pour attribuer les épisodes prévus et trouver le suivant. */
 const UPCOMING_LOOKAHEAD = 120;
 
-/** Ce qu'un créneau vide va devenir : l'épisode prévu par le plan de sa série (null hors
- *  feuilleton ou plan épuisé) et le projet auquel la série est reliée. */
+/** Ce qu'un créneau vide va devenir : le prochain événement de la ligne de temps vu par sa série
+ *  (null si plus rien à raconter) et le projet auquel la série est reliée. */
 export interface UpcomingPost {
   title: string | null;
   project: string | null;
@@ -38,8 +39,7 @@ export function assignPlannedBeats(
 }
 
 async function loadUpcoming(userId: string, today: Date) {
-  const [slots, states] = await Promise.all([
-    db.query.calendarEntries.findMany({
+  const slots = await     db.query.calendarEntries.findMany({
       where: and(eq(calendarEntries.userId, userId), isNull(calendarEntries.scriptId), gte(calendarEntries.scheduledDate, today)),
       with: {
         contentCategory: { columns: { id: true, label: true } },
@@ -47,15 +47,13 @@ async function loadUpcoming(userId: string, today: Date) {
       },
       orderBy: (e, { asc }) => [asc(e.scheduledDate)],
       limit: UPCOMING_LOOKAHEAD,
-    }),
-    db.query.narrativeState.findMany({ where: and(eq(narrativeState.userId, userId), isNotNull(narrativeState.seriesId)) }),
-  ]);
-  const planned = new Map(
-    states.map((st) => [
-      st.seriesId as string,
-      ((st.beats as Array<{ title: string; status: string }> | null) ?? []).filter((b) => b.status === "planned").map((b) => b.title),
-    ])
-  );
+    });
+  // Les épisodes à venir de chaque série : sa ligne de temps, sans ce qui est déjà raconté.
+  const planned = new Map<string, string[]>();
+  for (const seriesId of new Set(slots.map((sl) => sl.seriesId).filter((id): id is string => id !== null))) {
+    const plan = await planForSeries(userId, seriesId).catch(() => null);
+    planned.set(seriesId, (plan?.events ?? []).filter((e) => !e.told).map((e) => e.title));
+  }
   const titles = assignPlannedBeats(
     slots.map((sl) => ({ id: sl.id, seriesId: sl.seriesId, date: sl.scheduledDate })),
     planned

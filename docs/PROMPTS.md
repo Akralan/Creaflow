@@ -42,6 +42,8 @@ l'assistant (`callAgentic`, OpenAI en dur) et la description des photos (Gemini 
 
 ## 1. Génération de script
 
+> **Depuis le Lot 4 de `docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md` (2026-10-17)**, ce prompt ne sert plus qu'aux posts libres sans série ; les séries passent par le rédacteur par événements (prompt 23). Le bloc `<direction>` a disparu avec le chef.
+
 > **V3 depuis le 2026-10-17** (`docs/SPEC_PROMPT_GENERATION_V3.md`, branche `feature/prompt-generation-v3`). Les textes exacts sont dans l'**Annexe A de la spec**, recopiés mot pour mot dans le code : ils ne sont pas dupliqués ici pour ne jamais diverger. L'ancienne version (V2) reste figée dans `scripts/compare-v2/` le temps de la comparaison.
 
 - **Où** :
@@ -259,6 +261,8 @@ summary : Le résumé narratif du document en 1-2 phrases, 40 mots maximum.
 
 ## 6. Rédacteur en chef — planification
 
+> **Retiré le 2026-10-17** (`docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md` Lot 4) : code supprimé, remplacé par le lecteur d'événements (prompt 21). Conservé ici pour mémoire.
+
 - **Où** : `narrativeDirectorSystemPrompt`, `PLAN_NARRATIVE_INSTRUCTIONS`,
   `buildNarrativePlanUserMessage` et `planNarrative` dans `src/lib/llm/narrativePrompts.ts` ; appelé
   par `src/lib/services/narrativeDirector.ts`.
@@ -326,6 +330,8 @@ callbacks   : Les détails récurrents de l'histoire devenus familiers pour l'au
 ---
 
 ## 7. Rédacteur en chef — choix du jour
+
+> **Retiré le 2026-10-17** (Lot 4) : remplacé par le plan tiré de la ligne de temps (`planForSeries`) et le rédacteur par événements (prompt 23). Conservé ici pour mémoire.
 
 - **Où** : `CHOOSE_DAILY_DIRECTION_INSTRUCTIONS`, `buildDailyDirectionUserMessage` et
   `chooseDailyDirection` dans `src/lib/llm/narrativePrompts.ts` ; appelé par

@@ -35,7 +35,6 @@ import { archiveSeriesForUser } from "@/lib/services/seriesService";
 import { archiveAngleForUser } from "@/lib/services/angleService";
 import { applyStyleProfile } from "@/lib/services/styleLearningService";
 import { styleProfileSchema } from "@/lib/llm/styleProfile";
-import { markStaleForMaterialIngestion } from "@/lib/services/narrativeDirector";
 import { ApiError } from "@/lib/api/errors";
 import { syncSeriesSlots } from "@/lib/services/seriesSlotSync";
 import { scheduleEventReading } from "@/lib/services/materialEventService";
@@ -215,7 +214,6 @@ export async function runAssistantChatTurnForUser(userId: string, message: strin
         categoryLabel: s.categoryLabel,
         categoryId,
         platforms: s.platforms,
-        ...(s.mode ? { mode: s.mode } : {}),
         // Omis par le modèle = rattachement inchangé (assistantChat.ts) : on ne persiste rien
         // plutôt qu'un null, qui détacherait la série de sa source de matière à l'acceptation.
         // productName est un libellé d'affichage pour le panneau de validation (le client n'a pas
@@ -335,7 +333,6 @@ const seriesPayloadSchema = z.object({
   categoryLabel: z.string().optional(),
   categoryId: z.string().nullable().optional(),
   platforms: z.array(z.string()).optional().default([]),
-  mode: z.enum(["feuilleton", "rendez_vous"]).optional(),
   // Absent = rattachement inchangé (jamais de détachement implicite, cf. assistantChat.ts).
   productId: z.string().optional(),
 });
@@ -506,7 +503,6 @@ export async function resolveProposal(
         ...(data.rhythm !== undefined && { rhythm: data.rhythm }),
         categoryId,
         platforms: data.platforms,
-        mode: data.mode,
         // Absent = inchangé : ne jamais passer `null`, ça détacherait la série de sa matière.
         ...(data.productId ? { productId: data.productId } : {}),
       });
@@ -652,7 +648,6 @@ export async function resolveProposal(
       material = await createInterviewMaterial(userId, { productId, title: data.title, rawText: data.text });
     }
 
-    await markStaleForMaterialIngestion(userId, productId);
     scheduleEventReading(userId, productId);
     summarizeMaterialId = material.id;
   } else if (proposal.kind === "material_update") {

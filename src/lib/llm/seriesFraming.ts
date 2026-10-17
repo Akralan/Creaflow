@@ -115,7 +115,7 @@ Règles :
 export interface FramingContext {
   subjectName: string | null;
   subjectDescription: string | null;
-  series: { label: string; description: string; mode: string; roleLabel: string | null };
+  series: { label: string; description: string; roleLabel: string | null };
   readers: Array<{ label: string; who: string }>;
   moment: { title: string; documents: Array<{ title: string | null; text: string }> };
 }
@@ -132,7 +132,7 @@ export function buildOptionsMessage(params: {
   const { context, dimension, candidates, chosen, remark } = params;
   const lines = [
     context.subjectName ? `Sujet : ${context.subjectName}${context.subjectDescription ? ` — ${context.subjectDescription}` : ""}` : "Sujet : l'activité générale de l'auteur",
-    `Série : ${context.series.label} — ${context.series.description} (${context.series.mode}${context.series.roleLabel ? `, rôle : ${context.series.roleLabel}` : ""})`,
+    `Série : ${context.series.label} — ${context.series.description} ${context.series.roleLabel ? ` (rôle : ${context.series.roleLabel})` : ""}`,
     context.readers.length ? `Lecteurs : ${context.readers.map((r) => `${r.label} : ${r.who}`).join(" ; ")}` : null,
     `Dimension à choisir : ${DIMENSION_LABEL[dimension]}`,
     `Catalogue :\n${candidates.map((o) => `- ${o.id} — ${o.label} : ${o.rule}`).join("\n")}`,
@@ -272,7 +272,7 @@ export async function proposeSignature(params: {
   story: FramingChoice;
 }): Promise<{ text: string; placement: "ouverture" | "fin" | "titre"; why: string }> {
   const lines = [
-    `Série : ${params.context.series.label} — ${params.context.series.description} (${params.context.series.mode})`,
+    `Série : ${params.context.series.label} — ${params.context.series.description}`,
     `Posture : ${params.posture.label} — ${params.posture.rule}`,
     params.voice ? `Voix : ${params.voice.label} — ${params.voice.rule}` : null,
     `Récit : ${params.story.label} — ${params.story.rule}`,

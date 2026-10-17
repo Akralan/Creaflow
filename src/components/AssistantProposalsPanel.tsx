@@ -143,7 +143,6 @@ interface SeriesDraft {
   rhythm?: SeriesRhythm;
   categoryId: string;
   platforms: string[];
-  mode: "feuilleton" | "rendez_vous";
 }
 
 interface CategoryDraft {
@@ -208,7 +207,6 @@ function toSeriesDraft(payload: Record<string, unknown>): SeriesDraft {
     rhythm: parseStoredRhythm(payload.rhythm) ?? undefined,
     categoryId: typeof payload.categoryId === "string" ? payload.categoryId : "",
     platforms: Array.isArray(payload.platforms) ? (payload.platforms as string[]) : [],
-    mode: payload.mode === "feuilleton" ? "feuilleton" : "rendez_vous",
   };
 }
 
@@ -443,14 +441,6 @@ function ProposalCard({
                 </button>
               ))}
             </div>
-            <select
-              style={inputStyle}
-              value={seriesDraft.mode}
-              onChange={(e) => setSeriesDraft((d) => ({ ...d, mode: e.target.value as SeriesDraft["mode"] }))}
-            >
-              <option value="rendez_vous">Rendez-vous — épisodes autonomes, même format</option>
-              <option value="feuilleton">Feuilleton — les épisodes se suivent</option>
-            </select>
             {/* Sujet lié : appliqué à l'acceptation mais non éditable ici — le rattachement se change
                 depuis l'écran Direction, qui a le sélecteur de sujet complet. */}
             {typeof proposal.payload.productName === "string" && (

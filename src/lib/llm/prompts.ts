@@ -190,31 +190,6 @@ export interface ScriptGenerationContext {
    *  message uniquement quand `direction` est absente (§4.1 : le chef l'absorbe dans son concept
    *  quand il est actif — "détour d'arc assumé"). */
   directive?: string | null;
-  /** Direction éditoriale du chef (docs/SPEC_REDACTEUR_EN_CHEF.md §3.3/§4.1), résolue par
-   *  `resolveDailyDirection` (narrativeDirector.ts) avant l'assemblage du message. `null` = pas de
-   *  chef actif pour ce sujet (pas de NarrativeState, erreur silencieuse, ou flag désactivé) —
-   *  pipeline actuel inchangé dans ce cas. `materialDocuments` est déjà restreint aux `focusDocIds`
-   *  par l'appelant quand `direction` est présente (mécanique de citation inchangée). */
-  direction?: {
-    /** Id de l'état narratif concerné — traçabilité pour markBeatDrafted après génération, ne sert
-     *  pas à l'assemblage du message. */
-    stateId: string;
-    beatId: string | null;
-    /** Titre du beat choisi, résolu côté service (le tool choose_daily_direction ne renvoie que
-     *  l'id) — null si beatId est null. */
-    beatTitle: string | null;
-    concept: string;
-    kind: "material" | "pedagogical" | "personal";
-    callbackToUse: string | null;
-    promiseToHonor: string | null;
-    promiseToMake: string | null;
-    /** Remplace l'angle choisi par le mécanisme anti-répétition (`angle` ci-dessus, qui devient le
-     *  fallback quand ce champ est null) — §4.1. */
-    angleHint: string | null;
-    /** Public visé par ce post, choisi par le chef parmi le portrait (docs/SPEC_PROMPT_GENERATION_V3.md
-     *  §2.3) — null sans portrait. */
-    readerLabel?: string | null;
-  } | null;
   /** Sujet effectivement utilisé pour lire la matière et scoper les citations (buildGenerationContext,
    *  scriptService.ts) — le `productId` explicite de la requête, ou à défaut le sujet lié à la série
    *  (`ContentSeries.productId`, sélecteur de sujet). À utiliser pour `Script.productId`/les citations
@@ -232,7 +207,7 @@ function tag(name: string, lines: string[]): string {
 }
 
 /** Bloc <lecteurs> (Annexe A.3) : toujours présent, il dit au modèle à qui il parle avant tout le reste. */
-export function buildReadersBlock(context: Pick<ScriptGenerationContext, "readers" | "recentReaderLabels" | "direction" | "product" | "creatorProfile">): string {
+export function buildReadersBlock(context: Pick<ScriptGenerationContext, "readers" | "recentReaderLabels" | "product" | "creatorProfile">): string {
   const lines: string[] = [];
   const readers = context.readers ?? [];
   if (readers.length > 0) {
@@ -246,9 +221,7 @@ export function buildReadersBlock(context: Pick<ScriptGenerationContext, "reader
       if (r.words.length > 0) parts.push(`Ses mots : ${r.words.join(", ")}.`);
       lines.push(parts.join(" "));
     }
-    if (context.direction?.readerLabel) {
-      lines.push(`La direction éditoriale a choisi le public de ce post : ${context.direction.readerLabel}.`);
-    } else if (readers.length > 1 && context.recentReaderLabels?.length) {
+    if (readers.length > 1 && context.recentReaderLabels?.length) {
       lines.push(
         `Publics visés par les derniers posts de ce sujet, du plus récent au plus ancien : ${context.recentReaderLabels.join(", ")}. Varie si le sujet en a plusieurs et si ce post s'y prête.`
       );
@@ -335,7 +308,6 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
     materialDocuments,
     episodeDirective,
     directive,
-    direction,
   } = context;
 
   const sections: string[] = [buildReadersBlock(context)];
@@ -358,26 +330,6 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
   const framingBlock = buildFramingBlock(context.framing);
   if (framingBlock) sections.push(framingBlock);
 
-  // Le chef a choisi l'épisode du jour, le rédacteur l'exécute (docs/SPEC_REDACTEUR_EN_CHEF.md §4.1).
-  if (direction) {
-    const lines = ["La direction éditoriale a choisi l'épisode du jour. Exécute-le, ne choisis pas une autre histoire."];
-    if (direction.beatTitle) lines.push(`Épisode : ${direction.beatTitle}`);
-    lines.push(`Direction : ${direction.concept}`);
-    lines.push("Ton concept décline cette direction pour cette plateforme ; il ne la remplace jamais par une autre idée.");
-    if (direction.callbackToUse) lines.push(`Callback à replacer naturellement : ${direction.callbackToUse}`);
-    if (direction.promiseToHonor) lines.push(`Promesse à honorer dans ce post : ${direction.promiseToHonor}`);
-    if (direction.promiseToMake) lines.push(`Promesse à faire en fin de post : ${direction.promiseToMake}`);
-    if (direction.kind === "pedagogical") {
-      lines.push(
-        "Épisode pédagogique : tu peux expliquer avec le savoir général du domaine. Les faits propres à l'auteur restent limités au contexte fourni."
-      );
-    } else if (direction.kind === "personal") {
-      lines.push(
-        `Épisode de présentation : la source est le bloc <marque> et le sujet, pas la matière. Si un élément personnel manque, écris "[à compléter]".`
-      );
-    }
-    sections.push(tag("direction", lines));
-  }
 
   if (materialDocuments?.length) {
     const combined = materialDocuments
@@ -408,10 +360,7 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
   const angleLabel = context.framing
     ? "Angle (forme de l'accroche seulement, la structure vient du récit choisi)"
     : "Angle (forme de l'accroche et de la structure)";
-  // direction.angleHint remplace l'angle du mécanisme anti-répétition quand le chef en recommande un.
-  if (direction?.angleHint) {
-    briefLines.push(`${angleLabel} : ${direction.angleHint}`);
-  } else if (angle) {
+  if (angle) {
     briefLines.push(`${angleLabel} : ${angle.label} — ${angle.description}`);
   }
   if (episodeDirective) {
@@ -424,9 +373,7 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
       }`
     );
   }
-  // Chemin "sans chef" uniquement (§4.1) : quand une direction existe, le chef a déjà absorbé la
-  // directive du créateur dans son concept — ne pas la répéter ici.
-  if (!direction && directive) {
+  if (directive) {
     briefLines.push(`Idée soufflée par l'auteur (une piste à interpréter, pas un texte à recopier ni une source de faits) : ${directive}`);
   }
   sections.push(tag("brief", briefLines));
