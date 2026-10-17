@@ -6,8 +6,6 @@ import Button from "@/components/ui/Button";
 import type { ContentSeries } from "@/lib/apiClient";
 import { accent, accentAlpha, color, fontHeading } from "@/lib/design/tokens";
 
-const MODE_LABEL: Record<ContentSeries["mode"], string> = { feuilleton: "Feuilleton", rendez_vous: "Rendez-vous" };
-
 /**
  * Arrivée sur Direction après l'onboarding : les séries proposées côte à côte, toutes cochées. On
  * décoche celles qu'on ne veut pas, on valide — les jours de publication sont alors répartis entre
@@ -86,8 +84,7 @@ export default function SeriesSelection({
                 {s.label}
               </span>
               <span style={{ fontSize: 12, fontWeight: 600, color: color.textMuted }}>
-                {MODE_LABEL[s.mode]}
-                {s.category ? ` · ${s.category.label}` : ""}
+                {s.category?.label ?? ""}
               </span>
               <span style={{ fontSize: 13, lineHeight: 1.5, color: color.text2 }}>{s.description}</span>
             </button>

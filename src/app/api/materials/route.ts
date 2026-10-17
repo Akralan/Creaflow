@@ -3,7 +3,7 @@ import { after } from "next/server";
 import { z } from "zod";
 import { requireUserId } from "@/lib/auth/session";
 import { createPastedMaterial, listMaterialsForSubject, summarizeMaterialDocument } from "@/lib/services/sourceMaterialService";
-import { markStaleForMaterialIngestion } from "@/lib/services/narrativeDirector";
+import { scheduleEventReading } from "@/lib/services/materialEventService";
 import { handleApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
 
@@ -36,14 +36,13 @@ export async function POST(request: NextRequest) {
     const { productId, title, rawText } = createSchema.parse(await request.json());
     // Dépôt gratuit, immédiatement utilisable — aucun traitement asynchrone (docs/SPEC_MATIERE_EDITEUR.md §3).
     const material = await createPastedMaterial(userId, { productId: productId ?? null, title, rawText });
-    // Ingestion de matière (§5, Lot B4) : marque isStale l'état du sujet + des séries liées — écriture
-    // DB simple, pas un appel LLM, pas la peine de la différer via after().
-    await markStaleForMaterialIngestion(userId, productId ?? null);
     after(() =>
       summarizeMaterialDocument(material.id).catch((err) =>
         logger.error("Résumé de matière échoué", err, { materialId: material.id })
       )
     );
+    // Lecture des événements du sujet en arrière-plan (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3).
+    scheduleEventReading(userId, productId ?? null);
     return NextResponse.json({ material }, { status: 201 });
   } catch (error) {
     return handleApiError(error);

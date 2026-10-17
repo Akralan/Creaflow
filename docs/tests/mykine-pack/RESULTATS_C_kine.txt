@@ -1,0 +1,76 @@
+=== C (rédacteur par événements, cible kiné) | MyKiné en construction | événement: Julien demande si la caméra peut compter les squats (2025-11-09) | brouillons: 3 | soumissions: 1 | contrôles: {"retried": false, "failures": []} | tours: 6
+TITRE : La question des 40 patients
+
+Environ 6 patients sur 10 ne font pas leurs exercices à la maison.
+
+Julien les suit entre deux rendez-vous. Il n’a aucun moyen de le savoir à part leur demander. Et, d’après lui, ils mentent.
+
+Il a 40 patients en cours. À chaque séance, il prescrit des exercices, puis attend le rendez-vous suivant pour savoir ce qui s’est passé chez eux.
+
+Autour d’une bière, il m’a demandé si « ton truc de caméra » pouvait compter les squats.
+
+À ce moment-là, je n’avais qu’un prototype de pose estimation du Lab, et pas encore de réponse à lui donner.
+
+Seulement cette question : est-ce qu’une caméra peut compter les répétitions d’un exercice prescrit entre deux rendez-vous ?
+
+C’est avec cette question que MyKiné a commencé.
+
+HASHTAGS : 
+VERDICTS : [false] Je comprends immédiatement le problème de cabinet et la demande de Julien. Je lis jusqu’au bout parce que la scène est concrète, mais la fin transforme un échange en promesse de produit et sonne un peu comme une présentation marketing, alors que rien n’a encore changé. || [true] Je m’arrête sur le chiffre et je comprends le problème concret de Julien. J’arrive au bout : la fin reste honnête, sans prétendre que le prototype fonctionne déjà, et le texte ressemble davantage à une note personnelle qu’à une annonce. || [true] Je m’arrête sur le chiffre et je comprends le problème concret de Julien. J’arrive au bout : la fin reste honnête, sans prétendre que le prototype fonctionne déjà, et le texte ressemble davantage à une note personnelle qu’à une annonce.
+
+
+=== C (rédacteur par événements, cible kiné) | MyKiné en construction | événement: Le prototype rate une répétition sur trois sur l'iPhone 11 (2025-11-16) | brouillons: 2 | soumissions: 1 | contrôles: {"retried": false, "failures": []} | tours: 5
+TITRE : Le compteur qui échoue sur l’iPhone 11
+
+Sur l’iPhone 11 de Julien, le compteur de squats ratait une répétition sur trois.
+
+Julien en a quand même fait 20 dans son salon pour tester. Sur mon ordinateur, la page web comptait les squats. Sur son téléphone, elle ne regardait la vidéo qu’environ six fois par seconde.
+
+À cette vitesse, une partie du mouvement lui échappait. Le compteur ne pouvait donc pas dire de façon fiable combien de répétitions votre patient avait réellement faites.
+
+Pour un suivi entre deux rendez-vous, cette limite est bloquante : vous ne pouvez pas vous appuyer sur le nombre affiché pour vérifier l’adhésion ou ajuster l’exercice prescrit.
+
+Je n’ai pas encore changé le suivi à ce moment-là. J’ai seulement appris qu’un test réussi sur mon ordinateur ne disait rien de suffisant sur le téléphone du patient.
+
+HASHTAGS : 
+VERDICTS : [false] Je comprends immédiatement le problème grâce au téléphone et au nombre de répétitions. Je vais jusqu’au bout, mais la fin reste un peu générale et n’explique pas clairement la prochaine étape ; on sent aussi une formulation technique (“traitait 6 images par seconde”) qui pourrait être simplifiée. || [true] La première phrase me donne le problème précis et je lis la suite. J’arrive au bout : je comprends que le compteur est inutilisable pour une décision de suivi, et la fin honnête ressemble à un journal de construction plutôt qu’à une promesse marketing.
+
+
+=== C (rédacteur par événements, cible kiné) | MyKiné en construction | événement: Le traitement est déplacé sur le téléphone (2025-11-23) | brouillons: 1 | soumissions: 1 | contrôles: {"retried": false, "failures": []} | tours: 4
+TITRE : Le calcul quitte le serveur
+
+Sur la 4G de Julien, chaque image mettait 300 à 600 ms à arriver au serveur.
+
+Pour compter les répétitions à distance, c’était trop lent : le téléphone envoyait les images, puis attendait le calcul.
+
+J’ai aussi vu le problème que cela posait pour la confidentialité : des images de Julien en caleçon étaient stockées sur mon VPS.
+
+La décision a été immédiate : tout faire tourner sur le téléphone du patient.
+
+Pour vous, cela veut dire que la vidéo d’une séance ne quitte pas le téléphone. Le serveur ne reçoit pas les images pour faire le calcul.
+
+Cette décision a supprimé la latence du réseau et le stockage des vidéos côté serveur. Elle a aussi déplacé la difficulté : le téléphone doit maintenant analyser la séance lui-même.
+
+La suite l’a confirmé : le 6 décembre, un tremblement en bas du squat faisait compter trois fois la même répétition.
+
+HASHTAGS : #SantéNumérique
+VERDICTS : [true] Je comprends tout de suite pourquoi le traitement a changé, et la confidentialité est expliquée avec un cas concret. Je lis jusqu’au bout parce que la dernière limite montre que déplacer le calcul sur le téléphone n’a pas rendu le comptage fiable automatiquement. On entend bien l’auteur, sans promesse marketing.
+
+
+=== C (rédacteur par événements, cible kiné) | MyKiné en construction | événement: Le tremblement fait compter trois fois une répétition (2025-12-06) | brouillons: 2 | soumissions: 1 | contrôles: {"retried": false, "failures": []} | tours: 5
+TITRE : Le seuil qui compte trois fois
+
+Quand on tremble en bas, l’angle passe trois fois autour de 100° et ça compte trois.
+
+Le calcul de l’angle du genou était correct. Nous avions fixé deux seuils : au-dessus de 160° pour le haut du mouvement, en dessous de 100° pour le bas.
+
+Le problème arrivait quand vous restiez en position basse. Un tremblement faisait franchir plusieurs fois le seuil des 100°. Le compteur lisait alors ces variations comme trois répétitions distinctes.
+
+Pour suivre une séance entre deux rendez-vous, vous ne pouvez pas encore prendre ce chiffre au pied de la lettre. Il peut surestimer le nombre de répétitions réellement faites.
+
+Le problème n’est pas corrigé. Le 20 décembre, nous avons donc commencé par les quatre exercices debout que Julien prescrit le plus.
+
+HASHTAGS : 
+VERDICTS : [false] Je comprends immédiatement la limite : le compteur peut surévaluer les répétitions malgré un angle correctement calculé. Je lis jusqu’au bout, mais la dernière phrase transforme la prochaine étape en plan un peu affirmatif alors que la source dit seulement que le développement commencera par les quatre exercices debout ; le texte reste crédible et ne promet pas une solution déjà obtenue. || [true] La première phrase m’arrête et je comprends le défaut concret sans jargon. J’arrive au bout : je sais ce que la mesure vérifie, dans quel cas elle se trompe et quelle limite garder au cabinet ; la fin reste factuelle et ressemble à un devlog, pas à une promesse marketing.
+
+

@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { calendarEntries, scripts } from "@/db/schema";
 import { generateScript } from "@/lib/llm/generateScript";
 import { requireUserId } from "@/lib/auth/session";
-import { buildGenerationContext, createScriptRecord, recordBeatDraftedIfNeeded } from "@/lib/services/scriptService";
+import { buildGenerationContext, createScriptRecord } from "@/lib/services/scriptService";
 import { enforceScriptQuota } from "@/lib/services/billingService";
 import { platformSchema, contentCategorySchema, contentTypeSchema, directiveSchema } from "@/lib/validation";
 import { handleApiError } from "@/lib/api/errors";
@@ -80,11 +80,8 @@ export async function POST(request: NextRequest) {
       angleId: context.angle?.id ?? null,
       seriesId: context.series?.id ?? null,
       brandAssetId: context.brandAsset?.id ?? null,
-      beatId: context.direction?.beatId ?? null,
-      promiseHonored: context.direction?.promiseToHonor ?? null,
       visual: context.visual,
     });
-    await recordBeatDraftedIfNeeded(context, script.id);
     // Maquette composée automatiquement en arrière-plan pour un post visuel
     // (docs/SPEC_COMPOSITION_VISUELLE.md §2) — jamais bloquant, jamais compté dans le quota.
     if (script.contentType === "visual") after(() => autoComposeDesign(userId, script.id));

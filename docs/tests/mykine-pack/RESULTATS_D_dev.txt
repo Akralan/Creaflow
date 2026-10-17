@@ -1,0 +1,100 @@
+=== D (rédacteur par événements, cible dev) | événement: Julien demande si la caméra peut compter les squats (2025-11-09) | brouillons: 1 | soumissions: 1 | contrôles: {"retried": false, "failures": []}
+TITRE : La question des 40 patients
+
+Bière avec Julien. Il dit qu'environ 6 patients sur 10 ne font pas leurs exercices à la maison, et qu'il n'a aucun moyen de le savoir à part leur demander, et qu'ils mentent.
+
+Il suit 40 patients en cours. Pour savoir si les exercices sont faits, il n’a qu’une méthode : leur demander.
+
+Sa question ne portait pas encore sur un dashboard ou une API : est-ce que le prototype de pose estimation du Lab peut compter les squats ?
+
+C’est le premier cas d’usage concret de MyKiné : partir d’une séance réelle, avec un kiné qui veut mesurer l’adhésion sans se fier uniquement à la réponse du patient.
+
+À ce stade, je n’ai aucune mesure de taux de réussite, aucun faux positif ni faux négatif. Je sais seulement ce que le prototype doit essayer de faire : reconnaître une répétition de squat depuis la caméra du téléphone.
+
+Il fallait donc commencer par une mesure simple : combien de squats le prototype compte correctement, sur un appareil précis.
+
+#SantéNumérique #ComputerVision
+
+HASHTAGS : SantéNumérique ComputerVision
+
+
+=== D (rédacteur par événements, cible dev) | événement: Le prototype rate une répétition sur trois sur l'iPhone 11 (2025-11-16) | brouillons: 1 | soumissions: 1 | contrôles: {"retried": false, "failures": []}
+TITRE : iPhone11_6fps
+
+Le prototype rate une répétition sur trois sur l’iPhone 11 de Julien.
+
+La page web utilise MediaPipe Pose en JavaScript pour détecter les squats. Elle compte une répétition quand l’angle hanche-genou-cheville passe sous 100°.
+
+Sur mon laptop, ça fonctionne.
+
+Sur son iPhone 11, le pipeline tourne à 6 fps. Julien a fait 20 squats dans son salon pour tester : le compteur en a raté environ un sur trois.
+
+Le problème n’est donc pas encore le seuil de détection. Le même calcul donne un résultat différent selon l’appareil qui exécute le modèle.
+
+À ce stade, le prototype valide l’idée sur mon ordinateur, mais pas la séance sur le téléphone du patient. Il reste à mesurer si le traitement peut tenir sur l’iPhone 11 sans perdre des frames ni des répétitions.
+
+HASHTAGS : #SantéNumérique #ComputerVision
+
+
+=== D (rédacteur par événements, cible dev) | événement: Le traitement est déplacé sur le téléphone (2025-11-23) | brouillons: 2 | soumissions: 1 | contrôles: {"retried": false, "failures": []}
+TITRE : Le serveur sort de la séance
+
+Sur la 4G de Julien, envoyer les frames au serveur ajoutait 300 à 600 ms de latence.
+
+J’avais essayé de faire tourner le modèle côté serveur : le téléphone envoyait chaque image, l’API traitait les frames, puis l’app attendait le résultat.
+
+Le test a révélé un problème plus grave que la latence : je stockais des images de Julien en caleçon sur mon VPS.
+
+Pour une séance à domicile, ce pipeline ne tenait pas. Il dépendait de la connexion et faisait sortir des images du téléphone.
+
+Le 23 novembre, j’ai donc déplacé tout le traitement sur l’appareil. Les frames restent sur le téléphone ; le serveur ne reçoit pas la vidéo de la séance.
+
+Le compromis est immédiat : je supprime la latence réseau et le stockage d’images, mais je garde la contrainte qui avait déjà posé problème sur l’iPhone 11 : 6 fps et une répétition ratée sur trois.
+
+Le choix d’architecture est fait. La prochaine mesure devra porter sur le taux de réussite du comptage directement sur l’iPhone 11, pendant une vraie séance, sans perdre de frames.
+
+HASHTAGS : #SantéNumérique #ComputerVision
+
+
+=== D (rédacteur par événements, cible dev) | événement: Le tremblement fait compter trois fois une répétition (2025-12-06) | brouillons: 2 | soumissions: 1 | contrôles: {"retried": false, "failures": []}
+TITRE : Le seuil bas compte trois fois
+
+Quand on tremble en bas, l'angle passe trois fois autour de 100° et ça compte trois.
+
+Le calcul de l'angle du genou est correct. Il repose sur le produit scalaire entre les vecteurs hanche→genou et cheville→genou.
+
+J'ai fixé deux seuils : « haut » au-dessus de 160°, « bas » en dessous de 100°.
+
+Le problème apparaît quand le genou reste autour du seuil bas. Un tremblement fait franchir 100° plusieurs fois. Le compteur voit alors trois passages en position basse et les transforme en trois répétitions.
+
+C'est un faux positif dans le pipeline de vision, alors que la mesure d'angle elle-même est correcte.
+
+Le traitement tourne sur le téléphone depuis que l'envoi des frames au serveur a ajouté 300 à 600 ms de latence sur la 4G. La vidéo ne quitte donc pas le téléphone, mais le comptage peut quand même être faux.
+
+Le 6 décembre, je n'ai pas corrigé ce comportement. Le taux de réussite n'est donc pas suffisant à lui seul : il faut aussi mesurer les faux positifs.
+
+La suite commence par les quatre exercices debout de la liste de Julien. Ce bug fera partie des limites à vérifier pendant les séances, exercice par exercice.
+
+HASHTAGS : 
+
+
+=== D (rédacteur par événements, cible dev) | événement: Le développement commence par les quatre exercices debout (2025-12-20) | brouillons: 2 | soumissions: 1 | contrôles: {"retried": false, "failures": []}
+TITRE : Le premier périmètre vient du terrain
+
+Le 20 décembre, Julien m'a envoyé les 9 exercices qu'il prescrit le plus.
+
+La liste se découpe en 4 exercices debout et 5 exercices au sol.
+
+Je ne sais pas encore faire les exercices au sol.
+
+Le premier périmètre de MyKiné est donc décidé par une limite du prototype, pas par une liste de fonctionnalités idéale : je commence par les 4 exercices debout.
+
+Les 5 autres restent de côté pour l'instant. Ils ne font pas partie de ce que je peux développer maintenant.
+
+C'est un petit arbitrage, mais il change la façon de construire le produit : je pars des exercices réellement prescrits par Julien, puis je réduis le périmètre à ce que la vision peut traiter.
+
+La première version ne couvrira donc pas les 9 exercices de sa liste. Elle commencera par 4.
+
+HASHTAGS : #SantéNumérique #ComputerVision
+
+

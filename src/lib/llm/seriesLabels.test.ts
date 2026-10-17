@@ -29,13 +29,13 @@ describe("suggestContentSeries", () => {
 
   it("accepte une série avec un rôle unique et transmet l'enum des rôles à l'outil", async () => {
     callStructuredMock.mockResolvedValue({
-      series: [{ label: "Build in public", description: "Chaque semaine, l'avancement.", categoryLabel: "Coulisses", mode: "feuilleton" }],
+      series: [{ label: "Build in public", description: "Chaque semaine, l'avancement.", categoryLabel: "Coulisses" }],
     });
 
     const result = await suggestContentSeries(context);
 
     expect(result).toEqual([
-      { label: "Build in public", description: "Chaque semaine, l'avancement.", categoryLabel: "Coulisses", mode: "feuilleton", subjectName: "" },
+      { label: "Build in public", description: "Chaque semaine, l'avancement.", categoryLabel: "Coulisses", subjectName: "" },
     ]);
     const tool = callStructuredMock.mock.calls[0][0].tool;
     // Le sujet est choisi parmi ceux du compte (rattachement de la matière, 2026-10-17).
@@ -50,7 +50,7 @@ describe("suggestContentSeries", () => {
 
   it("rejette une réponse qui renvoie encore une liste de rôles", async () => {
     callStructuredMock.mockResolvedValue({
-      series: [{ label: "X", description: "Y", weight: 10, categoryLabels: ["Coulisses", "Expertise"], mode: "rendez_vous" }],
+      series: [{ label: "X", description: "Y", weight: 10, categoryLabels: ["Coulisses", "Expertise"] }],
     });
 
     await expect(suggestContentSeries(context)).rejects.toThrow();
@@ -67,8 +67,8 @@ describe("suggestContentSeries", () => {
 
 describe("schémas d'entrée série (rôle unique)", () => {
   it("seriesEntrySchema exige categoryLabel", () => {
-    expect(seriesEntrySchema.safeParse({ label: "A", description: "B", weight: 10, mode: "rendez_vous" }).success).toBe(false);
-    expect(seriesEntrySchema.safeParse({ label: "A", description: "B", weight: 10, mode: "rendez_vous", categoryLabel: "Coulisses" }).success).toBe(true);
+    expect(seriesEntrySchema.safeParse({ label: "A", description: "B", weight: 10 }).success).toBe(false);
+    expect(seriesEntrySchema.safeParse({ label: "A", description: "B", weight: 10, categoryLabel: "Coulisses" }).success).toBe(true);
   });
 
   it("seriesProposalSchema (assistant) exige categoryLabel et refuse categoryLabels", () => {

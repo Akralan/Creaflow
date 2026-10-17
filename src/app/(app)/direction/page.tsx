@@ -13,23 +13,6 @@ import { rhythmLabel } from "@/lib/seriesRhythm";
 import { accent, accentAlpha, color } from "@/lib/design/tokens";
 import { resolveCategoryMeta } from "@/lib/design/categoryDisplay";
 
-const MODE_META: Record<ContentSeries["mode"], string> = {
-  feuilleton: "Feuilleton",
-  rendez_vous: "Rendez-vous",
-};
-
-/** Compteurs d'épisodes lus depuis le plan (aucun appel supplémentaire) — une série sans état
- *  narratif n'en a aucun, sa carte se rabat sur une ligne descriptive. */
-function beatCounts(series: ContentSeries) {
-  const beats = series.narrativeState?.beats ?? [];
-  const live = beats.filter((b) => b.status !== "skipped");
-  return {
-    total: live.length,
-    published: live.filter((b) => b.status === "published").length,
-    drafted: live.filter((b) => b.status === "drafted").length,
-  };
-}
-
 function SeriesCard({
   series,
   selected,
@@ -42,9 +25,6 @@ function SeriesCard({
   onEdit: () => void;
 }) {
   const meta = resolveCategoryMeta(series.category);
-  const counts = beatCounts(series);
-  const stale = series.narrativeState?.isStale ?? false;
-  const contract = series.narrativeState?.formatContract;
 
   return (
     <div
@@ -88,64 +68,15 @@ function SeriesCard({
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: counts.total > 0 ? 12 : 10 }}>
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: series.mode === "feuilleton" ? "oklch(0.47 0.2 292)" : "oklch(0.45 0.14 250)",
-            background: series.mode === "feuilleton" ? accentAlpha(0.1) : "oklch(0.62 0.12 250 / 0.14)",
-            borderRadius: 20,
-            padding: "3px 9px",
-          }}
-        >
-          {MODE_META[series.mode]}
-        </span>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
         <span style={{ fontSize: 11, fontWeight: 600, color: meta.fg, background: meta.bg, borderRadius: 20, padding: "3px 9px" }}>
           {meta.label}
         </span>
-        {stale && (
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: "oklch(0.55 0.18 60)",
-              background: "oklch(0.62 0.13 60 / 0.16)",
-              borderRadius: 20,
-              padding: "3px 9px",
-            }}
-          >
-            ● Matière non planifiée
-          </span>
-        )}
       </div>
 
-      {counts.total > 0 ? (
-        <>
-          <div style={{ height: 6, borderRadius: 20, background: color.trackBg, overflow: "hidden", marginBottom: 7 }}>
-            <div
-              style={{
-                height: "100%",
-                width: `${Math.round((counts.published / counts.total) * 100)}%`,
-                borderRadius: 20,
-                background: accent,
-              }}
-            />
-          </div>
-          <div style={{ fontSize: 12, color: color.textMuted }}>
-            {counts.total} épisode{counts.total > 1 ? "s" : ""} planifié{counts.total > 1 ? "s" : ""} · {counts.published} publié
-            {counts.published > 1 ? "s" : ""} · {counts.drafted} brouillon{counts.drafted > 1 ? "s" : ""}
-          </div>
-        </>
-      ) : (
-        <div style={{ fontSize: 12, color: color.textMuted }}>
-          {series.mode === "rendez_vous"
-            ? contract
-              ? `Épisodes autonomes · contrat : ${contract}`
-              : "Épisodes autonomes"
-            : "Pas encore de plan"}
-        </div>
-      )}
+      <div style={{ fontSize: 12, color: color.textMuted }}>
+        {series.readerLabel ? `Pour ${series.readerLabel}` : "Lecteur à choisir dans la série"}
+      </div>
     </div>
   );
 }

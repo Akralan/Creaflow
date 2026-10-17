@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
-import GenerateSeriesFromMaterialModal from "@/components/GenerateSeriesFromMaterialModal";
 import MaterialInterviewChat from "@/components/MaterialInterviewChat";
 import ConnectedSources from "@/components/ConnectedSources";
+import EventTimeline from "@/components/EventTimeline";
 import { api, ApiClientError, type Citation, type SourceMaterial } from "@/lib/apiClient";
 import { color } from "@/lib/design/tokens";
 
@@ -122,19 +121,15 @@ function depositedAgo(iso: string): string {
 }
 
 export default function MaterialPanel({ productId }: { productId?: string }) {
-  const router = useRouter();
   const [materials, setMaterials] = useState<SourceMaterial[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [rawText, setRawText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [showSeriesModal, setShowSeriesModal] = useState(false);
   const [tab, setTab] = useState<"paste" | "interview">("paste");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [citationsByMaterial, setCitationsByMaterial] = useState<Record<string, Citation[]>>({});
-  // Où chaque document est consommé dans les plans (« Déjà exploité · Ép. N ») — lecture seule.
-  const [usage, setUsage] = useState<Record<string, { episode: number; beatTitle: string }>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!loaded) {
@@ -143,18 +138,6 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
       setLoaded(true);
     });
   }
-
-  useEffect(() => {
-    if (!productId) return;
-    let cancelled = false;
-    api
-      .getMaterialUsage(productId)
-      .then(({ usage }) => !cancelled && setUsage(usage))
-      .catch(() => !cancelled && setUsage({}));
-    return () => {
-      cancelled = true;
-    };
-  }, [productId]);
 
   async function addMaterial() {
     setError(null);
@@ -238,6 +221,8 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
     <div style={{ display: "grid", gap: 10 }}>
       {/* Une source est toujours rattachée à un sujet précis : rien à afficher au niveau marque. */}
       {productId && <ConnectedSources productId={productId} />}
+      {/* La ligne de temps du sujet (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3) : ce que la matière raconte. */}
+      {productId && <EventTimeline productId={productId} />}
       <div style={{ display: "flex", gap: 2, background: color.chipBg, borderRadius: 10, padding: 3, width: "fit-content", marginBottom: 4 }}>
         {(["paste", "interview"] as const).map((t) => (
           <button
@@ -307,23 +292,14 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
 
           {materials.length > 0 && (
             <div style={{ marginTop: 6 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: color.textSecondary }}>
-                  Documents déposés · {materials.length}
-                </div>
-                <button
-                  onClick={() => setShowSeriesModal(true)}
-                  style={{ fontSize: 12, fontWeight: 600, color: "oklch(0.5 0.2 292)", border: "none", background: "none", cursor: "pointer" }}
-                >
-                  Générer une série depuis cette matière →
-                </button>
+              <div style={{ fontSize: 12, fontWeight: 700, color: color.textSecondary, marginBottom: 8 }}>
+                Documents déposés · {materials.length}
               </div>
               <div style={{ display: "grid", gap: 8 }}>
                 {materials.map((m) => {
                   const expanded = expandedId === m.id;
                   const citations = citationsByMaterial[m.id] ?? [];
                   const matchedCount = citations.filter((c) => c.matchStart != null).length;
-                  const docUsage = usage[m.id];
                   return (
                     <div
                       key={m.id}
@@ -352,22 +328,7 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
                                 Nouveau
                               </span>
                             )}
-                            {docUsage ? (
-                              <span
-                                style={{
-                                  fontSize: 11,
-                                  fontWeight: 700,
-                                  color: "oklch(0.42 0.14 150)",
-                                  background: "oklch(0.62 0.13 150 / 0.16)",
-                                  borderRadius: 20,
-                                  padding: "2px 8px",
-                                }}
-                                title={docUsage.beatTitle}
-                              >
-                                Déjà exploité · Ép. {docUsage.episode}
-                              </span>
-                            ) : (
-                              matchedCount === 0 && (
+                            {matchedCount === 0 && (
                                 <span
                                   style={{
                                     fontSize: 11,
@@ -380,7 +341,6 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
                                 >
                                   Pas encore exploité
                                 </span>
-                              )
                             )}
                             {matchedCount > 0 && (
                               <span style={{ fontSize: 11, color: color.textFaint }}>
@@ -434,17 +394,6 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
         </>
       )}
 
-      <GenerateSeriesFromMaterialModal
-        open={showSeriesModal}
-        onClose={() => setShowSeriesModal(false)}
-        productId={productId}
-        onDone={() => {
-          // Le résultat est un plan (NarrativeState), pas des scripts déjà placés (docs/SPEC_REDACTEUR_EN_CHEF.md
-          // §4.4) — direction vers l'écran Direction, où le plan est visible et éditable.
-          setShowSeriesModal(false);
-          router.push("/direction");
-        }}
-      />
     </div>
   );
 }

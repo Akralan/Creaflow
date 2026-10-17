@@ -1,0 +1,203 @@
+=== A (doc technique seule) | Dans le téléphone, pas ailleurs (rendez_vous) | épisode du chef: aucun (pas de chef) | documents cités: Mes notes
+TITRE : Le squat s'arrête dans le téléphone
+
+Le patient pose son téléphone contre un meuble, à hauteur de hanche, puis lance sa séance.
+
+Pendant l'exercice, MyKiné traite l'image sur le téléphone :
+- les points de pose servent à calculer les angles articulaires ;
+- le compteur suit les répétitions ;
+- l'amplitude et les partielles sont enregistrées.
+
+La vidéo reste sur le téléphone. Elle n'est ni envoyée à l'API, ni stockée sur le serveur. Les coordonnées brutes des 33 points ne sortent pas non plus de l'appareil.
+
+À la fin, l'app envoie un compte-rendu : compteurs, séries d'angles échantillonnées à 10 Hz, amplitude moyenne et horodatage. L'API conserve ces données pour la séance.
+
+Dans le dashboard, le kiné retrouve les répétitions faites par rapport à la cible, les partielles, l'amplitude atteinte et la courbe d'angle. Il peut donc suivre ce qui s'est passé entre deux rendez-vous sans accéder à la vidéo du patient.
+
+C'est le flux que je veux garder simple à expliquer :
+
+1. Ce qui est traité : l'image et la pose, sur le téléphone.
+2. Ce qui est conservé : les angles et le compte-rendu de séance.
+3. Ce qui ne sort jamais du téléphone : les images, les vidéos et les coordonnées brutes.
+
+Les kinés qui veulent voir le parcours patient et le suivi côté dashboard peuvent demander un accès à MyKiné.
+
+HASHTAGS : #Kiné #SantéNumérique #ComputerVision
+
+
+=== A (doc technique seule) | MyKiné en construction (feuilleton) | épisode du chef: projet-createur | documents cités: Mes notes
+TITRE : Voir entre deux séances
+
+Le patient revient avec un genou qui n'a pas progressé. Entre les deux séances, le kiné n'a rien vu.
+
+Il ne peut pas distinguer un patient qui n'a rien fait d'un patient qui a fait les exercices de travers. Les fiches, les vidéos et la case « fait » ne vérifient pas le mouvement.
+
+C'est le problème que je cherche à rendre visible avec MyKiné.
+
+Le patient fait ses exercices entre deux séances ; le kiné doit pouvoir voir ce qui s'est réellement passé.
+
+Le choix de départ est pragmatique : le patient reçoit un lien par SMS, pose son téléphone et fait ses exercices devant la caméra. L'application compte les répétitions, mesure l'amplitude et vérifie l'alignement sur le téléphone. Aucune vidéo ne quitte l'appareil.
+
+De son côté, le kiné reçoit un compte-rendu par séance et un taux d'adhésion par patient. La boucle entre le cabinet et le domicile commence là : avec une information sur le mouvement réalisé, pas seulement une déclaration du patient.
+
+Le compromis est volontaire : commencer par un catalogue restreint de 14 exercices fiables, plutôt que couvrir 200 exercices approximatifs. MyKiné ne pose pas de diagnostic et ne remplace pas le jugement du kiné ; il rend les séances à domicile plus visibles.
+
+Dans les prochains épisodes, je montrerai comment cette idée de suivi devient progressivement un outil réellement utilisable et sûr, jusqu'à la version iOS.
+
+Les kinés qui veulent suivre la construction ou demander un accès peuvent le faire depuis MyKiné.
+
+HASHTAGS : #Kiné #Rééducation #HealthTech
+
+
+=== A (doc technique seule) | Dans le téléphone, pas ailleurs (rendez_vous) | épisode du chef: aucun (pas de chef) | documents cités: Mes notes
+TITRE : Ce que la caméra laisse sortir du téléphone
+
+« Votre application envoie les vidéos des patients sur un serveur ? » C'est la première question à laquelle je réponds quand je présente MyKiné à un kiné.
+
+La réponse tient dans l'architecture.
+
+Pendant l'exercice, le téléphone traite localement l'image : il estime la pose, calcule les angles articulaires, compte les répétitions et vérifie l'amplitude. Le flux caméra n'est jamais écrit sur le disque.
+
+À la fin de la séance, l'API reçoit uniquement ce dont le dashboard a besoin : des séries d'angles, des compteurs, les partielles, l'amplitude moyenne et les horodatages.
+
+Ce qui est conservé sert au suivi : le kiné peut voir les séances, les courbes d'angle et l'adhésion du patient. Les coordonnées brutes des 33 points ne sont pas envoyées. Les images et les vidéos ne sortent jamais du téléphone.
+
+Cette séparation est volontaire : l'analyse se fait là où l'image existe, et le serveur conserve le compte-rendu plutôt que la scène filmée.
+
+C'est le type de choix que je veux rendre vérifiable dans MyKiné : pour comprendre les données d'un patient, il faut pouvoir suivre leur trajet, étape par étape.
+
+Kinés et développeurs de produits santé : vous pouvez demander un accès à MyKiné si vous voulez examiner ce flux côté patient et côté dashboard.
+
+#SantéNumérique #ComputerVision
+
+HASHTAGS : #SantéNumérique #ComputerVision
+
+
+=== A (doc technique seule) | MyKiné en construction (feuilleton) | épisode du chef: echec-invisible | documents cités: Mes notes
+TITRE : Rendre l'entre-deux observable
+
+6 patients sur 10 échappent encore au suivi réel entre deux séances.
+
+Le patient fait ses exercices entre deux séances. Mais quand il revient, le kiné sait surtout ce qu'il observe au cabinet.
+
+Si le genou n'a pas progressé, il reste une question difficile à trancher : l'exercice n'a pas été fait, ou il a été fait avec une mauvaise amplitude ou un mauvais alignement ?
+
+C'est le problème fondateur de MyKiné. Une case « fait » donne une déclaration. Elle ne montre pas le mouvement. Les fiches PDF, les vidéos et les applications qui demandent de cocher une séance laissent donc une partie essentielle de la rééducation dans l'angle mort.
+
+Le choix produit vient avant les choix techniques : rendre cette période observable. Le kiné doit pouvoir voir ce qui s'est réellement passé entre deux séances, pour adapter la suite au bon problème.
+
+Le compromis est clair : MyKiné ne cherche pas à remplacer l'observation clinique ni à poser un diagnostic. Il cherche à apporter une information sur l'exercice demandé : a-t-il été fait, et comment ?
+
+Dans les prochains épisodes, je montrerai comment cette idée de visibilité devient un outil réellement utilisable et sûr.
+
+HASHTAGS : #Kiné  #SantéNumérique
+
+
+=== A+B (doc + devlog + décisions) | Dans le téléphone, pas ailleurs (rendez_vous) | épisode du chef: aucun (pas de chef) | documents cités: decisions.md, Mes notes
+TITRE : Le compte-rendu sans la vidéo
+
+Avant, le kiné demandait si les exercices avaient été faits. Après, il reçoit des angles et des compteurs — jamais la vidéo.
+
+Dans MyKiné, le téléphone fait l'analyse pendant l'exercice :
+- posture et angles articulaires ;
+- répétitions ;
+- amplitude atteinte.
+
+Cette analyse reste sur l'appareil.
+
+À la fin de la séance, le serveur conserve uniquement le compte-rendu :
+- les angles articulaires échantillonnés à 10 Hz ;
+- les compteurs de répétitions ;
+- les horodatages.
+
+Le dashboard permet ensuite au kiné de suivre les séances réalisées, les répétitions faites et l'amplitude moyenne atteinte. Il peut enfin observer ce qui s'est passé entre deux rendez-vous, au lieu de dépendre uniquement de la réponse du patient.
+
+Ce qui ne sort jamais du téléphone : les images et les vidéos de la caméra, ainsi que les coordonnées brutes des points détectés.
+
+C'est le choix d'architecture : traiter localement ce qui sert à comprendre le mouvement, conserver côté serveur ce qui sert au suivi, et ne pas stocker la scène filmée.
+
+Les kinés qui veulent voir le suivi côté dashboard ou demander un accès peuvent me contacter.
+
+HASHTAGS : #SantéNumérique #ComputerVision
+
+
+=== A+B (doc + devlog + décisions) | MyKiné en construction (feuilleton) | épisode du chef: boucle-suivi | documents cités: Mes notes
+TITRE : La séance qui revient au dashboard
+
+Entre deux séances, une séance de rééducation doit laisser autre chose qu'un « oui, je l'ai faite ».
+
+Le problème de départ est simple : le patient fait ses exercices entre deux séances, mais le kiné doit pouvoir voir ce qui s'est réellement passé.
+
+C'est pour cela que MyKiné ne s'arrête pas au compteur.
+
+1. Le patient ouvre son programme et réalise sa séance devant la caméra de son téléphone.
+
+2. À la fin, il retrouve un récapitulatif par exercice : répétitions faites par rapport à la cible, partielles, et amplitude atteinte. Il peut l'envoyer au kiné.
+
+3. Côté dashboard, le kiné retrouve la dernière séance et l'adhésion sur 7 ou 30 jours. Il peut ensuite ouvrir le détail : séries réalisées, répétitions, partielles, amplitude moyenne comparée à la cible et courbe d'angle.
+
+La boucle recherchée est là : une prescription côté kiné, une séance réalisée côté patient, puis une trace exploitable pour préparer le suivi suivant.
+
+Le compteur sert à faire la séance. Le récapitulatif sert à la suivre.
+
+Dans le prochain épisode, je montrerai pourquoi certaines contraintes de caméra obligent MyKiné à dire non à des exercices pourtant simples en apparence.
+
+HASHTAGS : #SantéNumérique #Rééducation #ComputerVision
+
+
+=== A+B (doc + devlog + décisions) | Dans le téléphone, pas ailleurs (rendez_vous) | épisode du chef: aucun (pas de chef) | documents cités: decisions.md, devlog.md, Mes notes
+TITRE : Le serveur ne voit pas la séance
+
+Au début, mon serveur recevait les images des séances. J'ai arrêté après avoir mesuré 300 à 600 ms de latence sur une 4G.
+
+Le prototype envoyait chaque frame au serveur pour y faire tourner MediaPipe. La séance était lente, et des images de patients transitaient par mon VPS.
+
+J'ai déplacé toute l'analyse sur le téléphone : pose estimation, calcul des angles et compteur de répétitions.
+
+Le flux est maintenant simple :
+
+- le téléphone traite les images ;
+- il conserve localement ce qui sert à l'analyse pendant la séance ;
+- l'API reçoit ensuite les angles articulaires, les compteurs et les horodatages ;
+- le dashboard permet au kiné de consulter la séance et l'adhésion.
+
+Aucune image, aucune vidéo et aucune coordonnée brute ne quittent le téléphone. Les données conservées côté serveur sont les angles dérivés et les résultats de séance.
+
+Le compromis est clair : les vieux téléphones peuvent être plus lents. Mais une vidéo de patient chez lui ne devient jamais une donnée à stocker, sauvegarder ou regarder côté serveur.
+
+C'est ce choix qui guide l'architecture de MyKiné : analyser au plus près du patient, transmettre seulement ce dont le kiné a besoin pour suivre la rééducation.
+
+Les kinés qui veulent voir le suivi côté dashboard ou demander un accès peuvent me contacter.
+
+HASHTAGS : #SantéNumérique #ComputerVision
+
+
+=== A+B (doc + devlog + décisions) | MyKiné en construction (feuilleton) | épisode du chef: notion-vision-locale | documents cités: Mes notes
+TITRE : La frontière entre image et mesure
+
+Analyser localement ne veut pas dire que rien ne sort du téléphone.
+
+C'est la confusion que je veux éviter avec MyKiné.
+
+Le problème est simple : le patient fait ses exercices devant la caméra, mais le kiné doit pouvoir vérifier la séance ensuite. Il faut donc transmettre un compte-rendu exploitable, sans transmettre la vidéo.
+
+Le choix d'architecture est le suivant :
+
+- le téléphone traite chaque image ;
+- il en déduit les points utiles au calcul ;
+- il calcule les angles, compte les répétitions et produit le feedback pendant la séance ;
+- en fin de séance, il envoie des mesures au serveur.
+
+Le serveur reçoit des angles en degrés et des compteurs. Il peut les conserver pour que le dashboard affiche la séance et mette à jour le suivi de l'adhésion. Il ne reçoit ni image, ni vidéo, ni point brut.
+
+Le compromis est volontaire : le kiné ne peut pas revoir la vidéo depuis le dashboard. En échange, l'analyse reste sur l'appareil et le compte-rendu transmis suffit au suivi prévu.
+
+Aucune vidéo ne quitte le téléphone.
+
+C'est une décision d'architecture et de confiance, pas une absence de données.
+
+La prochaine étape est de poursuivre cette construction jusqu'à la version iOS, en gardant cette séparation entre ce que le téléphone voit et ce que le serveur conserve.
+
+HASHTAGS : #SantéNumérique #ComputerVision
+
+

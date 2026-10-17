@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { products, subjectInterviewSessions } from "@/db/schema";
 import { runInterviewTurn, type InterviewMessage } from "@/lib/llm/materialInterviewChat";
 import { createInterviewMaterial } from "@/lib/services/sourceMaterialService";
+import { scheduleEventReading } from "@/lib/services/materialEventService";
 import { ApiError } from "@/lib/api/errors";
 
 const MAX_HISTORY_MESSAGES = 20;
@@ -55,6 +56,8 @@ export async function appendInterviewTurn(userId: string, productId: string | nu
   if (result.extractedMaterial?.trim()) {
     const material = await createInterviewMaterial(userId, { productId, rawText: result.extractedMaterial.trim() });
     createdMaterialId = material.id;
+    // Ce qui vient d'être dit entre dans la ligne de temps (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3).
+    scheduleEventReading(userId, productId);
   }
 
   return { reply: result.assistantReply, extractedMaterial: result.extractedMaterial, createdMaterialId };

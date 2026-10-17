@@ -2,7 +2,7 @@ import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { sourceMaterials, sourceMaterialCitations } from "@/db/schema";
 import { annotateUsedSpans } from "@/lib/services/citationMatching";
-import { summarizeMaterial } from "@/lib/llm/narrativePrompts";
+import { summarizeMaterial } from "@/lib/llm/materialSummary";
 import { ApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
 

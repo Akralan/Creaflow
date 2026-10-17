@@ -21,8 +21,8 @@ import { pickAngleForScript } from "@/lib/services/angleService";
 import { findBestBrandAssetForScript } from "@/lib/services/brandAssetService";
 import { getMaterialForSubject } from "@/lib/services/sourceMaterialService";
 import { recordCitations, deleteCitationsForScript } from "@/lib/services/citationService";
-import { resolveDailyDirection, markBeatDrafted, applyPublishSideEffects, releaseBeatsOfDeletedScripts } from "@/lib/services/narrativeDirector";
 import { resolveCategoryForGeneration } from "@/lib/services/seriesService";
+import { buildEventBriefForSeries, ensureReaderForSeries } from "@/lib/services/seriesReaderService";
 import { markDesignStale } from "@/lib/services/visualDesignService";
 import type { VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
 import { ApiError } from "@/lib/api/errors";
@@ -99,6 +99,7 @@ export async function buildGenerationContext(
   let series = null;
   let seriesProductId: string | null = null;
   let framing: SeriesFraming | null = null;
+  let seriesHasReader = false;
   if (seriesId) {
     const found = await db.query.contentSeries.findFirst({
       where: and(eq(contentSeries.id, seriesId), eq(contentSeries.userId, userId)),
@@ -110,6 +111,27 @@ export async function buildGenerationContext(
     seriesProductId = found.productId;
     // Cadrage choisi par l'auteur (docs/SPEC_CADRAGE_SERIE.md §4).
     framing = parseStoredFraming(found.framing);
+    seriesHasReader = Boolean(found.readerLabel && found.form);
+  }
+
+  // « Autre idée, même brief » : le script réécrit garde son événement.
+  const rewritten = excludeScriptId
+    ? await db.query.scripts.findFirst({ where: eq(scripts.id, excludeScriptId), columns: { eventId: true } })
+    : null;
+
+  // Une série raconte sa ligne de temps à son lecteur (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5). Une
+  // série d'avant le chantier reçoit d'office le public principal de son sujet. Sans rien à raconter,
+  // on le dit plutôt que d'écrire un post sans événement.
+  let eventBrief = null;
+  if (seriesId) {
+    if (!seriesHasReader) await ensureReaderForSeries(userId, seriesId);
+    eventBrief = await buildEventBriefForSeries(userId, seriesId, rewritten?.eventId ?? null);
+    if (!eventBrief) {
+      throw new ApiError(
+        409,
+        "Rien à raconter pour cette série : sa ligne de temps est vide pour ce lecteur, ou tout a déjà été raconté. Ajoute de la matière, relis-la, ou choisis un autre lecteur dans la série."
+      );
+    }
   }
 
   // Sujet effectif : celui explicitement fourni prime, sinon le sujet lié à la série (sélecteur de
@@ -165,32 +187,6 @@ export async function buildGenerationContext(
         })
       : null;
 
-  // Rédacteur en chef (docs/SPEC_REDACTEUR_EN_CHEF.md §4.1) : jamais bloquant — resolveDailyDirection
-  // ne lève jamais, renvoie null sur toute erreur ou absence d'état (pipeline actuel inchangé dans
-  // ce cas). Flag d'environnement, défaut activé (§1).
-  const direction =
-    process.env.NARRATIVE_DIRECTOR_ENABLED === "false"
-      ? null
-      : await resolveDailyDirection(userId, {
-          // Réécriture d'un script (« autre idée ») : on garde son épisode.
-          lockedBeatId: excludeScriptId
-            ? ((await db.query.scripts.findFirst({ where: eq(scripts.id, excludeScriptId), columns: { beatId: true } }))?.beatId ?? null)
-            : null,
-          productId: effectiveProductId,
-          seriesId: seriesId ?? null,
-          platform,
-          contentCategoryLabel: category.label,
-          contentCategoryDescription: category.description,
-          contentType,
-          directive: directive ?? null,
-          rejectedConcepts,
-        });
-
-  // materialDocuments restreints aux focusDocIds choisis par le chef (§4.1 point 5) — mécanique de
-  // citation inchangée (texte intégral + annotations), juste un sous-ensemble des documents du sujet.
-  const scopedMaterialDocuments = direction
-    ? materialDocuments.filter((d) => direction.focusDocIds.includes(d.id))
-    : materialDocuments;
 
   return {
     creatorProfile: {
@@ -224,25 +220,14 @@ export async function buildGenerationContext(
     angle,
     series,
     brandAsset,
-    materialDocuments: scopedMaterialDocuments.map((d) => ({ id: d.id, title: d.title, annotatedText: d.annotatedText })),
+    materialDocuments: materialDocuments.map((d) => ({ id: d.id, title: d.title, annotatedText: d.annotatedText })),
     directive: directive ?? null,
-    direction,
+    eventBrief,
     resolvedProductId: effectiveProductId,
     visual: contentType === "visual" ? (visual ?? null) : null,
   };
 }
 
-/**
- * Après génération réussie (docs/SPEC_REDACTEUR_EN_CHEF.md §4.1.6) : le beat choisi par le chef passe
- * en "drafted" et pointe le script créé. Jamais bloquant — appelé après la création du script,
- * n'affecte jamais son résultat en cas d'échec (déjà non-throwing, cf. markBeatDrafted).
- */
-export async function recordBeatDraftedIfNeeded(context: ScriptGenerationContext, scriptId: string): Promise<void> {
-  if (!context.direction?.beatId) return;
-  await markBeatDrafted(context.direction.stateId, context.direction.beatId, scriptId).catch((err) =>
-    logger.error("Mise à jour du beat après génération échouée", err, { scriptId, beatId: context.direction?.beatId })
-  );
-}
 
 /** Traduit le script généré (une des 3 formes selon contentType) en colonnes DB —
  *  les champs non pertinents pour ce type sont explicitement mis à null. */
@@ -278,12 +263,10 @@ export async function createScriptRecord(
     angleId?: string | null;
     seriesId?: string | null;
     brandAssetId?: string | null;
-    beatId?: string | null;
-    /** Texte exact de la promesse ouverte que ce script honore (direction.promiseToHonor, §3.3) —
-     *  retiré d'openPromises au passage en "published" (§5, narrativeDirector.ts::applyPublishSideEffects). */
-    promiseHonored?: string | null;
     /** Format du post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) — null hors "visual". */
     visual?: VisualFormatSpec | null;
+    /** L'événement raconté (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5) — null hors rédacteur par événements. */
+    eventId?: string | null;
   }
 ) {
   return db.transaction(async (tx) => {
@@ -298,10 +281,7 @@ export async function createScriptRecord(
         angleId: extras?.angleId ?? null,
         seriesId: extras?.seriesId ?? null,
         brandAssetId: extras?.brandAssetId ?? null,
-        // Traçabilité vers le plan du chef (docs/SPEC_REDACTEUR_EN_CHEF.md §2/§4.1.6) — null hors
-        // chef ou détour hors plan assumé.
-        beatId: extras?.beatId ?? null,
-        promiseHonored: extras?.promiseHonored ?? null,
+        eventId: extras?.eventId ?? null,
         visualFormat: extras?.visual?.format ?? "single",
         slideCount: extras?.visual?.slideCount ?? null,
         durationMs: extras?.visual?.durationMs ?? null,
@@ -345,7 +325,6 @@ export async function updateScriptRecord(
     angleId?: string | null;
     brandAssetId?: string | null;
     rejectedConcepts?: string[];
-    beatId?: string | null;
     /** Texte exact de la promesse ouverte que ce script honore — même rôle que sur createScriptRecord. */
     promiseHonored?: string | null;
     /** Sujet effectif pour le scoping des citations (`context.resolvedProductId`, scriptService.ts) —
@@ -366,7 +345,6 @@ export async function updateScriptRecord(
         ...(extras?.rejectedConcepts !== undefined && { rejectedConcepts: extras.rejectedConcepts }),
         // Mutable comme concept/rejectedConcepts (pas figé comme firstDraftSnapshot) — "autre idée"
         // peut aussi passer par un nouveau choix du jour du chef (docs/SPEC_REDACTEUR_EN_CHEF.md §4.1).
-        ...(extras?.beatId !== undefined && { beatId: extras.beatId }),
         ...(extras?.promiseHonored !== undefined && { promiseHonored: extras.promiseHonored }),
         ...scriptColumnsFromGenerated(generated),
         generationTrace: generated.trace ?? null,
@@ -414,11 +392,6 @@ export async function patchScriptContent(userId: string, scriptId: string, patch
   if (!script) {
     throw new ApiError(404, "Script introuvable.");
   }
-  if (patch.status === "published") {
-    await applyPublishSideEffects(userId, script).catch((err) =>
-      logger.error("Effets de publication (rédacteur en chef) échoués", err, { scriptId: script.id })
-    );
-  }
   // Les mots de la maquette viennent du storyboard (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2) : quand
   // ils changent, la maquette passe en "stale" — badge côté éditeur, jamais bloquant.
   if (script.contentType === "visual" && (patch.title !== undefined || patch.hookVisual !== undefined || patch.storyboard !== undefined)) {
@@ -441,10 +414,5 @@ export async function deleteScriptForUser(userId: string, scriptId: string) {
   if (!deleted) {
     throw new ApiError(404, "Script introuvable.");
   }
-  // L'épisode de série qui portait ce script redevient « à rédiger » (sinon le plan saute à l'épisode
-  // suivant). Jamais bloquant : la suppression a réussi.
-  await releaseBeatsOfDeletedScripts(userId).catch((error) =>
-    logger.error("Remise à rédiger de l'épisode après suppression impossible", error, { scriptId })
-  );
   return deleted;
 }

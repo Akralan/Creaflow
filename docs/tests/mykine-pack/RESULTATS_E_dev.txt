@@ -1,0 +1,115 @@
+=== E (cible dev, forme corrigée, événements qualifiés) | événement: Le prototype rate une répétition sur trois sur l'iPhone 11 (2025-11-16) | publics: Développeurs santé et vision | brouillons: 2 | contrôles: {"retried": false, "failures": []}
+TITRE : Le laptop ne suffit pas
+
+Ça marche sur mon laptop.
+
+Sur l’iPhone 11 de Julien, la page web tourne à 6 fps et rate une répétition sur trois, même quand Julien en fait 20 pour tester.
+
+Le prototype utilise MediaPipe Pose en JavaScript. Le compteur déclenche un squat quand l’angle hanche-genou-cheville passe sous 100°.
+
+Le test était donc correct dans une condition, mais pas dans celle qui m’intéressait pour une séance : sur un téléphone.
+
+Je n’ai pas encore de correction ni de mesure après optimisation à montrer. Le seul résultat de ce test est une limite nette : le prototype qui compte les squats sur mon laptop n’est pas fiable sur l’iPhone 11 de Julien.
+
+HASHTAGS : #SantéNumérique #ComputerVision
+
+
+=== E (cible dev, forme corrigée, événements qualifiés) | événement: Le traitement est déplacé sur le téléphone (2025-11-23) | publics: Développeurs santé et vision / Kinés du sport libéraux | brouillons: 1 | contrôles: {"retried": false, "failures": []}
+TITRE : Le téléphone reprend les frames
+
+Sur la 4G de Julien, chaque image envoyée au serveur ajoutait 300 à 600 ms de latence.
+
+J’avais essayé de faire tourner le modèle sur le serveur plutôt que sur son iPhone 11. L’idée était simple : le téléphone envoie les frames, l’API analyse, puis l’application récupère le résultat.
+
+En pratique, le délai rendait le comptage inutilisable pendant une séance.
+
+Puis j’ai vu le deuxième problème : ces frames étaient stockées sur mon VPS. Des images de Julien en caleçon y restaient.
+
+Le 23 novembre, j’ai donc pris une décision d’architecture : tout faire tourner sur le téléphone. Les images restent sur l’appareil. Le serveur n’a plus besoin de recevoir la vidéo pour compter les répétitions.
+
+Ce choix supprime la latence réseau et évite de stocker ces images. Il ne règle pas le problème qui précédait : sur l’iPhone 11, le prototype ne comptait déjà qu’environ deux répétitions sur trois.
+
+Déplacer le traitement sur le téléphone a donc réglé un problème de données et de délai. Pas encore celui de la fiabilité du comptage.
+
+C’est la limite que je garde pour la suite : une architecture plus maîtrisée ne rend pas automatiquement la vision plus juste.
+
+#SantéNumérique #VisionParOrdinateur
+
+HASHTAGS : #SantéNumérique #VisionParOrdinateur
+
+
+=== E (cible dev, forme corrigée, événements qualifiés) | événement: Le tremblement fait compter trois fois une répétition (2025-12-06) | publics: Développeurs santé et vision | brouillons: 2 | contrôles: {"retried": false, "failures": []}
+TITRE : Le seuil qui triple une répétition
+
+Quand on tremble en bas, l’angle passe trois fois autour de 100° et ça compte trois.
+
+Le calcul de l’angle du genou est correct : produit scalaire entre hanche→genou et cheville→genou.
+
+J’ai fixé deux seuils : au-dessus de 160°, la position est « haute ». En dessous de 100°, elle est « basse ».
+
+Sur le papier, une répétition doit donc passer de haut en bas, puis revenir en haut.
+
+Mais un tremblement en bas fait repasser l’angle autour du seuil de 100°. Le compteur voit trois passages et enregistre trois répétitions pour un seul mouvement.
+
+Le déplacement du traitement sur le téléphone règle la latence et évite que les images partent au serveur. Il ne règle pas ce problème de comptage.
+
+À cette date, l’angle est correctement calculé. Le compteur ne l’est pas encore.
+
+HASHTAGS : #SantéNumérique #VisionParOrdinateur
+
+
+=== E (cible dev, forme corrigée, événements qualifiés) | événement: Le développement commence par les quatre exercices debout (2025-12-20) | publics: Kinés du sport libéraux / Développeurs santé et vision | brouillons: 2 | contrôles: {"retried": false, "failures": []}
+TITRE : Les quatre premiers exercices debout
+
+Le 20 décembre, j’ai réduit le premier périmètre de MyKiné à 4 exercices debout.
+
+Julien m’a envoyé les 9 exercices qu’il prescrit le plus : 4 debout et 5 au sol.
+
+Le détail qui a décidé de l’ordre n’était pas une préférence d’architecture. Je ne savais pas encore faire les exercices au sol.
+
+J’ai donc commencé par les 4 exercices debout.
+
+Cela donne un premier périmètre directement relié aux séances de Julien, avec une limite nette : 5 des 9 exercices les plus prescrits restent à traiter.
+
+Je préfère garder cette limite visible plutôt que d’annoncer un suivi général des exercices de rééducation.
+
+À ce stade, MyKiné commence donc par une partie de la prescription réelle de Julien : les exercices debout. Les exercices au sol ne sont pas encore faisables.
+
+HASHTAGS : #SantéNumérique #VisionParOrdinateur
+
+
+=== E (cible dev, forme corrigée, événements qualifiés) | événement: Le premier build Android atteint 24 fps sur Pixel 7 (2026-01-11) | publics: Développeurs santé et vision | brouillons: 2 | contrôles: {"retried": false, "failures": []}
+TITRE : Le premier écart entre téléphones
+
+Le premier build Android a tenu 24 fps sur un Pixel 7.
+
+Après le passage à Expo, nous avons intégré TFLite et BlazePose lite dans le build. Sur le Pixel 4a racheté 60 € pour tester un téléphone plus ancien, il tient 15 fps.
+
+L’écart est de 9 images par seconde avec les mêmes briques et le même modèle. Le téléphone compte déjà dans le résultat autant que le modèle choisi.
+
+Mais la comparaison s’arrête là pour l’instant.
+
+L’iPhone de Julien n’a pas encore de build iOS. Nous ne pouvons donc pas comparer Android et iOS, ni savoir si ce choix technique tient sur l’appareil qui avait plafonné à 6 fps avec le prototype web.
+
+Le premier build nous donne une mesure Android : 24 fps sur un Pixel 7, 15 sur un Pixel 4a. Il ne nous donne pas encore une réponse pour une séance complète sur mobile.
+
+La prochaine vérification est iOS.
+
+HASHTAGS : #Android #TFLite
+
+
+PUBLICS
+Kinés du sport libéraux / Développeurs santé et vision
+15
+PUBLICS
+Développeurs santé et vision
+15
+PUBLICS
+Kinés du sport libéraux
+8
+PUBLICS
+
+1
+PUBLICS
+Développeurs santé et vision / Kinés du sport libéraux
+1

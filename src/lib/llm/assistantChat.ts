@@ -41,12 +41,6 @@ export const seriesProposalSchema = z.object({
   categoryLabel: z.string().min(1),
   platforms: z.array(z.string()),
   // docs/SPEC_REDACTEUR_EN_CHEF.md §4.5 — même typologie que seriesLabels.ts (inférence à la
-  // création). Restitué à l'identique sur un update sauf changement demandé, comme platforms.
-  // `required` dans le tool mais optionnel ici, et SANS valeur par défaut : un modèle qui omet le
-  // champ malgré la contrainte (déjà observé sur usedExcerpts, cf. llm/types.ts) ne doit pas faire
-  // échouer tout le tour, et un défaut "rendez_vous" écraserait silencieusement un feuilleton
-  // existant à l'acceptation. Absent = mode inchangé.
-  mode: z.enum(["feuilleton", "rendez_vous"]).optional(),
   // Sujet dont la série tire sa matière — `undefined` laisse le rattachement inchangé (jamais de
   // détachement implicite : ça viderait la source de matière du rédacteur en chef sans le dire).
   productId: z.string().optional(),
@@ -304,15 +298,9 @@ function buildAssistantTool(context: {
                 "Libellé exact du rôle éditorial (unique) que sert cette série. Si tu hésites entre deux rôles, propose deux séries."
               ),
               platforms: platformsField,
-              mode: {
-                type: "string",
-                enum: ["feuilleton", "rendez_vous"],
-                description:
-                  'Mode de la série : "feuilleton" si les épisodes se suivent et construisent une progression (devlog, coulisses d\'un projet, avancement d\'un chantier) ; "rendez_vous" si les épisodes sont autonomes et ne partagent qu\'un format (news de la semaine, sélection, FAQ, top). En cas de doute, choisis "rendez_vous". Pour une mise à jour, reprends le mode actuel sauf changement explicitement demandé.',
-              },
               productId: productIdField,
             },
-            required: ["action", "label", "description", "rhythmDays", "everyOtherWeek", "categoryLabel", "platforms", "mode"],
+            required: ["action", "label", "description", "rhythmDays", "everyOtherWeek", "categoryLabel", "platforms"],
           },
         },
         categoryProposals: {
@@ -423,7 +411,6 @@ Règles :
 - Pour 'update', utilise TOUJOURS l'id EXACT fourni dans le contexte (produits/séries/rôles/angles existants) — n'invente jamais d'id, et n'utilise 'update' que si l'utilisateur décrit clairement un élément déjà existant.
 - Pour une série, utilise le libellé de rôle EXACT fourni dans le contexte (un seul rôle par série ; si une idée hésite entre deux rôles, propose deux séries).
 - Pour un rôle, ne propose QUE le poids du rôle concerné (5 à 90) — jamais celui des autres, ils seront réajustés automatiquement pour continuer à sommer à 100%.
-- Une série a un MODE : "feuilleton" (les épisodes se suivent et construisent une progression) ou "rendez_vous" (épisodes autonomes partageant un format). En cas de doute, "rendez_vous". Sur une mise à jour, restitue le mode actuel sauf changement demandé.
 - Une série peut tirer sa matière d'un SUJET précis (productId) : renseigne-le quand la série porte manifestement sur un sujet existant, sinon omets le champ — elle retombe alors sur la matière de niveau marque. N'omets jamais ce champ pour "détacher" une série : omettre = laisser inchangé.
 - Le champ materialHungry d'un rôle dit s'il a besoin de matière documentée pour tourner (storytelling, coulisses : oui ; expertise, pédagogie : non). Ne le renseigne que si tu le changes vraiment — omettre conserve la valeur actuelle.
 - Pour les plateformes (séries et rôles), utilise UNIQUEMENT les clés du registre fourni. Ne restreins à des plateformes précises que si le contexte de la conversation le justifie clairement (ex. l'utilisateur mentionne un réseau en particulier) — sinon laisse le tableau vide (= toutes les plateformes), ne sur-scope jamais sans raison. Pour une mise à jour, restitue les plateformes actuelles de l'élément sauf changement explicitement demandé.
@@ -448,7 +435,6 @@ export interface AssistantChatContext {
     rhythm: SeriesRhythm | null;
     category: { label: string } | null;
     platforms: string[];
-    mode: "feuilleton" | "rendez_vous";
     product?: { id: string; name: string } | null;
   }>;
   categories: Array<{
@@ -510,7 +496,7 @@ export async function runAssistantChatTurn(context: AssistantChatContext): Promi
             (s) =>
               `[id:${s.id}] ${s.label} (${rhythmLabel(s.rhythm)}, jours ${s.rhythm?.days.join(",") ?? "aucun"}) — ${s.description} [rôle : ${s.category?.label ?? "aucun"}]${
                 s.platforms.length > 0 ? ` [plateformes : ${s.platforms.join(", ")}]` : " [tous réseaux]"
-              } [mode : ${s.mode}]${s.product ? ` [matière du sujet : ${s.product.name} (id:${s.product.id})]` : " [aucun sujet lié]"}`
+              }${s.product ? ` [matière du sujet : ${s.product.name} (id:${s.product.id})]` : " [aucun sujet lié]"}`
           )
           .join(" ; ")}`
       : "Aucune série active pour l'instant.",

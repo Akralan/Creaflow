@@ -7,6 +7,8 @@ import { generateCategoriesForUser, listActiveCategoriesForUser } from "@/lib/se
 import { generateAnglesForUser, listActiveAnglesForUser } from "@/lib/services/angleService";
 import { generateSeriesForUser, listActiveSeriesForUser } from "@/lib/services/seriesService";
 import { createPastedMaterial } from "@/lib/services/sourceMaterialService";
+import { scheduleEventReading } from "@/lib/services/materialEventService";
+import { refreshStaleReaderPortraits } from "@/lib/services/readerPortraitService";
 import { listConnectedProviders } from "@/lib/services/oauthAccountService";
 import { identityProviderLabel } from "@/lib/oauth/registry";
 import { expectationsSchema, MAX_PRODUCTS, platformSchema, publishingDaysSchema } from "@/lib/validation";
@@ -314,11 +316,20 @@ export async function completeOnboarding(userId: string, input: CompleteOnboardi
     }
   });
 
+  // Le portrait des lecteurs de chaque sujet est une étape à part entière, pas une tâche de fond
+  // (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4) : les séries qui suivent choisissent leur lecteur dedans.
+  // Jamais bloquant (un échec se voit dans le sujet, « Refaire le portrait » relance).
+  await refreshStaleReaderPortraits(userId);
+
   try {
     if ((await listActiveCategoriesForUser(userId)).length === 0) await generateCategoriesForUser(userId);
     if ((await listActiveAnglesForUser(userId)).length === 0) await generateAnglesForUser(userId);
   // Dépend des rôles générés juste au-dessus.
     if ((await listActiveSeriesForUser(userId)).length === 0) await generateSeriesForUser(userId);
+    // Les notes et les sources viennent d'être rangées dans leurs sujets : la ligne de temps de chaque
+    // sujet se lit maintenant, en arrière-plan (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3).
+    const subjects = await db.query.products.findMany({ where: eq(products.userId, userId), columns: { id: true } });
+    for (const subject of subjects) scheduleEventReading(userId, subject.id);
   } catch (error) {
     if (error instanceof ApiError) throw error;
     logger.error("Génération de fin d'onboarding échouée (profil enregistré)", error);

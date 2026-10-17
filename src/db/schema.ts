@@ -103,9 +103,16 @@ export const materialSourceStatusEnum = pgEnum("material_source_status", ["ok", 
 // beats maintenus par le rédacteur en chef (devlog, coulisses d'un projet) ; "rendez_vous" = épisodes
 // autonomes partageant un format (news de la semaine) — pas de beats, planification désactivée pour
 // ce mode. Défaut "rendez_vous" en cas de doute (inférence LLM à la création, Lot B3).
+// RETIRÉ (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md Lot 4) : plus de mode, toute série raconte sa ligne de
+// temps. Colonne conservée sans migration destructive, plus lue.
 export const contentSeriesModeEnum = pgEnum("content_series_mode", ["feuilleton", "rendez_vous"]);
 // Fiche d'inspiration (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.1) : écartée, jamais effacée d'office.
 export const inspirationStatusEnum = pgEnum("inspiration_status", ["active", "dismissed"]);
+// Événement de matière (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3) : ce qui s'est passé, lu dans la
+// matière par le lecteur d'événements, ou ajouté à la main par l'auteur.
+export const materialEventKindEnum = pgEnum("material_event_kind", ["failure", "decision", "result", "feedback", "milestone"]);
+export const materialEventDatePrecisionEnum = pgEnum("material_event_date_precision", ["day", "month", "unknown"]);
+export const materialEventOriginEnum = pgEnum("material_event_origin", ["reader", "user"]);
 export const subscriptionPlanEnum = pgEnum("subscription_plan", ["starter", "pro"]);
 // Sous-ensemble des statuts Stripe (Subscription.status) réellement distingués côté produit —
 // "paused" n'est pas utilisé (pas de fonctionnalité de pause self-service en v1). Le webhook
@@ -277,6 +284,12 @@ export const contentSeries = pgTable("content_series", {
   // Cadrage choisi par l'auteur avant le premier épisode (docs/SPEC_CADRAGE_SERIE.md §2) : posture,
   // voix propre à la série, récit, signature, extraits choisis et écartés. Null = série pas cadrée.
   framing: jsonb("framing"),
+  // Le lecteur unique de la série (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4) : un label du portrait
+  // des lecteurs du sujet (products.readerPortrait). Null = pas encore choisi.
+  readerLabel: text("reader_label"),
+  // La forme de la série pour ce lecteur (§4), écrite par la machine puis corrigée par l'auteur :
+  // ce qu'il vient chercher, de quoi est fait un bon épisode, ce qui le fait partir, ses mots.
+  form: jsonb("form"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -428,12 +441,41 @@ export const sourceMaterials = pgTable(
     // Blob SHA GitHub pour un fichier, SHA du commit le plus récent pour le journal. C'est la
     // comparaison de cette valeur qui rend le re-sync idempotent sans relire le contenu.
     externalChecksum: text("external_checksum"),
+    // Dernière lecture par le lecteur d'événements (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3). Null =
+    // à lire. Remis à null quand un re-sync change le contenu, comme `summary`.
+    eventsReadAt: timestamp("events_read_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   // Un document par chemin et par source. Partiel : la matière collée à la main a sourceId null et
   // n'est pas concernée. Deux dépôts branchés sur le même sujet peuvent chacun avoir leur README.md.
   (t) => [uniqueIndex().on(t.sourceId, t.externalRef).where(sql`${t.sourceId} is not null`)]
 );
+
+// Événement de matière (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3) : l'unité que le rédacteur
+// raconte. Daté, ce qui s'est passé, ce que ça a changé, pour qui, et le passage qui le prouve.
+// CASCADE sur le sujet, comme les documents connectés : un événement sans son sujet n'a aucun sens
+// et ne doit surtout pas devenir de la matière de niveau marque.
+export const materialEvents = pgTable("material_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  // Jour ISO (AAAA-MM-JJ) ; au mois près, le 1er du mois ; null quand la matière ne date rien.
+  date: text("date"),
+  datePrecision: materialEventDatePrecisionEnum("date_precision").notNull().default("unknown"),
+  title: text("title").notNull(),
+  whatHappened: text("what_happened").notNull(),
+  whatChanged: text("what_changed"),
+  kind: materialEventKindEnum("kind").notNull(),
+  // Labels du portrait des lecteurs du sujet (products.readerPortrait) pour qui c'est intéressant.
+  audiences: text("audiences").array().notNull().default(sql`'{}'::text[]`),
+  // SET NULL : un événement ajouté à la main n'a pas de document ; et un document supprimé ne fait pas
+  // disparaître ce qu'on en a appris (le passage reste dans `excerpt`).
+  sourceMaterialId: uuid("source_material_id").references(() => sourceMaterials.id, { onDelete: "set null" }),
+  excerpt: text("excerpt"),
+  origin: materialEventOriginEnum("origin").notNull().default("reader"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
 
 // Citation post-génération (docs/SPEC_MATIERE_EDITEUR.md §3 — remplace le découpage en unités) : le
 // LLM rapporte lui-même, dans sa réponse de génération (GeneratedScript.usedExcerpts), les passages
@@ -466,6 +508,8 @@ export const sourceMaterialCitations = pgTable("source_material_citations", {
 // Contrainte unique tolérante aux NULL, même pattern que subjectInterviewSessions (commentaire plus
 // haut) : deux états "niveau marque" pourraient coexister en cas de double création concurrente,
 // même ordre de tolérance qu'ailleurs dans ce repo.
+// RETIRÉ (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md Lot 4, 2026-10-17) : le rédacteur en chef n'existe plus,
+// cette table n'est plus ni lue ni écrite. Conservée sans migration destructive ; à supprimer un jour.
 export const narrativeState = pgTable(
   "narrative_state",
   {
@@ -623,6 +667,7 @@ export const scripts = pgTable("scripts", {
   // d'un beat dans NarrativeState.beats (jsonb, pas de FK possible). Null hors chef ou hors plan
   // (détour assumé). Écrit à la génération (Lot B3), passe le beat en "drafted" puis "published"
   // selon le statut de ce script (Lot B4).
+  // RETIRÉ avec le chef (Lot 4) : plus jamais écrit, remplacé par eventId.
   beatId: text("beat_id"),
   // Promesses explicites faites par ce script à l'audience (Annexe B.6) — consolidées dans
   // NarrativeState.openPromises au passage en "published" (§5, Lot B4).
@@ -665,6 +710,9 @@ export const scripts = pgTable("scripts", {
   // lecteur visé, moments candidats, accroches, selfCheck, résultat des contrôles. Jamais publiée,
   // sert à comprendre un post raté. Réécrite à chaque génération complète ; null hors génération V3.
   generationTrace: jsonb("generation_trace"),
+  // L'événement raconté par ce post (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5). SET NULL : le post
+  // survit à la suppression de l'événement. Null pour les posts d'avant le chantier et les imports.
+  eventId: uuid("event_id").references(() => materialEvents.id, { onDelete: "set null" }),
   // Null tant qu'aucune passe d'apprentissage du style n'a lu ce script. Posé par la passe qui l'a
   // lu, que la proposition qui en résulte soit acceptée ou non (refuser des règles n'est pas une
   // raison de reproposer les mêmes scripts). Le compteur « scripts corrigés depuis la dernière
@@ -855,6 +903,7 @@ export const productsRelations = relations(products, ({ many }) => ({
   narrativeStates: many(narrativeState),
   series: many(contentSeries),
   materialSources: many(materialSources),
+  events: many(materialEvents),
 }));
 
 export const materialSourcesRelations = relations(materialSources, ({ one, many }) => ({
@@ -879,6 +928,12 @@ export const sourceMaterialsRelations = relations(sourceMaterials, ({ one, many 
   product: one(products, { fields: [sourceMaterials.productId], references: [products.id] }),
   source: one(materialSources, { fields: [sourceMaterials.sourceId], references: [materialSources.id] }),
   citations: many(sourceMaterialCitations),
+  events: many(materialEvents),
+}));
+
+export const materialEventsRelations = relations(materialEvents, ({ one }) => ({
+  product: one(products, { fields: [materialEvents.productId], references: [products.id] }),
+  sourceMaterial: one(sourceMaterials, { fields: [materialEvents.sourceMaterialId], references: [sourceMaterials.id] }),
 }));
 
 export const sourceMaterialCitationsRelations = relations(sourceMaterialCitations, ({ one }) => ({
