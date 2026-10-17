@@ -51,6 +51,7 @@ export async function generateScript(context: ScriptGenerationContext): Promise<
       styleProfile: context.styleProfile,
       recentPosts: context.recentPosts,
       brief: context.eventBrief,
+      language: context.language,
     });
   }
 
@@ -73,6 +74,7 @@ export async function generateScript(context: ScriptGenerationContext): Promise<
     materialTexts: (context.materialDocuments ?? []).map((d) => d.annotatedText),
     avoid: context.styleProfile?.avoid ?? [],
     recentPosts: context.recentPosts,
+    language: context.language,
   };
 
   const firstArgs = await call(userMessage);

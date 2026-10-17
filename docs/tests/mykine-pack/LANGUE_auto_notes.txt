@@ -1,0 +1,66 @@
+Généré le 2026-10-17T23:01:32.293Z — modèle gpt-5.6-luna — lecteur : Développeurs santé et vision — langue demandée : règle réelle (profil, sinon notes)
+
+================================================================================
+Événement : 2025-11-16 — Le prototype rate une répétition sur trois sur l'iPhone 11
+TITRE : Le test qui a cassé le compteur
+
+Sur l’iPhone 11 de Julien, le compteur de squats tournait à 6 fps et ratait une répétition sur trois.
+
+La veille, Julien m’avait demandé si « ton truc de caméra » pouvait compter les squats. J’ai pris la page web du prototype, avec MediaPipe Pose en JavaScript, et je l’ai fait tester dans son salon.
+
+Sur mon laptop, ça marchait.
+
+Le compteur regardait l’angle hanche-genou-cheville. Quand il passait sous 100°, je comptais un squat.
+
+Sur l’iPhone 11, la cadence tombait à 6 images par seconde. Julien a quand même fait 20 squats pour tester. Une répétition sur trois n’a pas été comptée.
+
+Le code n’avait pas changé. Le contexte, si : écran et caméra de téléphone au lieu du laptop sur lequel j’avais validé le prototype.
+
+À ce stade, je n’avais pas de correction. J’avais seulement la limite mesurée : cette page web pouvait compter des squats sur mon ordinateur, mais pas encore de façon fiable sur le téléphone d’une séance.
+
+HASHTAGS : #ComputerVision #DigitalHealth
+TRACE : brouillons 2, contrôles {"failures":[],"retried":false}
+
+================================================================================
+Événement : 2025-11-23 — Le traitement est déplacé sur le téléphone
+TITRE : Le serveur était dans le mauvais flux
+
+Sur la 4G de Julien, l’envoi des frames au serveur ajoutait 300 à 600 ms de latence. Pour compter un squat pendant que le patient bouge, le réseau devenait une partie du problème.
+
+Le premier prototype tournait déjà à 6 fps sur son iPhone 11 et ratait une répétition sur trois. J’ai essayé de garder le modèle côté serveur pour ne pas faire porter le calcul au téléphone.
+
+Le flux était simple : le téléphone envoyait les images, le VPS exécutait le modèle, puis le résultat revenait dans la page.
+
+Mais ce test m’a montré deux limites très concrètes. La 4G ralentissait chaque séance, et des images de Julien en caleçon étaient stockées sur mon VPS.
+
+La question de la confidentialité n’était donc pas théorique. Une image prise au domicile du patient sortait du téléphone et entrait dans mon infrastructure.
+
+Le 23 novembre, j’ai pris la décision de tout faire tourner sur le téléphone. Le serveur ne devait plus être dans le chemin du traitement des images.
+
+Je savais ce que je gagnais en retirant le réseau et le stockage d’images de ce flux. Je savais aussi ce que je déplaçais : la charge et la fiabilité du modèle dépendraient du téléphone utilisé.
+
+À ce stade, je n’avais pas encore résolu le comptage. Mais j’avais fixé une limite d’architecture : les images d’une séance ne devaient pas quitter le téléphone.
+
+#VisionParOrdinateur #SantéNumérique #Confidentialité
+
+HASHTAGS : #VisionParOrdinateur #SantéNumérique #Confidentialité
+TRACE : brouillons 2, contrôles {"failures":[],"retried":false}
+
+================================================================================
+Événement : 2025-12-06 — Le tremblement fait compter trois fois une répétition
+TITRE : Le seuil est bon, le compteur est faux
+
+Le 6 décembre, un tremblement en bas du squat a fait compter trois répétitions au lieu d’une.
+
+Le calcul de l’angle du genou est pourtant correct. Je prends le produit scalaire des vecteurs hanche→genou et cheville→genou, puis j’applique deux seuils : au-dessus de 160° pour le haut, en dessous de 100° pour le bas.
+
+Le problème apparaît au moment où la jambe reste en bas. Un tremblement fait passer l’angle autour de 100° trois fois. Le compteur voit donc trois passages dans la zone basse et incrémente trois fois.
+
+Le traitement tourne sur le téléphone depuis le test précédent. Les images ne partent pas sur un serveur, mais cela ne rend pas le comptage juste pour autant.
+
+Je n’ai pas corrigé le problème ce jour-là. Le seuil est bon ; c’est la logique de comptage autour du seuil qui ne tient pas encore.
+
+Pour un patient, un compteur qui affiche trois répétitions quand il n’en a fait qu’une reste un échec, même si l’angle mesuré est correct.
+
+HASHTAGS : #VisionParOrdinateur #SantéNumérique
+TRACE : brouillons 1, contrôles {"failures":[],"retried":false}

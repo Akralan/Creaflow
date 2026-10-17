@@ -27,6 +27,9 @@ export const publishingDaysSchema = z
 // "What do you expect from us?" — free text, bounded so it stays injectable into prompts.
 export const expectationsSchema = z.string().trim().max(2000);
 
+// Language of the generated posts (src/lib/language.ts): null = follow the language of the notes.
+export const postLanguageSchema = z.enum(["en", "fr"]);
+
 // Visual resource library (docs/SPEC_RESSOURCES_VISUELLES.md §7.2: "a selection of
 // 40 images" as the reference order of magnitude).
 export const MAX_ASSETS_PER_INGESTION = 40;

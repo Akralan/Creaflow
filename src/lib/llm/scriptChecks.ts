@@ -2,6 +2,7 @@ import { platformLimits, VISUAL_ONLY_CAPTION_MAX } from "./platformRules";
 import type { GenerationPrep } from "./scriptSchema";
 import { hookOpening, type RecentPostCard } from "./recentPosts";
 import { enforceStoryboardCount, type VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
+import { languageFailure, type PostLanguage } from "@/lib/language";
 // Pure module (no database): same fuzzy matching as citation recording, so a passage judged
 // missing here is also missing there.
 import { findBestMatchInText } from "@/lib/services/citationMatching";
@@ -32,6 +33,8 @@ export interface CheckContext {
   avoid: string[];
   /** Cards of the subject's latest posts, newest first (docs/SPEC_MEMOIRE_ET_VEILLE.md §2). */
   recentPosts?: RecentPostCard[];
+  /** The language the post must be in (src/lib/language.ts): a rule, not a preference. */
+  language?: PostLanguage;
 }
 
 /** Lowercase, accents stripped, apostrophes and whitespace unified. */
@@ -142,6 +145,13 @@ function gapFailures(post: CheckablePost): string[] {
   return gaps > MAX_GAPS ? [`${gaps} "[to be completed]", ${MAX_GAPS} at most.`] : [];
 }
 
+/** The post is written in the language it was asked in, title, hook, slides and text alike. */
+function languageFailures(post: CheckablePost, ctx: CheckContext): string[] {
+  if (!ctx.language) return [];
+  const failure = languageFailure(ctx.language, postTextFields(post).map((f) => f.text));
+  return failure ? [failure] : [];
+}
+
 function selfCheckFailures(prep: GenerationPrep | null): string[] {
   if (!prep) return [];
   const { selfCheck } = prep;
@@ -178,6 +188,7 @@ export function checkGeneratedPost(post: CheckablePost, prep: GenerationPrep | n
   const storyboard =
     ctx.contentType === "visual" && post.storyboard ? enforceStoryboardCount(post.storyboard, ctx.visual) : null;
   return [
+    ...languageFailures(post, ctx),
     ...bannedPhraseFailures(post, ctx.avoid),
     ...lengthFailures(post, ctx),
     ...citationFailures(post, ctx),

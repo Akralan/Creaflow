@@ -1,0 +1,73 @@
+Généré le 2026-10-17T23:00:28.198Z — modèle gpt-5.6-luna — lecteur : Développeurs santé et vision — langue demandée : en
+
+================================================================================
+Événement : 2025-11-16 — Le prototype rate une répétition sur trois sur l'iPhone 11
+TITRE : The iPhone 11 test
+
+The laptop counted every squat. The iPhone 11 missed one out of three.
+
+On November 16, I tested the first MyKiné prototype with Julien’s phone instead of my development machine.
+
+The page was a small web app using MediaPipe Pose in JavaScript. It counted a squat when the hip-knee-ankle angle went below 100°.
+
+On my laptop, that was enough for a convincing demo.
+
+On Julien’s iPhone 11, the page ran at 6 fps. Julien still did 20 squats in his living room so I could compare the counter with a known number.
+
+The counter missed one repetition out of three.
+
+That was not a model-tuning detail. It was a device constraint: the same page and the same squat logic behaved differently when the camera stream ran on a phone.
+
+I had no fix that day. I had a reproducible limit, measured on the device, with the exercise and the number of repetitions known.
+
+The laptop demo had shown that the idea could work. The iPhone 11 showed that the prototype was not ready for a real session.
+
+HASHTAGS : #ComputerVision #DigitalHealth
+TRACE : brouillons 2, contrôles {"failures":[],"retried":false}
+
+================================================================================
+Événement : 2025-11-23 — Le traitement est déplacé sur le téléphone
+TITRE : The frame never left the phone
+
+The server added 300–600 ms to every squat check on Julien’s 4G. It also left images of him in his underwear on my VPS.
+
+I had moved the frames to the server because the iPhone 11 prototype was running at 6 fps and missing one repetition out of three. The server looked like the obvious way to get more compute.
+
+The test killed that assumption. A health exercise is happening in someone’s home, on an ordinary mobile connection. Sending every camera frame out creates a delay the user can feel, and creates a copy of the most sensitive data I have.
+
+So on November 23, I moved the treatment onto the phone: camera frames stay on the device, the model runs there, and the server does not receive the video.
+
+That simplified the privacy boundary and removed the network dependency. It did not solve the vision problem: on Julien’s iPhone 11, the prototype still ran at 6 fps and missed one repetition out of three.
+
+The trade-off was now explicit. I had to make the model and the mobile runtime work within the phone’s limits instead of hiding the problem behind a server.
+
+The next failure was already waiting: when Julien trembled at the bottom of a squat, one repetition was counted three times.
+
+#DigitalHealth #ComputerVision
+
+HASHTAGS : #DigitalHealth #ComputerVision
+TRACE : brouillons 1, contrôles {"failures":[],"retried":false}
+
+================================================================================
+Événement : 2025-12-06 — Le tremblement fait compter trois fois une répétition
+TITRE : When a correct angle counts three squats
+
+On December 6, a knee trembling at the bottom of a squat made MyKiné count one repetition three times.
+
+The angle was calculated correctly. I used the dot product of the hip-to-knee and ankle-to-knee vectors.
+
+The counter had two thresholds:
+
+above 160° meant the leg was high;
+below 100° meant it was low.
+
+When the knee trembled near the bottom, the angle crossed the 100° boundary three times. The counter treated those crossings as three separate repetitions.
+
+That made the failure more revealing: the measurement could be right while the repetition logic was wrong. The problem was in the sequence of states, not in the angle itself.
+
+The model was already running on the phone. That avoided sending camera frames to a server, but it did not solve this counting failure.
+
+I did not correct it that day. MyKiné could measure the knee angle. It still could not reliably tell one squat from three.
+
+HASHTAGS : #ComputerVision #DigitalHealth
+TRACE : brouillons 2, contrôles {"failures":[],"retried":false}

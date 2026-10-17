@@ -71,7 +71,7 @@ async function main() {
     fs.writeFileSync(formFile, JSON.stringify(form, null, 2), "utf-8");
   }
 
-  const out: string[] = [`Généré le ${new Date().toISOString()} — modèle ${process.env.OPENAI_MODEL ?? "?"} — lecteur : ${READER_LABEL}`, ""];
+  const out: string[] = [`Généré le ${new Date().toISOString()} — modèle ${process.env.OPENAI_MODEL ?? "?"} — lecteur : ${READER_LABEL} — langue demandée : ${process.env.POST_LANGUAGE ?? "règle réelle (profil, sinon notes)"}`, ""];
   for (const [date, titleStart] of EVENT_DATES_TITLES) {
     const row = all.find((e) => e.date === date && e.title.startsWith(titleStart));
     if (!row) throw new Error(`Événement introuvable : ${date} ${titleStart}`);
@@ -91,6 +91,8 @@ async function main() {
     };
     const context = await buildGenerationContext(user.id, "linkedin", null, "text", null, null, SERIES_ID);
     context.eventBrief = brief;
+    // Simule le réglage de profil sans rien écrire en base : POST_LANGUAGE=en|fr ; absent = la règle réelle.
+    if (process.env.POST_LANGUAGE === "en" || process.env.POST_LANGUAGE === "fr") context.language = process.env.POST_LANGUAGE;
     // Sans mémoire des derniers posts : sinon les posts déjà en base orienteraient l'un ou l'autre essai.
     context.recentPosts = [];
     const generated = await generateScript(context);

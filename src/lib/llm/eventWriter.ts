@@ -11,6 +11,7 @@ import { storyboardStepSchema, type GeneratedScript } from "./scriptSchema";
 import { checkGeneratedPost, type CheckContext } from "./scriptChecks";
 import { splitDocumentIntoParts } from "./eventReader";
 import { buildFormatBlock, enforceStoryboardCount, type VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
+import { buildLanguageBlock, type PostLanguage } from "@/lib/language";
 
 /**
  * The per-event writer (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5): an agent that receives ONE
@@ -53,6 +54,8 @@ export interface EventWriterContext {
   styleProfile?: StyleProfile | null;
   recentPosts?: RecentPostCard[];
   brief: EventBrief;
+  /** The language of the post: the profile's, else the notes' (src/lib/language.ts). */
+  language?: PostLanguage;
 }
 
 const READ_SOURCE_TOOL = "read_source";
@@ -98,7 +101,7 @@ You tell ONE event to ONE person. Everything else serves that.
 - Hashtags, if any, change with the post: the event's, not the project's.
 - It is written for ONE person, in their words, at their length. What they wouldn't understand isn't in it, or is explained through its effect.
 - The author speaks in the first person singular. "We" only if the brief or the source says there is a team, and to refer to that team.
-- Everything is written in English.
+- Everything is written in the language given in <language>.
 </what_makes_a_post>
 
 <examples_of_form>
@@ -172,6 +175,8 @@ export function buildEventWriterUserMessage(context: EventWriterContext): string
     const formatBlock = buildFormatBlock(context.visual);
     if (formatBlock) sections.push(formatBlock);
   }
+
+  if (context.language) sections.push(buildLanguageBlock(context.language));
 
   sections.push(`Start with ${READ_SOURCE_TOOL}.`);
   return sections.join("\n\n");
@@ -302,6 +307,7 @@ export async function writeScriptFromEvent(context: EventWriterContext): Promise
     materialTexts: brief.source ? [brief.source.text] : [],
     avoid: context.styleProfile?.avoid ?? [],
     recentPosts: context.recentPosts,
+    language: context.language,
   };
 
   const parseSubmission = (input: unknown): GeneratedScript =>

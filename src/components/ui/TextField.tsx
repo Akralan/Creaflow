@@ -1,6 +1,6 @@
 "use client";
 
-import type { InputHTMLAttributes, TextareaHTMLAttributes } from "react";
+import type { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { accent, color, fontHeading } from "@/lib/design/tokens";
 
 const labelStyle: React.CSSProperties = {
@@ -72,6 +72,24 @@ export function TextAreaField({
         {...props}
         style={{ ...fieldStyle, minHeight: 64, resize: "vertical", fontFamily: "inherit", ...style }}
       />
+      {helper && <p style={{ margin: "8px 2px 0", fontSize: 12, color: color.textFaint }}>{helper}</p>}
+    </div>
+  );
+}
+
+export function SelectField({
+  label,
+  helper,
+  style,
+  children,
+  ...props
+}: Pick<FieldWrapperProps, "label" | "helper"> & SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <div>
+      {label && <label style={labelStyle}>{label}</label>}
+      <select {...props} style={{ ...fieldStyle, ...style }}>
+        {children}
+      </select>
       {helper && <p style={{ margin: "8px 2px 0", fontSize: 12, color: color.textFaint }}>{helper}</p>}
     </div>
   );

@@ -103,3 +103,20 @@ describe("V3 generation tools", () => {
     expect(keys[keys.length - 1]).toBe("selfCheck");
   });
 });
+
+describe("language block", () => {
+  it("names the language in the user message when the context has one", () => {
+    const message = buildScriptUserMessage({ ...base, language: "fr" });
+    expect(message).toContain("<language>");
+    expect(message).toContain("Write the whole post in French");
+  });
+
+  it("adds no block without a language", () => {
+    expect(buildScriptUserMessage(base)).not.toContain("<language>");
+  });
+
+  it("no longer hardcodes English in the shared prompt", () => {
+    expect(SCRIPT_CORE_PROMPT).not.toMatch(/written in English/);
+    expect(SCRIPT_CORE_PROMPT).toContain("language given in <language>");
+  });
+});
