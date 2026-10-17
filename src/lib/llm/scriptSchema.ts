@@ -5,7 +5,7 @@ import type { ContentType } from "./prompts";
 // Annex A.4 of docs/SPEC_PROMPT_GENERATION_TECH.md — text to copy as is, identical on the
 // 2 generation tools.
 const CONCEPT_FIELD_DESCRIPTION =
-  "Write this first, before all the other fields: in 1 or 2 sentences, the single idea of this post, exactly who it addresses, and what that person should remember or do after seeing it. A real editorial decision — not a paraphrase of the brief. Written in English.";
+  "Write this first, before all the other fields: in 1 or 2 sentences, the single idea of this post, exactly who it addresses, and what that person should remember or do after seeing it. A real editorial decision — not a paraphrase of the brief. Written in the language given in <language>.";
 
 // Annex B.6 of docs/SPEC_REDACTEUR_EN_CHEF.md — identical on the 2 generation tools.
 const PROMISES_MADE_FIELD_DESCRIPTION =
@@ -203,7 +203,7 @@ const PREP_REQUIRED = ["reader", "candidateMoments", "chosenMoment", "concept", 
 export const generateVisualPostTool: LlmToolDefinition = {
   name: GENERATE_VISUAL_POST_TOOL_NAME,
   description:
-    "Returns a complete visual post (single image, carousel or short animation), preceded by its preparation and followed by its review. All text is written in English.",
+    "Returns a complete visual post (single image, carousel or short animation), preceded by its preparation and followed by its review. All text is written in the language given in <language>.",
   input_schema: {
     type: "object",
     properties: {
@@ -256,7 +256,7 @@ export const generateVisualPostTool: LlmToolDefinition = {
 
 export const generateTextPostTool: LlmToolDefinition = {
   name: GENERATE_TEXT_POST_TOOL_NAME,
-  description: "Returns a text-only post, preceded by its preparation and followed by its review. All text is written in English.",
+  description: "Returns a text-only post, preceded by its preparation and followed by its review. All text is written in the language given in <language>.",
   input_schema: {
     type: "object",
     properties: {

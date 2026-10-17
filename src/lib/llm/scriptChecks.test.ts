@@ -144,3 +144,22 @@ describe("buildRefusalBlock", () => {
     expect(block.endsWith("</refusal>")).toBe(true);
   });
 });
+
+describe("language check", () => {
+  const frenchBody = "Sur l'iPhone 11 de Julien, la page web tourne à 6 fps et rate une répétition sur trois, même quand il en fait vingt. ".repeat(10);
+  const french = post({ title: "Le laptop ne suffit pas", hookText: "Ça marche sur mon laptop.", caption: frenchBody });
+
+  it("rejects a post written in another language than the one asked", () => {
+    const failures = checkGeneratedPost(french, null, ctx({ language: "en" }));
+    expect(failures.some((f) => f.includes("written in French") && f.includes("must be written in English"))).toBe(true);
+  });
+
+  it("accepts the expected language", () => {
+    expect(checkGeneratedPost(french, null, ctx({ language: "fr" })).some((f) => f.includes("must be written in"))).toBe(false);
+    expect(checkGeneratedPost(post(), null, ctx({ language: "en" })).some((f) => f.includes("must be written in"))).toBe(false);
+  });
+
+  it("checks nothing when no language is given", () => {
+    expect(checkGeneratedPost(french, null, ctx()).some((f) => f.includes("must be written in"))).toBe(false);
+  });
+});

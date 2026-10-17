@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import { TextField, TextAreaField, heading1Style } from "@/components/ui/TextField";
+import { TextField, TextAreaField, SelectField, heading1Style } from "@/components/ui/TextField";
 import ProductCatalogue from "@/components/ProductCatalogue";
 import RepoPicker from "@/components/RepoPicker";
 import SourcePicker from "@/components/SourcePicker";
@@ -18,6 +18,7 @@ import AccountPanel from "@/components/AccountPanel";
 import { api, ApiClientError, type Connection } from "@/lib/apiClient";
 import { color } from "@/lib/design/tokens";
 import { DEFAULT_PUBLISHING_DAYS } from "@/lib/validation";
+import { POST_LANGUAGES, isPostLanguage } from "@/lib/language";
 
 type Tab = "identity" | "catalogue" | "assets" | "connexions" | "billing" | "account";
 
@@ -58,6 +59,8 @@ function IdentityTab() {
   const [activityType, setActivityType] = useState("");
   const [targetAudience, setTargetAudience] = useState("");
   const [expectations, setExpectations] = useState("");
+  // "" = automatic: the language of the notes.
+  const [language, setLanguage] = useState("");
   const [publishingDays, setPublishingDays] = useState<number[]>(DEFAULT_PUBLISHING_DAYS);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -71,6 +74,7 @@ function IdentityTab() {
         setActivityType(profile.activityType);
         setTargetAudience(profile.targetAudience || "");
         setExpectations(profile.expectations || "");
+        setLanguage(isPostLanguage(profile.language) ? profile.language : "");
         setPublishingDays(profile.publishingDays.length > 0 ? profile.publishingDays : DEFAULT_PUBLISHING_DAYS);
       }
       setLoaded(true);
@@ -82,7 +86,7 @@ function IdentityTab() {
     setSaved(false);
     setError(null);
     try {
-      await api.saveProfile({ brandName, activityType, targetAudience, expectations, publishingDays });
+      await api.saveProfile({ brandName, activityType, targetAudience, expectations, language: language || null, publishingDays });
       setSaved(true);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Something went wrong while saving.");
@@ -111,6 +115,19 @@ function IdentityTab() {
         onChange={(e) => setExpectations(e.target.value)}
         placeholder="I want to publish every week without spending my evenings on it, and have people follow my product being built all the way to launch."
       />
+      <SelectField
+        label="Language of your posts"
+        value={language}
+        onChange={(e) => setLanguage(e.target.value)}
+        helper="Automatic follows the language of your notes. Pick one to always write in it, whatever your notes are in."
+      >
+        <option value="">Automatic (language of my notes)</option>
+        {POST_LANGUAGES.map((l) => (
+          <option key={l.code} value={l.code}>
+            {l.label}
+          </option>
+        ))}
+      </SelectField>
       <div>
         <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 4 }}>
           Days you can publish

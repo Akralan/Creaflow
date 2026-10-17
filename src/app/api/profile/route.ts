@@ -7,7 +7,7 @@ import { requireUserId } from "@/lib/auth/session";
 import { listConnectedProviders } from "@/lib/services/oauthAccountService";
 import { getStyleLearningStatus } from "@/lib/services/styleLearningService";
 import { handleApiError } from "@/lib/api/errors";
-import { expectationsSchema, publishingDaysSchema } from "@/lib/validation";
+import { expectationsSchema, postLanguageSchema, publishingDaysSchema } from "@/lib/validation";
 import { syncGoalCountsToPublishingDays } from "@/lib/services/postingGoalsService";
 
 const profileSchema = z.object({
@@ -15,6 +15,7 @@ const profileSchema = z.object({
   activityType: z.string().min(1),
   targetAudience: z.string().optional(),
   expectations: expectationsSchema.optional(),
+  language: postLanguageSchema.nullable().optional(),
   publishingDays: publishingDaysSchema.optional(),
 });
 

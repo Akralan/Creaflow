@@ -136,6 +136,8 @@ export interface CreatorProfile {
   activityType: string;
   /** "What do you expect from us?" (docs/SPEC_ONBOARDING_MVP.md §3). */
   expectations: string | null;
+  /** Language of the generated posts ("en" | "fr"); null = the language of the notes. */
+  language: string | null;
   /** Publishing days, ISO: 1 = Monday … 7 = Sunday. Never empty. */
   publishingDays: number[];
   /** Brand audience (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — fallback for Product.targetAudience. */
@@ -754,6 +756,7 @@ export const api = {
     activityType: string;
     targetAudience?: string;
     expectations?: string;
+    language?: string | null;
     publishingDays?: number[];
   }) => post<{ profile: CreatorProfile }>("/api/profile", data),
   /** Style learning pass (docs/SPEC_APPRENTISSAGE_STYLE.md). `proposalId` null = profile

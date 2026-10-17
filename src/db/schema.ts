@@ -217,6 +217,9 @@ export const creatorProfiles = pgTable("creator_profiles", {
   // onboarding, editable in settings. Replaces tone, values, equipment and available time: the
   // tone is learned from edits (styleProfile), the rhythm is read in publishingDays.
   expectations: text("expectations"),
+  // Language of the generated posts: "en" | "fr", null = follow the language of the notes
+  // (src/lib/language.ts). A rule for the writer and for the checks, whatever the notes are in.
+  language: text("language"),
   // Days on which the author can publish, ISO: 1 = Monday … 7 = Sunday. No longer place posts
   // (docs/SPEC_RYTHME_DES_SERIES.md): distributed among the series at onboarding, proposed at
   // series creation. Never empty: the service refuses to uncheck the last one.

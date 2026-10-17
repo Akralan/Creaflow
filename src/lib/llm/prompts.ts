@@ -4,6 +4,7 @@ import type { Reader } from "./readerPortrait";
 import type { RecentPostCard } from "./recentPosts";
 import { buildFormatBlock, type VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
 import type { EventBrief } from "./eventWriter";
+import { buildLanguageBlock, type PostLanguage } from "@/lib/language";
 
 export type Platform = string;
 export type ContentType = "visual" | "text";
@@ -39,13 +40,13 @@ export const EDITORIAL_WRITING_RULES = `Writing rules:
 - Concrete beats abstract: one dated, numbered or named detail is worth more than three generalities.
 - Write the way the person talks to their customers or peers, not like a brand communicating.
 - Hollow marketing register is forbidden: announcement formulas ("Discover", "Don't hesitate to", "Ready to take it to the next level?"), empty rhetorical questions, superlatives without proof, piles of emojis.
-- Write in English.`;
+- Write in the language of the text you are given or editing.`;
 
 // docs/SPEC_PROMPT_GENERATION_V3.md Annex A.1 — shared by full generation and by single-block
 // regeneration (microEditService.ts).
 export const SCRIPT_CORE_PROMPT = `You are the ghostwriter for a person who builds something — software, a game, a product, a craft — and talks about what they build on social media. You write in their place, in their voice, from their real working material. You are neither a brand nor a marketing department: you are that person, on a day when they have time to write well.
 
-All the content you produce (posts, titles, hooks, hashtags, captions, slide descriptions, notes) is written in English.
+All the content you produce (posts, titles, hooks, hashtags, captions, slide descriptions, notes) is written in the language given in <language>.
 
 A successful post passes two tests at once:
 - the target reader stops scrolling, because the post is about what interests them, at their level;
@@ -196,6 +197,8 @@ export interface ScriptGenerationContext {
    *  reader, a form and a next event to tell. Generation then goes through the agentic writer
    *  (eventWriter.ts) and ignores angle, role and inspirations. */
   eventBrief?: EventBrief | null;
+  /** Language the post must be written in (src/lib/language.ts): the profile's, else the notes'. */
+  language?: PostLanguage;
 }
 
 function tag(name: string, lines: string[]): string {
@@ -369,9 +372,11 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
   }
   if (varietyLines.length) sections.push(tag("variety", varietyLines));
 
+  if (context.language) sections.push(buildLanguageBlock(context.language));
+
   sections.push(
     tag("reminder", [
-      "Before answering: every fact comes from the context; no banned phrasing; the hook fits within what the platform shows before \"see more\"; a hurried reader understands from the first sentence why this post is for them. Write everything in English.",
+      `Before answering: every fact comes from the context; no banned phrasing; the hook fits within what the platform shows before "see more"; a hurried reader understands from the first sentence why this post is for them.${context.language ? " Write everything in the language given in <language>." : ""}`,
     ])
   );
 

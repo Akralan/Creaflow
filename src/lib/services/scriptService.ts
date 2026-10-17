@@ -22,6 +22,7 @@ import { getMaterialForSubject } from "@/lib/services/sourceMaterialService";
 import { recordCitations, deleteCitationsForScript } from "@/lib/services/citationService";
 import { resolveCategoryForGeneration } from "@/lib/services/seriesService";
 import { buildEventBriefForSeries, ensureReaderForSeries } from "@/lib/services/seriesReaderService";
+import { resolvePostLanguage } from "@/lib/language";
 import { markDesignStale } from "@/lib/services/visualDesignService";
 import type { VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
 import { ApiError } from "@/lib/api/errors";
@@ -171,6 +172,11 @@ export async function buildGenerationContext(
     loadInspirationsForGeneration(userId, effectiveProductId),
   ]);
 
+  // Langue du post : celle du profil, sinon celle des notes (src/lib/language.ts). Les notes lues sont
+  // celles du sujet ; à défaut, le document d'où vient l'événement.
+  const noteTexts = materialDocuments.length > 0 ? materialDocuments.map((d) => d.annotatedText) : eventBrief?.source ? [eventBrief.source.text] : [];
+  const { language } = resolvePostLanguage(profile.language, noteTexts);
+
   // Uniquement pour "visual" — un appel d'embedding serait un coût inutile sur les 2/3 des
   // générations (video/text) qui n'affichent aucune image de référence.
   const brandAsset =
@@ -217,6 +223,7 @@ export async function buildGenerationContext(
     materialDocuments: materialDocuments.map((d) => ({ id: d.id, title: d.title, annotatedText: d.annotatedText })),
     directive: directive ?? null,
     eventBrief,
+    language,
     resolvedProductId: effectiveProductId,
     visual: contentType === "visual" ? (visual ?? null) : null,
   };

@@ -172,7 +172,7 @@ export async function regenerateBlock(userId: string, scriptId: string, block: M
       : "";
     const args = await callStructured({
       system:
-        "You are a writer who adjusts the hook and, if needed, the title of an existing post for Tellovo, without ever rewriting the text itself — supplied below as a fixed reference.\n\nYou must NEVER invent factual information that does not appear in this text. Write in English.",
+        "You are a writer who adjusts the hook and, if needed, the title of an existing post for Tellovo, without ever rewriting the text itself — supplied below as a fixed reference.\n\nYou must NEVER invent factual information that does not appear in this text. Write in the language of that text.",
       userMessage: [
         brandContext,
         buildStyleBlock(parseStoredStyleProfile(profile?.styleProfile), script.platform),
