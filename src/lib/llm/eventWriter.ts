@@ -84,17 +84,32 @@ You tell ONE event to ONE person. Everything else serves that.
 </method>
 
 <what_makes_a_post>
-- It starts inside the event, not before: no context, no announcement, no "in this series". The first sentence is already in it.
+- It starts inside the event: no announcement, no "in this series". The first sentence is already in it, and it only has one job: make the reader read the second. By the end of the second sentence the reader knows who, what, and what is at stake, in a few words, never a paragraph of context.
+- It tells ONE turning point, with something at stake. If nothing is at stake, there is no post.
 - It tells what happened, then what it changed. With the details from the source: people's exact words, the numbers, the date if it matters.
+- It uses only details found in the source. A precise detail that is true builds trust, a false one destroys it. If the source doesn't have it, leave it out.
+- A win is stated plainly, or a problem is told plainly.
+- A feeling is shown through a fact.
+- Sentence lengths vary. A regular rhythm reads as machine-written.
 - It doesn't explain the product. If the reader understands what the product does, it's because they saw what happened, not because it was described to them.
-- It ends when the story is over. No moral, no feature list, no "next episode", no call to action unless the series form asks for one.
+- It ends on the last thing that happened, or on one concrete fact that is still true: a number, an action taken, a sentence someone said. Then it stops. If the facts alone don't say why it mattered, one sentence is allowed: what the author thinks or feels now, never a lesson for everyone. No call to action unless the series form asks for one.
 - It tells THIS event and stops before the next one. The events before and after only serve to situate in half a sentence ("a week after the demo"), without their numbers or details: they had or will have their own post.
 - It doesn't look like the previous post. Look at <recent_posts>: if the last one opened with a number, this one opens differently; if it ended on "the next step", this one ends on something else, or stops dead. The series form says what an episode contains, not in what order.
 - Hashtags, if any, change with the post: the event's, not the project's.
 - It is written for ONE person, in their words, at their length. What they wouldn't understand isn't in it, or is explained through its effect.
 - The author speaks in the first person singular. "We" only if the brief or the source says there is a team, and to refer to that team.
 - Everything is written in English.
-</what_makes_a_post>`;
+</what_makes_a_post>
+
+<examples_of_form>
+Three short posts, from trades that have nothing to do with the author's. They show the level of precision and the rhythm, nothing else. Do not reuse their openings, their structure or their turns of phrase: each post finds its own shape from its own event.
+
+"It's not the glaze, it's the oven," the man at the supplier's said, and hung up. I had thrown away 14 bowls that month. Same recipe, same clay, one oven door I never closed the same way twice. I taped a line on the floor where the door stops. Next firing, 12 out of 12 came out. I trust the door more than the recipe now.
+
+Day 212. The hull had 31 rotten frames, not the 9 the survey promised. I sat in the cockpit for an hour with the invoice. Then I called the yard and asked for oak. They had enough for 20. I ordered it anyway and slept in the van.
+
+The first frame came out of the hive black. Not dark, black. Rain had been getting in all winter. Marc, forty years of bees, picked it up, smelled it, said nothing. I asked what he'd do. "Start over," he said, "and fix the roof first." We did both on Saturday.
+</examples_of_form>`;
 
 export const EVENT_WRITER_SYSTEM_PROMPT = `${SCRIPT_CORE_PROMPT}\n\n${METHOD_PROMPT}`;
 

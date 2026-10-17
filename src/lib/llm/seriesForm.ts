@@ -48,13 +48,13 @@ const describeSeriesFormTool: LlmToolDefinition = {
       episodeShape: {
         type: "string",
         description:
-          "What a good episode is made of for them: the ingredients to find in it (what they want to know, what is useful to them, what makes them stay), with an example taken from the supplied events. Not a numbered recipe: two episodes of the same series must not have the same skeleton, nor the same ending. No adjectives, elements that can be verified in the post.",
+          "What a good episode is made of for them: the ingredients to find in it (what they want to know, what is useful to them, what makes them stay), with an example taken from the supplied events. Not a numbered recipe: two episodes of the same series must not have the same skeleton. Say nothing about how an episode ends or what it closes on. No adjectives, elements that can be verified in the post.",
       },
       avoid: { type: "string", description: "What makes them leave, in one or two precise sentences." },
       words: { type: "array", items: { type: "string" }, description: "6 to 12 words or expressions they really use." },
       jargon: { type: "array", items: { type: "string" }, description: "The project's words they don't understand (to avoid or to explain). Empty if they are from the trade." },
-      register: { type: "string", description: "Length and register for them on the platform: number of lines, formal or informal address, first person, what not to do." },
-      signature: { type: "string", description: "What can come back in each episode so the reader recognizes the series: a sentence, a way of opening or closing. Empty string if nothing stands out: a forced signature makes people leave." },
+      register: { type: "string", description: "Length and register for them on the platform: number of lines, formal or informal address, first person, what not to do. Never name a language." },
+      signature: { type: "string", description: "What can come back in each episode so the reader recognizes the series: a sentence, a way of opening or closing. Empty string if nothing stands out: a forced signature makes people leave. In English, even if an event it refers to is worded in another language: translate it." },
     },
     required: ["wants", "episodeShape", "avoid", "words", "jargon", "register", "signature"],
   },
@@ -79,7 +79,7 @@ function buildSystemPrompt(context: SeriesFormContext): string {
 A good episode is an event told: what happened, what it changed, for that particular person. The form says how it is told to THIS reader. Two fictional examples of what is expected, for two different readers of the same project (don't copy them, they show the level of precision):
 - someone who uses what the author builds (a customer, a player, a patient…): "a precise situation lived by someone like them, what wasn't working, what the product showed or allowed, what that person did next, in six to ten lines, without a word of tech";
 - a peer of the author (another developer, another craftsperson…): "what we believed, what broke, what we changed, the number before and after, in ten to fifteen lines, with the names of the tools".
-The author writes alone and says "I"; never assume a team, unless their description mentions one. Write for the supplied reader, based on who they really are, and ground the example in one of the real events listed. Never describe the project itself: describe how it is told. The form says what an episode must contain and what it must avoid, never in what order: a writer following a numbered recipe would write the same post ten times. Write everything in English.`;
+The author writes alone and says "I"; never assume a team, unless their description mentions one. Write for the supplied reader, based on who they really are, and ground the example in one of the real events listed. Never describe the project itself: describe how it is told. The form says what an episode must contain and what it must avoid, never in what order: a writer following a numbered recipe would write the same post ten times. The form never says how an episode ends, nor what it closes on (a limit, a next step, a lesson): the writer chooses the ending from the event. It never names a language either: the language is set elsewhere. Write everything in English.`;
 }
 
 function buildUserMessage(context: SeriesFormContext): string {

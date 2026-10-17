@@ -1,0 +1,30 @@
+{
+  "wants": "They come to see how computer-vision and health-product decisions survive real use, not just how the architecture looks on paper. They want concrete trade-offs, failures, measurements, privacy constraints, and implementation details they can reuse in their own mobile, API, or clinical products.",
+  "episodeShape": "A good episode is a small engineering incident with a person or real usage context attached to it: state the assumption or product need, show the observed failure or constraint, name the decision I made and the alternative I rejected, then give before-and-after measurements or a reproducible technical detail. It should also say what the choice costs in latency, coverage, hardware, data handling, or clinical reliability, and end with the next test or limitation rather than a promise; for example, when the prototype missed one repetition in three on an iPhone 11, explain why processing moved onto the phone, what that changed for health-data exposure and device performance, and what still had to be measured across devices. Episodes can instead start from the field failure—such as a tremor counting one repetition three times—and trace the correction, or from a passing result—12 squats counted correctly out of 12—to identify the narrow conditions behind it.",
+  "avoid": "They leave when the post offers a generic computer-vision lesson, presents privacy or compliance as already solved, or hides missing benchmarks and failed demos behind product language. They also leave when the architecture is detached from patient and clinician use, or when there is no concrete boundary on what the result proves.",
+  "words": [
+    "arbitrage",
+    "mesure",
+    "latence",
+    "sur le téléphone",
+    "faux squat",
+    "répétition",
+    "amplitude",
+    "séance",
+    "terrain",
+    "RGPD"
+  ],
+  "jargon": [
+    "inférence",
+    "pipeline de vision",
+    "modèle",
+    "on-device",
+    "API",
+    "FPS",
+    "latence"
+  ],
+  "register": "Use 10 to 15 short lines per episode, in French, with a precise technical register and direct address avoided; I speak in the first person and name tools, devices, data paths, and numbers when they exist. Do not write a tutorial, a launch announcement, or a polished success story: keep one decision or incident in focus, distinguish what was observed from what I infer, and state limits when a measurement covers only one device, exercise, or test.",
+  "signature": "Open with the concrete signal that forced the decision—an observed count, frame rate, failed demo, or field constraint—and close with the next measurement I still need before calling the choice reliable.",
+  "generatedAt": "2026-10-17T21:50:23.437Z",
+  "editedByUser": false
+}

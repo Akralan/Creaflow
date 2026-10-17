@@ -1,0 +1,68 @@
+Généré le 2026-10-17T22:13:55.431Z — modèle gpt-5.6-luna — lecteur : Développeurs santé et vision
+
+================================================================================
+Événement : 2025-11-16 — Le prototype rate une répétition sur trois sur l'iPhone 11
+TITRE : The iPhone 11 test
+
+The prototype missed one squat out of three on Julien’s iPhone 11.
+It counted correctly on my laptop. The difference was the device he would actually use.
+
+The prototype was a web page using MediaPipe Pose in JavaScript. It counted a squat when the hip-knee-ankle angle went below 100°.
+
+On my laptop, that was enough for a demo.
+
+On the iPhone 11, the page ran at 6 fps. Julien still did 20 squats in his living room to test it. The counter missed roughly one repetition out of every three.
+
+That made the constraint visible: a pose model can look correct in a controlled demo and still fail when the camera runs on a patient’s phone.
+
+I had a squat counter. I did not yet have a counter I could trust for a session.
+
+#ComputerVision #DigitalHealth
+
+HASHTAGS : #ComputerVision #DigitalHealth
+TRACE : brouillons 1, contrôles {"failures":[],"retried":false}
+
+================================================================================
+Événement : 2025-11-23 — Le traitement est déplacé sur le téléphone
+TITRE : The VPS Was the Wrong Place
+
+The server added 300–600 ms to every camera frame on Julien’s 4G. Then I noticed what else the architecture was doing: storing images of him in his underwear on my VPS.
+
+I had tested a web prototype with MediaPipe Pose in JavaScript. On Julien’s iPhone 11, it ran at 6 fps and missed one squat in three.
+
+I tried sending the frames to the server so the model could run there. That created a second failure: the live counter had to wait on the network, while raw camera images were being stored on infrastructure I controlled.
+
+On November 23, I made the decision to run everything on the phone.
+
+The trade-off was immediate. I gave up the simpler server-side setup and took the performance problem back to the iPhone 11. In return, the camera frames could stay on the device instead of travelling to my VPS.
+
+That was the architecture I could accept for a rehabilitation product: slower and harder to optimise on the supported phone, but without sending or storing the patient’s camera images.
+
+#DigitalHealth #ComputerVision
+
+HASHTAGS : #DigitalHealth #ComputerVision
+TRACE : brouillons 2, contrôles {"failures":[],"retried":false}
+
+================================================================================
+Événement : 2025-12-06 — Le tremblement fait compter trois fois une répétition
+TITRE : The threshold counted the tremor
+
+Le calcul de l’angle est correct. Le compteur peut quand même compter trois fois la même répétition.
+
+Le 6 décembre, j’ai testé le squat avec deux seuils simples :
+
+- en haut, au-dessus de 160° ;
+- en bas, en dessous de 100°.
+
+L’angle du genou est calculé avec le produit scalaire entre les vecteurs hanche→genou et cheville→genou.
+
+Sur un mouvement propre, ces seuils font leur travail. Mais quand je tremble en bas du squat, l’angle repasse trois fois autour de 100°.
+
+Le compteur voit alors trois passages sous le seuil. Une seule répétition devient trois.
+
+Le bug n’est donc pas dans le calcul de l’angle. Il est dans la décision prise à partir d’une mesure qui bouge autour du seuil.
+
+Je n’ai pas encore corrigé ce problème. À ce stade, le compteur sait mesurer une amplitude correcte, mais pas encore distinguer un tremblement d’une nouvelle répétition.
+
+HASHTAGS : #ComputerVision #DigitalHealth
+TRACE : brouillons 1, contrôles {"failures":[],"retried":false}
