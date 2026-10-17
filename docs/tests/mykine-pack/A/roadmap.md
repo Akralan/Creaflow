@@ -18,7 +18,6 @@ Dernière mise à jour : octobre 2026
 - Contrôle de cadrage : corps entier, angle de trois quarts (45°).
 - Sélection automatique du modèle et saut d'images selon la cadence.
 - Compteur avec hystérésis (8°), validé sur 120 répétitions annotées (4 % de faux positifs).
-- Spec du boîtier Raspberry Pi — abandonnée.
 
 ### v0.3 — feedback et dashboard
 

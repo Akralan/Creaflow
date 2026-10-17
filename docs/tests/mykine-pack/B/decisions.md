@@ -8,23 +8,11 @@ Contexte : le proto web envoie des frames au serveur pour MediaPipe, 300 à 600 
 Choix : tout tourne sur le téléphone. Le serveur ne reçoit que des angles et des compteurs.
 Perdu : les vieux téléphones seront lents. On verra au cas par cas.
 
-## 2026-01-18 — Explorer un boîtier pour les patients sans smartphone
-
-Contexte : Julien dit que ses patients de plus de 70 ans n'ont pas de smartphone ou ne savent pas installer une app. C'est la moitié de sa patientèle post-opératoire.
-Choix : commander un Pi 5, une Camera Module 3 et un écran 7" et voir si la pose tient dessus.
-Perdu : du temps, 94 € de pièces.
-
 ## 2026-02-07 — Pas de compte patient
 
 Contexte : un patient qui doit créer un compte, un mot de passe, confirmer un email, ne fera jamais sa première séance.
 Choix : le kiné entre un numéro de téléphone, le patient reçoit un SMS avec un lien `mykine.app/s/<code>`. Le code ouvre son programme. Pas de mot de passe. Le lien expire avec le programme.
 Perdu : si le téléphone change de main, le programme est visible. Accepté : il n'y a ni nom ni vidéo dedans.
-
-## 2026-03-14 — Abandon du boîtier
-
-Contexte : le Pi 5 tient 11 fps avec le modèle lite, c'est jouable. Mais à la démo du 7 mars, ni Julien ni Marion n'en veulent : « je ne vais pas prêter une boîte à un patient », « qui la récupère ? ». Et le problème de l'angle de prise de vue est le même : poser une boîte dans un salon ne garantit pas un angle de 45°.
-Choix : on arrête. Les patients sans smartphone ne sont pas la cible pour l'instant.
-Perdu : la moitié post-opératoire de Julien. À revoir si un jour on a un partenaire matériel.
 
 ## 2026-03-14 — Caméra à 45° obligatoire
 
