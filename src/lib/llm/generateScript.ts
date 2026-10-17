@@ -10,6 +10,7 @@ import {
 } from "./scriptSchema";
 import { SCRIPT_SYSTEM_PROMPT, buildScriptUserMessage, type ScriptGenerationContext } from "./prompts";
 import { buildRefusalBlock, checkGeneratedPost, type CheckContext } from "./scriptChecks";
+import { writeScriptFromEvent } from "./eventWriter";
 import { enforceStoryboardCount } from "@/lib/visualDesign/visualFormat";
 
 interface Attempt {
@@ -37,6 +38,22 @@ function evaluate(script: GeneratedScript, args: unknown, checkContext: CheckCon
  * contrôle. Le storyboard reste ramené dans ses bornes comme avant.
  */
 export async function generateScript(context: ScriptGenerationContext): Promise<GeneratedScript> {
+  // Série avec lecteur, forme et événement à raconter : le rédacteur par événements
+  // (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5). Le reste de cette fonction est le chemin V3.
+  if (context.eventBrief) {
+    return writeScriptFromEvent({
+      brandName: context.creatorProfile.brandName,
+      activityType: context.creatorProfile.activityType,
+      subjectName: context.product?.name ?? context.creatorProfile.brandName,
+      platform: context.platform,
+      contentType: context.contentType,
+      visual: context.visual,
+      styleProfile: context.styleProfile,
+      recentPosts: context.recentPosts,
+      brief: context.eventBrief,
+    });
+  }
+
   const userMessage = buildScriptUserMessage(context);
   const call = (message: string) =>
     callStructured({

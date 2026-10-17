@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
       seriesId: context.series?.id ?? null,
       brandAssetId: context.brandAsset?.id ?? null,
       beatId: context.direction?.beatId ?? null,
+      eventId: context.eventBrief?.event.id ?? null,
       promiseHonored: context.direction?.promiseToHonor ?? null,
       visual: context.visual,
     });

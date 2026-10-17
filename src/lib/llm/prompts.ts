@@ -4,6 +4,7 @@ import type { Reader } from "./readerPortrait";
 import type { RecentPostCard } from "./recentPosts";
 import type { ChosenVoice, FramingChoice, SeriesFraming } from "./seriesFraming";
 import { buildFormatBlock, type VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
+import type { EventBrief } from "./eventWriter";
 
 export type Platform = string;
 export type ContentType = "visual" | "text";
@@ -220,6 +221,10 @@ export interface ScriptGenerationContext {
    *  à la création, au lieu du `productId` brut de la requête, pour rester cohérent avec la matière
    *  effectivement lue par cette génération. */
   resolvedProductId?: string | null;
+  /** Le brief par événement (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5) : présent quand la série a un
+   *  lecteur, une forme et un prochain événement à raconter. La génération passe alors par le
+   *  rédacteur agentique (eventWriter.ts) et ignore chef, angle, rôle et inspirations. */
+  eventBrief?: EventBrief | null;
 }
 
 function tag(name: string, lines: string[]): string {
