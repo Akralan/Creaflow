@@ -8,19 +8,19 @@ export const runtime = "nodejs";
 
 function appUrl(): string {
   const url = process.env.APP_URL;
-  if (!url) throw new Error("APP_URL n'est pas défini dans l'environnement.");
+  if (!url) throw new Error("APP_URL is not set in the environment.");
   return url;
 }
 
-// Portail Stripe (gestion moyen de paiement, factures, résiliation). Pas de changement de plan
-// self-service en v1 — cf. commentaire sur upsertSubscriptionFromStripe dans billingService.ts,
-// pour éviter de désynchroniser `subscriptions.plan` (fixé une fois via metadata à la création).
+// Stripe portal (payment method, invoices, cancellation). No self-service plan change in v1 —
+// see the comment on upsertSubscriptionFromStripe in billingService.ts, to avoid desynchronizing
+// `subscriptions.plan` (set once via metadata at creation).
 export async function POST() {
   try {
     const userId = await requireUserId();
     const subscription = await getSubscriptionForUser(userId);
     if (!subscription) {
-      throw new ApiError(404, "Aucun abonnement Stripe pour ce compte — souscris d'abord à un plan.");
+      throw new ApiError(404, "No Stripe subscription for this account — subscribe to a plan first.");
     }
 
     const stripe = getStripeClient();

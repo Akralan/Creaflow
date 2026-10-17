@@ -23,11 +23,11 @@ describe("diffScript", () => {
   const draft = {
     title: "Titre",
     hookText: "Vous saviez que 80 % des bougies… ?",
-    caption: "Découvrez notre nouvelle collection 🕯️✨ N'hésitez pas !",
+    caption: "Discover our new collection 🕯️✨ Don't hesitate!",
     hashtags: ["#bougie", "#artisanat", "#deco", "#handmade"],
     storyboard: [
       { planNumber: 1, description: "Plan large de l'atelier" },
-      { planNumber: 2, description: "Gros plan sur la mèche" },
+      { planNumber: 2, description: "Close-up on the wick" },
     ],
   };
 
@@ -65,9 +65,9 @@ describe("diffScript", () => {
 
 describe("compteurs", () => {
   it("compte les emojis, hashtags et questions d'ouverture", () => {
-    expect(countEmojis("Bonjour 🕯️✨ à tous 🎉")).toBe(3);
+    expect(countEmojis("Hello 🕯️✨ everyone 🎉")).toBe(3);
     expect(countEmojis("Sans emoji.")).toBe(0);
-    expect(countHashtags("#bougie #artisanat et #déco_fait_main")).toBe(3);
+    expect(countHashtags("#candle #craft and #handmade_decor")).toBe(3);
     expect(opensWithQuestion("Vous saviez ? Oui.")).toBe(true);
     expect(opensWithQuestion("Oui. Vous saviez ?")).toBe(false);
   });
@@ -80,7 +80,7 @@ describe("computeEditStats", () => {
       contentType: "visual",
       diffs: [
         { field: "hookText", before: "Et si je vous disais que tout change ? Vraiment tout !", after: "Tout change." },
-        { field: "caption", before: "Découvrez 🕯️✨ !!!", after: "Regarde." },
+        { field: "caption", before: "Discover 🕯️✨ !!!", after: "Look." },
         { field: "hashtags", before: "#a #b #c #d #e #f", after: "#a #b" },
       ],
     },
@@ -88,7 +88,7 @@ describe("computeEditStats", () => {
       platform: "linkedin",
       contentType: "text",
       diffs: [
-        { field: "hookText", before: "Vous connaissez ce problème ?", after: "Ce problème, je l'ai eu." },
+        { field: "hookText", before: "Do you know this problem?", after: "This problem, I had it." },
         { field: "caption", before: "Corps 😀", after: "Corps" },
       ],
     },
@@ -116,10 +116,10 @@ describe("computeEditStats", () => {
 
   it("formate des lignes lisibles pour le modèle", () => {
     const text = formatEditStats(computeEditStats(corrections));
-    expect(text).toContain("Emojis : retirés dans 2/3, ajoutés dans 1/3");
-    expect(text).toContain("Question en ouverture : supprimée dans 2/3");
-    expect(text).toContain("Hashtags : moyenne 6 → 2");
-    expect(formatEditStats(computeEditStats([]))).toBe("Aucune correction dans cette passe.");
+    expect(text).toContain("Emojis: removed in 2/3, added in 1/3");
+    expect(text).toContain("Opening question: removed in 2/3");
+    expect(text).toContain("Hashtags: average 6 → 2");
+    expect(formatEditStats(computeEditStats([]))).toBe("No correction in this pass.");
   });
 });
 
@@ -128,33 +128,33 @@ describe("buildLearnStyleUserMessage", () => {
     const message = buildLearnStyleUserMessage({
       currentProfile: null,
       corrections: [{ platform: "instagram", contentType: "visual", diffs: [{ field: "caption", before: "A", after: "B" }] }],
-      samples: [{ platform: "linkedin", contentType: "text", text: "Mon texte." }],
+      samples: [{ platform: "linkedin", contentType: "text", text: "My text." }],
       stats: computeEditStats([]),
     });
-    expect(message).toContain("=== PROFIL ACTUEL ===\naucun (première analyse)");
-    expect(message).toContain("=== STATISTIQUES SUR 1 CORRECTIONS ===");
-    expect(message).toContain("--- Script 1 · instagram · visual ---\n[caption]\nAVANT : A\nAPRÈS : B");
-    expect(message).toContain("=== TEXTES ÉCRITS PAR L'AUTEUR ===\n--- linkedin · text ---\nMon texte.");
+    expect(message).toContain("=== CURRENT PROFILE ===\nnone (first analysis)");
+    expect(message).toContain("=== STATISTICS ON 1 CORRECTIONS ===");
+    expect(message).toContain("--- Script 1 · instagram · visual ---\n[caption]\nBEFORE: A\nAFTER: B");
+    expect(message).toContain("=== TEXTS WRITTEN BY THE AUTHOR ===\n--- linkedin · text ---\nMy text.");
   });
 
   it("omet les sections vides", () => {
     const message = buildLearnStyleUserMessage({ currentProfile: null, corrections: [], samples: [], stats: computeEditStats([]) });
     expect(message).not.toContain("=== CORRECTIONS ===");
-    expect(message).not.toContain("=== TEXTES ÉCRITS PAR L'AUTEUR ===");
+    expect(message).not.toContain("=== TEXTS WRITTEN BY THE AUTHOR ===");
   });
 });
 
 describe("learnStyle", () => {
   const validResult = {
     tone: "direct",
-    sentenceLength: "courtes",
+    sentenceLength: "short",
     emojiUsage: "aucun",
     vocabulary: "simple",
     summary: "Direct, sans emoji.",
     rules: [{ text: "Jamais d'emoji.", platform: null }],
-    avoid: ["découvrez"],
+    avoid: ["discover"],
     prefer: [],
-    changeNotes: "Une règle ajoutée : plus d'emoji, retirés dans 9 corrections sur 11.",
+    changeNotes: "A rule added: no more emoji, removed in 9 corrections out of 11.",
   };
 
   beforeEach(() => {

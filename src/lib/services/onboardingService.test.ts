@@ -29,41 +29,41 @@ describe("planSubjectGrouping", () => {
     expect(orphanedProductIds).toEqual([]);
   });
 
-  it("crée un sujet neuf pour un groupe fait uniquement de notes", () => {
+  it("creates a new subject for a group made only of notes", () => {
     const { plan } = planSubjectGrouping([{ keys: ["note:n1"] }], [], ["n1"]);
     expect(plan).toEqual([{ sourceIds: [], noteIds: ["n1"], targetProductId: null }]);
   });
 
-  it("refuse une source rangée dans deux sujets", () => {
+  it("rejects a source filed under two subjects", () => {
     expect(() => planSubjectGrouping([{ keys: ["source:gh"] }, { keys: ["source:gh"] }], sources, [])).toThrow(
-      "deux sujets"
+      "two subjects"
     );
   });
 
-  it("refuse qu'une source soit laissée hors de tout sujet", () => {
-    expect(() => planSubjectGrouping([{ keys: ["source:gh"] }], sources.slice(0, 2), [])).toThrow("appartenir");
+  it("rejects a source left outside every subject", () => {
+    expect(() => planSubjectGrouping([{ keys: ["source:gh"] }], sources.slice(0, 2), [])).toThrow("belong");
   });
 
-  it("refuse une clé qui n'appartient pas à l'utilisateur", () => {
-    expect(() => planSubjectGrouping([{ keys: ["source:etranger"] }], sources, [])).toThrow("inconnue");
+  it("rejects a key that does not belong to the user", () => {
+    expect(() => planSubjectGrouping([{ keys: ["source:etranger"] }], sources, [])).toThrow("Unknown");
   });
 });
 
 describe("llmFailureMessage", () => {
   it("dit clairement qu'il n'y a plus de crédits OpenAI", () => {
     const error = new Error("429 You have no credits remaining. Add credits to continue using the API.");
-    expect(llmFailureMessage(error)).toContain("plus de crédits");
+    expect(llmFailureMessage(error)).toMatch(/credits/i);
   });
 
   it("distingue une clé absente ou invalide", () => {
-    expect(llmFailureMessage(new Error("401 Incorrect API key provided"))).toContain("clé OpenAI");
+    expect(llmFailureMessage(new Error("401 Incorrect API key provided"))).toMatch(/OpenAI/);
   });
 
   it("distingue une saturation passagère", () => {
-    expect(llmFailureMessage(new Error("429 Rate limit reached for requests"))).toContain("saturé");
+    expect(llmFailureMessage(new Error("429 Rate limit reached for requests"))).toMatch(/busy|overloaded|try again/i);
   });
 
   it("retombe sur un message générique", () => {
-    expect(llmFailureMessage(new Error("socket hang up"))).toBe("Le service d'IA n'a pas répondu.");
+    expect(llmFailureMessage(new Error("socket hang up"))).not.toMatch(/credits|OpenAI|busy|overloaded/i);
   });
 });

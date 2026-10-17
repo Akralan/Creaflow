@@ -1,13 +1,13 @@
-/** Choisit l'angle actif le moins récemment utilisé (jamais utilisé = prioritaire).
- *  recentAngleIdsDesc : angleId des scripts récents de la même catégorie, du plus récent au plus ancien.
- *  Déterministe : à égalité (plusieurs angles jamais utilisés), renvoie le premier de activeAngles. */
+/** Picks the least recently used active angle (never used = priority).
+ *  recentAngleIdsDesc: angleId of recent scripts in the same category, from most recent to oldest.
+ *  Deterministic: on a tie (several angles never used), returns the first of activeAngles. */
 export function selectLeastRecentlyUsedAngle<T extends { id: string }>(
   activeAngles: T[],
   recentAngleIdsDesc: string[]
 ): T | null {
   if (activeAngles.length === 0) return null;
 
-  const lastUsedRank = new Map<string, number>(); // angleId -> position (0 = le plus récent)
+  const lastUsedRank = new Map<string, number>(); // angleId -> position (0 = most recent)
   recentAngleIdsDesc.forEach((id, i) => {
     if (!lastUsedRank.has(id)) lastUsedRank.set(id, i);
   });

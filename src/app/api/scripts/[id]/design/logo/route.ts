@@ -3,7 +3,7 @@ import { requireUserId } from "@/lib/auth/session";
 import { handleApiError } from "@/lib/api/errors";
 import { getBrandLogo } from "@/lib/services/visualDesignService";
 
-/** Logo de l'identité de marque, servi same-origin pour le canevas et l'export. */
+/** Brand identity logo, served same-origin for the canvas and the export. */
 export async function GET() {
   try {
     const userId = await requireUserId();

@@ -76,13 +76,13 @@ export default function OAuthProviderButtons() {
             }}
           >
             {PROVIDER_ICONS[provider.id] ?? null}
-            Continuer avec {provider.displayName}
+            Continue with {provider.displayName}
           </a>
         ))}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0" }}>
         <div style={{ flex: 1, height: 1, background: color.border }} />
-        <span style={{ fontSize: 12, color: color.textFaint }}>ou</span>
+        <span style={{ fontSize: 12, color: color.textFaint }}>or</span>
         <div style={{ flex: 1, height: 1, background: color.border }} />
       </div>
     </>

@@ -61,7 +61,7 @@ export default function OnboardingSources({
       setNotes("");
       onChanged();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Impossible d'enregistrer tes notes.");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't save your notes.");
     } finally {
       setSaving(false);
     }
@@ -69,13 +69,13 @@ export default function OnboardingSources({
 
   return (
     <div>
-      <StepHeading title="Ce qu'on lit">
-        Coche ce dont tu veux parler. Les éléments les plus récents sont déjà cochés.
+      <StepHeading title="What we read">
+        Check what you want to talk about. The most recent items are already checked.
       </StepHeading>
 
       {state.sources.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <div style={sectionTitle}>Déjà branché</div>
+          <div style={sectionTitle}>Already connected</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {state.sources.map((source) => (
               <span
@@ -105,11 +105,11 @@ export default function OnboardingSources({
       ))}
 
       <div style={{ marginBottom: 24 }}>
-        <div style={sectionTitle}>Tes notes</div>
+        <div style={sectionTitle}>Your notes</div>
         {state.notes.map((note) => (
           <p key={note.id} style={{ fontSize: 13, color: color.textMuted, margin: "0 0 8px", fontStyle: "italic" }}>
-            « {note.excerpt}
-            {note.excerpt.length >= 160 ? "…" : ""} »
+            &ldquo;{note.excerpt}
+            {note.excerpt.length >= 160 ? "…" : ""}&rdquo;
           </p>
         ))}
         {notesOpen ? (
@@ -117,26 +117,26 @@ export default function OnboardingSources({
             <TextAreaField
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Colle ici un journal de bord, des notes de projet, un compte rendu… Tout ce qui raconte ce que tu fais."
+              placeholder="Paste a devlog, project notes, a meeting recap… Anything that tells what you do."
               style={{ minHeight: 140 }}
             />
             {error && <p style={{ margin: 0, fontSize: 13, color: color.danger }}>{error}</p>}
             <div>
               <Button variant="secondary" onClick={addNotes} disabled={saving || !notes.trim()}>
-                {saving ? "..." : "Ajouter ces notes"}
+                {saving ? "..." : "Add these notes"}
               </Button>
             </div>
           </div>
         ) : (
           <Button variant="secondary" onClick={() => setNotesOpen(true)}>
-            Coller mes notes
+            Paste my notes
           </Button>
         )}
       </div>
 
       {missing.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, fontSize: 14, color: color.textMuted }}>
-          Ajoute aussi :
+          Also add:
           {missing.map((id) => (
             <a
               key={id}

@@ -2,13 +2,13 @@ import { accent, accentAlpha, color } from "@/lib/design/tokens";
 
 /** Jours ISO, lundi = 1 … dimanche = 7 (docs/SPEC_ONBOARDING_MVP.md §3). */
 const DAYS: Array<{ iso: number; short: string; label: string }> = [
-  { iso: 1, short: "L", label: "Lundi" },
-  { iso: 2, short: "M", label: "Mardi" },
-  { iso: 3, short: "M", label: "Mercredi" },
-  { iso: 4, short: "J", label: "Jeudi" },
-  { iso: 5, short: "V", label: "Vendredi" },
-  { iso: 6, short: "S", label: "Samedi" },
-  { iso: 7, short: "D", label: "Dimanche" },
+  { iso: 1, short: "M", label: "Monday" },
+  { iso: 2, short: "T", label: "Tuesday" },
+  { iso: 3, short: "W", label: "Wednesday" },
+  { iso: 4, short: "T", label: "Thursday" },
+  { iso: 5, short: "F", label: "Friday" },
+  { iso: 6, short: "S", label: "Saturday" },
+  { iso: 7, short: "S", label: "Sunday" },
 ];
 
 /** Une case cochée = un post ce jour-là. Le dernier jour coché ne se décoche pas : il en faut au moins un. */
@@ -40,7 +40,7 @@ export default function PublishingDaysPicker({
             onClick={() => toggle(day.iso)}
             aria-pressed={active}
             aria-label={day.label}
-            title={locked ? `${day.label} — il faut au moins un jour de publication` : day.label}
+            title={locked ? `${day.label} — at least one publishing day is required` : day.label}
             style={{
               width: 42,
               height: 42,

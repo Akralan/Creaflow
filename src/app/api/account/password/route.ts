@@ -7,12 +7,12 @@ import { changePassword } from "@/lib/services/passwordService";
 
 const schema = z.object({
   currentPassword: z.string().optional(),
-  newPassword: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères."),
+  newPassword: z.string().min(8, "Password must be at least 8 characters long."),
 });
 
-// Changement (ou définition, pour un compte sans mot de passe) depuis l'onglet Compte. Le
-// changement ferme toutes les sessions, y compris celle-ci : on repose le cookie dans la foulée
-// pour que l'utilisateur reste connecté sur l'onglet d'où il a agi.
+// Change (or setting, for an account without a password) from the Account tab. The change
+// closes all sessions, including this one: we set the cookie again right away so that the user
+// stays signed in on the tab they acted from.
 export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId();

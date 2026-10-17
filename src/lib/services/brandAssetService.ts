@@ -48,13 +48,13 @@ async function buildThumbnail(buffer: Buffer): Promise<Buffer> {
 }
 
 /**
- * Ingestion par upload direct. Contrairement à la source Google Drive (dont l'original reste dans
- * le Drive de l'utilisateur, cf. docs/SPEC_RESSOURCES_VISUELLES.md §4.1), il n'existe ici aucun autre
- * exemplaire de l'image : l'original est donc stocké sur R2 en plus de la vignette.
+ * Ingestion by direct upload. Unlike the Google Drive source (whose original stays in
+ * the user's Drive, see docs/SPEC_RESSOURCES_VISUELLES.md §4.1), no other copy of the image
+ * exists here: the original is therefore stored on R2 in addition to the thumbnail.
  */
 export async function createUploadedAssets(userId: string, files: UploadedFileInput[]) {
   if (files.length === 0) {
-    throw new ApiError(400, "Aucun fichier fourni.");
+    throw new ApiError(400, "No file provided.");
   }
 
   const storage = getObjectStorage();
@@ -62,7 +62,7 @@ export async function createUploadedAssets(userId: string, files: UploadedFileIn
 
   for (const file of files) {
     if (!file.mimeType.startsWith("image/")) {
-      throw new ApiError(400, `Type de fichier non supporté : "${file.mimeType}".`);
+      throw new ApiError(400, `Unsupported file type: "${file.mimeType}".`);
     }
 
     const metadata = await sharp(file.buffer).metadata();
@@ -101,13 +101,13 @@ export async function createUploadedAssets(userId: string, files: UploadedFileIn
 }
 
 /**
- * Ingestion depuis une sélection Google Picker. Contrairement à l'upload direct, l'original n'est
- * pas stocké sur R2 — il reste dans le Drive de l'utilisateur (docs/SPEC_RESSOURCES_VISUELLES.md
- * §4.1) et sera relu à la demande via `files.get` (captioning, génération d'image).
+ * Ingestion from a Google Picker selection. Unlike direct upload, the original is
+ * not stored on R2 — it stays in the user's Drive (docs/SPEC_RESSOURCES_VISUELLES.md
+ * §4.1) and will be re-read on demand via `files.get` (captioning, image generation).
  */
 export async function createDriveAssets(userId: string, fileIds: string[]) {
   if (fileIds.length === 0) {
-    throw new ApiError(400, "Aucun fichier sélectionné.");
+    throw new ApiError(400, "No file selected.");
   }
 
   const accessToken = await getValidAccessToken(userId);
@@ -117,7 +117,7 @@ export async function createDriveAssets(userId: string, fileIds: string[]) {
   for (const fileId of fileIds) {
     const metadata = await fetchFileMetadata(fileId, accessToken);
     if (!metadata.mimeType.startsWith("image/")) {
-      continue; // ignore silencieusement les non-images d'une sélection Picker (vue DOCS_IMAGES)
+      continue; // silently ignore non-images in a Picker selection (DOCS_IMAGES view)
     }
 
     const { bytes } = await fetchFileMedia(fileId, accessToken);
@@ -152,7 +152,7 @@ export async function createDriveAssets(userId: string, fileIds: string[]) {
   }
 
   if (created.length === 0) {
-    throw new ApiError(400, "Aucune image exploitable dans la sélection.");
+    throw new ApiError(400, "No usable image in the selection.");
   }
 
   return created;
@@ -167,24 +167,24 @@ export async function listAssetsForUser(userId: string) {
 
 export type BrandAssetRow = typeof brandAssets.$inferSelect;
 
-/** Récupère les bytes d'un asset — R2 pour un upload direct, Drive à la demande sinon. */
+/** Retrieves an asset's bytes — R2 for a direct upload, Drive on demand otherwise. */
 export async function fetchAssetBytes(asset: BrandAssetRow): Promise<{ bytes: Buffer; mimeType: string }> {
   if (asset.sourceType === "upload") {
     if (!asset.originalKey) {
-      throw new Error(`Asset ${asset.id} : originalKey manquant pour une source "upload".`);
+      throw new Error(`Asset ${asset.id}: originalKey missing for an "upload" source.`);
     }
     return { bytes: await getObjectStorage().download(asset.originalKey), mimeType: asset.mimeType };
   }
 
   if (!asset.externalId) {
-    throw new Error(`Asset ${asset.id} : externalId manquant pour une source "google_drive".`);
+    throw new Error(`Asset ${asset.id}: externalId missing for a "google_drive" source.`);
   }
   const accessToken = await getValidAccessToken(asset.userId);
   return fetchFileMedia(asset.externalId, accessToken);
 }
 
-// Unicode property escape (ES2018+) plutôt qu'une plage de caractères combinants écrite en dur —
-// plus lisible et sans ambiguïté d'encodage.
+// Unicode property escape (ES2018+) rather than a hard-coded range of combining characters —
+// more readable and with no encoding ambiguity.
 function normalizeProductName(name: string): string {
   return name
     .normalize("NFD")
@@ -194,13 +194,13 @@ function normalizeProductName(name: string): string {
 }
 
 /**
- * Captioning + embedding d'un asset — appelé depuis `after()` juste après l'ingestion (upload ou
- * Picker), jamais rejoué automatiquement (docs/SPEC_RESSOURCES_VISUELLES.md §5.1). Toute erreur
- * laisse l'asset en "pending", sauf perte d'accès Drive avérée ("unreachable").
+ * Captioning + embedding of an asset — called from `after()` right after ingestion (upload or
+ * Picker), never replayed automatically (docs/SPEC_RESSOURCES_VISUELLES.md §5.1). Any error
+ * leaves the asset as "pending", except confirmed loss of Drive access ("unreachable").
  */
 export async function processAssetCaptioning(assetId: string): Promise<void> {
   const asset = await db.query.brandAssets.findFirst({ where: eq(brandAssets.id, assetId) });
-  if (!asset) return; // asset supprimé entretemps
+  if (!asset) return; // asset deleted in the meantime
 
   const userProducts = await db.query.products.findMany({ where: eq(products.userId, asset.userId) });
 
@@ -209,7 +209,7 @@ export async function processAssetCaptioning(assetId: string): Promise<void> {
   try {
     ({ bytes, mimeType } = await fetchAssetBytes(asset));
   } catch (err) {
-    logger.error("Lecture des bytes d'un asset échouée", err, { assetId });
+    logger.error("Failed to read an asset's bytes", err, { assetId });
     await db.update(brandAssets).set({ status: "unreachable" }).where(eq(brandAssets.id, assetId));
     return;
   }
@@ -249,18 +249,18 @@ export interface SelectedBrandAsset {
 }
 
 /**
- * Recherche sémantique du meilleur BrandAsset pour un script "visual" — filtrage `productId` en
- * amont de la requête vectorielle (docs/SPEC_RESSOURCES_VISUELLES.md §5.3), avec repli sans filtre
- * produit si rien ne matche. Dégradation gracieuse (`null`) si la bibliothèque est vide ou encore
- * en cours de traitement — même pattern que `pickAngleForScript` (src/lib/services/angleService.ts).
+ * Semantic search for the best BrandAsset for a "visual" script — `productId` filtering
+ * upstream of the vector query (docs/SPEC_RESSOURCES_VISUELLES.md §5.3), falling back to no topic
+ * filter if nothing matches. Graceful degradation (`null`) if the library is empty or still
+ * being processed — same pattern as `pickAngleForScript` (src/lib/services/angleService.ts).
  */
 export async function findBestBrandAssetForScript(
   userId: string,
   params: Omit<AssetSearchContext, "productName"> & { productId?: string | null }
 ): Promise<SelectedBrandAsset | null> {
-  // Aucune image exploitable : on sort avant l'embedding. C'était l'ordre inverse, et comme rien
-  // n'attrapait l'erreur, une génération "visual" échouait en 500 même pour un utilisateur qui
-  // n'avait jamais déposé la moindre image (docs/SPEC_RESSOURCES_VISUELLES.md §8.4).
+  // No usable image: we exit before the embedding. It used to be the reverse order, and since nothing
+  // caught the error, a "visual" generation failed with a 500 even for a user who
+  // had never uploaded a single image (docs/SPEC_RESSOURCES_VISUELLES.md §8.4).
   const [anyReadyAsset] = await db
     .select({ id: brandAssets.id })
     .from(brandAssets)
@@ -279,13 +279,13 @@ export async function findBestBrandAssetForScript(
     seriesLabel: params.seriesLabel,
   });
 
-  // Une image de référence est un bonus, jamais une condition pour écrire un script : un embedding
-  // indisponible dégrade la génération (pas d'image proposée), il ne l'interrompt pas.
+  // A reference image is a bonus, never a condition for writing a script: an unavailable
+  // embedding degrades the generation (no image suggested), it does not interrupt it.
   let queryEmbedding: number[];
   try {
     queryEmbedding = await embedText(queryText);
   } catch (err) {
-    logger.warn("Embedding de recherche d'image indisponible, génération sans image de référence", {
+    logger.warn("Image search embedding unavailable, generating without a reference image", {
       userId,
       err: String(err),
     });
@@ -312,12 +312,12 @@ export async function findBestBrandAssetForScript(
 }
 
 /**
- * Recalcule l'embedding de toutes les ressources `ready` d'un utilisateur à partir de leur
- * `aiDescription` déjà stockée — pas de re-captioning, donc pas de nouvel appel vision.
+ * Recomputes the embedding of all of a user's `ready` resources from their
+ * already stored `aiDescription` — no re-captioning, hence no new vision call.
  *
- * À lancer une fois après un changement de modèle d'embedding : deux modèles ne produisent pas des
- * vecteurs comparables, et les mélanger dans le même index donne des résultats de recherche faux
- * sans qu'aucune erreur ne le signale.
+ * To run once after an embedding model change: two models do not produce
+ * comparable vectors, and mixing them in the same index gives wrong search results
+ * without any error reporting it.
  */
 export async function recomputeAssetEmbeddingsForUser(userId: string): Promise<{ updated: number; failed: number }> {
   const assets = await db
@@ -328,13 +328,13 @@ export async function recomputeAssetEmbeddingsForUser(userId: string): Promise<{
   let updated = 0;
   let failed = 0;
   for (const asset of assets) {
-    if (!asset.aiDescription) continue; // rien à vectoriser : l'asset n'a jamais été décrit
+    if (!asset.aiDescription) continue; // nothing to vectorise: the asset was never described
     try {
       const embedding = await embedText(asset.aiDescription);
       await db.update(brandAssets).set({ embedding }).where(eq(brandAssets.id, asset.id));
       updated += 1;
     } catch (err) {
-      logger.error("Recalcul d'embedding échoué", err, { assetId: asset.id });
+      logger.error("Embedding recomputation failed", err, { assetId: asset.id });
       failed += 1;
     }
   }
@@ -349,34 +349,34 @@ export async function archiveAssetForUser(userId: string, assetId: string) {
     .returning({ id: brandAssets.id });
 
   if (!archived) {
-    throw new ApiError(404, "Ressource visuelle introuvable.");
+    throw new ApiError(404, "Visual asset not found.");
   }
 }
 
-// --- Détourage (docs/SPEC_COMPOSITION_VISUELLE.md §5.3) ---
+// --- Cutout (docs/SPEC_COMPOSITION_VISUELLE.md §5.3) ---
 
-/** Grand côté maximal envoyé au service : un post fait 1080 px, inutile d'envoyer plus. */
+/** Maximum long side sent to the service: a post is 1080 px, no point sending more. */
 const CUTOUT_MAX_SIDE = 2000;
 
 export class CutoutUnavailableError extends ApiError {
   constructor() {
-    super(503, "Le détourage n'est pas configuré sur ce serveur (BACKGROUND_REMOVAL_PROVIDER).");
+    super(503, "Background removal is not configured on this server (BACKGROUND_REMOVAL_PROVIDER).");
   }
 }
 
 /**
- * Détoure une photo une seule fois et met le PNG en cache sur R2 (`brandAssets.cutoutKey`). La photo
- * d'origine n'est jamais modifiée : seule la copie envoyée au service est réduite. Le checksum d'un
- * asset ne change jamais après l'ingestion (pas de resynchronisation Drive), le cache n'a donc pas
- * à être invalidé ; si une resynchronisation arrive un jour, elle devra remettre `cutoutKey` à null.
- * Lève `CutoutUnavailableError` (503) sans provider, ou l'erreur du service.
+ * Cuts out a photo once and caches the PNG on R2 (`brandAssets.cutoutKey`). The original
+ * photo is never modified: only the copy sent to the service is shrunk. An asset's checksum
+ * never changes after ingestion (no Drive resynchronisation), so the cache does not
+ * need invalidating; if a resynchronisation ever happens, it will have to reset `cutoutKey` to null.
+ * Throws `CutoutUnavailableError` (503) without a provider, or the service's error.
  */
 export async function ensureCutout(asset: BrandAssetRow): Promise<BrandAssetRow> {
   if (asset.cutoutKey) return asset;
   const remover = getBackgroundRemover();
   if (!remover) throw new CutoutUnavailableError();
-  // Deux demandes simultanées sur la même photo (bascule dans l'éditeur + composition) ne doivent
-  // payer qu'un appel : la promesse en vol est partagée par asset, dans ce processus.
+  // Two simultaneous requests on the same photo (toggle in the editor + composition) must not
+  // pay for more than one call: the in-flight promise is shared per asset, within this process.
   const inFlight = cutoutInFlight.get(asset.id);
   if (inFlight) return inFlight;
   const job = (async () => {
@@ -394,22 +394,22 @@ export async function ensureCutout(asset: BrandAssetRow): Promise<BrandAssetRow>
 
 const cutoutInFlight = new Map<string, Promise<BrandAssetRow>>();
 
-/** Détourage à la demande de l'utilisateur (bibliothèque, inspecteur) — asset possédé et prêt. */
+/** Cutout on the user's request (library, inspector) — asset owned and ready. */
 export async function ensureCutoutForUser(userId: string, assetId: string): Promise<BrandAssetRow> {
   const asset = await db.query.brandAssets.findFirst({
     where: and(eq(brandAssets.id, assetId), eq(brandAssets.userId, userId), eq(brandAssets.status, "ready")),
   });
-  if (!asset) throw new ApiError(404, "Photo introuvable ou pas encore prête.");
+  if (!asset) throw new ApiError(404, "Photo not found or not ready yet.");
   return ensureCutout(asset);
 }
 
-/** Octets du détouré (PNG) d'un asset — `ensureCutout` d'abord si besoin. */
+/** Bytes of the cutout (PNG) of an asset — `ensureCutout` first if needed. */
 export async function fetchCutoutBytes(asset: BrandAssetRow): Promise<{ bytes: Buffer; mimeType: string }> {
   const ready = await ensureCutout(asset);
   return { bytes: await getObjectStorage().download(ready.cutoutKey!), mimeType: "image/png" };
 }
 
-/** Forme renvoyée au client : URLs publiques résolues, disponibilité du détourage. */
+/** Shape returned to the client: resolved public URLs, cutout availability. */
 export function toApiAsset(asset: BrandAssetRow) {
   const storage = getObjectStorage();
   return {

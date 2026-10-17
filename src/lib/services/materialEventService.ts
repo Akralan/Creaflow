@@ -36,7 +36,7 @@ export type MaterialEvent = typeof materialEvents.$inferSelect;
 
 async function requireOwnedProduct(userId: string, productId: string) {
   const product = await db.query.products.findFirst({ where: and(eq(products.id, productId), eq(products.userId, userId)) });
-  if (!product) throw new ApiError(404, "Sujet introuvable.");
+  if (!product) throw new ApiError(404, "Subject not found.");
   return product;
 }
 
@@ -101,7 +101,7 @@ export interface EventPatch {
 
 export async function updateEventForUser(userId: string, eventId: string, patch: EventPatch) {
   const existing = await db.query.materialEvents.findFirst({ where: and(eq(materialEvents.id, eventId), eq(materialEvents.userId, userId)) });
-  if (!existing) throw new ApiError(404, "Événement introuvable.");
+  if (!existing) throw new ApiError(404, "Event not found.");
 
   const set: Partial<typeof materialEvents.$inferInsert> = { updatedAt: new Date() };
   if (patch.date !== undefined || patch.datePrecision !== undefined) {
@@ -130,7 +130,7 @@ export async function deleteEventForUser(userId: string, eventId: string) {
     .delete(materialEvents)
     .where(and(eq(materialEvents.id, eventId), eq(materialEvents.userId, userId)))
     .returning({ id: materialEvents.id });
-  if (!deleted) throw new ApiError(404, "Événement introuvable.");
+  if (!deleted) throw new ApiError(404, "Event not found.");
 }
 
 export interface EventReadingReport {
@@ -170,7 +170,7 @@ export async function readEventsForSubject(userId: string, productId: string): P
 
   const unread = allDocs.filter((d) => d.eventsReadAt === null);
   if (unread.length === 0) {
-    return { documents: 0, documentsRead: 0, partsRead: 0, eventsSaved: 0, eventsRejected: 0, turns: 0, stoppedAtMaxTurns: false, reply: "Rien à lire." };
+    return { documents: 0, documentsRead: 0, partsRead: 0, eventsSaved: 0, eventsRejected: 0, turns: 0, stoppedAtMaxTurns: false, reply: "Nothing to read." };
   }
 
   const docsById = new Map(unread.map((d) => [d.id, { ...d, parts: splitDocumentIntoParts(d.rawText), partsRead: new Set<number>() }]));
@@ -205,7 +205,7 @@ export async function readEventsForSubject(userId: string, productId: string): P
         return {
           documents: [...docsById.values()].map((d) => ({
             id: d.id,
-            title: d.title ?? "(sans titre)",
+            title: d.title ?? "(untitled)",
             chars: d.rawText.length,
             parts: d.parts.length,
             partsRead: [...d.partsRead].sort((a, b) => a - b),
@@ -216,10 +216,10 @@ export async function readEventsForSubject(userId: string, productId: string): P
       if (name === READ_DOCUMENT_TOOL) {
         const { documentId, part } = input as { documentId?: string; part?: number };
         const doc = documentId ? docsById.get(documentId) : undefined;
-        if (!doc) throw new Error("Document inconnu : reprends l'id dans list_documents.");
+        if (!doc) throw new Error("Unknown document: take the id from list_documents.");
         const index = Number(part);
         if (!Number.isInteger(index) || index < 1 || index > doc.parts.length) {
-          throw new Error(`Partie ${part} inexistante : ce document a ${doc.parts.length} partie(s).`);
+          throw new Error(`Part ${part} does not exist: this document has ${doc.parts.length} part(s).`);
         }
         if (!doc.partsRead.has(index)) partsRead++;
         doc.partsRead.add(index);
@@ -230,26 +230,26 @@ export async function readEventsForSubject(userId: string, productId: string): P
         const parsed = saveEventInputSchema.safeParse(input);
         if (!parsed.success) {
           eventsRejected++;
-          throw new Error(`Événement refusé : ${parsed.error.issues.map((i) => `${i.path.join(".")} ${i.message}`).join(" ; ")}`);
+          throw new Error(`Event rejected: ${parsed.error.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`);
         }
         const data = parsed.data;
         const doc = docsById.get(data.sourceMaterialId);
         if (!doc) {
           eventsRejected++;
-          throw new Error("sourceMaterialId inconnu : reprends l'id du document que tu es en train de lire.");
+          throw new Error("Unknown sourceMaterialId: use the id of the document you are currently reading.");
         }
         if (data.excerpt.length > MAX_EXCERPT_CHARS) {
           eventsRejected++;
-          throw new Error(`Passage trop long (${data.excerpt.length} caractères, ${MAX_EXCERPT_CHARS} au plus) : recopie seulement la phrase qui prouve l'événement.`);
+          throw new Error(`Excerpt too long (${data.excerpt.length} characters, ${MAX_EXCERPT_CHARS} at most): copy only the sentence that proves the event.`);
         }
         if (!excerptIsInDocument(data.excerpt, doc.rawText)) {
           eventsRejected++;
-          throw new Error("Passage introuvable dans le document : recopie-le tel quel, sans reformuler, plus court si besoin.");
+          throw new Error("Excerpt not found in the document: copy it verbatim, without rephrasing, shorter if needed.");
         }
         const unknownAudiences = data.audiences.filter((a) => !audienceLabels.includes(a));
         if (unknownAudiences.length > 0) {
           eventsRejected++;
-          throw new Error(`Public inconnu : ${unknownAudiences.join(", ")}. Publics possibles : ${audienceLabels.join(", ") || "aucun"}.`);
+          throw new Error(`Unknown audience: ${unknownAudiences.join(", ")}. Possible audiences: ${audienceLabels.join(", ") || "none"}.`);
         }
         let normalized;
         try {
@@ -276,10 +276,10 @@ export async function readEventsForSubject(userId: string, productId: string): P
           })
           .returning({ id: materialEvents.id });
         eventsSaved++;
-        return { saved: true, id: row.id, note: "Enregistré. Continue la lecture." };
+        return { saved: true, id: row.id, note: "Saved. Keep reading." };
       }
 
-      throw new Error(`Outil inconnu : ${name}`);
+      throw new Error(`Unknown tool: ${name}`);
     },
   });
 
@@ -300,7 +300,7 @@ export async function readEventsForSubject(userId: string, productId: string): P
     stoppedAtMaxTurns: result.stoppedAtMaxTurns,
     reply: result.reply,
   };
-  logger.info("Lecture des événements terminée", { userId, productId, ...report, reply: undefined });
+  logger.info("Event reading finished", { userId, productId, ...report, reply: undefined });
   return report;
 }
 
@@ -328,7 +328,7 @@ export function readEventsInBackground(userId: string, productId: string | null)
         await readEventsForSubject(userId, productId);
       } while (rerunRequested.has(key));
     } catch (err) {
-      logger.error("Lecture des événements échouée", err, { userId, productId });
+      logger.error("Event reading failed", err, { userId, productId });
     } finally {
       runningReads.delete(key);
     }
@@ -388,13 +388,13 @@ export async function qualifyEventsForSubject(userId: string, productId: string)
       qualified++;
     }
   }
-  logger.info("Événements qualifiés par public", { userId, productId, qualified, total: events.length });
+  logger.info("Events qualified by audience", { userId, productId, qualified, total: events.length });
   return qualified;
 }
 
 /** À appeler quand le portrait des lecteurs d'un sujet naît ou change : jamais bloquant. */
 export function scheduleEventQualification(userId: string, productId: string): void {
-  const run = () => qualifyEventsForSubject(userId, productId).catch((err) => logger.error("Qualification des événements échouée", err, { userId, productId }));
+  const run = () => qualifyEventsForSubject(userId, productId).catch((err) => logger.error("Event qualification failed", err, { userId, productId }));
   try {
     after(run);
   } catch {

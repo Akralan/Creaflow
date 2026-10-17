@@ -12,10 +12,10 @@ export default function ConnectionRow({ connection, returnTo }: { connection: Co
   const needsCreatorAccount = connection.platform === "instagram" && !connection.connected;
   const statusLabel =
     connection.status === "needs_reconnect"
-      ? "Connexion expirée"
+      ? "Connection expired"
       : connection.connected
-        ? "Connecté"
-        : "Non connecté";
+        ? "Connected"
+        : "Not connected";
   return (
     <div
       style={{
@@ -58,7 +58,7 @@ export default function ConnectionRow({ connection, returnTo }: { connection: Co
                     : color.textFaint,
             }}
           >
-            {oauth ? statusLabel : "Suivi manuel"}
+            {oauth ? statusLabel : "Manual tracking"}
           </div>
         </div>
         {oauth ? (
@@ -74,18 +74,18 @@ export default function ConnectionRow({ connection, returnTo }: { connection: Co
               background: color.cardBg,
             }}
           >
-            {connection.connected ? "Reconnecter" : "Connecter"}
+            {connection.connected ? "Reconnect" : "Connect"}
           </a>
         ) : (
           <span style={{ fontSize: 13, color: color.textFainter, padding: "9px 4px" }}>
-            Pas de connexion nécessaire
+            No connection needed
           </span>
         )}
       </div>
       {needsCreatorAccount && (
         <p style={{ margin: 0, fontSize: 12, color: color.textFaint, lineHeight: 1.5 }}>
-          Nécessite un compte Instagram <strong>Creator</strong> (gratuit, réversible, ~3 taps dans les réglages du
-          téléphone) — un compte personnel ne pourra pas se connecter.
+          Requires an Instagram <strong>Creator</strong> account (free, reversible, about 3 taps in your phone&apos;s
+          settings) — a personal account can&apos;t connect.
         </p>
       )}
     </div>

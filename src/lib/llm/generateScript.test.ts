@@ -19,16 +19,16 @@ const baseContext = {
     activityType: "Artisan bougies",
   },
   platform: "linkedin",
-  contentCategory: { id: "cat-1", label: "Vente", description: "Contenu orienté vente." },
+  contentCategory: { id: "cat-1", label: "Sales", description: "Sales-oriented content." },
 };
 
 const textContext: ScriptGenerationContext = { ...baseContext, contentType: "text" };
 
 const validTextInput = {
-  concept: "Idée unique du post, à qui elle s'adresse, ce qu'il doit en retenir.",
+  concept: "Single idea of the post, who it addresses, what they should remember.",
   title: "Titre",
   hookText: "Texte",
-  caption: "Légende",
+  caption: "Caption",
   hashtags: ["#test"],
 };
 
@@ -45,8 +45,8 @@ describe("generateScript", () => {
   });
 
   it("propage l'erreur si le provider ne renvoie pas de réponse structurée", async () => {
-    callStructuredMock.mockRejectedValue(new Error("Le modèle n'a pas renvoyé de réponse structurée."));
-    await expect(generateScript(textContext)).rejects.toThrow("n'a pas renvoyé de réponse structurée");
+    callStructuredMock.mockRejectedValue(new Error("The model did not return a structured response."));
+    await expect(generateScript(textContext)).rejects.toThrow("did not return a structured response");
   });
 
   it("lève une erreur si le contenu renvoyé ne respecte pas le schéma attendu", async () => {
@@ -56,11 +56,11 @@ describe("generateScript", () => {
 
   it("appelle le provider avec l'outil generate_visual_post pour un contentType visual", async () => {
     callStructuredMock.mockResolvedValue({
-      concept: "Idée unique du post.",
+      concept: "Single idea of the post.",
       title: "Titre",
       hookVisual: "Visuel",
       storyboard: [{ planNumber: 1, description: "Slide 1" }],
-      caption: "Légende",
+      caption: "Caption",
       hashtags: ["#test"],
     });
     await generateScript({ ...baseContext, contentType: "visual" });
@@ -71,7 +71,7 @@ describe("generateScript", () => {
 
   it("appelle le provider avec l'outil generate_text_post pour un contentType text", async () => {
     callStructuredMock.mockResolvedValue({
-      concept: "Idée unique du post.",
+      concept: "Single idea of the post.",
       title: "Titre",
       hookText: "Accroche",
       caption: "Texte complet",
@@ -80,7 +80,7 @@ describe("generateScript", () => {
     const result = await generateScript({ ...baseContext, contentType: "text" });
     expect(result).toEqual({
       contentType: "text",
-      concept: "Idée unique du post.",
+      concept: "Single idea of the post.",
       title: "Titre",
       hookText: "Accroche",
       caption: "Texte complet",
@@ -97,15 +97,15 @@ describe("generateScript", () => {
 describe("bloc STYLE (docs/SPEC_APPRENTISSAGE_STYLE.md §5.4)", () => {
   const styleProfile = {
     tone: "direct",
-    sentenceLength: "courtes",
-    emojiUsage: "aucun",
-    vocabulary: "simple",
-    summary: "Direct, sans emoji.",
+    sentenceLength: "short",
+    emojiUsage: "none",
+    vocabulary: "plain",
+    summary: "Direct, no emoji.",
     rules: [
-      { text: "Jamais d'emoji.", platform: null },
-      { text: "Pas de hashtag dans le corps.", platform: "x" },
+      { text: "Never any emoji.", platform: null },
+      { text: "No hashtag in the body.", platform: "x" },
     ],
-    avoid: ["découvrez"],
+    avoid: ["discover"],
     prefer: [],
     evidence: { scriptCount: 3, learnedAt: null },
   };
@@ -114,10 +114,10 @@ describe("bloc STYLE (docs/SPEC_APPRENTISSAGE_STYLE.md §5.4)", () => {
     callStructuredMock.mockResolvedValue(validTextInput);
     await generateScript({ ...textContext, styleProfile });
     const userMessage: string = callStructuredMock.mock.calls[0][0].userMessage;
-    expect(userMessage).toContain("<style>\nVoix : Direct, sans emoji.");
-    expect(userMessage).toContain("- Jamais d'emoji.");
-    expect(userMessage).not.toContain("Pas de hashtag dans le corps.");
-    expect(userMessage).toContain("À bannir : découvrez");
+    expect(userMessage).toContain("<style>\nVoice: Direct, no emoji.");
+    expect(userMessage).toContain("- Never any emoji.");
+    expect(userMessage).not.toContain("No hashtag in the body.");
+    expect(userMessage).toContain("Avoid: discover");
   });
 
   it("n'émet aucun bloc STYLE sans profil", async () => {
@@ -130,12 +130,12 @@ describe("bloc STYLE (docs/SPEC_APPRENTISSAGE_STYLE.md §5.4)", () => {
 
 describe("format du post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §5.1)", () => {
   const visualInput = (n: number) => ({
-    concept: "Idée",
+    concept: "Idea",
     title: "Titre",
     hookVisual: "Visuel",
     storyboard: Array.from({ length: n }, (_, i) => ({ planNumber: i + 1, description: `Slide ${i + 1}` })),
     // Assez long pour passer le contrôle de longueur LinkedIn (docs/SPEC_PROMPT_GENERATION_V3.md §5).
-    caption: "Légende détaillée. ".repeat(40),
+    caption: "Detailed caption. ".repeat(40),
     hashtags: ["#test"],
   });
   const visualContext: ScriptGenerationContext = {
@@ -148,7 +148,7 @@ describe("format du post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §5.1)"
     callStructuredMock.mockResolvedValue(visualInput(3));
     const result = await generateScript(visualContext);
     expect(callStructuredMock).toHaveBeenCalledTimes(1);
-    expect(callStructuredMock.mock.calls[0][0].userMessage).toContain("<format>\nCarrousel de 3 slides");
+    expect(callStructuredMock.mock.calls[0][0].userMessage).toContain("<format>\nCarousel of 3 slides");
     expect(result.contentType === "visual" && result.storyboard).toHaveLength(3);
   });
 
@@ -156,7 +156,7 @@ describe("format du post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §5.1)"
     callStructuredMock.mockResolvedValueOnce(visualInput(5)).mockResolvedValueOnce(visualInput(6));
     const result = await generateScript(visualContext);
     expect(callStructuredMock).toHaveBeenCalledTimes(2);
-    expect(callStructuredMock.mock.calls[1][0].userMessage).toContain("Rappel de format : le storyboard doit avoir exactement 3 entrée(s), tu en as renvoyé 5");
+    expect(callStructuredMock.mock.calls[1][0].userMessage).toContain("Format reminder: the storyboard must have exactly 3 entry(ies), you returned 5");
     expect(result.contentType === "visual" && result.storyboard).toHaveLength(3);
   });
 
@@ -188,25 +188,25 @@ describe("préparation, contrôles et seconde tentative (docs/SPEC_PROMPT_GENERA
     expect(result).not.toHaveProperty("reader");
   });
 
-  it("un contrôle raté déclenche une seconde tentative avec le bloc <refus>, et la meilleure est gardée", async () => {
-    callStructuredMock.mockResolvedValueOnce({ ...clean, caption: `${clean.caption} Découvrez la suite.` }).mockResolvedValueOnce(clean);
+  it("un contrôle raté déclenche une seconde tentative avec le bloc <refusal>, et la meilleure est gardée", async () => {
+    callStructuredMock.mockResolvedValueOnce({ ...clean, caption: `${clean.caption} Discover how it works.` }).mockResolvedValueOnce(clean);
     const result = await generateScript(textContext);
     expect(callStructuredMock).toHaveBeenCalledTimes(2);
-    expect(callStructuredMock.mock.calls[1][0].userMessage).toContain("<refus>\nTa version précédente a été refusée :\n- Tournure interdite : « découvrez »");
-    expect(result.caption).not.toContain("Découvrez");
+    expect(callStructuredMock.mock.calls[1][0].userMessage).toContain("<refusal>\nYour previous version was rejected:\n- Banned phrasing: \"discover how/why/what\"");
+    expect(result.caption).not.toContain("Discover");
     expect(result.trace?.checks).toEqual({ failures: [], retried: true });
   });
 
   it("garde la première si la seconde est pire, et n'échoue jamais pour un contrôle", async () => {
-    const first = { ...clean, caption: `${clean.caption} Découvrez.` };
-    callStructuredMock.mockResolvedValueOnce(first).mockResolvedValueOnce({ ...first, caption: "Découvrez, n'hésitez pas." });
+    const first = { ...clean, caption: `${clean.caption} Discover how.` };
+    callStructuredMock.mockResolvedValueOnce(first).mockResolvedValueOnce({ ...first, caption: "Discover how, don't hesitate to." });
     const result = await generateScript(textContext);
     expect(result.caption).toBe(first.caption);
     expect(result.trace?.checks.failures).toHaveLength(1);
   });
 
   it("garde la première si la seconde tentative est illisible", async () => {
-    const first = { ...clean, caption: `${clean.caption} Découvrez.` };
+    const first = { ...clean, caption: `${clean.caption} Discover how.` };
     callStructuredMock.mockResolvedValueOnce(first).mockResolvedValueOnce({ title: "Incomplet" });
     const result = await generateScript(textContext);
     expect(result.caption).toBe(first.caption);
@@ -232,7 +232,7 @@ describe("première réponse illisible (revue du 2026-10-17)", () => {
     callStructuredMock.mockResolvedValueOnce({ title: "Incomplet" }).mockResolvedValueOnce(ok);
     const result = await generateScript(textContext);
     expect(callStructuredMock).toHaveBeenCalledTimes(2);
-    expect(callStructuredMock.mock.calls[1][0].userMessage).toContain("Ta réponse ne respectait pas le format de l'outil");
+    expect(callStructuredMock.mock.calls[1][0].userMessage).toContain("Your response did not respect the tool's format");
     expect(result.caption).toBe(ok.caption);
   });
 

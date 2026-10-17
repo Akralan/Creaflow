@@ -10,12 +10,12 @@ const ANGLE_HISTORY_LIMIT = 30;
 export function listActiveAnglesForUser(userId: string) {
   return db.query.contentAngles.findMany({
     where: and(eq(contentAngles.userId, userId), eq(contentAngles.archived, false)),
-    orderBy: (a, { asc }) => [asc(a.createdAt)], // ordre stable pour les égalités dans selectLeastRecentlyUsedAngle
+    orderBy: (a, { asc }) => [asc(a.createdAt)], // stable order for ties in selectLeastRecentlyUsedAngle
   });
 }
 
-/** Insère ou met à jour UN angle. Pas de logique d'archivage des autres angles (contrairement aux
- *  catégories, il n'y a pas d'invariant de somme à préserver entre angles actifs). */
+/** Inserts or updates ONE angle. No logic archiving the other angles (unlike
+ *  categories, there is no sum invariant to preserve between active angles). */
 export async function upsertAngleItem(userId: string, item: { id?: string; label: string; description: string }) {
   if (item.id) {
     const [updated] = await db
@@ -32,9 +32,9 @@ export async function upsertAngleItem(userId: string, item: { id?: string; label
   return inserted;
 }
 
-/** Même pattern que generateCategoriesForUser : archive l'ancien jeu actif, insère le nouveau. */
-/** Archivage d'UN angle (docs/SPEC_ASSISTANT_AGENTIQUE.md §4.1) — jamais de suppression, les scripts
- *  déjà générés référencent l'angle qui les a produits. */
+/** Same pattern as generateCategoriesForUser: archives the old active set, inserts the new one. */
+/** Archiving ONE angle (docs/SPEC_ASSISTANT_AGENTIQUE.md §4.1) — never deleted, scripts
+ *  already generated reference the angle that produced them. */
 export async function archiveAngleForUser(userId: string, angleId: string) {
   const [archived] = await db
     .update(contentAngles)
@@ -42,7 +42,7 @@ export async function archiveAngleForUser(userId: string, angleId: string) {
     .where(and(eq(contentAngles.id, angleId), eq(contentAngles.userId, userId)))
     .returning();
   if (!archived) {
-    throw new ApiError(404, "Angle introuvable.");
+    throw new ApiError(404, "Angle not found.");
   }
   return archived;
 }
@@ -50,7 +50,7 @@ export async function archiveAngleForUser(userId: string, angleId: string) {
 export async function generateAnglesForUser(userId: string) {
   const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
   if (!profile) {
-    throw new ApiError(400, "Configure d'abord ton profil créateur avant de générer les angles.");
+    throw new ApiError(400, "Set up your creator profile first before generating angles.");
   }
 
   const productList = await db.query.products.findMany({ where: eq(products.userId, userId) });
@@ -75,16 +75,16 @@ export async function generateAnglesForUser(userId: string) {
   });
 }
 
-/** Cœur de la mécanique anti-répétition : choisit l'angle à imposer pour ce script —
- *  celui le moins récemment utilisé par l'utilisateur dans la même catégorie de contenu.
- *  excludeScriptId : même rôle que dans buildGenerationContext (régénération — ne pas compter le script qu'on remplace). */
+/** Core of the anti-repetition mechanism: picks the angle to impose for this script —
+ *  the one least recently used by the user in the same content category.
+ *  excludeScriptId: same role as in buildGenerationContext (regeneration — do not count the script being replaced). */
 export async function pickAngleForScript(
   userId: string,
   contentCategoryId: string,
   excludeScriptId?: string | null
 ) {
   const activeAngles = await listActiveAnglesForUser(userId);
-  if (activeAngles.length === 0) return null; // dégradation gracieuse (avant génération d'angles / utilisateur legacy)
+  if (activeAngles.length === 0) return null; // graceful degradation (before angles are generated / legacy user)
 
   const recent = await db.query.scripts.findMany({
     where: and(

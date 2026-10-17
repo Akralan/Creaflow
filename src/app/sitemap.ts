@@ -1,8 +1,8 @@
 import type { MetadataRoute } from "next";
 import { getSiteUrl, PUBLIC_ROUTES } from "@/lib/seo";
 
-// Servi sur /sitemap.xml. Seules les pages publiques y figurent ; la landing en premier, les pages
-// légales derrière. `lastModified` est la date du build : ces pages ne changent qu'avec un déploiement.
+// Served at /sitemap.xml. Only public pages appear; the landing first, the legal pages
+// after. `lastModified` is the build date: these pages only change with a deployment.
 export default function sitemap(): MetadataRoute.Sitemap {
   const site = getSiteUrl();
   const now = new Date();

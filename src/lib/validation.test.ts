@@ -2,15 +2,15 @@ import { describe, expect, it } from "vitest";
 import { contentCategorySchema, platformSchema } from "./validation";
 
 describe("platformSchema", () => {
-  it("accepte les plateformes valides, avec ou sans provider OAuth", () => {
+  it("accepts valid platforms, with or without an OAuth provider", () => {
     for (const platform of ["instagram", "linkedin", "x", "newsletter", "blog", "other"]) {
       expect(() => platformSchema.parse(platform)).not.toThrow();
     }
   });
 
-  it("rejette une plateforme inconnue", () => {
+  it("rejects an unknown platform", () => {
     expect(() => platformSchema.parse("facebook")).toThrow();
-    // Retirées avec la vidéo (docs/SPEC_ONBOARDING_MVP.md §6).
+    // Removed along with video (docs/SPEC_ONBOARDING_MVP.md §6).
     expect(() => platformSchema.parse("tiktok")).toThrow();
     expect(() => platformSchema.parse("youtube")).toThrow();
   });
@@ -21,7 +21,7 @@ describe("contentCategorySchema", () => {
     expect(() => contentCategorySchema.parse("3fa85f64-5717-4562-b3fc-2c963f66afa6")).not.toThrow();
   });
 
-  it("rejette une valeur qui n'est pas un uuid", () => {
+  it("rejects a value that is not a uuid", () => {
     expect(() => contentCategorySchema.parse("vente")).toThrow();
   });
 });

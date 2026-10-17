@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { NO_INDEX } from "@/lib/seo";
 
-// Page atteinte uniquement par un lien reçu par email : jamais dans un moteur de recherche.
-export const metadata: Metadata = { title: "Réinitialiser le mot de passe", robots: NO_INDEX };
+// Page reached only through a link received by email: never in a search engine.
+export const metadata: Metadata = { title: "Reset password", robots: NO_INDEX };
 
 export default function ResetPasswordLayout({ children }: { children: React.ReactNode }) {
   return children;

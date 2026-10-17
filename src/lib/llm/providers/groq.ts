@@ -7,7 +7,7 @@ function getClient(): Groq {
   if (!client) {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
-      throw new Error("GROQ_API_KEY n'est pas défini dans l'environnement.");
+      throw new Error("GROQ_API_KEY is not set in the environment.");
     }
     client = new Groq({ apiKey });
   }
@@ -39,7 +39,7 @@ export async function callGroq({ system, userMessage, tool, maxTokens }: Structu
 
   const call = response.choices[0]?.message?.tool_calls?.[0];
   if (!call || call.type !== "function") {
-    throw new Error("Le modèle n'a pas renvoyé de réponse structurée.");
+    throw new Error("The model did not return a structured response.");
   }
 
   return JSON.parse(call.function.arguments);

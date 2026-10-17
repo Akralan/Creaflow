@@ -1,8 +1,8 @@
 import type { EmailMessage, EmailSender, EmailSenderIdentity } from "./types";
 
-// API transactionnelle Brevo, vérifiée le 2026-10-16 (developers.brevo.com/reference/sendtransacemail) :
-// POST /v3/smtp/email, en-tête `api-key`, corps { sender, to, subject, htmlContent, textContent },
-// réponse 201 { messageId }. Appel fetch direct, pas de SDK — même choix que Linear et Notion.
+// Brevo transactional API, verified on 2026-10-16 (developers.brevo.com/reference/sendtransacemail) :
+// POST /v3/smtp/email, `api-key` header, body { sender, to, subject, htmlContent, textContent },
+// response 201 { messageId }. Direct fetch call, no SDK — same choice as Linear and Notion.
 const BREVO_SEND_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
 
 export function createBrevoSender(apiKey: string, sender: EmailSenderIdentity): EmailSender {
@@ -24,10 +24,10 @@ export function createBrevoSender(apiKey: string, sender: EmailSenderIdentity): 
         }),
       });
       if (!response.ok) {
-        // Le corps d'erreur Brevo est { code, message } — on le garde dans le message d'exception,
-        // jamais l'adresse du destinataire ni le contenu : l'exception remonte dans les logs.
+        // The Brevo error body is { code, message } — we keep it in the exception message, but
+        // never the recipient address or the content: the exception ends up in the logs.
         const detail = await response.text().catch(() => "");
-        throw new Error(`Brevo a refusé l'envoi (HTTP ${response.status})${detail ? ` : ${detail.slice(0, 300)}` : ""}`);
+        throw new Error(`Brevo rejected the send (HTTP ${response.status})${detail ? ` : ${detail.slice(0, 300)}` : ""}`);
       }
     },
   };

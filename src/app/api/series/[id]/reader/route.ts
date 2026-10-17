@@ -7,7 +7,7 @@ import { handleApiError } from "@/lib/api/errors";
 
 const schema = z.object({ readerLabel: z.string().trim().min(1).max(60) });
 
-/** Les publics possibles de la série (le portrait de son sujet). */
+/** The possible audiences of the series (its topic's portrait). */
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userId = await requireUserId();
@@ -18,7 +18,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   }
 }
 
-/** Choix du lecteur de la série (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4) : écrit aussi la forme, un appel LLM. */
+/** Choice of the series reader (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4): also writes the form, one LLM call. */
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userId = await requireUserId();

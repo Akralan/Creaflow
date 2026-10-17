@@ -2,10 +2,10 @@ import { toBlob } from "html-to-image";
 import { zipSync } from "fflate";
 
 /**
- * Export PNG dans le navigateur (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2 « Export ») : chaque slide
- * est rendue à taille native dans un conteneur hors écran, puis convertie par html-to-image (DOM →
- * SVG foreignObject → canvas). Les images de base sont same-origin et les polices viennent des
- * @font-face de next/font, donc embarquables.
+ * PNG export in the browser (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2 "Export"): each slide
+ * is rendered at native size in an off-screen container, then converted by html-to-image (DOM →
+ * SVG foreignObject → canvas). Base images are same-origin and fonts come from the
+ * @font-face of next/font, so they can be embedded.
  */
 export async function renderSlideToPng(renderableHtml: string, width: number, height: number): Promise<Blob> {
   const host = document.createElement("div");
@@ -14,7 +14,7 @@ export async function renderSlideToPng(renderableHtml: string, width: number, he
   document.body.appendChild(host);
   try {
     const root = host.firstElementChild as HTMLElement | null;
-    if (!root) throw new Error("Slide vide.");
+    if (!root) throw new Error("Empty slide.");
     await Promise.all(
       Array.from(host.querySelectorAll("img")).map((img) =>
         img.complete ? Promise.resolve() : new Promise<void>((resolve) => {
@@ -25,7 +25,7 @@ export async function renderSlideToPng(renderableHtml: string, width: number, he
     );
     if (typeof document.fonts?.ready?.then === "function") await document.fonts.ready;
     const blob = await toBlob(root, { width, height, pixelRatio: 1, cacheBust: false, type: "image/png" });
-    if (!blob) throw new Error("Rendu impossible.");
+    if (!blob) throw new Error("Couldn't render.");
     return blob;
   } finally {
     host.remove();

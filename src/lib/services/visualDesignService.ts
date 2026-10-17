@@ -96,8 +96,8 @@ export async function getDesignForScript(userId: string, scriptId: string): Prom
 
 async function loadOwnedScript(userId: string, scriptId: string) {
   const script = await db.query.scripts.findFirst({ where: and(eq(scripts.id, scriptId), eq(scripts.userId, userId)) });
-  if (!script) throw new ApiError(404, "Script introuvable.");
-  if (script.contentType !== "visual") throw new ApiError(400, "Seul un post visuel a une maquette.");
+  if (!script) throw new ApiError(404, "Script not found.");
+  if (script.contentType !== "visual") throw new ApiError(400, "Only a visual post has a mockup.");
   return script;
 }
 
@@ -123,10 +123,10 @@ async function buildImageContexts(images: DesignImage[], assets: Map<string, Bra
       const asset = assets.get(img.assetId);
       // Photo retirée de la bibliothèque : la référence reste déclarée (le HTML courant peut la
       // citer, la liste blanche ne doit pas le refuser), mais l'agent est prévenu.
-      if (!asset) return { ref: img.ref, description: "(photo retirée de la bibliothèque — ne plus l'utiliser, retire ses calques)", orientation: null, productName: null, cutoutAvailable: false };
+      if (!asset) return { ref: img.ref, description: "(photo removed from the library — stop using it, remove its layers)", orientation: null, productName: null, cutoutAvailable: false };
       return {
         ref: img.ref,
-        description: asset.aiDescription ?? "Photo de marque (pas de description disponible).",
+        description: asset.aiDescription ?? "Brand photo (no description available).",
         orientation: asset.orientation ?? null,
         productName: asset.productId ? (productNames.get(asset.productId) ?? null) : null,
         cutoutAvailable: cutoutAvailable || Boolean(asset.cutoutKey),
@@ -142,7 +142,7 @@ async function loadPromptContext(
   animationDurationMs: number | null = null
 ): Promise<{ prompt: DesignPromptContext; brandKit: BrandKit | null; profile: typeof creatorProfiles.$inferSelect }> {
   const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
-  if (!profile) throw new ApiError(400, "Profil créateur introuvable.");
+  if (!profile) throw new ApiError(400, "Creator profile not found.");
   const user = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { vertical: true } });
   const brandKit = parseStoredBrandKit(profile.brandKit);
   const hasLogo = Boolean(brandKit?.logoAssetId);
@@ -183,7 +183,7 @@ async function applyVariants(images: DesignImage[], assets: Map<string, BrandAss
       assets.set(ready.id, ready);
       out.push(img);
     } catch (err) {
-      logger.warn("Détourage impossible, photo gardée entière", { assetId: asset.id, err: String(err) });
+      logger.warn("Cutout failed, photo kept whole", { assetId: asset.id, err: String(err) });
       out.push({ ...img, variant: "original" });
     }
   }
@@ -235,21 +235,21 @@ export async function createDesignForScript(userId: string, scriptId: string, pa
 
   // Photos : possédées, prêtes, dédoublonnées, 6 au plus, références attribuées dans l'ordre reçu.
   const uniqueIds = [...new Set(params.assetIds)];
-  if (uniqueIds.length > MAX_DESIGN_IMAGES) throw new ApiError(400, `${MAX_DESIGN_IMAGES} photos maximum par maquette.`);
+  if (uniqueIds.length > MAX_DESIGN_IMAGES) throw new ApiError(400, `${MAX_DESIGN_IMAGES} photos maximum per mockup.`);
   const readyAssets =
     uniqueIds.length > 0
       ? await db.query.brandAssets.findMany({
           where: and(inArray(brandAssets.id, uniqueIds), eq(brandAssets.userId, userId), eq(brandAssets.status, "ready")),
         })
       : [];
-  if (readyAssets.length !== uniqueIds.length) throw new ApiError(404, "Une des photos est introuvable ou pas encore prête.");
+  if (readyAssets.length !== uniqueIds.length) throw new ApiError(404, "One of the photos is not found or not ready yet.");
   const assets = new Map(readyAssets.map((a) => [a.id, a]));
   let images: DesignImage[] = uniqueIds.map((assetId, i) => ({ ref: `p${i + 1}`, assetId, variant: "original" as const }));
   const imageContexts = await buildImageContexts(images, assets);
   const { prompt, profile } = await loadPromptContext(userId, format.width, format.height, imageContexts, animationDurationMs);
 
   const storyboard = ((script.storyboard as { planNumber: number; description: string }[] | null) ?? []).slice(0, MAX_DESIGN_SLIDES);
-  if (storyboard.length === 0) throw new ApiError(400, "Le storyboard est vide : rien à mettre en page.");
+  if (storyboard.length === 0) throw new ApiError(400, "The storyboard is empty: nothing to lay out.");
 
   const result = await composeDesign({
     prompt,
@@ -348,13 +348,13 @@ export async function autoComposeDesign(userId: string, scriptId: string): Promi
     const suggested = await suggestDesignAssets(userId, script);
     await createDesignForScript(userId, scriptId, { assetIds: suggested.map((a) => a.id) });
   } catch (err) {
-    logger.warn("Composition automatique de la maquette échouée", { scriptId, err: String(err) });
+    logger.warn("Automatic mockup composition failed", { scriptId, err: String(err) });
   }
 }
 
 export async function instructDesign(userId: string, scriptId: string, params: { instruction: string; planNumber?: number | null }) {
   const design = await getDesignForScript(userId, scriptId);
-  if (!design) throw new ApiError(404, "Pas de maquette pour ce script.");
+  if (!design) throw new ApiError(404, "No mockup for this script.");
   const images = imagesOf(design);
   const assets = await loadDesignAssets(userId, images);
   const imageContexts = await buildImageContexts(images, assets);
@@ -362,7 +362,7 @@ export async function instructDesign(userId: string, scriptId: string, params: {
   const current = slidesOf(design);
   const planNumber = params.planNumber ?? null;
   if (planNumber !== null && !current.some((s) => s.planNumber === planNumber)) {
-    throw new ApiError(404, "Slide introuvable.");
+    throw new ApiError(404, "Slide not found.");
   }
   const result = await reviseDesign({
     prompt,
@@ -427,7 +427,7 @@ export interface PatchDesignParams {
 /** Retouche manuelle : le client envoie le HTML des slides touchées, le serveur le repasse par la liste blanche. */
 export async function patchDesign(userId: string, scriptId: string, params: PatchDesignParams) {
   const design = await getDesignForScript(userId, scriptId);
-  if (!design) throw new ApiError(404, "Pas de maquette pour ce script.");
+  if (!design) throw new ApiError(404, "No mockup for this script.");
   const { brandKit } = await loadPromptContext(userId, design.width, design.height, []);
   const hasLogo = Boolean(brandKit?.logoAssetId);
 
@@ -435,9 +435,9 @@ export async function patchDesign(userId: string, scriptId: string, params: Patc
   let images = imagesOf(design);
   if (params.images !== undefined) {
     const parsed = designImagesSchema.safeParse(params.images);
-    if (!parsed.success) throw new ApiError(422, `Photos refusées : ${parsed.error.issues.map((i) => i.message).join(" · ")}`);
+    if (!parsed.success) throw new ApiError(422, `Photos rejected: ${parsed.error.issues.map((i) => i.message).join(" · ")}`);
     const assets = await loadDesignAssets(userId, parsed.data);
-    if (parsed.data.some((i) => !assets.has(i.assetId))) throw new ApiError(404, "Une des photos est introuvable.");
+    if (parsed.data.some((i) => !assets.has(i.assetId))) throw new ApiError(404, "One of the photos is not found.");
     images = await applyVariants(parsed.data, assets);
   }
   const imageRefs = images.map((i) => i.ref);
@@ -456,7 +456,7 @@ export async function patchDesign(userId: string, scriptId: string, params: Patc
         else throw err;
       }
     }
-    if (issues.length > 0) throw new ApiError(422, `Maquette refusée : ${issues.join(" · ")}`);
+    if (issues.length > 0) throw new ApiError(422, `Mockup rejected: ${issues.join(" · ")}`);
     // Le client envoie la liste complète des slides (ajouts et suppressions compris).
     slides = [...incoming.entries()]
       .sort((a, b) => a[0] - b[0])
@@ -464,14 +464,14 @@ export async function patchDesign(userId: string, scriptId: string, params: Patc
         const previous = current.find((s) => s.planNumber === planNumber);
         return { planNumber, html, exportKey: previous && previous.html === html ? previous.exportKey : null };
       });
-    if (slides.length === 0) throw new ApiError(400, "Une maquette garde au moins une slide.");
+    if (slides.length === 0) throw new ApiError(400, "A mockup keeps at least one slide.");
   } else if (params.images !== undefined) {
     // Une photo retirée de la liste ne doit plus être citée par le HTML courant.
     for (const slide of current) {
       try {
         sanitizeSlideHtml(slide.html, { width: design.width, height: design.height, hasLogo, imageRefs });
       } catch (err) {
-        if (err instanceof DesignValidationError) throw new ApiError(422, `Photos refusées : slide ${slide.planNumber} : ${err.issues.join(" · ")}`);
+        if (err instanceof DesignValidationError) throw new ApiError(422, `Photos rejected: slide ${slide.planNumber}: ${err.issues.join(" · ")}`);
         throw err;
       }
     }
@@ -487,7 +487,7 @@ export async function patchDesign(userId: string, scriptId: string, params: Patc
     try {
       timeline = normalizeTimeline(raw ?? [], layerIds, durationMs!);
     } catch (err) {
-      if (err instanceof TimelineValidationError) throw new ApiError(422, `Ligne de temps refusée : ${err.issues.join(" · ")}`);
+      if (err instanceof TimelineValidationError) throw new ApiError(422, `Timeline rejected: ${err.issues.join(" · ")}`);
       throw err;
     }
   }
@@ -511,15 +511,15 @@ export async function patchDesign(userId: string, scriptId: string, params: Patc
 /** Ajoute une photo à la maquette sans recomposer (§6 « Ajouter une photo ») ; renvoie sa référence. */
 export async function addDesignImage(userId: string, scriptId: string, assetId: string) {
   const design = await getDesignForScript(userId, scriptId);
-  if (!design) throw new ApiError(404, "Pas de maquette pour ce script.");
+  if (!design) throw new ApiError(404, "No mockup for this script.");
   const images = imagesOf(design);
-  if (images.some((i) => i.assetId === assetId)) throw new ApiError(409, "Cette photo est déjà dans la maquette.");
+  if (images.some((i) => i.assetId === assetId)) throw new ApiError(409, "This photo is already in the mockup.");
   const ref = nextImageRef(images);
-  if (!ref) throw new ApiError(400, `${MAX_DESIGN_IMAGES} photos maximum par maquette.`);
+  if (!ref) throw new ApiError(400, `${MAX_DESIGN_IMAGES} photos maximum per mockup.`);
   const asset = await db.query.brandAssets.findFirst({
     where: and(eq(brandAssets.id, assetId), eq(brandAssets.userId, userId), eq(brandAssets.status, "ready")),
   });
-  if (!asset) throw new ApiError(404, "Photo introuvable ou pas encore prête.");
+  if (!asset) throw new ApiError(404, "Photo not found or not ready yet.");
   const next: DesignImage[] = [...images, { ref, assetId, variant: "original" }];
   const [row] = await db
     .update(visualDesigns)
@@ -531,7 +531,7 @@ export async function addDesignImage(userId: string, scriptId: string, assetId: 
 
 export async function deleteDesign(userId: string, scriptId: string) {
   const design = await getDesignForScript(userId, scriptId);
-  if (!design) throw new ApiError(404, "Pas de maquette pour ce script.");
+  if (!design) throw new ApiError(404, "No mockup for this script.");
   await deleteExports(design);
   await db.delete(visualDesigns).where(eq(visualDesigns.id, design.id));
 }
@@ -540,7 +540,7 @@ async function deleteExports(design: DesignRow) {
   const storage = getObjectStorage();
   for (const slide of slidesOf(design)) {
     if (!slide.exportKey) continue;
-    await storage.delete(slide.exportKey).catch((err) => logger.warn("Export de maquette non supprimé", { key: slide.exportKey, err: String(err) }));
+    await storage.delete(slide.exportKey).catch((err) => logger.warn("Mockup export not deleted", { key: slide.exportKey, err: String(err) }));
   }
 }
 
@@ -550,7 +550,7 @@ export async function markDesignStale(scriptId: string): Promise<void> {
     .update(visualDesigns)
     .set({ status: "stale", updatedAt: new Date() })
     .where(and(eq(visualDesigns.scriptId, scriptId), eq(visualDesigns.status, "draft")))
-    .catch((err) => logger.warn("Marquage stale de la maquette échoué", { scriptId, err: String(err) }));
+    .catch((err) => logger.warn("Marking the mockup stale failed", { scriptId, err: String(err) }));
   await db
     .update(visualDesigns)
     .set({ status: "stale", updatedAt: new Date() })
@@ -567,14 +567,14 @@ export interface ExportFile {
 /** Réception des PNG rendus par le navigateur (§2 « Export »). */
 export async function storeDesignExports(userId: string, scriptId: string, files: ExportFile[]) {
   const design = await getDesignForScript(userId, scriptId);
-  if (!design) throw new ApiError(404, "Pas de maquette pour ce script.");
+  if (!design) throw new ApiError(404, "No mockup for this script.");
   const storage = getObjectStorage();
   const slides = slidesOf(design);
   for (const file of files) {
     const slide = slides.find((s) => s.planNumber === file.planNumber);
-    if (!slide) throw new ApiError(400, `Slide ${file.planNumber} inconnue.`);
+    if (!slide) throw new ApiError(400, `Unknown slide ${file.planNumber}.`);
     const limit = file.mimeType.startsWith("video/") ? MAX_VIDEO_EXPORT_BYTES : MAX_EXPORT_BYTES;
-    if (file.bytes.length > limit) throw new ApiError(413, `Slide ${file.planNumber} : fichier trop lourd.`);
+    if (file.bytes.length > limit) throw new ApiError(413, `Slide ${file.planNumber}: file too large.`);
     if (slide.exportKey) await storage.delete(slide.exportKey).catch(() => {});
     const key = `designs/${userId}/${design.id}/${file.planNumber}-${crypto.randomUUID().slice(0, 8)}.${extFromMime(file.mimeType)}`;
     await storage.upload(key, file.bytes, file.mimeType);
@@ -595,11 +595,11 @@ export async function storeDesignExports(userId: string, scriptId: string, files
  */
 export async function getDesignImage(userId: string, scriptId: string, ref: string, variant?: DesignImageVariant): Promise<{ bytes: Buffer; mimeType: string }> {
   const design = await getDesignForScript(userId, scriptId);
-  if (!design) throw new ApiError(404, "Pas de maquette pour ce script.");
+  if (!design) throw new ApiError(404, "No mockup for this script.");
   const image = imagesOf(design).find((i) => i.ref === ref);
-  if (!image) throw new ApiError(404, "Photo inconnue sur cette maquette.");
+  if (!image) throw new ApiError(404, "Unknown photo on this mockup.");
   const asset = await db.query.brandAssets.findFirst({ where: and(eq(brandAssets.id, image.assetId), eq(brandAssets.userId, userId)) });
-  if (!asset) throw new ApiError(404, "Photo introuvable.");
+  if (!asset) throw new ApiError(404, "Photo not found.");
   // Le détourage n'est jamais déclenché par cette lecture (route GET sans limite de débit) : il
   // est calculé par PATCH / POST cutout. Sans détouré en cache, on sert l'original.
   if ((variant ?? image.variant) === "cutout" && asset.cutoutKey) return fetchCutoutBytes(asset);
@@ -609,9 +609,9 @@ export async function getDesignImage(userId: string, scriptId: string, ref: stri
 export async function getBrandLogo(userId: string): Promise<{ bytes: Buffer; mimeType: string }> {
   const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
   const kit = parseStoredBrandKit(profile?.brandKit);
-  if (!kit?.logoAssetId) throw new ApiError(404, "Aucun logo défini.");
+  if (!kit?.logoAssetId) throw new ApiError(404, "No logo defined.");
   const asset = await db.query.brandAssets.findFirst({ where: and(eq(brandAssets.id, kit.logoAssetId), eq(brandAssets.userId, userId)) });
-  if (!asset) throw new ApiError(404, "Logo introuvable.");
+  if (!asset) throw new ApiError(404, "Logo not found.");
   return fetchAssetBytes(asset);
 }
 
@@ -619,9 +619,9 @@ export async function saveBrandKit(userId: string, raw: unknown): Promise<BrandK
   const kit = brandKitSchema.parse(raw);
   if (kit.logoAssetId) {
     const asset = await db.query.brandAssets.findFirst({ where: and(eq(brandAssets.id, kit.logoAssetId), eq(brandAssets.userId, userId)) });
-    if (!asset) throw new ApiError(404, "Logo introuvable dans la bibliothèque.");
+    if (!asset) throw new ApiError(404, "Logo not found in the library.");
   }
   const [profile] = await db.update(creatorProfiles).set({ brandKit: kit }).where(eq(creatorProfiles.userId, userId)).returning({ id: creatorProfiles.id });
-  if (!profile) throw new ApiError(400, "Profil créateur introuvable.");
+  if (!profile) throw new ApiError(400, "Creator profile not found.");
   return kit;
 }

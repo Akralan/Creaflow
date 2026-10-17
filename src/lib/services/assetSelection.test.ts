@@ -2,38 +2,38 @@ import { describe, expect, it } from "vitest";
 import { buildAssetSearchQuery } from "./assetSelection";
 
 describe("buildAssetSearchQuery", () => {
-  it("inclut toujours la catégorie", () => {
-    expect(buildAssetSearchQuery({ categoryLabel: "Coulisses", categoryDescription: "Le quotidien de l'atelier" })).toBe(
-      "Catégorie de contenu : Coulisses — Le quotidien de l'atelier."
+  it("always includes the category", () => {
+    expect(buildAssetSearchQuery({ categoryLabel: "Behind the scenes", categoryDescription: "Daily life in the workshop" })).toBe(
+      "Content category: Behind the scenes — Daily life in the workshop."
     );
   });
 
-  it("ajoute le produit quand fourni", () => {
+  it("adds the topic when provided", () => {
     const query = buildAssetSearchQuery({
-      categoryLabel: "Promotionnel",
-      categoryDescription: "Mise en avant d'un produit.",
-      productName: "Bougie Ambre",
+      categoryLabel: "Promotional",
+      categoryDescription: "Showcasing a product.",
+      productName: "Amber Candle",
     });
-    expect(query).toContain("Produit : Bougie Ambre.");
+    expect(query).toContain("Topic: Amber Candle.");
   });
 
-  it("ajoute la série quand fournie", () => {
+  it("adds the series when provided", () => {
     const query = buildAssetSearchQuery({
-      categoryLabel: "Éducatif",
-      categoryDescription: "Explique un savoir-faire.",
-      seriesLabel: "Le mythe du mercredi",
+      categoryLabel: "Educational",
+      categoryDescription: "Explains a craft skill.",
+      seriesLabel: "Wednesday myth",
     });
-    expect(query).toContain("Série : Le mythe du mercredi.");
+    expect(query).toContain("Series: Wednesday myth.");
   });
 
-  it("ignore produit/série absents (null ou undefined)", () => {
+  it("ignores absent topic/series (null or undefined)", () => {
     const query = buildAssetSearchQuery({
-      categoryLabel: "Coulisses",
-      categoryDescription: "Le quotidien de l'atelier.",
+      categoryLabel: "Behind the scenes",
+      categoryDescription: "Daily life in the workshop.",
       productName: null,
       seriesLabel: undefined,
     });
-    expect(query).not.toContain("Produit");
-    expect(query).not.toContain("Série");
+    expect(query).not.toContain("Topic");
+    expect(query).not.toContain("Series");
   });
 });

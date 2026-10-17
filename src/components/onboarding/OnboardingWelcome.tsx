@@ -88,7 +88,7 @@ export default function OnboardingWelcome({
     e.preventDefault();
     setError(null);
     if (!legalAccepted) {
-      setError("Merci d'accepter les conditions générales et la politique de confidentialité.");
+      setError("Please accept the terms and the privacy policy.");
       return;
     }
     setLoading(true);
@@ -96,7 +96,7 @@ export default function OnboardingWelcome({
       await api.signup(email, password);
       onNotesChosen();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Une erreur est survenue.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong.");
     } finally {
       setLoading(false);
     }
@@ -104,20 +104,20 @@ export default function OnboardingWelcome({
 
   return (
     <div>
-      <StepHeading title="On commence par toi">
-        Branche ce sur quoi tu travailles déjà. CreaFlow le lit et en tire tes posts.
+      <StepHeading title="Let's start with you">
+        Connect what you&apos;re already working on. Buildloud reads it and turns it into your posts.
       </StepHeading>
 
       <TextField
-        label="Comment tu t'appelles ?"
+        label="What's your name?"
         value={name}
         onChange={(e) => onNameChange(e.target.value)}
-        placeholder="Alix Martin"
+        placeholder="Alex Morgan"
         autoComplete="name"
       />
 
       <div style={{ fontSize: 13, fontWeight: 600, color: color.textSecondary, margin: "24px 0 10px" }}>
-        Où est ton travail ?
+        Where is your work?
       </div>
       <div style={{ display: "grid", gap: 10 }}>
         {providers.map((provider) => {
@@ -127,7 +127,7 @@ export default function OnboardingWelcome({
               <button key={provider.id} type="button" onClick={onProceed} style={doorStyle(true)}>
                 {PROVIDER_ICONS[provider.id] ?? null}
                 <span style={{ flex: 1 }}>{provider.displayName}</span>
-                <span style={{ fontSize: 12, color: accent }}>Branché ✓</span>
+                <span style={{ fontSize: 12, color: accent }}>Connected ✓</span>
               </button>
             );
           }
@@ -140,14 +140,14 @@ export default function OnboardingWelcome({
         })}
         <button type="button" onClick={chooseNotes} style={doorStyle(emailOpen)}>
           {NOTES_ICON}
-          <span style={{ flex: 1 }}>Coller mes notes</span>
+          <span style={{ flex: 1 }}>Paste my notes</span>
         </button>
       </div>
 
       {emailOpen && !signedIn && (
         <form onSubmit={signup} style={{ display: "grid", gap: 14, marginTop: 20 }}>
           <p style={{ margin: 0, fontSize: 14, color: color.textMuted }}>
-            Pour garder tes notes, il te faut un compte.
+            You need an account to keep your notes.
           </p>
           <TextField
             label="Email"
@@ -158,47 +158,47 @@ export default function OnboardingWelcome({
             onChange={(e) => setEmail(e.target.value)}
           />
           <TextField
-            label="Mot de passe"
+            label="Password"
             type="password"
             required
             minLength={8}
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            helper="8 caractères minimum"
+            helper="At least 8 characters"
           />
           <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: color.textMuted, cursor: "pointer" }}>
             <input type="checkbox" checked={legalAccepted} onChange={(e) => setLegalAccepted(e.target.checked)} style={{ marginTop: 2 }} />
             <span>
-              J&apos;accepte les{" "}
+              I accept the{" "}
               <a href="/legal/cgu" target="_blank" rel="noopener noreferrer">
-                conditions générales
+                terms of service
               </a>{" "}
-              et la{" "}
+              and the{" "}
               <a href="/legal/confidentialite" target="_blank" rel="noopener noreferrer">
-                politique de confidentialité
+                privacy policy
               </a>
               .
             </span>
           </label>
           {error && <p style={{ margin: 0, fontSize: 13, color: color.danger }}>{error}</p>}
           <Button type="submit" disabled={loading}>
-            {loading ? "..." : "Créer mon compte"}
+            {loading ? "..." : "Create my account"}
           </Button>
         </form>
       )}
 
       {!signedIn && (
         <p style={{ fontSize: 12, color: color.textFaint, margin: "18px 0 0", lineHeight: 1.5 }}>
-          En continuant avec GitHub, Notion ou Linear, tu acceptes les{" "}
+          By continuing with GitHub, Notion or Linear, you accept the{" "}
           <a href="/legal/cgu" target="_blank" rel="noopener noreferrer">
-            conditions générales
+            terms of service
           </a>{" "}
-          et la{" "}
+          and the{" "}
           <a href="/legal/confidentialite" target="_blank" rel="noopener noreferrer">
-            politique de confidentialité
+            privacy policy
           </a>
-          . Déjà un compte ? <a href="/login">Se connecter</a>
+          . Already have an account? <a href="/login">Log in</a>
         </p>
       )}
     </div>

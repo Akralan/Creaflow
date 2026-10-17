@@ -18,23 +18,23 @@ const SUGGEST_CONTENT_ANGLES_TOOL_NAME = "suggest_content_angles";
 const suggestContentAnglesTool: LlmToolDefinition = {
   name: SUGGEST_CONTENT_ANGLES_TOOL_NAME,
   description:
-    "Propose entre 4 et 8 angles/archétypes de hook réutilisables, adaptés au métier du créateur, pour varier la structure des scripts générés.",
+    "Proposes between 4 and 8 reusable angles/hook archetypes, suited to the creator's trade, to vary the structure of the generated scripts. All text in English.",
   input_schema: {
     type: "object",
     properties: {
       angles: {
         type: "array",
         description:
-          "Liste de 4 à 8 angles : des STRUCTURES de script réutilisables (ex: question choc, avant/après, mythe vs réalité, témoignage, tutoriel, coulisses), pas des sujets ni des catégories de contenu.",
+          "List of 4 to 8 angles: reusable script STRUCTURES (e.g. shock opener, before/after, myth vs reality, testimonial, tutorial, behind the scenes), not subjects or content categories.",
         minItems: 4,
         maxItems: 8,
         items: {
           type: "object",
           properties: {
-            label: { type: "string", description: "Nom court de l'angle (2-4 mots max)." },
+            label: { type: "string", description: "Short name of the angle (2-4 words max)." },
             description: {
               type: "string",
-              description: "Guidance en une phrase pour exécuter ce script selon cet angle précis.",
+              description: "One-sentence guidance to carry out this script along this precise angle.",
             },
           },
           required: ["label", "description"],
@@ -45,9 +45,9 @@ const suggestContentAnglesTool: LlmToolDefinition = {
   },
 };
 
-const SYSTEM_PROMPT = `Tu conçois une bibliothèque d'angles de script réutilisables pour un créateur ou une entreprise, adaptée précisément à son activité.
+const SYSTEM_PROMPT = `You design a library of reusable script angles for a creator or a company, tailored precisely to their activity.
 
-Propose entre 4 et 8 angles : ce sont des ARCHÉTYPES DE STRUCTURE/HOOK (ex: question choc, avant/après, mythe vs réalité, témoignage client, tutoriel pas-à-pas, coulisses, comparaison, storytelling personnel), pas des sujets de contenu ni des catégories éditoriales. Ces angles seront réutilisés à chaque génération pour varier la façon dont un script accroche et se structure, indépendamment du sujet traité. Adapte les libellés et descriptions au métier décrit plutôt que de reprendre une liste générique telle quelle.`;
+Propose between 4 and 8 angles: these are STRUCTURE/HOOK ARCHETYPES (e.g. shock opener, before/after, myth vs reality, customer testimonial, step-by-step tutorial, behind the scenes, comparison, personal storytelling), not content subjects or editorial categories. These angles will be reused at each generation to vary how a script hooks and is structured, independently of the subject treated. Adapt the labels and descriptions to the described trade rather than reusing a generic list as is. Write everything in English.`;
 
 export interface AngleLabelsContext {
   brandName: string;
@@ -58,11 +58,11 @@ export interface AngleLabelsContext {
 
 export async function suggestContentAngles(context: AngleLabelsContext): Promise<AngleEntry[]> {
   const lines = [
-    `Marque : ${context.brandName} (${context.activityType})`,
-    context.expectations ? `Ce que l'auteur attend de CreaFlow : ${context.expectations}` : null,
+    `Brand: ${context.brandName} (${context.activityType})`,
+    context.expectations ? `What the author expects from Buildloud: ${context.expectations}` : null,
     context.products.length > 0
-      ? `Produits/projets : ${context.products.map((p) => p.name + (p.description ? ` — ${p.description}` : "")).join(" ; ")}`
-      : "Aucun produit renseigné.",
+      ? `Products/projects: ${context.products.map((p) => p.name + (p.description ? ` — ${p.description}` : "")).join("; ")}`
+      : "No product registered.",
   ].filter(Boolean);
 
   const args = await callStructured({

@@ -42,11 +42,11 @@ import { getObjectStorage, isObjectStorageConfigured } from "@/lib/storage";
 import { NON_TERMINAL_SUBSCRIPTION_STATUSES, getSubscriptionForUser } from "@/lib/services/billingService";
 import { listConnectedProviders } from "@/lib/services/oauthAccountService";
 
-/** Ce que l'onglet Compte affiche (docs/SPEC_LEGAL_EMAIL_RGPD.md §4.1). */
+/** What the Account tab displays (docs/SPEC_LEGAL_EMAIL_RGPD.md §4.1). */
 export interface AccountSummary {
   email: string;
   createdAt: Date;
-  /** Faux pour un compte créé via GitHub/Notion/Linear qui n'a jamais défini de mot de passe. */
+  /** False for an account created via GitHub/Notion/Linear that never set a password. */
   hasPassword: boolean;
   providers: Array<{ id: string; displayName: string }>;
 }
@@ -56,7 +56,7 @@ export async function getAccountSummary(userId: string): Promise<AccountSummary>
     where: eq(users.id, userId),
     columns: { email: true, createdAt: true, passwordHash: true },
   });
-  if (!user) throw new ApiError(404, "Compte introuvable.");
+  if (!user) throw new ApiError(404, "Account not found.");
   return {
     email: user.email,
     createdAt: user.createdAt,
@@ -66,9 +66,9 @@ export async function getAccountSummary(userId: string): Promise<AccountSummary>
 }
 
 /**
- * Confirmation avant suppression : le mot de passe quand le compte en a un, la recopie de l'adresse
- * sinon (§4.2). La session ne suffit pas — un onglet laissé ouvert ne doit pas permettre d'effacer
- * un compte en un clic.
+ * Confirmation before deletion: the password when the account has one, re-typing the address
+ * otherwise (§4.2). The session is not enough — a tab left open must not allow erasing an
+ * account in one click.
  */
 export async function assertDeletionConfirmed(
   userId: string,
@@ -78,16 +78,16 @@ export async function assertDeletionConfirmed(
     where: eq(users.id, userId),
     columns: { email: true, passwordHash: true },
   });
-  if (!user) throw new ApiError(404, "Compte introuvable.");
+  if (!user) throw new ApiError(404, "Account not found.");
 
   if (user.passwordHash) {
     if (!confirmation.password || !(await verifyPassword(confirmation.password, user.passwordHash))) {
-      throw new ApiError(400, "Mot de passe incorrect.");
+      throw new ApiError(400, "Incorrect password.");
     }
     return;
   }
   if (!matchesEmailConfirmation(user.email, confirmation.emailConfirmation)) {
-    throw new ApiError(400, "L'adresse saisie ne correspond pas à celle du compte.");
+    throw new ApiError(400, "The address entered does not match the account's.");
   }
 }
 
@@ -96,28 +96,28 @@ export function matchesEmailConfirmation(accountEmail: string, typed: string | u
 }
 
 /**
- * Suppression de bout en bout, dans l'ordre de la spec §4.2 : Stripe d'abord (bloquant — on ne
- * supprime pas un compte qu'on continuerait à facturer), puis la base (cascade sur toutes les
- * tables utilisateur), puis seulement R2 — les clés sont lues avant, parce qu'elles partent avec
- * la cascade. Si la suppression en base échoue, le compte reste entier avec ses images : des objets
- * orphelins dans R2 valent mieux qu'un compte vivant amputé. L'email de confirmation ferme la marche.
+ * End-to-end deletion, in the order of spec §4.2: Stripe first (blocking — we don't delete an
+ * account we would keep billing), then the database (cascade on all user tables), and only then
+ * R2 — the keys are read beforehand, because they go away with the cascade. If the database
+ * deletion fails, the account stays whole with its images: orphan objects in R2 are better than
+ * a live account with missing parts. The confirmation email closes the sequence.
  */
 export async function deleteAccount(userId: string): Promise<{ email: string }> {
   const user = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { email: true } });
-  if (!user) throw new ApiError(404, "Compte introuvable.");
+  if (!user) throw new ApiError(404, "Account not found.");
 
   await cancelStripeSubscription(userId);
   const storageKeys = await listStoredObjectKeys(userId);
 
   await db.delete(users).where(eq(users.id, userId));
-  logger.info("Compte supprimé", { userId });
+  logger.info("Account deleted", { userId });
 
   await deleteStoredObjects(userId, storageKeys);
 
   try {
     await sendEmail({ to: user.email, ...accountDeletedEmail() });
   } catch (error) {
-    logger.error("Échec d'envoi de la confirmation de suppression de compte", error, { userId });
+    logger.error("Failed to send the account deletion confirmation", error, { userId });
   }
   return { email: user.email };
 }
@@ -127,30 +127,30 @@ async function cancelStripeSubscription(userId: string): Promise<void> {
   if (!subscription) return;
   const stripe = getStripeClient();
 
-  // Un abonnement déjà dans un statut terminal n'a rien à résilier.
+  // A subscription already in a terminal status has nothing to cancel.
   if (subscription.stripeSubscriptionId && NON_TERMINAL_SUBSCRIPTION_STATUSES.has(subscription.status)) {
     try {
       await stripe.subscriptions.cancel(subscription.stripeSubscriptionId);
     } catch (error) {
-      logger.error("Résiliation Stripe impossible pendant la suppression du compte", error, { userId });
-      throw new ApiError(502, "Impossible de résilier l'abonnement pour le moment. Réessaie dans quelques instants.");
+      logger.error("Stripe cancellation failed during account deletion", error, { userId });
+      throw new ApiError(502, "Unable to cancel the subscription right now. Please try again in a few moments.");
     }
   }
-  // Le client Stripe et ses factures restent (obligation comptable) ; on note seulement que le
-  // compte applicatif n'existe plus — au mieux, ça ne doit pas bloquer la suppression.
+  // The Stripe customer and its invoices remain (accounting obligation); we only note that the
+  // app account no longer exists — best effort, it must not block the deletion.
   try {
     await stripe.customers.update(subscription.stripeCustomerId, {
       metadata: { creaflowAccountDeletedAt: new Date().toISOString() },
     });
   } catch (error) {
-    logger.warn("Annotation du client Stripe impossible pendant la suppression du compte", {
+    logger.warn("Could not annotate the Stripe customer during account deletion", {
       userId,
       error: error instanceof Error ? error.message : String(error),
     });
   }
 }
 
-// Original (uploads), vignette et détourage en cache de chaque photo (docs/SPEC_COMPOSITION_VISUELLE.md).
+// Original (uploads), thumbnail and cached background-removed version of each photo (docs/SPEC_COMPOSITION_VISUELLE.md).
 async function listStoredObjectKeys(userId: string): Promise<string[]> {
   const assets = await db
     .select({ originalKey: brandAssets.originalKey, thumbnailKey: brandAssets.thumbnailKey, cutoutKey: brandAssets.cutoutKey })
@@ -163,7 +163,7 @@ async function deleteStoredObjects(userId: string, keys: string[]): Promise<void
   if (keys.length === 0) return;
 
   if (!isObjectStorageConfigured()) {
-    logger.warn("Stockage objet non configuré : objets non supprimés avec le compte", { userId, count: keys.length });
+    logger.warn("Object storage not configured: objects not deleted with the account", { userId, count: keys.length });
     return;
   }
   const storage = getObjectStorage();
@@ -171,21 +171,21 @@ async function deleteStoredObjects(userId: string, keys: string[]): Promise<void
     try {
       await storage.delete(key);
     } catch (error) {
-      logger.error("Suppression d'un objet R2 échouée pendant la suppression du compte", error, { userId, key });
+      logger.error("Deleting an R2 object failed during account deletion", error, { userId, key });
     }
   }
 }
 
 /**
- * Export au titre de la portabilité (§4.3) : toutes les tables du compte, sans les jetons OAuth ni
- * les embeddings ; les images sont référencées par leur URL publique, pas embarquées.
+ * Export for data portability (§4.3): all the account's tables, without OAuth tokens or
+ * embeddings; images are referenced by their public URL, not embedded.
  */
 export async function exportAccountData(userId: string): Promise<Record<string, unknown>> {
   const user = await db.query.users.findFirst({
     where: eq(users.id, userId),
     columns: { id: true, email: true, vertical: true, createdAt: true },
   });
-  if (!user) throw new ApiError(404, "Compte introuvable.");
+  if (!user) throw new ApiError(404, "Account not found.");
 
   const [
     profile,
@@ -309,7 +309,7 @@ export async function exportAccountData(userId: string): Promise<Record<string, 
     postingGoals: goalRows,
     postMetrics: metricRows,
     postMetricsSnapshots: snapshotRows,
-    // Sans l'embedding (768 flottants par image, inutilisables hors de l'app).
+    // Without the embedding (768 floats per image, unusable outside the app).
     visualAssets: assetRows.map((row) => {
       const { embedding, ...asset } = row;
       void embedding;
@@ -321,7 +321,7 @@ export async function exportAccountData(userId: string): Promise<Record<string, 
       };
     }),
     visualDesigns: designRows,
-    // Fiches de la veille d'inspiration par sujet (docs/SPEC_MEMOIRE_ET_VEILLE.md §3).
+    // Per-topic inspiration watch cards (docs/SPEC_MEMOIRE_ET_VEILLE.md §3).
     subjectInspirations: subjectInspirationRows,
     inspirationVideos: inspirationRows,
     assistantConversation: assistantRows,

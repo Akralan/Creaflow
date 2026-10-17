@@ -3,17 +3,17 @@ import type { LlmToolDefinition } from "./types";
 import { callStructured } from "./provider";
 
 /**
- * Extraction du profil à l'onboarding (docs/SPEC_ONBOARDING_MVP.md §3 bis, §4) : un seul appel
- * remplace l'ancien chat. Ce que la personne fait se LIT dans sa matière ; elle n'a qu'à corriger.
+ * Profile extraction at onboarding (docs/SPEC_ONBOARDING_MVP.md §3 bis, §4): a single call
+ * replaces the former chat. What the person does can be READ in their material; they only have to correct.
  *
- * Chaque source branchée et chaque bloc de notes collées porte une clé (`source:<id>`, `note:<id>`)
- * que le modèle range dans des sujets : c'est ainsi que le dépôt GitHub, la base Notion et le projet
- * Linear d'un même produit finissent sur un seul sujet.
+ * Each connected source and each block of pasted notes carries a key (`source:<id>`, `note:<id>`)
+ * that the model files into subjects: that's how the GitHub repo, the Notion database and the
+ * Linear project of the same product end up on a single subject.
  */
 
 export interface ProfileExtractionInput {
   name: string;
-  /** Comptes tiers reliés : nom, login et bio GitHub disent déjà beaucoup de qui écrit. */
+  /** Linked third-party accounts: name, login and GitHub bio already say a lot about who writes. */
   identities: Array<{ provider: string; login: string; name: string | null; bio: string | null }>;
   items: Array<{ key: string; kind: string; label: string; excerpt: string }>;
 }
@@ -21,8 +21,8 @@ export interface ProfileExtractionInput {
 export const extractedSubjectSchema = z.object({
   name: z.string().min(1),
   description: z.string().default(""),
-  // Le « Pour qui » de CE projet (docs/SPEC_PROMPT_GENERATION_V3.md §2.1) : deux projets du même
-  // auteur n'ont pas forcément le même public.
+  // THIS project's "Who for" (docs/SPEC_PROMPT_GENERATION_V3.md §2.1): two projects by the same
+  // author don't necessarily have the same audience.
   targetAudience: z.string().default(""),
   keys: z.array(z.string()).default([]),
 });
@@ -40,35 +40,35 @@ const TOOL_NAME = "describe_author";
 
 const describeAuthorTool: LlmToolDefinition = {
   name: TOOL_NAME,
-  description: "Décrit ce que fait l'auteur et regroupe ses sources par projet, à partir de sa matière.",
+  description: "Describes what the author does and groups their sources by project, from their material. All text in English.",
   input_schema: {
     type: "object",
     properties: {
       activityType: {
         type: "string",
         description:
-          "Ce que fait l'auteur, à la deuxième personne, en une ou deux phrases concrètes (« Tu construis X, un outil qui… »). Uniquement ce que la matière montre.",
+          "What the author does, in the second person, in one or two concrete sentences (\"You build X, a tool that…\"). Only what the material shows.",
       },
       targetAudience: {
         type: "string",
-        description: "Pour qui il construit, en une phrase : les gens que son travail sert. Vide si la matière ne permet pas de le dire.",
+        description: "Who they build for, in one sentence: the people their work serves. Empty if the material doesn't allow saying.",
       },
       subjects: {
         type: "array",
         description:
-          "Les projets de l'auteur. Un projet regroupe TOUTES les sources qui en parlent, même vues sous des angles différents (le code sur GitHub, la réflexion dans Notion, les tâches dans Linear). Une source qui ne recoupe rien forme un projet à elle seule.",
+          "The author's projects. A project groups ALL the sources that talk about it, even seen from different angles (the code on GitHub, the thinking in Notion, the tasks in Linear). A source that overlaps with nothing forms a project on its own.",
         items: {
           type: "object",
           properties: {
-            name: { type: "string", description: "Nom du projet, court, tel que l'auteur l'appellerait." },
-            description: { type: "string", description: "Ce qu'est le projet, en une phrase." },
+            name: { type: "string", description: "Name of the project, short, as the author would call it." },
+            description: { type: "string", description: "What the project is, in one sentence." },
             targetAudience: {
               type: "string",
-              description: "Pour qui est CE projet, en une phrase : les gens qu'il sert. Vide si la matière ne permet pas de le dire.",
+              description: "Who THIS project is for, in one sentence: the people it serves. Empty if the material doesn't allow saying.",
             },
             keys: {
               type: "array",
-              description: "Clés des sources et notes qui parlent de ce projet, recopiées telles quelles. Chaque clé dans un seul projet.",
+              description: "Keys of the sources and notes that talk about this project, copied as is. Each key in a single project.",
               items: { type: "string" },
             },
           },
@@ -80,35 +80,35 @@ const describeAuthorTool: LlmToolDefinition = {
   },
 };
 
-const SYSTEM_PROMPT = `Tu lis la matière de travail d'une personne (dépôts de code, pages Notion, projets Linear, notes) pour comprendre ce qu'elle fait, avant qu'elle ne commence à publier sur ce qu'elle construit.
+const SYSTEM_PROMPT = `You read a person's working material (code repositories, Notion pages, Linear projects, notes) to understand what they do, before they start publishing about what they build.
 
-Règles :
-- N'invente rien : décris uniquement ce que la matière montre. Mieux vaut une phrase simple et juste qu'une phrase brillante et fausse.
-- Écris en français, à la deuxième personne (« tu »), sans jargon marketing.
-- Regroupe en un même projet les sources qui parlent du même produit, même si elles viennent d'outils différents : c'est le croisement du code, de la réflexion et des tâches qui fera de bons posts.
-- Au plus 5 projets. Si les sources sont plus nombreuses, regroupe les plus proches.
-- Deux projets du même auteur n'ont pas forcément le même public : donne à chacun le sien.
-- Toutes les clés fournies doivent apparaître, chacune dans un seul projet. Les notes vont dans le projet dont elles parlent.`;
+Rules:
+- Invent nothing: describe only what the material shows. A simple, accurate sentence beats a brilliant, false one.
+- Write in English, in the second person ("you"), without marketing jargon.
+- Group into one project the sources that talk about the same product, even if they come from different tools: it's the crossing of code, thinking and tasks that will make good posts.
+- At most 5 projects. If there are more sources, group the closest ones.
+- Two projects by the same author don't necessarily have the same audience: give each its own.
+- All the supplied keys must appear, each in a single project. Notes go in the project they talk about.`;
 
 export function buildExtractionMessage(input: ProfileExtractionInput): string {
-  const lines: string[] = [`Nom : ${input.name || "(non renseigné)"}`];
+  const lines: string[] = [`Name: ${input.name || "(not provided)"}`];
   for (const identity of input.identities) {
-    const parts = [`Compte ${identity.provider} : ${identity.login}`];
-    if (identity.name) parts.push(`nom affiché « ${identity.name} »`);
-    if (identity.bio) parts.push(`bio « ${identity.bio} »`);
+    const parts = [`${identity.provider} account: ${identity.login}`];
+    if (identity.name) parts.push(`display name "${identity.name}"`);
+    if (identity.bio) parts.push(`bio "${identity.bio}"`);
     lines.push(parts.join(", "));
   }
   lines.push("", "=== SOURCES ===");
   for (const item of input.items) {
-    lines.push(`--- [${item.key}] ${item.kind} · ${item.label} ---`, item.excerpt || "(vide)", "");
+    lines.push(`--- [${item.key}] ${item.kind} · ${item.label} ---`, item.excerpt || "(empty)", "");
   }
   return lines.join("\n");
 }
 
 /**
- * Remet la réponse du modèle d'aplomb : clés inconnues écartées, chaque clé dans un seul sujet, et
- * toute clé oubliée rangée quelque part — une source ne doit jamais disparaître de l'écran parce que
- * le modèle l'a omise. Une note oubliée rejoint le premier sujet ; une source oubliée forme le sien.
+ * Straightens out the model's response: unknown keys dropped, each key in a single subject, and
+ * any forgotten key filed somewhere — a source must never vanish from the screen because the
+ * model omitted it. A forgotten note joins the first subject; a forgotten source forms its own.
  */
 export function normalizeSubjects(
   subjects: ExtractedSubject[],

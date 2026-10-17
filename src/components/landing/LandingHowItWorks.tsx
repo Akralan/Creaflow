@@ -31,14 +31,14 @@ const questionChip: CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-const days = ["L", "M", "M", "J", "V", "S", "D"];
+const days = ["M", "T", "W", "T", "F", "S", "S"];
 const plannedDays = new Set([0, 2, 4]);
 
 const steps: Array<{ title: string; description: string; visual: ReactNode }> = [
   {
-    title: "Tu branches ce que tu as déjà",
+    title: "Connect what you already have",
     description:
-      "GitHub, Notion ou Linear en un clic, ou tes notes collées. CreaFlow lit les fichiers, les pages, l'historique, les issues terminées. C'est ta matière, rien d'autre.",
+      "GitHub, Notion or Linear in one click, or your pasted notes. Buildloud reads the files, the pages, the history, the closed issues. That's your material, nothing else.",
     visual: (
       <div className={styles.howVisual} aria-hidden="true">
         <span style={smallPill}><SourceIcon kind="github" style={{ color: text.secondary }} />GitHub</span>
@@ -49,21 +49,21 @@ const steps: Array<{ title: string; description: string; visual: ReactNode }> = 
     ),
   },
   {
-    title: "Ta ligne éditoriale se dessine",
+    title: "Your editorial line takes shape",
     description:
-      "Deux ou trois questions : le ton, pour qui tu publies, le temps dont tu disposes. Le reste est déduit de ton profil et de tes sujets : séries récurrentes, rôles, rythme.",
+      "Two or three questions: your tone, who you publish for, how much time you have. The rest is inferred from your profile and topics: recurring series, roles, rhythm.",
     visual: (
       <div className={styles.howVisual} aria-hidden="true">
-        <span style={questionChip}>Quel ton ?</span>
-        <span style={questionChip}>Pour qui ?</span>
-        <span style={questionChip}>Combien de temps ?</span>
+        <span style={questionChip}>What tone?</span>
+        <span style={questionChip}>For whom?</span>
+        <span style={questionChip}>How much time?</span>
       </div>
     ),
   },
   {
-    title: "Tu relis, tu publies",
+    title: "You review, you publish",
     description:
-      "Chaque semaine, le calendrier se remplit de posts rédigés à partir de ce que tu as vraiment fait. Tu retouches une phrase si besoin, et c'est parti.",
+      "Every week, your calendar fills up with posts written from what you actually did. Tweak a sentence if you need to, and you're live.",
     visual: (
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5, width: "100%", maxWidth: 260 }} aria-hidden="true">
         {days.map((d, i) => {
@@ -93,14 +93,14 @@ const steps: Array<{ title: string; description: string; visual: ReactNode }> = 
 ];
 
 /**
- * Parcours en trois étapes : pastille numérotée centrée, contenu centré dessous, et sur
- * bureau une ligne pointillée de la première à la troisième pastille. Pas de cartes.
+ * Three-step journey: centered numbered bullet, centered content below, and on
+ * desktop a dotted line from the first to the third bullet. No cards.
  */
 export default function LandingHowItWorks() {
   return (
     <section
       id="comment-ca-marche"
-      data-screen-label="Comment ça marche"
+      data-screen-label="How it works"
       style={{ scrollMarginTop: 64, borderTop: "1px solid rgba(34,29,25,0.07)", background: bg.soft2 }}
     >
       <div style={{ maxWidth: 1160, margin: "0 auto", padding: "clamp(52px, 8vw, 100px) clamp(18px, 5vw, 44px)" }}>
@@ -109,7 +109,7 @@ export default function LandingHowItWorks() {
             data-reveal=""
             style={{ margin: "0 0 12px", fontFamily: fontMono, fontSize: 12, letterSpacing: "0.14em", textTransform: "uppercase", color: text.faint }}
           >
-            Comment ça marche
+            How it works
           </p>
           <h2
             data-reveal=""
@@ -126,15 +126,15 @@ export default function LandingHowItWorks() {
               textWrap: "balance",
             }}
           >
-            Dix minutes au départ, puis ça roule.
+            Ten minutes to set up, then it just runs.
           </h2>
           <p
             data-reveal=""
             data-delay={120}
             style={{ margin: "14px auto 0", fontSize: "1.02rem", lineHeight: 1.6, color: text.secondary, maxWidth: "46ch", textWrap: "pretty" }}
           >
-            Pas de brief à rédiger, pas de prompt à maîtriser. Tu continues à travailler, CreaFlow suit ce que tu
-            documentes.
+            No brief to write, no prompt to master. You keep working, Buildloud follows what you
+            document.
           </p>
         </div>
 

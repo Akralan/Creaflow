@@ -10,9 +10,9 @@ import { api, ApiClientError } from "@/lib/apiClient";
 import { color, fontHeading } from "@/lib/design/tokens";
 import BrandMark from "@/components/BrandMark";
 
-// L'inscription n'est plus ici : elle se fait au premier écran de l'onboarding, en branchant sa
-// matière (docs/SPEC_ONBOARDING_MVP.md §2). `/login?mode=signup`, encore pointé par la landing,
-// y redirige.
+// Sign-up is no longer here: it happens on the first onboarding screen, by connecting your
+// material (docs/SPEC_ONBOARDING_MVP.md §2). `/login?mode=signup`, still linked from the landing,
+// redirects there.
 type Mode = "login" | "forgot";
 
 function modeFromParam(value: string | null): Mode {
@@ -20,8 +20,8 @@ function modeFromParam(value: string | null): Mode {
 }
 
 const titles: Record<Mode, { heading: string; sub: string }> = {
-  login: { heading: "Content de te revoir", sub: "Connecte-toi pour retrouver ton calendrier." },
-  forgot: { heading: "Mot de passe oublié", sub: "Indique ton adresse, tu recevras un lien pour en choisir un nouveau." },
+  login: { heading: "Welcome back", sub: "Log in to get back to your calendar." },
+  forgot: { heading: "Forgot your password?", sub: "Enter your email address and we'll send you a link to choose a new one." },
 };
 
 function LoginContent() {
@@ -32,7 +32,7 @@ function LoginContent() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(() => searchParams.get("oauthError"));
   const [notice, setNotice] = useState<string | null>(() =>
-    searchParams.get("deleted") ? "Ton compte a été supprimé. Un email de confirmation t'a été envoyé." : null
+    searchParams.get("deleted") ? "Your account has been deleted. A confirmation email has been sent to you." : null
   );
   const [loading, setLoading] = useState(false);
 
@@ -54,15 +54,15 @@ function LoginContent() {
     try {
       if (mode === "forgot") {
         await api.forgotPassword(email);
-        // Même message quelle que soit l'adresse : la route ne dit pas qui est inscrit.
-        setNotice("Si un compte existe avec cette adresse, un email vient de partir. Pense à vérifier tes indésirables.");
+        // Same message whatever the address: the route doesn't reveal who is registered.
+        setNotice("If an account exists with this address, an email is on its way. Be sure to check your spam folder.");
         return;
       }
       await api.login(email, password);
       const { profile } = await api.getProfile();
       router.push(profile ? "/calendar" : "/onboarding");
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Une erreur est survenue.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong.");
     } finally {
       setLoading(false);
     }
@@ -90,7 +90,7 @@ function LoginContent() {
         <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 32 }}>
           <BrandMark size={38} />
           <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 22, letterSpacing: "-0.02em" }}>
-            CreaFlow
+            Buildloud
           </span>
         </div>
 
@@ -110,12 +110,12 @@ function LoginContent() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="marie@atelier-lumen.fr"
+              placeholder="jane@example.com"
             />
             {mode !== "forgot" && (
               <div>
                 <TextField
-                  label="Mot de passe"
+                  label="Password"
                   type="password"
                   required
                   minLength={8}
@@ -125,8 +125,8 @@ function LoginContent() {
                   placeholder="••••••••••"
                 />
                 <div style={{ display: "flex", justifyContent: "space-between", margin: "8px 0 0", fontSize: 12 }}>
-                  <span style={{ color: color.textFaint }}>8 caractères minimum</span>
-                  {mode === "login" && switchLink("forgot", "Mot de passe oublié ?")}
+                  <span style={{ color: color.textFaint }}>8 characters minimum</span>
+                  {mode === "login" && switchLink("forgot", "Forgot your password?")}
                 </div>
               </div>
             )}
@@ -136,13 +136,13 @@ function LoginContent() {
             {notice && <p style={{ margin: 0, fontSize: 13, color: "oklch(0.5 0.14 150)" }}>{notice}</p>}
 
             <Button type="submit" fullWidth disabled={loading} style={{ marginTop: 6 }}>
-              {loading ? "..." : mode === "login" ? "Se connecter" : "Recevoir le lien"}
+              {loading ? "..." : mode === "login" ? "Log in" : "Send the link"}
             </Button>
           </form>
 
           <p style={{ textAlign: "center", margin: "20px 0 0", fontSize: 14, color: color.textMuted }}>
-            {mode === "login" && <>Pas encore de compte ? <a href="/onboarding">Démarrer gratuitement</a></>}
-            {mode === "forgot" && <>{switchLink("login", "Retour à la connexion")}</>}
+            {mode === "login" && <>Don&apos;t have an account yet? <a href="/onboarding">Start for free</a></>}
+            {mode === "forgot" && <>{switchLink("login", "Back to log in")}</>}
           </p>
         </Card>
       </div>

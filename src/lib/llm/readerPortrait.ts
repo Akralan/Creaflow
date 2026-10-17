@@ -3,9 +3,9 @@ import type { LlmToolDefinition } from "./types";
 import { callStructured } from "./provider";
 
 /**
- * Portrait des lecteurs d'un sujet (docs/SPEC_PROMPT_GENERATION_V3.md §2.2, Annexe A.5) : 1 à 3
- * publics, le principal en premier. Une hypothèse de travail que l'auteur corrige ; la génération
- * l'injecte en tête du message (bloc <lecteurs>) et chaque post en vise un seul.
+ * Reader portrait of a subject (docs/SPEC_PROMPT_GENERATION_V3.md §2.2, Annex A.5): 1 to 3
+ * audiences, the main one first. A working hypothesis the author corrects; generation
+ * injects it at the head of the message (<readers> block) and each post targets just one.
  */
 
 export const MAX_READERS = 3;
@@ -26,21 +26,21 @@ export const readerPortraitSchema = z.object({
   readers: z.array(readerSchema).min(1).max(MAX_READERS),
   generatedAt: z.string().nullable().default(null),
   editedByUser: z.boolean().default(false),
-  // La phrase « Pour qui » du sujet au moment du portrait : quand elle change, le portrait est à
-  // refaire (sauf s'il a été corrigé à la main).
+  // The subject's "Who for" sentence at the time of the portrait: when it changes, the portrait
+  // must be redone (unless it was corrected by hand).
   basedOnAudience: z.string().nullable().default(null),
 });
 export type ReaderPortrait = z.infer<typeof readerPortraitSchema>;
 
-/** Lecture tolérante d'un jsonb `products.readerPortrait` : null si absent ou illisible. */
+/** Tolerant read of a `products.readerPortrait` jsonb: null if absent or unreadable. */
 export function parseStoredReaderPortrait(raw: unknown): ReaderPortrait | null {
   if (!raw || typeof raw !== "object") return null;
   const result = readerPortraitSchema.safeParse(raw);
   return result.success ? result.data : null;
 }
 
-/** Un portrait est à (re)faire s'il manque, ou si la phrase « Pour qui » a changé depuis — sauf
- *  s'il a été corrigé à la main : seul le bouton « Refaire le portrait » le remplace alors. */
+/** A portrait must be (re)done if it is missing, or if the "Who for" sentence changed since — unless
+ *  it was corrected by hand: only the "Redo the portrait" button then replaces it. */
 export function portraitIsStale(product: { readerPortrait: unknown; targetAudience: string | null }): boolean {
   const portrait = parseStoredReaderPortrait(product.readerPortrait);
   if (!portrait) return true;
@@ -52,29 +52,29 @@ const TOOL_NAME = "describe_readers";
 
 const describeReadersTool: LlmToolDefinition = {
   name: TOOL_NAME,
-  description: "Décrit les 1 à 3 publics d'un projet.",
+  description: "Describes the 1 to 3 audiences of a project. All text in English.",
   input_schema: {
     type: "object",
     properties: {
       readers: {
         type: "array",
-        description: "1 à 3 publics, le principal en premier.",
+        description: "1 to 3 audiences, the main one first.",
         items: {
           type: "object",
           properties: {
-            label: { type: "string", description: "Nom court du public, 2 à 4 mots." },
-            who: { type: "string", description: "Qui précisément, en une phrase concrète." },
-            knows: { type: "string", description: "Ce qu'ils savent déjà du domaine, leur niveau." },
+            label: { type: "string", description: "Short name of the audience, 2 to 4 words." },
+            who: { type: "string", description: "Who exactly, in one concrete sentence." },
+            knows: { type: "string", description: "What they already know about the field, their level." },
             wants: {
               type: "string",
               description:
-                "Ce qu'ils viennent chercher en suivant ce projet, et ce qu'on voudrait qu'ils fassent (essayer, acheter, suivre, ajouter à leur wishlist…).",
+                "What they come looking for by following this project, and what we'd like them to do (try, buy, follow, add to their wishlist…).",
             },
-            stopsFor: { type: "string", description: "Ce qui les arrête de scroller." },
-            turnsOff: { type: "string", description: "Ce qui les fait fuir." },
+            stopsFor: { type: "string", description: "What stops them from scrolling." },
+            turnsOff: { type: "string", description: "What makes them leave." },
             words: {
               type: "array",
-              description: "3 à 8 mots ou expressions qu'ils emploient vraiment.",
+              description: "3 to 8 words or expressions they really use.",
               items: { type: "string" },
             },
           },
@@ -88,16 +88,16 @@ const describeReadersTool: LlmToolDefinition = {
   },
 };
 
-// Annexe A.5, verbatim.
-const SYSTEM_PROMPT = `Tu dresses le portrait des lecteurs d'un projet, pour que le ghostwriter qui écrira sur ce projet sache à qui il parle.
+// Annex A.5.
+const SYSTEM_PROMPT = `You draw up the portrait of a project's readers, so that the ghostwriter who will write about this project knows who they are talking to.
 
-Règles :
-- Un projet a souvent plusieurs publics qui n'attendent pas la même chose : un jeu parle à des joueurs et à d'autres développeurs ; un outil de code à ses utilisateurs et aux curieux de la technique ; un artisan à ses acheteurs et aux passionnés du métier. Donne 1 à 3 publics, seulement ceux à qui ce projet a vraiment intérêt à parler. Le premier est le principal.
-- Si l'auteur a dit pour qui il construit, c'est la référence : précise-la, ne la contredis pas.
-- Sois concret : « développeurs front qui maintiennent une app React de plus de deux ans », pas « développeurs ».
-- Les mots d'un public sont ceux qu'il emploie vraiment entre pairs, pas ceux du marketing.
-- C'est une hypothèse de travail que l'auteur corrigera. N'invente aucun fait sur l'auteur ni sur son projet : tu décris seulement ce que ces lecteurs savent, cherchent et fuient.
-- Écris en français.`;
+Rules:
+- A project often has several audiences that don't expect the same thing: a game speaks to players and to other developers; a code tool to its users and to the technically curious; a craftsperson to their buyers and to people passionate about the trade. Give 1 to 3 audiences, only those this project really has an interest in speaking to. The first is the main one.
+- If the author said who they build for, that is the reference: make it more precise, don't contradict it.
+- Be concrete: "front-end developers maintaining a React app that is over two years old", not "developers".
+- An audience's words are the ones it really uses among peers, not marketing's.
+- It is a working hypothesis the author will correct. Invent no fact about the author or their project: you only describe what these readers know, look for and avoid.
+- Write in English.`;
 
 export interface ReaderPortraitContext {
   subjectName: string;
@@ -107,7 +107,7 @@ export interface ReaderPortraitContext {
   brandAudience: string | null;
   activityType: string;
   platforms: string[];
-  /** Résumés des documents du sujet (ceux déjà produits pour le rédacteur en chef). */
+  /** Summaries of the subject's documents (those already produced for the editor-in-chief). */
   materialSummaries: string[];
 }
 
@@ -115,18 +115,18 @@ export const MAX_PORTRAIT_SUMMARIES = 15;
 
 export function buildReaderPortraitMessage(ctx: ReaderPortraitContext): string {
   const lines = [
-    `Sujet : ${ctx.subjectName}${ctx.subjectDescription ? ` — ${ctx.subjectDescription}` : ""}`,
-    ctx.valueProposition ? `Proposition de valeur : ${ctx.valueProposition}` : null,
-    `Pour qui, selon l'auteur : ${ctx.subjectAudience || "(non précisé)"}`,
-    `Audience générale de l'auteur : ${ctx.brandAudience || "(non précisée)"}`,
-    `Ce que fait l'auteur : ${ctx.activityType || "(non précisé)"}`,
-    ctx.platforms.length > 0 ? `Plateformes où il publie : ${ctx.platforms.join(", ")}` : null,
+    `Subject: ${ctx.subjectName}${ctx.subjectDescription ? ` — ${ctx.subjectDescription}` : ""}`,
+    ctx.valueProposition ? `Value proposition: ${ctx.valueProposition}` : null,
+    `Who for, according to the author: ${ctx.subjectAudience || "(not specified)"}`,
+    `The author's general audience: ${ctx.brandAudience || "(not specified)"}`,
+    `What the author does: ${ctx.activityType || "(not specified)"}`,
+    ctx.platforms.length > 0 ? `Platforms where they publish: ${ctx.platforms.join(", ")}` : null,
     ctx.materialSummaries.length > 0
-      ? `Ce que contient sa matière sur ce sujet (résumés) :\n${ctx.materialSummaries
+      ? `What their material on this subject contains (summaries):\n${ctx.materialSummaries
           .slice(0, MAX_PORTRAIT_SUMMARIES)
           .map((s) => `- ${s}`)
           .join("\n")}`
-      : "Pas encore de matière résumée sur ce sujet.",
+      : "No summarized material yet on this subject.",
   ];
   return lines.filter((l): l is string => l !== null).join("\n");
 }

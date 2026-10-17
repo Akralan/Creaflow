@@ -50,7 +50,7 @@ describe("captionImage", () => {
   it("lève une erreur si aucun function call n'est renvoyé", async () => {
     generateContentMock.mockResolvedValue({ functionCalls: undefined });
     await expect(captionImage(Buffer.from("x"), "image/jpeg", "system", tool)).rejects.toThrow(
-      "n'a pas renvoyé de caption structurée"
+      "did not return a structured caption"
     );
   });
 });

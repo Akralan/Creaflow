@@ -3,51 +3,51 @@ import type { LlmToolDefinition } from "./types";
 import { callStructured, callWebResearch } from "./provider";
 
 /**
- * Agent de veille d'inspiration (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.2) : une recherche web, puis une
- * mise en fiches structurée. Jamais appelé pendant la rédaction d'un post. Un lien n'est gardé que
- * s'il figure parmi les pages réellement consultées par la recherche.
+ * Inspiration-watch agent (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.2): a web search, then a structured
+ * write-up into cards. Never called while a post is being written. A link is only kept if it
+ * appears among the pages actually consulted by the search.
  */
 
 export const INSPIRATION_KINDS = ["format", "accroche", "structure", "sujet", "compte"] as const;
 export const MAX_INSPIRATIONS_PER_RESEARCH = 8;
 
-// Annexe A.2, verbatim.
-const RESEARCH_SYSTEM_PROMPT = `Tu fais de la veille pour le ghostwriter d'une personne qui construit quelque chose et le raconte sur les réseaux. Cherche sur le web ce qui fonctionne DÉJÀ auprès des publics décrits, sur les plateformes indiquées.
+// Annex A.2.
+const RESEARCH_SYSTEM_PROMPT = `You do monitoring for the ghostwriter of a person who builds something and talks about it on social media. Search the web for what ALREADY works with the described audiences, on the platforms indicated.
 
-Ce que tu cherches :
-- des exemples réels et précis : un post, un fil, un créateur, une newsletter, un devlog, un format nommé, qui marche visiblement auprès de ce public (réactions, reprises, communauté) ;
-- ce qu'on peut en apprendre sur la FORME : le format, la structure, le type d'accroche, le rythme, les sujets qui reviennent.
+What you look for:
+- real, precise examples: a post, a thread, a creator, a newsletter, a devlog, a named format, that visibly works with this audience (reactions, reshares, community);
+- what can be learned from them about FORM: the format, the structure, the type of hook, the rhythm, the recurring topics.
 
-Ce que tu écartes :
-- les listes génériques (« 10 astuces pour percer sur LinkedIn »), le marketing de croissance, les conseils valables pour n'importe qui ;
-- tout ce qui ne parle pas à ces publics précis.
+What you discard:
+- generic lists ("10 tips to break through on LinkedIn"), growth marketing, advice valid for anyone;
+- anything that doesn't speak to these specific audiences.
 
-Pour chaque trouvaille, donne le lien exact de la page consultée et, en une ou deux phrases, ce qu'on peut en apprendre pour écrire. Huit trouvailles au plus, les plus utiles d'abord. Écris en français.`;
+For each finding, give the exact link of the page consulted and, in one or two sentences, what can be learned from it for writing. Eight findings at most, the most useful first. Write in English.`;
 
-// Annexe A.3, verbatim.
-const STRUCTURE_SYSTEM_PROMPT = `Tu transformes un compte rendu de veille en fiches d'inspiration pour un ghostwriter. Une fiche par trouvaille utile, huit au plus. Recopie les liens tels qu'ils apparaissent dans le compte rendu, n'en invente aucun. Une fiche dit ce qu'on apprend sur la FORME, pas un fait à réutiliser.`;
+// Annex A.3.
+const STRUCTURE_SYSTEM_PROMPT = `You turn a monitoring report into inspiration cards for a ghostwriter. One card per useful finding, eight at most. Copy the links exactly as they appear in the report, invent none. A card says what is learned about FORM, not a fact to reuse. Write the cards in English.`;
 
 const saveInspirationsTool: LlmToolDefinition = {
   name: "save_inspirations",
-  description: "Enregistre les fiches d'inspiration tirées de la veille.",
+  description: "Saves the inspiration cards drawn from the monitoring.",
   input_schema: {
     type: "object",
     properties: {
       items: {
         type: "array",
-        description: "Huit fiches au plus, les plus utiles d'abord.",
+        description: "Eight cards at most, the most useful first.",
         items: {
           type: "object",
           properties: {
-            url: { type: "string", description: "Le lien exact, recopié du compte rendu." },
-            title: { type: "string", description: "Le titre de la page ou du post, court." },
+            url: { type: "string", description: "The exact link, copied from the report." },
+            title: { type: "string", description: "The title of the page or post, short." },
             insight: {
               type: "string",
-              description: "Ce qu'on y apprend pour écrire (format, structure, type d'accroche, rythme, sujet récurrent), en une ou deux phrases.",
+              description: "What is learned from it for writing (format, structure, hook type, rhythm, recurring topic), in one or two sentences. In English.",
             },
             kind: { type: "string", enum: [...INSPIRATION_KINDS], description: INSPIRATION_KINDS.join(" | ") },
-            readerLabel: { type: "string", description: "Le public concerné, recopié parmi ceux donnés, ou chaîne vide." },
-            platform: { type: "string", description: "La plateforme concernée (linkedin, x, instagram, newsletter, blog), ou chaîne vide." },
+            readerLabel: { type: "string", description: "The audience concerned, copied from those given, or empty string." },
+            platform: { type: "string", description: "The platform concerned (linkedin, x, instagram, newsletter, blog), or empty string." },
           },
           required: ["url", "title", "insight", "kind", "readerLabel", "platform"],
           additionalProperties: false,
@@ -85,7 +85,7 @@ export interface InspirationResearchContext {
   subjectName: string;
   subjectDescription: string | null;
   readers: Array<{ label: string; who: string; wants: string }>;
-  /** Phrase « Pour qui » de repli quand il n'y a pas de portrait. */
+  /** Fallback "Who for" sentence when there is no portrait. */
   targetAudience: string | null;
   platforms: string[];
   existingUrls: string[];
@@ -93,23 +93,23 @@ export interface InspirationResearchContext {
 }
 
 export function buildResearchMessage(ctx: InspirationResearchContext): string {
-  const lines = [`Sujet : ${ctx.subjectName}${ctx.subjectDescription ? ` — ${ctx.subjectDescription}` : ""}`];
+  const lines = [`Subject: ${ctx.subjectName}${ctx.subjectDescription ? ` — ${ctx.subjectDescription}` : ""}`];
   if (ctx.readers.length > 0) {
-    lines.push("Publics :", ...ctx.readers.map((r) => `- ${r.label} : ${r.who}.${r.wants ? ` Vient chercher : ${r.wants}.` : ""}`));
+    lines.push("Audiences:", ...ctx.readers.map((r) => `- ${r.label}: ${r.who}.${r.wants ? ` Comes looking for: ${r.wants}.` : ""}`));
   } else {
-    lines.push(ctx.targetAudience ? `Pour qui : ${ctx.targetAudience}` : "Public non défini : déduis-le du sujet.");
+    lines.push(ctx.targetAudience ? `Who for: ${ctx.targetAudience}` : "Audience not defined: infer it from the subject.");
   }
-  if (ctx.platforms.length > 0) lines.push(`Plateformes : ${ctx.platforms.join(", ")}`);
-  if (ctx.existingUrls.length > 0) lines.push(`Déjà en fiche (ne les repropose pas) : ${ctx.existingUrls.join(" ; ")}`);
+  if (ctx.platforms.length > 0) lines.push(`Platforms: ${ctx.platforms.join(", ")}`);
+  if (ctx.existingUrls.length > 0) lines.push(`Already carded (don't propose them again): ${ctx.existingUrls.join("; ")}`);
   if (ctx.dismissed.length > 0) {
     lines.push(
-      `Déjà écartées, avec la raison (évite ce genre de trouvaille) : ${ctx.dismissed.map((d) => `${d.url} — ${d.reason ?? "sans raison"}`).join(" ; ")}`
+      `Already dismissed, with the reason (avoid this kind of finding): ${ctx.dismissed.map((d) => `${d.url} — ${d.reason ?? "no reason"}`).join("; ")}`
     );
   }
   return lines.join("\n");
 }
 
-/** Lien comparable : sans protocole, « www. », ancre, paramètres de suivi ni barre finale. */
+/** Comparable link: without protocol, "www.", anchor, tracking parameters or trailing slash. */
 export function normalizeUrl(url: string): string {
   try {
     const parsed = new URL(url.trim());
@@ -122,8 +122,8 @@ export function normalizeUrl(url: string): string {
 }
 
 /**
- * Garde les fiches dont le lien a vraiment été consulté, sans doublon ni lien déjà connu (actif ou
- * écarté). Le public et la plateforme hors liste deviennent null. Pur, pour être testé.
+ * Keeps the cards whose link was really consulted, without duplicates or already-known links (active
+ * or dismissed). Audience and platform outside the list become null. Pure, to be testable.
  */
 export function filterFoundInspirations(
   items: z.infer<typeof foundSchema>["items"],
@@ -155,7 +155,7 @@ export async function researchInspirations(ctx: InspirationResearchContext, know
   const sourcesBlock = research.sources.map((s) => `- ${s.url}${s.title ? ` (${s.title})` : ""}`).join("\n");
   const args = await callStructured({
     system: STRUCTURE_SYSTEM_PROMPT,
-    userMessage: `Publics donnés : ${ctx.readers.map((r) => r.label).join(", ") || "aucun"}\n\n=== COMPTE RENDU ===\n${research.text}\n\n=== PAGES CONSULTÉES ===\n${sourcesBlock}`,
+    userMessage: `Audiences given: ${ctx.readers.map((r) => r.label).join(", ") || "none"}\n\n=== REPORT ===\n${research.text}\n\n=== PAGES CONSULTED ===\n${sourcesBlock}`,
     tool: saveInspirationsTool,
     maxTokens: 2048,
     strict: true,

@@ -19,19 +19,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { id } = await params;
     const { action, fields } = schema.parse(await request.json());
     const { proposals, summarizeMaterialId, portraitProductIds } = await resolveProposal(userId, id, action, fields);
-    // Résumé orienté potentiel narratif produit hors requête, jamais bloquant — même pipeline que
+    // Summary oriented toward narrative potential, produced outside the request, never blocking — same pipeline as
     // POST /api/materials/upload (docs/SPEC_REDACTEUR_EN_CHEF.md §3.1).
     if (summarizeMaterialId) {
       after(() =>
         summarizeMaterialDocument(summarizeMaterialId).catch((err) =>
-          logger.error("Résumé de matière échoué", err, { materialId: summarizeMaterialId })
+          logger.error("Material summary failed", err, { materialId: summarizeMaterialId })
         )
       );
     }
     if (portraitProductIds?.length) {
-      // Un sujet créé ou modifié : portrait à (re)faire s'il manque ou si son « Pour qui » a changé.
+      // A topic created or modified: portrait to (re)build if missing or if its "Who is it for" changed.
       after(() =>
-        refreshStaleReaderPortraits(userId, portraitProductIds).catch((err) => logger.error("Portraits des lecteurs échoués", err, { userId }))
+        refreshStaleReaderPortraits(userId, portraitProductIds).catch((err) => logger.error("Reader portraits failed", err, { userId }))
       );
     }
     return NextResponse.json({ proposals });

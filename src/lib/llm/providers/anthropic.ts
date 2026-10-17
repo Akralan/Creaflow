@@ -8,7 +8,7 @@ function getClient(): Anthropic {
   if (!client) {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      throw new Error("ANTHROPIC_API_KEY n'est pas défini dans l'environnement.");
+      throw new Error("ANTHROPIC_API_KEY is not set in the environment.");
     }
     client = new Anthropic({ apiKey });
   }
@@ -32,7 +32,7 @@ export async function callAnthropic({ system, userMessage, tool, maxTokens }: St
   );
 
   if (!toolUse) {
-    throw new Error("Le modèle n'a pas renvoyé de réponse structurée.");
+    throw new Error("The model did not return a structured response.");
   }
 
   return toolUse.input;

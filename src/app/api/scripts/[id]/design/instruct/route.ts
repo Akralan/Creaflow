@@ -11,7 +11,7 @@ const schema = z.object({
   planNumber: z.number().int().positive().nullable().optional(),
 });
 
-/** Instruction à l'agent sur la maquette — une micro-retouche (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2 « Quota »). */
+/** Instruction to the agent about the mockup — a micro-edit (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2 "Quota"). */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userId = await requireUserId();

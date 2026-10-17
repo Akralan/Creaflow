@@ -42,10 +42,10 @@ describe("normalizeTimeline", () => {
     );
     expect(issues).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("« ghost » inconnu"),
-        expect.stringContaining("« title » présent deux fois"),
-        expect.stringContaining("« cta » : début 9000 ms au-delà"),
-        expect.stringContaining("« price » : sortie à 1200 ms avant la fin de l'entrée"),
+        expect.stringContaining("\"ghost\" unknown"),
+        expect.stringContaining("\"title\" present twice"),
+        expect.stringContaining("\"cta\": start 9000 ms beyond"),
+        expect.stringContaining("\"price\": exit at 1200 ms before the end of the entrance"),
       ])
     );
   });
@@ -67,9 +67,9 @@ describe("normalizeTimeline", () => {
     expect(issuesOf(() => normalizeTimeline([{ layerId: "title", enter: "explode", startMs: 0, enterMs: 300, exit: null, exitAtMs: null }], layers, 8000)).length).toBeGreaterThan(0);
   });
 
-  it("décrit la ligne de temps en français", () => {
+  it("describes the timeline in English", () => {
     const text = describeTimeline(normalizeTimeline([{ layerId: "title", enter: "fade", startMs: 0, enterMs: 300, exit: null, exitAtMs: null }], layers, 8000));
-    expect(text).toBe("title : fade à 0 ms (300 ms), reste jusqu'à la fin");
-    expect(describeTimeline([])).toBe("(aucun calque animé)");
+    expect(text).toBe("title: fade at 0 ms (300 ms), stays until the end");
+    expect(describeTimeline([])).toBe("(no animated layer)");
   });
 });

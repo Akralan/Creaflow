@@ -49,6 +49,6 @@ describe("callAnthropic", () => {
 
   it("lève une erreur générique si aucun bloc tool_use n'est renvoyé", async () => {
     createMock.mockResolvedValue({ content: [{ type: "text", text: "oups" }] });
-    await expect(callAnthropic(params)).rejects.toThrow("n'a pas renvoyé de réponse structurée");
+    await expect(callAnthropic(params)).rejects.toThrow("did not return a structured response");
   });
 });

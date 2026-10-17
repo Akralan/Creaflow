@@ -11,10 +11,10 @@ import { color, fontHeading, platformMeta } from "@/lib/design/tokens";
 import { defaultContentTypeForPlatform } from "@/lib/llm/prompts";
 
 /**
- * Naissance paresseuse (docs/SPEC_MATIERE_EDITEUR.md §4.1/§4.5) : la page s'ouvre depuis un créneau
- * du calendrier avec le brief déjà connu, mais aucune ligne Script n'existe encore. Deux issues :
- * générer le premier jet (flux existant), ou écrire directement — la ligne Script naît au premier
- * contenu significatif, jamais à l'ouverture d'une page vide.
+ * Lazy creation (docs/SPEC_MATIERE_EDITEUR.md §4.1/§4.5): the page opens from a calendar slot
+ * with the brief already known, but no Script row exists yet. Two outcomes: generate the first
+ * draft (existing flow), or write directly — the Script row is created on the first meaningful
+ * content, never when an empty page opens.
  */
 function NewScriptContent() {
   const router = useRouter();
@@ -48,7 +48,7 @@ function NewScriptContent() {
     api
       .getCalendarEntry(calendarEntryId)
       .then(({ entry }) => setEntry(entry))
-      .catch((err) => setError(err instanceof ApiClientError ? err.message : "Créneau introuvable."))
+      .catch((err) => setError(err instanceof ApiClientError ? err.message : "Slot not found."))
       .finally(() => setLoading(false));
   }, [calendarEntryId]);
 
@@ -67,7 +67,7 @@ function NewScriptContent() {
       );
       router.replace(`/scripts/${script.id}`);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de la génération.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong while generating.");
       setGenerating(false);
     }
   }
@@ -93,7 +93,7 @@ function NewScriptContent() {
       });
       router.replace(`/scripts/${script.id}`);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de la création.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong while creating.");
       setCreating(false);
       createdRef.current = false;
     }
@@ -104,9 +104,9 @@ function NewScriptContent() {
   if (!calendarEntryId || !entry) {
     return (
       <div style={{ padding: "32px 36px" }}>
-        <p style={{ color: color.danger }}>{error || "Créneau introuvable."}</p>
+        <p style={{ color: color.danger }}>{error || "Slot not found."}</p>
         <Button variant="secondary" onClick={() => router.push("/calendar")}>
-          ← Retour au calendrier
+          ← Back to calendar
         </Button>
       </div>
     );
@@ -118,7 +118,7 @@ function NewScriptContent() {
         onClick={() => router.push("/calendar")}
         style={{ background: "none", border: "none", color: color.textMuted, fontFamily: "inherit", fontSize: 14, cursor: "pointer", marginBottom: 18, padding: 0 }}
       >
-        ← Retour au calendrier
+        ← Back to calendar
       </button>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 22 }}>
@@ -134,11 +134,11 @@ function NewScriptContent() {
         )}
       </div>
 
-      <h1 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 26, margin: "0 0 24px" }}>Nouveau script</h1>
+      <h1 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 26, margin: "0 0 24px" }}>New script</h1>
 
       <div style={{ marginBottom: 20 }}>
         <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.text3, marginBottom: 6 }}>
-          Sujet <span style={{ color: color.textFaint, fontWeight: 400 }}>— optionnel, mais nourrit la génération avec le corpus de ce sujet</span>
+          Topic <span style={{ color: color.textFaint, fontWeight: 400 }}>— optional, but feeds generation with this topic&apos;s material</span>
         </label>
         <select
           value={productId}
@@ -154,7 +154,7 @@ function NewScriptContent() {
             color: color.text,
           }}
         >
-          <option value="">Aucun sujet — script générique</option>
+          <option value="">No topic — generic script</option>
           {products.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -171,12 +171,12 @@ function NewScriptContent() {
 
       <div style={{ marginBottom: 20 }}>
         <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.text3, marginBottom: 6 }}>
-          Une idée en tête ? <span style={{ color: color.textFaint, fontWeight: 400 }}>— optionnel</span>
+          An idea in mind? <span style={{ color: color.textFaint, fontWeight: 400 }}>— optional</span>
         </label>
         <textarea
           value={directive}
           onChange={(e) => setDirective(e.target.value)}
-          placeholder="Une piste à interpréter, pas un texte à recopier..."
+          placeholder="A direction to interpret, not a text to copy..."
           rows={2}
           maxLength={500}
           style={{
@@ -196,17 +196,17 @@ function NewScriptContent() {
 
       <Card style={{ padding: 24, marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
         <div>
-          <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>Générer un premier jet</div>
-          <div style={{ fontSize: 13, color: color.textMuted }}>L&apos;IA propose un brouillon complet à partir de ton brief et de ta matière.</div>
+          <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>Generate a first draft</div>
+          <div style={{ fontSize: 13, color: color.textMuted }}>The AI proposes a complete draft based on your brief and your material.</div>
         </div>
         <Button onClick={handleGenerate} disabled={generating}>
-          {generating ? "..." : "Générer"}
+          {generating ? "..." : "Generate"}
         </Button>
       </Card>
 
       <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0", color: color.textFaint, fontSize: 12 }}>
         <div style={{ flex: 1, height: 1, background: color.divider }} />
-        ou écris directement
+        or write directly
         <div style={{ flex: 1, height: 1, background: color.divider }} />
       </div>
 
@@ -217,7 +217,7 @@ function NewScriptContent() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onBlur={handleFirstContent}
-          placeholder="Titre du script"
+          placeholder="Script title"
           style={{
             width: "100%",
             fontFamily: fontHeading,
@@ -235,7 +235,7 @@ function NewScriptContent() {
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
           onBlur={handleFirstContent}
-          placeholder="Commence à écrire..."
+          placeholder="Start writing..."
           rows={8}
           style={{
             width: "100%",

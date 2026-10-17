@@ -1,44 +1,44 @@
 /**
- * Les trois visages de la cible prioritaire (docs/PRODUCT.md §2.1) qui se relaient dans les
- * exemples de la landing : développeur build in public, fondateur non technique, indépendant
- * en personal branding. Les textes génériques (titre, promesse, sections) ne changent pas ;
- * seuls les exemples concrets tournent, pour qu'aucun des trois ne se sente exclu.
+ * The three faces of the priority target (docs/PRODUCT.md §2.1) that take turns in the
+ * landing examples: build-in-public developer, non-technical founder, independent
+ * in personal branding. The generic copy (title, promise, sections) does not change;
+ * only the concrete examples rotate, so none of the three feels left out.
  */
 export type SourceKind = "github" | "notion" | "linear" | "file";
 
 export type Persona = {
   id: string;
-  /** Pastille au-dessus du titre du hero. */
+  /** Badge above the hero title. */
   badge: string;
-  /** Titre de la fenêtre de démo. */
+  /** Title of the demo window. */
   windowTitle: string;
-  /** Sources branchées, affichées en haut de la démo. */
+  /** Connected sources, shown at the top of the demo. */
   sources: Array<{ kind: SourceKind; name: string; detail: string }>;
-  /** Les posts de la semaine dans la démo. */
+  /** The week's posts in the demo. */
   schedule: Array<{ title: string; meta: string; highlighted?: boolean; phoneHidden?: boolean }>;
-  /** Le post rédigé dans la démo. */
+  /** The drafted post in the demo. */
   post: {
     format: string;
     hook: string;
     body: string;
     provenance: Array<{ kind: SourceKind; label: string }>;
   };
-  /** Ligne « lecture en cours » sous le post. */
+  /** "Reading in progress" line under the post. */
   reading: string;
-  /** Visuel « matière → post » de la première carte des fonctionnalités. */
+  /** "Material → post" visual of the first features card. */
   proof: {
     sources: Array<{ kind: SourceKind; meta: string; text: string }>;
     postLabel: string;
     postHook: string;
   };
-  /** Carte « Ton audience » de la section « Ce que ça change » (LandingOutcomes). */
+  /** "Your audience" card of the "What changes" section (LandingOutcomes). */
   audience: {
     followers: string;
-    /** Progression affichée en haut de la carte. */
+    /** Growth shown at the top of the card. */
     delta: string;
-    /** Ce que l'audience rapporte : la ligne qui parle d'argent. */
+    /** What the audience brings in: the line about money. */
     signal: string;
-    /** Courbe d'abonnés, points normalisés 0-100. */
+    /** Follower curve, points normalized 0-100. */
     curve: number[];
   };
 };
@@ -46,115 +46,115 @@ export type Persona = {
 export const personas: Persona[] = [
   {
     id: "dev",
-    badge: "Pour les développeurs qui construisent en public",
-    windowTitle: "creaflow — build in public",
+    badge: "For developers who build in public",
+    windowTitle: "buildloud — build in public",
     sources: [
-      { kind: "github", name: "akralan/creaflow", detail: "4 commits" },
-      { kind: "notion", name: "Journal de bord", detail: "2 pages" },
+      { kind: "github", name: "akralan/buildloud", detail: "4 commits" },
+      { kind: "notion", name: "Dev log", detail: "2 pages" },
     ],
     schedule: [
-      { title: "Pourquoi j'ai supprimé 1 200 lignes de code", meta: "LUN · LINKEDIN" },
-      { title: "Le bug qui m'a coûté une nuit", meta: "MER · X", phoneHidden: true },
-      { title: "3 décisions prises ce mois, et ce qu'elles coûtent", meta: "VEN · LINKEDIN · NOUVEAU", highlighted: true },
+      { title: "Why I deleted 1,200 lines of code", meta: "MON · LINKEDIN" },
+      { title: "The bug that cost me a night", meta: "WED · X", phoneHidden: true },
+      { title: "3 decisions from this month, and what they cost", meta: "FRI · LINKEDIN · NEW", highlighted: true },
     ],
     post: {
-      format: "LINKEDIN · TEXTE",
-      hook: "Hier, j'ai supprimé 1 200 lignes de code. Meilleure décision du mois.",
-      body: "Le cache maison tenait depuis un an et tombait une fois par semaine. Postgres fait le travail, sans surprise.",
+      format: "LINKEDIN · TEXT",
+      hook: "Yesterday I deleted 1,200 lines of code. Best decision of the month.",
+      body: "The homegrown cache had been around for a year and broke once a week. Postgres does the job, no surprises.",
       provenance: [
         { kind: "github", label: "commit 3f2a1c" },
-        { kind: "notion", label: "Décisions.md" },
+        { kind: "notion", label: "Decisions.md" },
       ],
     },
-    reading: "CreaFlow lit tes 4 nouveaux commits…",
+    reading: "Buildloud is reading your 4 new commits…",
     proof: {
       sources: [
-        { kind: "github", meta: "commit 3f2a1c · hier", text: "refactor: supprime le cache maison (-1 200 lignes), Postgres suffit" },
-        { kind: "notion", meta: "Décisions.md · mardi", text: "On arrête de maintenir le cache : 3 incidents ce mois, aucun gain mesuré." },
+        { kind: "github", meta: "commit 3f2a1c · yesterday", text: "refactor: remove homegrown cache (-1,200 lines), Postgres is enough" },
+        { kind: "notion", meta: "Decisions.md · Tuesday", text: "We're done maintaining the cache: 3 incidents this month, no measurable gain." },
       ],
-      postLabel: "POST LINKEDIN · JEUDI",
-      postHook: "Hier, j'ai supprimé 1 200 lignes de code. Meilleure décision du mois.",
+      postLabel: "LINKEDIN POST · THURSDAY",
+      postHook: "Yesterday I deleted 1,200 lines of code. Best decision of the month.",
     },
     audience: {
-      followers: "1 240",
-      delta: "+312 CE MOIS",
-      signal: "38 inscrits à la liste d'attente",
+      followers: "1,240",
+      delta: "+312 THIS MONTH",
+      signal: "38 waitlist signups",
       curve: [8, 12, 15, 22, 26, 35, 44, 52, 63, 74, 88, 100],
     },
   },
   {
     id: "fondateur",
-    badge: "Pour les fondateurs qui racontent leur projet",
-    windowTitle: "creaflow — lancement v2",
+    badge: "For founders who share their journey",
+    windowTitle: "buildloud — v2 launch",
     sources: [
-      { kind: "notion", name: "Journal de bord", detail: "3 pages" },
-      { kind: "linear", name: "Lancement v2", detail: "5 issues" },
+      { kind: "notion", name: "Dev log", detail: "3 pages" },
+      { kind: "linear", name: "v2 launch", detail: "5 issues" },
     ],
     schedule: [
-      { title: "Pourquoi on a dit non à notre plus gros client", meta: "LUN · LINKEDIN" },
-      { title: "Le chiffre qu'on ne montre jamais", meta: "MER · INSTAGRAM", phoneHidden: true },
-      { title: "Ce que coûte vraiment un lancement raté", meta: "VEN · LINKEDIN · NOUVEAU", highlighted: true },
+      { title: "Why we said no to our biggest client", meta: "MON · LINKEDIN" },
+      { title: "The number we never show", meta: "WED · INSTAGRAM", phoneHidden: true },
+      { title: "What a failed launch really costs", meta: "FRI · LINKEDIN · NEW", highlighted: true },
     ],
     post: {
-      format: "LINKEDIN · TEXTE",
-      hook: "On a refusé 40 000 € la semaine dernière. Voilà pourquoi.",
-      body: "Le client voulait une version sur mesure. Six mois de travail pour un seul compte, pendant que les 200 autres attendaient la v2.",
+      format: "LINKEDIN · TEXT",
+      hook: "We turned down $40,000 last week. Here's why.",
+      body: "The client wanted a custom version. Six months of work for a single account, while the other 200 waited for v2.",
       provenance: [
-        { kind: "notion", label: "Journal · lundi" },
+        { kind: "notion", label: "Dev log · Monday" },
         { kind: "linear", label: "issue #214" },
       ],
     },
-    reading: "CreaFlow lit tes 3 nouvelles pages…",
+    reading: "Buildloud is reading your 3 new pages…",
     proof: {
       sources: [
-        { kind: "notion", meta: "Journal de bord · lundi", text: "Refusé la proposition sur mesure : 40 k€, mais six mois pour un seul compte." },
-        { kind: "linear", meta: "issue #214 · fermée", text: "Lancement v2 : onboarding réduit de 12 à 4 étapes." },
+        { kind: "notion", meta: "Dev log · Monday", text: "Declined the custom proposal: $40k, but six months for a single account." },
+        { kind: "linear", meta: "issue #214 · closed", text: "v2 launch: onboarding cut from 12 steps to 4." },
       ],
-      postLabel: "POST LINKEDIN · JEUDI",
-      postHook: "On a refusé 40 000 € la semaine dernière. Voilà pourquoi.",
+      postLabel: "LINKEDIN POST · THURSDAY",
+      postHook: "We turned down $40,000 last week. Here's why.",
     },
     audience: {
-      followers: "2 870",
-      delta: "+405 CE MOIS",
-      signal: "12 demandes de démo cette semaine",
+      followers: "2,870",
+      delta: "+405 THIS MONTH",
+      signal: "12 demo requests this week",
       curve: [20, 24, 27, 31, 38, 42, 50, 57, 66, 75, 86, 100],
     },
   },
   {
     id: "independant",
-    badge: "Pour les indépendants qui tiennent des notes",
-    windowTitle: "creaflow — missions 2026",
+    badge: "For freelancers who keep notes",
+    windowTitle: "buildloud — 2026 projects",
     sources: [
-      { kind: "notion", name: "Comptes rendus", detail: "6 pages" },
-      { kind: "file", name: "notes-mission.md", detail: "collé" },
+      { kind: "notion", name: "Meeting notes", detail: "6 pages" },
+      { kind: "file", name: "notes-mission.md", detail: "pasted" },
     ],
     schedule: [
-      { title: "3 questions que me posent tous mes clients", meta: "LUN · LINKEDIN" },
-      { title: "Ce que j'ai appris d'une mission ratée", meta: "MER · LINKEDIN", phoneHidden: true },
-      { title: "Mon tarif a changé, et voici pourquoi", meta: "VEN · TIKTOK · NOUVEAU", highlighted: true },
+      { title: "3 questions every client asks me", meta: "MON · LINKEDIN" },
+      { title: "What I learned from a failed project", meta: "WED · LINKEDIN", phoneHidden: true },
+      { title: "My rate changed, and here's why", meta: "FRI · LINKEDIN · NEW", highlighted: true },
     ],
     post: {
-      format: "LINKEDIN · TEXTE",
-      hook: "Un client m'a demandé une remise. J'ai dit non, et il a signé.",
-      body: "Depuis janvier, je chiffre le résultat avant le temps passé. Trois propositions, trois signatures, aucune négociation.",
+      format: "LINKEDIN · TEXT",
+      hook: "A client asked me for a discount. I said no, and they signed.",
+      body: "Since January, I price the outcome before the time spent. Three proposals, three signatures, no negotiation.",
       provenance: [
         { kind: "file", label: "notes-mission.md" },
-        { kind: "notion", label: "CR du 3 oct." },
+        { kind: "notion", label: "Notes · Oct 3" },
       ],
     },
-    reading: "CreaFlow lit tes 2 nouveaux comptes rendus…",
+    reading: "Buildloud is reading your 2 new meeting notes…",
     proof: {
       sources: [
-        { kind: "file", meta: "notes-mission.md · hier", text: "Demande de remise de 15 %. Refusée, proposition maintenue. Signée le lendemain." },
-        { kind: "notion", meta: "Compte rendu · 3 oct.", text: "Nouvelle grille : chiffrer le résultat attendu, plus le temps passé." },
+        { kind: "file", meta: "notes-mission.md · yesterday", text: "15% discount request. Declined, proposal unchanged. Signed the next day." },
+        { kind: "notion", meta: "Meeting notes · Oct 3", text: "New pricing grid: price the expected outcome, not the time spent." },
       ],
-      postLabel: "POST LINKEDIN · JEUDI",
-      postHook: "Un client m'a demandé une remise. J'ai dit non, et il a signé.",
+      postLabel: "LINKEDIN POST · THURSDAY",
+      postHook: "A client asked me for a discount. I said no, and they signed.",
     },
     audience: {
       followers: "960",
-      delta: "+184 CE MOIS",
-      signal: "4 demandes de devis entrantes",
+      delta: "+184 THIS MONTH",
+      signal: "4 inbound quote requests",
       curve: [10, 14, 13, 20, 27, 30, 39, 48, 55, 68, 82, 100],
     },
   },

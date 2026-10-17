@@ -5,37 +5,37 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 import { generationRequest } from "./ScriptFormatChooser";
 
 describe("generationRequest", () => {
-  it("texte seul → post texte", () => {
+  it("text only → text post", () => {
     expect(generationRequest(null, true)).toEqual({ contentType: "text", fields: undefined });
   });
 
-  it("animation + texte → un post visuel dont la légende est un vrai texte", () => {
+  it("animation + text → a visual post whose caption is a fully written text", () => {
     expect(generationRequest("animation", true)).toMatchObject({
       contentType: "visual",
       fields: { visualFormat: "animation", withText: true },
     });
   });
 
-  it("photo seule (1 image) → image unique à légende courte", () => {
+  it("photo only (1 image) → single image with a short caption", () => {
     expect(generationRequest("carousel", false)).toMatchObject({
       contentType: "visual",
       fields: { visualFormat: "single", withText: false },
     });
   });
 
-  it("plusieurs images → carrousel du nombre choisi", () => {
+  it("several images → carousel of the chosen size", () => {
     expect(generationRequest("carousel", true, { images: 5, seconds: 8 })).toMatchObject({
       fields: { visualFormat: "carousel", slideCount: 5, withText: true },
     });
   });
 
-  it("animation → durée choisie en millisecondes", () => {
+  it("animation → chosen duration in milliseconds", () => {
     expect(generationRequest("animation", true, { images: 1, seconds: 12 })).toMatchObject({
       fields: { visualFormat: "animation", durationMs: 12000 },
     });
   });
 
-  it("rien de coché → pas de génération", () => {
+  it("nothing ticked → no generation", () => {
     expect(generationRequest(null, false)).toBeNull();
   });
 });

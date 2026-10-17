@@ -20,9 +20,9 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId();
-    // Un tour de chat assistant déclenche désormais PLUSIEURS appels LLM (boucle agentique, jusqu'à
-    // maxTurns — docs/SPEC_ASSISTANT_AGENTIQUE.md §2.3/§9.4) : le plafond compte toujours des tours
-    // de conversation, mais il est resserré en conséquence.
+    // An assistant chat turn now triggers SEVERAL LLM calls (agentic loop, up to
+    // maxTurns — docs/SPEC_ASSISTANT_AGENTIQUE.md §2.3/§9.4): the cap still counts turns
+    // of conversation, but it is tightened accordingly.
     await enforceRateLimit("assistant-chat", userId, 10, 60);
     const { message } = schema.parse(await request.json());
     const { reply, proposals, attachments } = await runAssistantChatTurnForUser(userId, message);

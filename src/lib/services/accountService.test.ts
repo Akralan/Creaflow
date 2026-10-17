@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 
-// Le service tire `db`, Stripe et le stockage à l'import ; seule la logique pure est testée ici.
+// The service pulls in `db`, Stripe and storage at import; only the pure logic is tested here.
 vi.mock("@/db", () => ({ db: {} }));
 
 const { matchesEmailConfirmation } = await import("./accountService");
 
 describe("matchesEmailConfirmation", () => {
-  it("accepte l'adresse du compte, indifféremment à la casse et aux espaces", () => {
+  it("accepts the account address, regardless of case and whitespace", () => {
     expect(matchesEmailConfirmation("alix@example.com", "  Alix@Example.com ")).toBe(true);
   });
 
-  it("refuse une adresse différente ou absente", () => {
+  it("rejects a different or missing address", () => {
     expect(matchesEmailConfirmation("alix@example.com", "autre@example.com")).toBe(false);
     expect(matchesEmailConfirmation("alix@example.com", undefined)).toBe(false);
     expect(matchesEmailConfirmation("alix@example.com", "")).toBe(false);

@@ -5,10 +5,10 @@ import { confirmSeriesSelection } from "@/lib/services/seriesSelectionService";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
 import { handleApiError } from "@/lib/api/errors";
 
-const schema = z.object({ keptIds: z.array(z.uuid()).min(1, "Garde au moins une série.") });
+const schema = z.object({ keptIds: z.array(z.uuid()).min(1, "Keep at least one series.") });
 
-/** Validation des séries sur Direction après l'onboarding : archive les décochées, recalcule les
- *  pourcentages, planifie la série principale (un appel LLM). */
+/** Validation of the series on Direction after onboarding: archives the unchecked ones, recomputes the
+ *  percentages, schedules the main series (one LLM call). */
 export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId();

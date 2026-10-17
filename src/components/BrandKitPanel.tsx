@@ -21,8 +21,8 @@ const input: React.CSSProperties = {
 };
 
 /**
- * Identité de marque des maquettes (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2, §6) : trois couleurs,
- * deux polices, un logo choisi dans la bibliothèque. Tout est optionnel.
+ * Brand identity for mockups (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2, §6): three colors,
+ * two fonts, a logo picked from the library. Everything is optional.
  */
 export default function BrandKitPanel() {
   const [kit, setKit] = useState<BrandKit>(EMPTY);
@@ -49,7 +49,7 @@ export default function BrandKitPanel() {
       setKit({ ...EMPTY, ...brandKit });
       setSaved(true);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Enregistrement impossible.");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't save.");
     } finally {
       setSaving(false);
     }
@@ -70,21 +70,21 @@ export default function BrandKitPanel() {
   return (
     <div style={{ border: `1px solid ${accentAlpha(0.25)}`, background: accentAlpha(0.06), borderRadius: 14, padding: 16, display: "grid", gap: 14 }}>
       <div>
-        <div style={{ fontWeight: 600, fontSize: 14 }}>Identité visuelle des maquettes</div>
+        <div style={{ fontWeight: 600, fontSize: 14 }}>Visual identity for mockups</div>
         <div style={{ fontSize: 12, color: color.textMuted, marginTop: 2 }}>
-          Couleurs, polices et logo que l&apos;agent respecte quand il compose un post visuel. Laisse vide pour le laisser choisir.
+          Colors, fonts and logo the agent follows when it composes a visual post. Leave empty to let it choose.
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-        {colorField("primaryColor", "Couleur dominante")}
-        {colorField("secondaryColor", "Couleur secondaire")}
+        {colorField("primaryColor", "Main color")}
+        {colorField("secondaryColor", "Secondary color")}
         {colorField("accentColor", "Accent")}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div>
-          <div style={label}>Police des titres</div>
+          <div style={label}>Heading font</div>
           <select style={input} value={kit.fontHeading ?? ""} onChange={(e) => setKit({ ...kit, fontHeading: e.target.value || null })}>
-            <option value="">(au choix de l&apos;agent)</option>
+            <option value="">(agent&apos;s choice)</option>
             {DESIGN_FONTS.map((f) => (
               <option key={f.name} value={f.name}>
                 {f.name}
@@ -93,9 +93,9 @@ export default function BrandKitPanel() {
           </select>
         </div>
         <div>
-          <div style={label}>Police du texte</div>
+          <div style={label}>Body font</div>
           <select style={input} value={kit.fontBody ?? ""} onChange={(e) => setKit({ ...kit, fontBody: e.target.value || null })}>
-            <option value="">(au choix de l&apos;agent)</option>
+            <option value="">(agent&apos;s choice)</option>
             {DESIGN_FONTS.map((f) => (
               <option key={f.name} value={f.name}>
                 {f.name}
@@ -105,9 +105,9 @@ export default function BrandKitPanel() {
         </div>
       </div>
       <div>
-        <div style={label}>Logo (une image de la bibliothèque)</div>
+        <div style={label}>Logo (an image from the library)</div>
         {assets.length === 0 ? (
-          <p style={{ margin: 0, fontSize: 12, color: color.textFaint }}>Ajoute d&apos;abord ton logo dans l&apos;onglet Ressources visuelles.</p>
+          <p style={{ margin: 0, fontSize: 12, color: color.textFaint }}>First add your logo in the Visual assets tab.</p>
         ) : (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {assets.map((a) => (
@@ -136,9 +136,9 @@ export default function BrandKitPanel() {
       {error && <p style={{ margin: 0, fontSize: 12, color: color.danger }}>{error}</p>}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <Button onClick={save} disabled={saving} style={{ padding: "9px 18px", fontSize: 13 }}>
-          {saving ? "..." : "Enregistrer l'identité"}
+          {saving ? "..." : "Save identity"}
         </Button>
-        {saved && <span style={{ fontSize: 13, color: "oklch(0.5 0.14 150)" }}>Enregistré.</span>}
+        {saved && <span style={{ fontSize: 13, color: "oklch(0.5 0.14 150)" }}>Saved.</span>}
       </div>
     </div>
   );

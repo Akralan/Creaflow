@@ -1,13 +1,13 @@
 /**
- * Catalogue d'éléments d'interface (docs/SPEC_COMPOSITION_VISUELLE.md §2 « Éléments d'interface »,
- * §5.4). Pas de nouveau type de calque : chaque élément est un calque `shape` ou `text` fait de
- * `div` + styles inline, exprimable dans la liste blanche. Le même catalogue sert deux fois — en
- * texte dans le system prompt de l'agent, et en HTML dans le menu « Ajouter un élément » de
- * l'éditeur. Module pur, testé contre la liste blanche.
+ * Catalog of interface elements (docs/SPEC_COMPOSITION_VISUELLE.md §2 "Interface elements",
+ * §5.4). No new layer type: each element is a `shape` or `text` layer made of
+ * `div` + inline styles, expressible in the whitelist. The same catalog serves twice — as
+ * text in the agent's system prompt, and as HTML in the editor's "Add an element" menu.
+ * Pure module, tested against the whitelist.
  */
 
 export interface UiElementTheme {
-  /** Couleurs hex, la première dominante (DesignTheme.palette). */
+  /** Hex colors, the first dominant (DesignTheme.palette). */
   palette: string[];
   fontHeading: string;
   fontBody: string;
@@ -16,9 +16,9 @@ export interface UiElementTheme {
 export interface UiElement {
   id: string;
   label: string;
-  /** Une phrase pour l'agent : à quoi ça sert, comment ça se construit. */
+  /** A sentence for the agent: what it is for, how it is built. */
   prompt: string;
-  /** Calque prêt à insérer, centré par défaut ; `data-layer` est posé par l'appelant. */
+  /** Ready-to-insert layer, centered by default; `data-layer` is set by the caller. */
   html: (theme: UiElementTheme, canvas: { width: number; height: number }) => string;
 }
 
@@ -33,71 +33,71 @@ function esc(s: string): string {
 export const UI_ELEMENTS: UiElement[] = [
   {
     id: "price-tag",
-    label: "Étiquette de prix",
-    prompt: "étiquette de prix (pastille ou rectangle arrondi aux couleurs de la marque, prix en gros, mention courte en dessous)",
+    label: "Price tag",
+    prompt: "price tag (pill or rounded rectangle in the brand colors, big price, short note below)",
     html: (t, c) =>
-      `<div data-type="text" style="position:absolute;top:${Math.round(c.height * 0.72)}px;left:${Math.round(c.width * 0.62)}px;width:${Math.round(c.width * 0.3)}px;height:${Math.round(c.width * 0.14)}px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:${esc(colorAt(t, 2, "#c98a3a"))};color:#fff;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,0.25);font-family:${esc(t.fontHeading)}"><span style="font-size:${Math.round(c.width * 0.05)}px;font-weight:700;line-height:1">24 €</span><span style="font-size:${Math.round(c.width * 0.018)}px;font-family:${esc(t.fontBody)};opacity:0.9">livraison offerte</span></div>`,
+      `<div data-type="text" style="position:absolute;top:${Math.round(c.height * 0.72)}px;left:${Math.round(c.width * 0.62)}px;width:${Math.round(c.width * 0.3)}px;height:${Math.round(c.width * 0.14)}px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:${esc(colorAt(t, 2, "#c98a3a"))};color:#fff;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,0.25);font-family:${esc(t.fontHeading)}"><span style="font-size:${Math.round(c.width * 0.05)}px;font-weight:700;line-height:1">$24</span><span style="font-size:${Math.round(c.width * 0.018)}px;font-family:${esc(t.fontBody)};opacity:0.9">free shipping</span></div>`,
   },
   {
     id: "badge",
     label: "Badge",
-    prompt: "badge (petite capsule en haut d'une slide : « Nouveau », « Édition limitée », « -20 % »)",
+    prompt: "badge (small capsule at the top of a slide: \"New\", \"Limited edition\", \"-20%\")",
     html: (t, c) =>
-      `<div data-type="text" style="position:absolute;top:${Math.round(c.height * 0.06)}px;left:${Math.round(c.width * 0.06)}px;padding:${Math.round(c.width * 0.012)}px ${Math.round(c.width * 0.025)}px;background:${esc(colorAt(t, 0, "#111"))};color:#fff;border-radius:999px;font-family:${esc(t.fontBody)};font-size:${Math.round(c.width * 0.024)}px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase">Nouveau</div>`,
+      `<div data-type="text" style="position:absolute;top:${Math.round(c.height * 0.06)}px;left:${Math.round(c.width * 0.06)}px;padding:${Math.round(c.width * 0.012)}px ${Math.round(c.width * 0.025)}px;background:${esc(colorAt(t, 0, "#111"))};color:#fff;border-radius:999px;font-family:${esc(t.fontBody)};font-size:${Math.round(c.width * 0.024)}px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase">New</div>`,
   },
   {
     id: "cta-button",
-    label: "Bouton d'appel à l'action",
-    prompt: "bouton d'appel à l'action (rectangle arrondi plein, texte court centré, en bas de la dernière slide)",
+    label: "Call-to-action button",
+    prompt: "call-to-action button (solid rounded rectangle, short centered text, at the bottom of the last slide)",
     html: (t, c) =>
-      `<div data-type="text" style="position:absolute;top:${Math.round(c.height * 0.84)}px;left:${Math.round(c.width * 0.2)}px;width:${Math.round(c.width * 0.6)}px;height:${Math.round(c.width * 0.1)}px;display:flex;align-items:center;justify-content:center;background:${esc(colorAt(t, 2, "#c98a3a"))};color:#fff;border-radius:${Math.round(c.width * 0.02)}px;font-family:${esc(t.fontHeading)};font-size:${Math.round(c.width * 0.034)}px;font-weight:700">Commander</div>`,
+      `<div data-type="text" style="position:absolute;top:${Math.round(c.height * 0.84)}px;left:${Math.round(c.width * 0.2)}px;width:${Math.round(c.width * 0.6)}px;height:${Math.round(c.width * 0.1)}px;display:flex;align-items:center;justify-content:center;background:${esc(colorAt(t, 2, "#c98a3a"))};color:#fff;border-radius:${Math.round(c.width * 0.02)}px;font-family:${esc(t.fontHeading)};font-size:${Math.round(c.width * 0.034)}px;font-weight:700">Order now</div>`,
   },
   {
     id: "numbered-bullet",
-    label: "Puce numérotée",
-    prompt: "puce numérotée (rond plein avec un chiffre, texte à droite — pour une liste d'étapes ou d'arguments)",
+    label: "Numbered bullet",
+    prompt: "numbered bullet (solid circle with a digit, text on the right — for a list of steps or arguments)",
     html: (t, c) =>
-      `<div data-type="text" style="position:absolute;top:${Math.round(c.height * 0.4)}px;left:${Math.round(c.width * 0.08)}px;width:${Math.round(c.width * 0.84)}px;display:flex;align-items:center;gap:${Math.round(c.width * 0.025)}px;font-family:${esc(t.fontBody)};color:${esc(colorAt(t, 1, "#fff"))}"><span style="display:flex;align-items:center;justify-content:center;width:${Math.round(c.width * 0.08)}px;height:${Math.round(c.width * 0.08)}px;border-radius:50%;background:${esc(colorAt(t, 2, "#c98a3a"))};color:#fff;font-family:${esc(t.fontHeading)};font-size:${Math.round(c.width * 0.04)}px;font-weight:700">1</span><span style="font-size:${Math.round(c.width * 0.034)}px;line-height:1.3">Première étape</span></div>`,
+      `<div data-type="text" style="position:absolute;top:${Math.round(c.height * 0.4)}px;left:${Math.round(c.width * 0.08)}px;width:${Math.round(c.width * 0.84)}px;display:flex;align-items:center;gap:${Math.round(c.width * 0.025)}px;font-family:${esc(t.fontBody)};color:${esc(colorAt(t, 1, "#fff"))}"><span style="display:flex;align-items:center;justify-content:center;width:${Math.round(c.width * 0.08)}px;height:${Math.round(c.width * 0.08)}px;border-radius:50%;background:${esc(colorAt(t, 2, "#c98a3a"))};color:#fff;font-family:${esc(t.fontHeading)};font-size:${Math.round(c.width * 0.04)}px;font-weight:700">1</span><span style="font-size:${Math.round(c.width * 0.034)}px;line-height:1.3">First step</span></div>`,
   },
   {
     id: "card",
-    label: "Encart",
-    prompt: "encart / carte (rectangle arrondi semi-opaque qui isole un texte sur une photo chargée)",
+    label: "Card",
+    prompt: "card / callout (semi-opaque rounded rectangle that isolates a text over a busy photo)",
     html: (t, c) =>
-      `<div data-type="text" style="position:absolute;top:${Math.round(c.height * 0.55)}px;left:${Math.round(c.width * 0.08)}px;width:${Math.round(c.width * 0.84)}px;padding:${Math.round(c.width * 0.04)}px;background:rgba(255,255,255,0.92);color:${esc(colorAt(t, 0, "#111"))};border-radius:${Math.round(c.width * 0.025)}px;box-shadow:0 12px 32px rgba(0,0,0,0.2);font-family:${esc(t.fontBody)};font-size:${Math.round(c.width * 0.03)}px;line-height:1.35">Un texte court, mis en valeur dans un encart.</div>`,
+      `<div data-type="text" style="position:absolute;top:${Math.round(c.height * 0.55)}px;left:${Math.round(c.width * 0.08)}px;width:${Math.round(c.width * 0.84)}px;padding:${Math.round(c.width * 0.04)}px;background:rgba(255,255,255,0.92);color:${esc(colorAt(t, 0, "#111"))};border-radius:${Math.round(c.width * 0.025)}px;box-shadow:0 12px 32px rgba(0,0,0,0.2);font-family:${esc(t.fontBody)};font-size:${Math.round(c.width * 0.03)}px;line-height:1.35">A short text, highlighted in a card.</div>`,
   },
   {
     id: "banner",
-    label: "Bandeau",
-    prompt: "bandeau (barre pleine largeur en haut ou en bas, couleur de marque, titre ou mention dedans)",
+    label: "Banner",
+    prompt: "banner (full-width bar at the top or bottom, brand color, title or note inside)",
     html: (t, c) =>
-      `<div data-type="text" style="position:absolute;top:0;left:0;width:${c.width}px;height:${Math.round(c.height * 0.1)}px;display:flex;align-items:center;justify-content:center;background:${esc(colorAt(t, 0, "#111"))};color:#fff;font-family:${esc(t.fontHeading)};font-size:${Math.round(c.width * 0.036)}px;font-weight:700;letter-spacing:0.02em">Titre du bandeau</div>`,
+      `<div data-type="text" style="position:absolute;top:0;left:0;width:${c.width}px;height:${Math.round(c.height * 0.1)}px;display:flex;align-items:center;justify-content:center;background:${esc(colorAt(t, 0, "#111"))};color:#fff;font-family:${esc(t.fontHeading)};font-size:${Math.round(c.width * 0.036)}px;font-weight:700;letter-spacing:0.02em">Banner title</div>`,
   },
   {
     id: "quote-bubble",
-    label: "Bulle de citation",
-    prompt: "bulle de citation (encart arrondi avec un grand guillemet et le nom de l'auteur, pour un avis client)",
+    label: "Quote bubble",
+    prompt: "quote bubble (rounded card with a large quotation mark and the author's name, for a customer review)",
     html: (t, c) =>
-      `<div data-type="text" style="position:absolute;top:${Math.round(c.height * 0.3)}px;left:${Math.round(c.width * 0.1)}px;width:${Math.round(c.width * 0.8)}px;padding:${Math.round(c.width * 0.05)}px;background:${esc(colorAt(t, 1, "#f4e9d8"))};color:${esc(colorAt(t, 0, "#111"))};border-radius:${Math.round(c.width * 0.04)}px;font-family:${esc(t.fontHeading)};font-size:${Math.round(c.width * 0.034)}px;line-height:1.35"><span style="display:block;font-size:${Math.round(c.width * 0.1)}px;line-height:0.8;opacity:0.5">“</span>Un avis client, court et sincère.<span style="display:block;margin-top:${Math.round(c.width * 0.02)}px;font-family:${esc(t.fontBody)};font-size:${Math.round(c.width * 0.024)}px;opacity:0.7">— Prénom</span></div>`,
+      `<div data-type="text" style="position:absolute;top:${Math.round(c.height * 0.3)}px;left:${Math.round(c.width * 0.1)}px;width:${Math.round(c.width * 0.8)}px;padding:${Math.round(c.width * 0.05)}px;background:${esc(colorAt(t, 1, "#f4e9d8"))};color:${esc(colorAt(t, 0, "#111"))};border-radius:${Math.round(c.width * 0.04)}px;font-family:${esc(t.fontHeading)};font-size:${Math.round(c.width * 0.034)}px;line-height:1.35"><span style="display:block;font-size:${Math.round(c.width * 0.1)}px;line-height:0.8;opacity:0.5">“</span>A customer review, short and sincere.<span style="display:block;margin-top:${Math.round(c.width * 0.02)}px;font-family:${esc(t.fontBody)};font-size:${Math.round(c.width * 0.024)}px;opacity:0.7">— First name</span></div>`,
   },
   {
     id: "divider",
-    label: "Séparateur",
-    prompt: "séparateur (trait fin horizontal, couleur d'accent, entre deux blocs de texte)",
+    label: "Divider",
+    prompt: "divider (thin horizontal line, accent color, between two blocks of text)",
     html: (t, c) =>
       `<div data-type="shape" style="position:absolute;top:${Math.round(c.height * 0.5)}px;left:${Math.round(c.width * 0.3)}px;width:${Math.round(c.width * 0.4)}px;height:${Math.max(3, Math.round(c.width * 0.004))}px;background:${esc(colorAt(t, 2, "#c98a3a"))};border-radius:999px"></div>`,
   },
   {
     id: "progress-bar",
-    label: "Barre de progression",
-    prompt: "barre de progression (rail clair et portion pleine, pour « 3 étapes sur 5 » ou un pourcentage)",
+    label: "Progress bar",
+    prompt: "progress bar (light track and filled portion, for \"step 3 of 5\" or a percentage)",
     html: (t, c) =>
       `<div data-type="shape" style="position:absolute;top:${Math.round(c.height * 0.9)}px;left:${Math.round(c.width * 0.1)}px;width:${Math.round(c.width * 0.8)}px;height:${Math.round(c.width * 0.014)}px;background:rgba(255,255,255,0.35);border-radius:999px;overflow:hidden"><div style="width:60%;height:100%;background:${esc(colorAt(t, 2, "#c98a3a"))};border-radius:999px"></div></div>`,
   },
   {
     id: "phone-frame",
-    label: "Cadre de téléphone",
-    prompt: "cadre de téléphone (rectangle vertical à coins très arrondis, bordure sombre épaisse, encoche en haut ; la capture d'écran va dedans en object-fit:cover)",
+    label: "Phone frame",
+    prompt: "phone frame (vertical rectangle with very rounded corners, thick dark border, notch at the top; the screenshot goes inside with object-fit:cover)",
     html: (t, c) => {
       const w = Math.round(c.width * 0.5);
       const h = Math.round(w * 2.05);
@@ -106,8 +106,8 @@ export const UI_ELEMENTS: UiElement[] = [
   },
   {
     id: "browser-frame",
-    label: "Cadre de navigateur",
-    prompt: "cadre de navigateur (rectangle à coins arrondis, barre haute claire avec trois points ronds à gauche ; la capture d'écran va dedans)",
+    label: "Browser frame",
+    prompt: "browser frame (rounded-corner rectangle, light top bar with three round dots on the left; the screenshot goes inside)",
     html: (t, c) => {
       const w = Math.round(c.width * 0.86);
       const h = Math.round(w * 0.66);
@@ -122,7 +122,7 @@ export function findUiElement(id: string): UiElement | null {
   return UI_ELEMENTS.find((e) => e.id === id) ?? null;
 }
 
-/** Énumération en une ligne pour le system prompt de l'agent. */
+/** One-line enumeration for the agent's system prompt. */
 export function describeUiElementsForPrompt(): string {
   return UI_ELEMENTS.map((e) => e.prompt).join(" ; ");
 }

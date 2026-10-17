@@ -5,14 +5,14 @@ import { accent, accentAlpha, color } from "@/lib/design/tokens";
 import { DEFAULT_DURATION_MS, DEFAULT_SLIDES, MAX_DURATION_MS, MAX_SLIDES, MIN_DURATION_MS, MIN_SLIDES } from "@/lib/visualDesign/visualFormat";
 
 const OPTIONS: Array<{ key: VisualFormat; label: string; hint: string }> = [
-  { key: "single", label: "Image", hint: "une seule image" },
-  { key: "carousel", label: "Carrousel", hint: "plusieurs slides" },
-  { key: "animation", label: "Animation", hint: "texte animé, 5 à 15 s" },
+  { key: "single", label: "Image", hint: "a single image" },
+  { key: "carousel", label: "Carousel", hint: "several slides" },
+  { key: "animation", label: "Animation", hint: "animated text, 5 to 15 s" },
 ];
 
 /**
- * Choix du format d'un post visuel à la génération (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §2) :
- * image, carrousel de N, animation de D secondes. Affiché seulement quand le type est « Visuel ».
+ * Format choice of a visual post at generation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §2):
+ * image, carousel of N, animation of D seconds. Only shown when the type is "Visual".
  */
 export default function VisualFormatPicker({
   value,
@@ -36,7 +36,7 @@ export default function VisualFormatPicker({
   return (
     <div>
       <label style={{ display: "block", fontSize: compact ? 13 : 14, fontWeight: 600, color: color.text3, marginBottom: compact ? 6 : 12 }}>
-        Format du visuel
+        Visual format
       </label>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "stretch" }}>
         {OPTIONS.map((o) => {
@@ -67,7 +67,7 @@ export default function VisualFormatPicker({
       </div>
       {format === "carousel" && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, fontSize: 13, color: color.textMuted }}>
-          <span>Nombre de slides</span>
+          <span>Number of slides</span>
           <input
             type="number"
             min={MIN_SLIDES}
@@ -80,7 +80,7 @@ export default function VisualFormatPicker({
       )}
       {format === "animation" && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10, fontSize: 13, color: color.textMuted }}>
-          <span>Durée</span>
+          <span>Duration</span>
           <input
             type="number"
             min={MIN_DURATION_MS / 1000}
@@ -94,7 +94,7 @@ export default function VisualFormatPicker({
             }
             style={numberInput}
           />
-          <span>secondes</span>
+          <span>seconds</span>
         </div>
       )}
     </div>

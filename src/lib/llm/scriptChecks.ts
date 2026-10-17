@@ -2,14 +2,14 @@ import { platformLimits, VISUAL_ONLY_CAPTION_MAX } from "./platformRules";
 import type { GenerationPrep } from "./scriptSchema";
 import { hookOpening, type RecentPostCard } from "./recentPosts";
 import { enforceStoryboardCount, type VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
-// Module pur (aucune base) : même correspondance floue que l'enregistrement des citations, pour qu'un
-// passage jugé introuvable ici le soit aussi là-bas.
+// Pure module (no database): same fuzzy matching as citation recording, so a passage judged
+// missing here is also missing there.
 import { findBestMatchInText } from "@/lib/services/citationMatching";
 
 /**
- * Contrôles du code sur un post généré (docs/SPEC_PROMPT_GENERATION_V3.md §5) : ce que le modèle
- * déclare dans selfCheck ne suffit pas, on vérifie. Chaque échec est une phrase adressée au modèle
- * (Annexe A.9), réutilisée telle quelle dans le message de seconde tentative.
+ * Code checks on a generated post (docs/SPEC_PROMPT_GENERATION_V3.md §5): what the model declares
+ * in selfCheck is not enough, we verify. Each failure is a sentence addressed to the model
+ * (Annex A.9), reused as is in the second-attempt message.
  */
 
 export interface CheckablePost {
@@ -26,15 +26,15 @@ export interface CheckContext {
   platform: string;
   contentType: "visual" | "text";
   visual?: VisualFormatSpec | null;
-  /** Texte annoté des documents fournis au modèle (les marqueurs [déjà utilisé] sont retirés ici). */
+  /** Annotated text of the documents given to the model (the used-passage markers are stripped here). */
   materialTexts: string[];
-  /** Liste « À bannir » apprise du style de l'auteur. */
+  /** "Avoid" list learned from the author's style. */
   avoid: string[];
-  /** Fiches des derniers posts du sujet, du plus récent au plus ancien (docs/SPEC_MEMOIRE_ET_VEILLE.md §2). */
+  /** Cards of the subject's latest posts, newest first (docs/SPEC_MEMOIRE_ET_VEILLE.md §2). */
   recentPosts?: RecentPostCard[];
 }
 
-/** Minuscules, sans accents, apostrophes et espaces unifiés. */
+/** Lowercase, accents stripped, apostrophes and whitespace unified. */
 export function normalizeForCheck(text: string): string {
   return text
     .normalize("NFD")
@@ -45,34 +45,41 @@ export function normalizeForCheck(text: string): string {
     .trim();
 }
 
-// Annexe A.8 : chaque motif correspond à une règle de <ecriture>, sur du texte normalisé.
+// Annex A.8: each pattern matches a rule from <writing>, on normalized text.
 const BANNED_PATTERNS: Array<{ label: string; re: RegExp }> = [
-  // Virgule exigée : « ce n'est pas encore fini mais c'est utilisable » n'est pas la tournure visée.
-  { label: "ce n'est pas …, c'est …", re: /ce n'est pas [^.!?,]{1,60}, c'est\b/ },
-  { label: "plus qu'un …, un …", re: /plus qu'une? [^.!?]{1,60}?, une?\b/ },
-  { label: "vous êtes-vous déjà demandé", re: /vous etes-vous deja demande/ },
-  { label: "découvrez", re: /\bdecouvrez\b/ },
-  { label: "n'hésitez pas", re: /n'hesitez pas/ },
-  { label: "dans un monde où", re: /dans un monde ou\b/ },
-  { label: "prêt à passer au niveau supérieur", re: /pret a passer au niveau superieur/ },
-  { label: "spoiler :", re: /\bspoiler ?:/ },
-  { label: "le résultat ?", re: /le resultat ?\?/ },
-  { label: "game changer", re: /game[- ]?changer/ },
-  { label: "révolutionnaire", re: /revolutionnaire/ },
+  // Comma required: "it's not finished yet but it's usable" is not the targeted construction.
+  { label: "it's not …, it's …", re: /\b(?:it|this|that)(?:'s| is) not [^.!?,]{1,60}, (?:it's|it is|but|this is|that's)\b/ },
+  { label: "not just …, but …", re: /\bnot (?:just|only|merely|simply) [^.!?,]{1,60}, (?:but|it's|it is)\b/ },
+  { label: "more than a …, a …", re: /\bmore than (?:just )?an? [^.!?]{1,60}?, an?\b/ },
+  { label: "have you ever wondered", re: /\b(?:have you )?ever wondered\b/ },
+  { label: "discover how/why/what", re: /\bdiscover (?:how|why|what|the)\b/ },
+  { label: "don't hesitate to", re: /\b(?:do not|don't) hesitate to\b/ },
+  { label: "in today's … world", re: /\bin today's [a-z-]+(?: [a-z-]+)? world\b|\bin a world where\b/ },
+  { label: "ready to take … to the next level", re: /\bready to take [^.!?]{1,40} to the next level\b/ },
+  { label: "excited/thrilled to announce", re: /\b(?:excited|thrilled|proud|humbled) to (?:announce|share|introduce)\b|\bi'm humbled\b/ },
+  { label: "let's dive in", re: /\blet's (?:dive|delve) (?:in|into)\b/ },
+  { label: "here's the thing", re: /\bhere's the thing\b/ },
+  { label: "spoiler alert", re: /\bspoiler(?: alert)? ?:|\bspoiler alert\b/ },
+  { label: "the result?", re: /\bthe result ?\?/ },
+  { label: "game changer", re: /game[- ]?chang(?:er|ing)/ },
+  { label: "revolutionary", re: /\brevolutionary\b|\bgroundbreaking\b/ },
+  { label: "delve", re: /\bdelve\b/ },
 ];
-const OPENING_QUESTION = { label: "et si… ? en ouverture", re: /^et si\b/ };
+const OPENING_QUESTION = { label: "what if…? as an opener", re: /^(?:what if|ever wondered|have you ever|did you ever|do you ever)\b/ };
 
-const USED_MARKERS = /\[déjà utilisé dans un post précédent\]|\[\/déjà utilisé\]/g;
-// Cherché sur du texte normalisé : « [a completer] » sans accent compte aussi.
-const GAP_RE = /\[a completer\]/g;
+// Both the English and the legacy French marker are stripped (the marker is produced by
+// services/citationMatching.ts).
+const USED_MARKERS = /\[already used in a previous post\]|\[\/already used\]|\[déjà utilisé dans un post précédent\]|\[\/déjà utilisé\]/g;
+// Searched on normalized (lowercased) text.
+const GAP_RE = /\[to be completed\]/g;
 const MAX_GAPS = 2;
 
 function postTextFields(post: CheckablePost): Array<{ field: string; text: string }> {
   return [
-    { field: "le titre", text: post.title },
-    ...(post.hookText ? [{ field: "l'accroche", text: post.hookText }] : []),
-    ...(post.storyboard ?? []).map((s) => ({ field: `la slide ${s.planNumber}`, text: s.description })),
-    { field: "le texte", text: post.caption },
+    { field: "the title", text: post.title },
+    ...(post.hookText ? [{ field: "the hook", text: post.hookText }] : []),
+    ...(post.storyboard ?? []).map((s) => ({ field: `slide ${s.planNumber}`, text: s.description })),
+    { field: "the text", text: post.caption },
   ];
 }
 
@@ -81,19 +88,19 @@ function bannedPhraseFailures(post: CheckablePost, avoid: string[]): string[] {
   for (const { field, text } of postTextFields(post)) {
     const normalized = normalizeForCheck(text);
     for (const { label, re } of BANNED_PATTERNS) {
-      if (re.test(normalized)) failures.push(`Tournure interdite : « ${label} » dans ${field}.`);
+      if (re.test(normalized)) failures.push(`Banned phrasing: "${label}" in ${field}.`);
     }
     for (const item of avoid) {
       const needle = normalizeForCheck(item);
-      if (needle && normalized.includes(needle)) failures.push(`Tournure que l'auteur bannit : « ${item} » dans ${field}.`);
+      if (needle && normalized.includes(needle)) failures.push(`Phrasing the author bans: "${item}" in ${field}.`);
     }
   }
   const opening = normalizeForCheck(post.hookText || post.caption);
-  if (OPENING_QUESTION.re.test(opening)) failures.push(`Tournure interdite : « ${OPENING_QUESTION.label} ».`);
+  if (OPENING_QUESTION.re.test(opening)) failures.push(`Banned phrasing: "${OPENING_QUESTION.label}".`);
   return failures;
 }
 
-/** Longueur du texte publié : l'accroche d'un post texte est sa première phrase, comptée si la légende ne la contient pas déjà. */
+/** Length of the published text: a text post's hook is its first sentence, counted if the caption doesn't already contain it. */
 function publishedTextLength(post: CheckablePost): number {
   if (!post.hookText || post.caption.includes(post.hookText.trim())) return post.caption.length;
   return post.hookText.length + 1 + post.caption.length;
@@ -105,20 +112,20 @@ function lengthFailures(post: CheckablePost, ctx: CheckContext): string[] {
   const failures: string[] = [];
   if (limits.hookIsTitle) {
     if (post.title.length > limits.hookMax) {
-      failures.push(`Le titre fait ${post.title.length} caractères, ${ctx.platform} en affiche ${limits.hookMax} au plus.`);
+      failures.push(`The title is ${post.title.length} characters long, ${ctx.platform} shows ${limits.hookMax} at most.`);
     }
   } else if (post.hookText && post.hookText.length > limits.hookMax) {
-    failures.push(`L'accroche fait ${post.hookText.length} caractères, ${ctx.platform} en affiche ${limits.hookMax} avant « voir plus ».`);
+    failures.push(`The hook is ${post.hookText.length} characters long, ${ctx.platform} shows ${limits.hookMax} before "see more".`);
   }
   const visualOnly = ctx.contentType === "visual" && ctx.visual?.withText === false;
   const length = publishedTextLength(post);
   const [min, max] = visualOnly ? [0, VISUAL_ONLY_CAPTION_MAX] : [limits.captionMin, limits.captionMax];
   if (length < min || length > max) {
-    failures.push(`Le texte fait ${length} caractères, attendu entre ${min} et ${max}.`);
+    failures.push(`The text is ${length} characters long, expected between ${min} and ${max}.`);
   }
   const tags = post.hashtags.length;
   if (tags < limits.hashtagsMin || tags > limits.hashtagsMax) {
-    failures.push(`${tags} hashtags, attendu entre ${limits.hashtagsMin} et ${limits.hashtagsMax}.`);
+    failures.push(`${tags} hashtags, expected between ${limits.hashtagsMin} and ${limits.hashtagsMax}.`);
   }
   return failures;
 }
@@ -127,46 +134,46 @@ function citationFailures(post: CheckablePost, ctx: CheckContext): string[] {
   if (post.usedExcerpts.length === 0 || ctx.materialTexts.length === 0) return [];
   const sources = ctx.materialTexts.map((t) => t.replace(USED_MARKERS, ""));
   const found = post.usedExcerpts.some((excerpt) => sources.some((source) => findBestMatchInText(excerpt, source)));
-  return found ? [] : ["Aucune des citations de usedExcerpts ne se retrouve dans la matière : cite les passages mot pour mot."];
+  return found ? [] : ["None of the usedExcerpts quotes can be found in the material: quote the passages word for word."];
 }
 
 function gapFailures(post: CheckablePost): string[] {
   const gaps = postTextFields(post).reduce((n, { text }) => n + (normalizeForCheck(text).match(GAP_RE) ?? []).length, 0);
-  return gaps > MAX_GAPS ? [`${gaps} « [à compléter] », ${MAX_GAPS} au plus.`] : [];
+  return gaps > MAX_GAPS ? [`${gaps} "[to be completed]", ${MAX_GAPS} at most.`] : [];
 }
 
 function selfCheckFailures(prep: GenerationPrep | null): string[] {
   if (!prep) return [];
   const { selfCheck } = prep;
   const failures: string[] = [];
-  if (!selfCheck.factsFromMaterial) failures.push("Ta relecture signale un problème : un fait ne vient pas du contexte fourni.");
+  if (!selfCheck.factsFromMaterial) failures.push("Your review flags a problem: a fact does not come from the supplied context.");
   if (selfCheck.bannedPhrasesFound.length > 0) {
-    failures.push(`Ta relecture signale un problème : tournures interdites relevées (${selfCheck.bannedPhrasesFound.join(", ")}).`);
+    failures.push(`Your review flags a problem: banned phrasings found (${selfCheck.bannedPhrasesFound.join(", ")}).`);
   }
-  if (normalizeForCheck(selfCheck.readerTest).replace(/[«»".]/g, "").trim() === "aucune") {
-    failures.push("Ta relecture signale un problème : le lecteur visé n'a aucune raison de s'arrêter sur ce post.");
+  if (normalizeForCheck(selfCheck.readerTest).replace(/[«»".]/g, "").trim() === "none") {
+    failures.push("Your review flags a problem: the target reader has no reason to stop on this post.");
   }
-  if (!selfCheck.authorTest) failures.push("Ta relecture signale un problème : le post ne sonne pas comme l'auteur.");
+  if (!selfCheck.authorTest) failures.push("Your review flags a problem: the post doesn't sound like the author.");
   return failures;
 }
 
-/** Répétition avec les derniers posts du sujet (docs/SPEC_MEMOIRE_ET_VEILLE.md §2, Annexe A.4). */
+/** Repetition against the subject's latest posts (docs/SPEC_MEMOIRE_ET_VEILLE.md §2, Annex A.4). */
 function repetitionFailures(post: CheckablePost, prep: GenerationPrep | null, recent: RecentPostCard[]): string[] {
   if (recent.length === 0) return [];
   const failures: string[] = [];
   const hook = post.hookText || post.storyboard?.[0]?.description || "";
   const opening = hookOpening(hook);
   const repeated = opening ? recent.find((c) => c.hook && hookOpening(c.hook) === opening) : undefined;
-  if (repeated?.hook) failures.push(`L'accroche reprend celle d'un post récent (« ${repeated.hook} ») : trouve une autre entrée.`);
+  if (repeated?.hook) failures.push(`The hook repeats that of a recent post ("${repeated.hook}"): find another way in.`);
   const kind = prep ? prep.hookOptions[prep.chosenHook.index]?.kind?.trim().toLowerCase() : undefined;
   const [last, beforeLast] = recent;
   if (kind && last?.hookKind === kind && beforeLast?.hookKind === kind) {
-    failures.push(`Les deux derniers posts ouvraient déjà sur une accroche de type « ${kind} » : choisis un autre type.`);
+    failures.push(`The last two posts already opened with a "${kind}" type of hook: choose another type.`);
   }
   return failures;
 }
 
-/** Tous les contrôles du §5. Vide = le post passe. */
+/** All the §5 checks. Empty = the post passes. */
 export function checkGeneratedPost(post: CheckablePost, prep: GenerationPrep | null, ctx: CheckContext): string[] {
   const storyboard =
     ctx.contentType === "visual" && post.storyboard ? enforceStoryboardCount(post.storyboard, ctx.visual) : null;
@@ -181,7 +188,7 @@ export function checkGeneratedPost(post: CheckablePost, prep: GenerationPrep | n
   ];
 }
 
-/** Bloc <refus> ajouté au message de la seconde tentative (Annexe A.9). */
+/** <refusal> block added to the second-attempt message (Annex A.9). */
 export function buildRefusalBlock(failures: string[]): string {
-  return `<refus>\nTa version précédente a été refusée :\n${failures.map((f) => `- ${f}`).join("\n")}\nRédige le post complet à nouveau en corrigeant ces points. Garde ta préparation si elle reste juste.\n</refus>`;
+  return `<refusal>\nYour previous version was rejected:\n${failures.map((f) => `- ${f}`).join("\n")}\nWrite the complete post again, fixing these points. Keep your preparation if it still holds.\n</refusal>`;
 }

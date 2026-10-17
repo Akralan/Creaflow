@@ -4,12 +4,12 @@ import { callStructured } from "./provider";
 import { MAX_STYLE_LIST_ITEMS, MAX_STYLE_RULES, styleProfileSchema, styleRuleSchema, type StyleProfile } from "./styleProfile";
 
 /**
- * Passe d'apprentissage du style (docs/SPEC_APPRENTISSAGE_STYLE.md §5). Tout ce fichier est de la
- * logique pure sauf `learnStyle`, qui fait l'unique appel LLM ; la sélection du corpus en base vit
- * dans styleLearningService.ts.
+ * Style learning pass (docs/SPEC_APPRENTISSAGE_STYLE.md §5). This whole file is pure logic except
+ * `learnStyle`, which makes the only LLM call; the corpus selection in the database lives in
+ * styleLearningService.ts.
  */
 
-/** Les colonnes textuelles d'un script telles que stockées (et telles que figées dans firstDraftSnapshot). */
+/** A script's text columns as stored (and as frozen in firstDraftSnapshot). */
 export interface ScriptTextColumns {
   title?: string | null;
   hookVisual?: string | null;
@@ -34,7 +34,7 @@ export interface StyleCorrection {
 export interface StyleSample {
   platform: string;
   contentType: string;
-  /** Texte de l'auteur, déjà assemblé (titre + accroche + corps). */
+  /** The author's text, already assembled (title + hook + body). */
   text: string;
 }
 
@@ -43,7 +43,7 @@ export const MAX_SAMPLES_PER_PASS = 5;
 const TRUNCATE_HEAD = 800;
 const TRUNCATE_TAIL = 400;
 
-/** Tronque au milieu (début + fin) pour garder l'ouverture et l'appel à l'action, les deux zones les plus corrigées. */
+/** Truncates in the middle (start + end) to keep the opening and the call to action, the two most corrected areas. */
 export function truncateMiddle(text: string, head = TRUNCATE_HEAD, tail = TRUNCATE_TAIL): string {
   if (text.length <= head + tail) return text;
   return `${text.slice(0, head)} […] ${text.slice(text.length - tail)}`;
@@ -68,8 +68,8 @@ function textFieldsOf(columns: ScriptTextColumns): Record<string, string> {
 }
 
 /**
- * Écarts bloc par bloc entre le premier jet et la version finale. Vide si le script est identique à
- * son premier jet (il n'apprend rien). Les deux côtés sont tronqués.
+ * Block-by-block gaps between the first draft and the final version. Empty if the script is identical
+ * to its first draft (it teaches nothing). Both sides are truncated.
  */
 export function diffScript(firstDraft: ScriptTextColumns, final: ScriptTextColumns): FieldDiff[] {
   const before = textFieldsOf(firstDraft);
@@ -85,7 +85,7 @@ export function diffScript(firstDraft: ScriptTextColumns, final: ScriptTextColum
   return diffs;
 }
 
-// --- Statistiques calculées en TypeScript, jamais par le modèle (§2 « le modèle ne compte pas ») ---
+// --- Statistics computed in TypeScript, never by the model (§2 "the model doesn't count") ---
 
 const EMOJI_RE = /\p{Extended_Pictographic}/gu;
 
@@ -112,7 +112,7 @@ export interface EditStats {
   emojisAddedIn: number;
   hookShortenedIn: number;
   hookLengthenedIn: number;
-  /** Médiane du delta relatif de longueur du hook, en pourcentage (négatif = raccourci). */
+  /** Median of the hook's relative length delta, as a percentage (negative = shortened). */
   hookMedianDeltaPct: number | null;
   openingQuestionRemovedIn: number;
   openingQuestionAddedIn: number;
@@ -135,7 +135,7 @@ function deltaPct(before: string, after: string): number | null {
   return Math.round(((after.length - before.length) / before.length) * 100);
 }
 
-/** Le « hook » d'un script : hookText (texte) sinon hookVisual (visuel). */
+/** A script's "hook": hookText (text) otherwise hookVisual (visual). */
 function hookDiff(diffs: FieldDiff[]): FieldDiff | undefined {
   return diffs.find((d) => d.field === "hookText") ?? diffs.find((d) => d.field === "hookVisual");
 }
@@ -213,52 +213,52 @@ export function computeEditStats(corrections: StyleCorrection[]): EditStats {
 
 export function formatEditStats(stats: EditStats): string {
   const n = stats.corrections;
-  if (n === 0) return "Aucune correction dans cette passe.";
+  if (n === 0) return "No correction in this pass.";
   const signed = (v: number) => `${v > 0 ? "+" : ""}${v}`;
   const lines = [
-    `Emojis : retirés dans ${stats.emojisRemovedIn}/${n}, ajoutés dans ${stats.emojisAddedIn}/${n}`,
-    `Points d'exclamation : réduits dans ${stats.exclamationsReducedIn}/${n}, augmentés dans ${stats.exclamationsIncreasedIn}/${n}`,
+    `Emojis: removed in ${stats.emojisRemovedIn}/${n}, added in ${stats.emojisAddedIn}/${n}`,
+    `Exclamation marks: reduced in ${stats.exclamationsReducedIn}/${n}, increased in ${stats.exclamationsIncreasedIn}/${n}`,
   ];
   if (stats.hookMedianDeltaPct !== null) {
     lines.push(
-      `Longueur du hook : raccourci dans ${stats.hookShortenedIn}/${n}, allongé dans ${stats.hookLengthenedIn}/${n} (médiane ${signed(stats.hookMedianDeltaPct)} %)`
+      `Hook length: shortened in ${stats.hookShortenedIn}/${n}, lengthened in ${stats.hookLengthenedIn}/${n} (median ${signed(stats.hookMedianDeltaPct)}%)`
     );
   }
   lines.push(
-    `Question en ouverture : supprimée dans ${stats.openingQuestionRemovedIn}/${n}, ajoutée dans ${stats.openingQuestionAddedIn}/${n}`
+    `Opening question: removed in ${stats.openingQuestionRemovedIn}/${n}, added in ${stats.openingQuestionAddedIn}/${n}`
   );
   if (stats.hashtagsAvgBefore !== null && stats.hashtagsAvgAfter !== null) {
-    lines.push(`Hashtags : moyenne ${stats.hashtagsAvgBefore} → ${stats.hashtagsAvgAfter}`);
+    lines.push(`Hashtags: average ${stats.hashtagsAvgBefore} → ${stats.hashtagsAvgAfter}`);
   }
   if (stats.captionMedianDeltaPct !== null) {
-    lines.push(`Longueur de la légende / du corps : médiane ${signed(stats.captionMedianDeltaPct)} %`);
+    lines.push(`Caption / body length: median ${signed(stats.captionMedianDeltaPct)}%`);
   }
   return lines.join("\n");
 }
 
-// --- Prompt (Annexe A de la spec) ---
+// --- Prompt (Annex A of the spec) ---
 
 export const LEARN_STYLE_TOOL_NAME = "learn_style";
 
 export const learnStyleTool: LlmToolDefinition = {
   name: LEARN_STYLE_TOOL_NAME,
   description:
-    "Met à jour le profil de style d'un auteur à partir de ses corrections sur des textes générés et de textes qu'il a écrits lui-même.",
+    "Updates an author's style profile from their corrections to generated texts and from texts they wrote themselves. All text in English.",
   input_schema: {
     type: "object",
     properties: {
-      tone: { type: "string", description: "Ton général (ex: humoristique, direct, chaleureux)." },
-      sentenceLength: { type: "string", description: "Longueur et structure de phrase typiques." },
-      emojiUsage: { type: "string", description: "Usage des emojis (fréquence, type)." },
-      vocabulary: { type: "string", description: "Registre de vocabulaire utilisé." },
+      tone: { type: "string", description: "General tone (e.g. humorous, direct, warm)." },
+      sentenceLength: { type: "string", description: "Typical sentence length and structure." },
+      emojiUsage: { type: "string", description: "Emoji usage (frequency, type)." },
+      vocabulary: { type: "string", description: "Vocabulary register used." },
       summary: {
         type: "string",
-        description: "Résumé en 2-3 phrases de la voix de l'auteur, directement injectable comme consigne de style.",
+        description: "2-3 sentence summary of the author's voice, directly injectable as a style instruction.",
       },
       rules: {
         type: "array",
         description:
-          "Règles impératives, courtes, vérifiables, tirées de ce que l'auteur corrige SYSTÉMATIQUEMENT (au moins deux corrections concordantes, ou une statistique nette). Garder les règles existantes sauf contradiction. Fusionner les doublons. 12 maximum. platform non null seulement si la règle ne vaut que pour une plateforme.",
+          "Imperative, short, verifiable rules, drawn from what the author SYSTEMATICALLY corrects (at least two concordant corrections, or a clear statistic). Keep the existing rules unless contradicted. Merge duplicates. 12 maximum. platform non-null only if the rule applies to one platform alone.",
         items: {
           type: "object",
           properties: {
@@ -271,18 +271,18 @@ export const learnStyleTool: LlmToolDefinition = {
       },
       avoid: {
         type: "array",
-        description: "Mots, expressions ou tics que l'auteur retire ou n'emploie jamais. Tableau vide si rien de net.",
+        description: "Words, expressions or tics the author removes or never uses. Empty array if nothing clear.",
         items: { type: "string" },
       },
       prefer: {
         type: "array",
-        description: "Expressions ou tournures que l'auteur ajoute ou emploie de lui-même. Tableau vide si rien de net.",
+        description: "Expressions or phrasings the author adds or uses on their own. Empty array if nothing clear.",
         items: { type: "string" },
       },
       changeNotes: {
         type: "string",
         description:
-          "2 à 4 phrases pour l'auteur : ce qui change par rapport au profil précédent et pourquoi (quelles corrections l'ont motivé).",
+          "2 to 4 sentences for the author: what changes compared to the previous profile and why (which corrections motivated it).",
       },
     },
     required: ["tone", "sentenceLength", "emojiUsage", "vocabulary", "summary", "rules", "avoid", "prefer", "changeNotes"],
@@ -290,16 +290,17 @@ export const learnStyleTool: LlmToolDefinition = {
   },
 };
 
-export const LEARN_STYLE_SYSTEM_PROMPT = `Tu es le rédacteur en chef d'un auteur. Tu reçois son profil de style actuel, puis des textes générés par une machine accompagnés de la version que l'auteur a finalement gardée (AVANT / APRÈS), des textes qu'il a écrits lui-même, et des statistiques calculées sur ces écarts.
-Ta tâche : mettre à jour son profil de style pour que les prochaines générations demandent moins de corrections.
-Règles :
-- Ne retiens que la FORME (ton, longueur, structure, vocabulaire, ponctuation, emojis, hashtags, appels à l'action). Ignore les corrections de fond (chiffres, faits, détails produit).
-- Une règle n'existe que si au moins deux corrections la soutiennent, ou si une statistique la montre comme systématique.
-- Une règle est une phrase impérative, concrète, vérifiable à la lecture (« Le hook tient en une phrase », pas « Être percutant »).
-- Conserve les règles existantes sauf si les nouvelles corrections les contredisent. Fusionne les doublons. Jamais plus de ${MAX_STYLE_RULES}.
-- Si une règle ne vaut visiblement que pour une plateforme, renseigne platform avec la clé de la plateforme ; sinon null.
-- Les textes écrits par l'auteur lui-même sont la référence de sa voix : ils nourrissent summary, avoid et prefer.
-- Tous les champs du profil sont obligatoires : s'il n'y a pas assez de matière pour un descripteur, reprends la valeur du profil actuel ou décris prudemment ce que tu observes.`;
+export const LEARN_STYLE_SYSTEM_PROMPT = `You are an author's editor-in-chief. You receive their current style profile, then texts generated by a machine along with the version the author finally kept (BEFORE / AFTER), texts they wrote themselves, and statistics computed on these gaps.
+Your task: update their style profile so that future generations need fewer corrections.
+Rules:
+- Retain only the FORM (tone, length, structure, vocabulary, punctuation, emojis, hashtags, calls to action). Ignore content corrections (numbers, facts, product details).
+- A rule exists only if at least two corrections support it, or if a statistic shows it as systematic.
+- A rule is an imperative, concrete sentence, verifiable on reading ("The hook fits in one sentence", not "Be punchy").
+- Keep the existing rules unless the new corrections contradict them. Merge duplicates. Never more than ${MAX_STYLE_RULES}.
+- If a rule clearly applies to one platform only, fill platform with the platform's key; otherwise null.
+- Texts written by the author themselves are the reference for their voice: they feed summary, avoid and prefer.
+- All profile fields are mandatory: if there isn't enough material for a descriptor, reuse the current profile's value or cautiously describe what you observe.
+- Write all fields in English.`;
 
 export function buildLearnStyleUserMessage(params: {
   currentProfile: StyleProfile | null;
@@ -309,19 +310,19 @@ export function buildLearnStyleUserMessage(params: {
 }): string {
   const sections: string[] = [];
   sections.push(
-    `=== PROFIL ACTUEL ===\n${params.currentProfile ? JSON.stringify(params.currentProfile, null, 2) : "aucun (première analyse)"}`
+    `=== CURRENT PROFILE ===\n${params.currentProfile ? JSON.stringify(params.currentProfile, null, 2) : "none (first analysis)"}`
   );
-  sections.push(`=== STATISTIQUES SUR ${params.corrections.length} CORRECTIONS ===\n${formatEditStats(params.stats)}`);
+  sections.push(`=== STATISTICS ON ${params.corrections.length} CORRECTIONS ===\n${formatEditStats(params.stats)}`);
   if (params.corrections.length > 0) {
     const blocks = params.corrections.map((c, i) => {
-      const lines = c.diffs.map((d) => `[${d.field}]\nAVANT : ${d.before}\nAPRÈS : ${d.after}`);
+      const lines = c.diffs.map((d) => `[${d.field}]\nBEFORE: ${d.before}\nAFTER: ${d.after}`);
       return `--- Script ${i + 1} · ${c.platform} · ${c.contentType} ---\n${lines.join("\n")}`;
     });
     sections.push(`=== CORRECTIONS ===\n${blocks.join("\n\n")}`);
   }
   if (params.samples.length > 0) {
     const blocks = params.samples.map((s) => `--- ${s.platform} · ${s.contentType} ---\n${truncateMiddle(s.text)}`);
-    sections.push(`=== TEXTES ÉCRITS PAR L'AUTEUR ===\n${blocks.join("\n\n")}`);
+    sections.push(`=== TEXTS WRITTEN BY THE AUTHOR ===\n${blocks.join("\n\n")}`);
   }
   return sections.join("\n\n");
 }

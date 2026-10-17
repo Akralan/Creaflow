@@ -53,7 +53,7 @@ export default function SourcePicker({
         setTexts({ displayName: data.displayName, emptyMessage: data.emptyMessage, footnote: data.footnote });
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof ApiClientError ? err.message : "Impossible de lire tes sources.");
+        if (!cancelled) setError(err instanceof ApiClientError ? err.message : "Couldn't read your sources.");
       })
       .finally(() => !cancelled && setLoading(false));
     return () => {
@@ -82,13 +82,13 @@ export default function SourcePicker({
       setResults(results);
       onConnected();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "La récupération de la matière a échoué.");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't pull the material.");
     } finally {
       setConnecting(false);
     }
   }
 
-  if (loading) return <p style={{ color: color.textMuted, fontSize: 14 }}>Lecture de tes sources…</p>;
+  if (loading) return <p style={{ color: color.textMuted, fontSize: 14 }}>Reading your sources…</p>;
 
   const selectable = candidates.filter((candidate) => !candidate.alreadyConnected);
 
@@ -97,13 +97,13 @@ export default function SourcePicker({
   if (selectable.length === 0) {
     const message =
       candidates.length > 0
-        ? `Toutes tes sources ${texts.displayName} sont déjà connectées comme sujets.`
+        ? `All your ${texts.displayName} sources are already connected as subjects.`
         : texts.emptyMessage;
     return (
       <div>
         <p style={{ color: color.textMuted, fontSize: 15, margin: "0 0 16px" }}>
           {message}
-          {variant === "onboarding" && " Tu peux brancher une autre source ou coller tes notes."}
+          {variant === "onboarding" && " You can connect another source or paste your notes."}
         </p>
         {error && <p style={{ color: color.danger, fontSize: 13, marginBottom: 12 }}>{error}</p>}
       </div>
@@ -117,10 +117,8 @@ export default function SourcePicker({
           <div key={result.sourceId} style={{ fontSize: 14, color: result.error ? color.danger : color.textSecondary }}>
             <strong>{result.label}</strong>{" "}
             {result.error
-              ? `— échec : ${result.error}`
-              : `— ${result.report!.added} document${result.report!.added > 1 ? "s" : ""} récupéré${
-                  result.report!.added > 1 ? "s" : ""
-                }`}
+              ? `— failed: ${result.error}`
+              : `— ${result.report!.added} ${result.report!.added > 1 ? "documents" : "document"} pulled`}
           </div>
         ))}
       </div>
@@ -163,7 +161,7 @@ export default function SourcePicker({
                       whiteSpace: "nowrap",
                     }}
                   >
-                    Déjà un sujet
+                    Already a subject
                   </span>
                 )}
               </div>
@@ -182,11 +180,11 @@ export default function SourcePicker({
 
       <Button onClick={connect} disabled={selected.length === 0 || connecting}>
         {connecting
-          ? "Récupération de la matière…"
-          : `Utiliser ${selected.length} source${selected.length > 1 ? "s" : ""} comme sujets`}
+          ? "Pulling your material…"
+          : `Use ${selected.length} ${selected.length > 1 ? "sources" : "source"} as subjects`}
       </Button>
       <p style={{ fontSize: 12, color: color.textFaint, marginTop: 10 }}>
-        {selected.length} sur {MAX_PRODUCTS} maximum. {texts.footnote}
+        {selected.length} of {MAX_PRODUCTS} max. {texts.footnote}
       </p>
     </div>
   );

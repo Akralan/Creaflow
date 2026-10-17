@@ -1,7 +1,7 @@
 /** Miroir de `users.vertical` (docs/ARCHITECTURE_VERTICALES.md).
  *
- *  Depuis docs/SPEC_ONBOARDING_MVP.md, la verticale ne choisit plus le parcours d'onboarding (il
- *  n'y en a plus qu'un) : elle reste posée à l'inscription et ne sert qu'à nuancer certains prompts
- *  (maquettes du post visuel). Les valeurs existent pour qu'on puisse différencier plus tard sans
- *  migration. */
+ *  Since docs/SPEC_ONBOARDING_MVP.md, the vertical no longer chooses the onboarding path (there is
+ *  only one left): it is still set at signup and only serves to nuance certain prompts
+ *  (visual post mockups). The values exist so we can differentiate later without
+ *  a migration. */
 export type VerticalId = "creator" | "dev" | "artisan" | "entrepreneur";

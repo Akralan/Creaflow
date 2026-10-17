@@ -73,7 +73,7 @@ export function buildCommitJournal(commits: GithubCommit[]): string {
       return !TRIVIAL_NAMES.has(commit.name.toLowerCase().replace(/[^a-z0-9]/g, ""));
     })
     .map((commit) => {
-      const header = `## ${commit.date.slice(0, 10)} — ${commit.authorName ?? "auteur inconnu"}\n${commit.name}`;
+      const header = `## ${commit.date.slice(0, 10)} — ${commit.authorName ?? "unknown author"}\n${commit.name}`;
       return commit.description ? `${header}\n\n${commit.description}` : header;
     })
     .join("\n\n");

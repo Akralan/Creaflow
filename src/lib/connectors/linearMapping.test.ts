@@ -42,7 +42,7 @@ describe("issueToText", () => {
 
   it("porte l'identifiant, le titre, la date et le détail", () => {
     expect(issueToText(issue)).toBe(
-      "# CRE-12 — Corriger la synchro\n\nTerminée le 2026-03-04.\n\nLe curseur n'était pas remis à jour."
+      "# CRE-12 — Corriger la synchro\n\nCompleted on 2026-03-04.\n\nLe curseur n'était pas remis à jour."
     );
   });
 

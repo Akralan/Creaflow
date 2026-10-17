@@ -12,12 +12,12 @@ import { useContentCategories } from "@/contexts/CategoryLabelsContext";
 import { KNOWN_PLATFORMS } from "@/lib/social/types";
 
 /**
- * Édition d'UNE série (docs/SPEC_SERIES_ET_ROLES.md) — ouverte depuis l'icône crayon d'une carte de
- * l'écran Direction, ou en création depuis « Nouvelle série ». Remplace l'ancien formulaire
- * multi-lignes de SeriesPanel, que le passage en master-detail a rendu sans place.
+ * Editing ONE series (docs/SPEC_SERIES_ET_ROLES.md) — opened from the pencil icon of a card on the
+ * Direction screen, or for creation from "New series". Replaces the old multi-row
+ * SeriesPanel form, which the move to master-detail left without a place.
  *
- * `POST /api/series` archive toute série ABSENTE du tableau envoyé : on renvoie donc toujours le jeu
- * actif complet, avec la série éditée remplacée, ajoutée, ou retirée (= archivée) selon le geste.
+ * `POST /api/series` archives any series MISSING from the array sent: so we always send back the full
+ * active set, with the edited series replaced, added, or removed (= archived) depending on the gesture.
  */
 export default function SeriesEditModal({
   open,
@@ -27,21 +27,21 @@ export default function SeriesEditModal({
   onSaved,
 }: {
   open: boolean;
-  /** null = création d'une nouvelle série. */
+  /** null = creating a new series. */
   series: ContentSeries | null;
   allSeries: ContentSeries[];
   onClose: () => void;
-  /** `slotChange` : ce que l'enregistrement a changé au calendrier pour la série éditée. */
+  /** `slotChange`: what saving changed in the calendar for the edited series. */
   onSaved: (series: ContentSeries[], removedId?: string, slotChange?: SeriesSlotChange & { seriesId: string }) => void;
 }) {
   const categories = useContentCategories();
   const [label, setLabel] = useState(series?.label ?? "");
   const [description, setDescription] = useState(series?.description ?? "");
   const takenBy = daysTakenBy(allSeries, series?.id);
-  // Une série sans rythme (données d'avant) ou nouvelle part d'un mercredi, remplacé dès que les
-  // jours où l'auteur peut publier sont connus.
+  // A series without a rhythm (older data) or a new one starts on a Wednesday, replaced as soon as the
+  // days the author can publish are known.
   const [rhythm, setRhythm] = useState<SeriesRhythm>(series?.rhythm ?? { days: [3], every: 1, anchor: null });
-  // Une ref, pas un état : la réponse du profil, qui arrive après coup, doit voir un geste fait entre-temps.
+  // A ref, not state: the profile response, which arrives later, must see a gesture made in the meantime.
   const rhythmTouched = useRef(Boolean(series?.rhythm));
   const [categoryId, setCategoryId] = useState(series?.category?.id ?? "");
   const [platforms, setPlatforms] = useState<string[]>(series?.platforms ?? []);
@@ -49,7 +49,7 @@ export default function SeriesEditModal({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Nouvelle série : on précoche les jours où l'auteur peut publier qu'aucune autre série n'occupe
+  // New series: pre-tick the days the author can publish that no other series occupies
   // (docs/SPEC_RYTHME_DES_SERIES.md §4).
   useEffect(() => {
     if (rhythmTouched.current) return;
@@ -64,12 +64,12 @@ export default function SeriesEditModal({
     return () => {
       cancelled = true;
     };
-    // Une seule fois à l'ouverture.
+    // Only once, on opening.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** Forme attendue par `POST /api/series` — `id` absent = création. Le rythme des autres
-   *  séries est omis : le serveur le laisse inchangé. */
+  /** Shape expected by `POST /api/series` — `id` absent = creation. The rhythm of the other
+   *  series is omitted: the server leaves it unchanged. */
   type SeriesDraft = {
     id?: string;
     label: string;
@@ -98,14 +98,14 @@ export default function SeriesEditModal({
     setError(null);
     try {
       const { series: saved, slotChanges } = await api.saveContentSeries(payload);
-      // La série éditée : l'existante, ou à la création celle qui n'était pas là avant.
+      // The edited series: the existing one, or when creating, the one that wasn't there before.
       const before = new Set(allSeries.map((s) => s.id));
       const editedId = series?.id ?? saved.find((s) => !before.has(s.id))?.id;
       const change = editedId ? slotChanges[editedId] : undefined;
       onSaved(saved, removedId, change && editedId ? { ...change, seriesId: editedId } : undefined);
       onClose();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong while saving.");
     } finally {
       setSaving(false);
     }
@@ -113,11 +113,11 @@ export default function SeriesEditModal({
 
   async function save() {
     if (!label.trim()) {
-      setError("Donne un nom à cette série.");
+      setError("Give this series a name.");
       return;
     }
     if (!categoryId) {
-      setError("Chaque série doit avoir un rôle.");
+      setError("Every series needs a role.");
       return;
     }
     const edited = { id: series?.id, label: label.trim(), description: description.trim() || label.trim(), categoryId, platforms, rhythm };
@@ -127,8 +127,8 @@ export default function SeriesEditModal({
     await submit(payload);
   }
 
-  /** Retirer une série = l'omettre du tableau envoyé, ce qui l'archive côté serveur (jamais de
-   *  suppression dure : les scripts et créneaux qui la référencent doivent rester valides). */
+  /** Removing a series = omitting it from the array sent, which archives it server-side (never a
+   *  hard delete: the scripts and slots that reference it must stay valid). */
   async function remove() {
     if (!series) return;
     await submit(allSeries.filter((s) => s.id !== series.id).map(toDraft), series.id);
@@ -148,29 +148,29 @@ export default function SeriesEditModal({
   return (
     <Modal open={open} onClose={onClose} width={520}>
       <div style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 19, marginBottom: 4 }}>
-        {series ? "Modifier la série" : "Nouvelle série"}
+        {series ? "Edit series" : "New series"}
       </div>
       <p style={{ margin: "0 0 20px", fontSize: 13, color: color.textMuted, lineHeight: 1.5 }}>
-        Un format récurrent et nommé, avec sa propre identité, qui sert un rôle de ton mix. Elle publie sur ses jours :
-        ses posts arrivent dans le calendrier dès l&apos;enregistrement.
+        A recurring, named format with its own identity, serving a role in your mix. It publishes on its days:
+        its posts land in the calendar as soon as you save.
       </p>
 
       <div style={{ display: "grid", gap: 16 }}>
         <div>
           <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 6 }}>
-            Nom de la série
+            Series name
           </label>
-          <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Le mythe du mercredi" style={fieldStyle} />
+          <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Myth-busting Wednesday" style={fieldStyle} />
         </div>
 
         <div>
           <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 6 }}>
-            Identité de la série
+            Series identity
           </label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Angle, ton, structure à respecter à chaque épisode"
+            placeholder="Angle, tone, structure to follow in every episode"
             rows={2}
             style={{ ...fieldStyle, resize: "vertical", lineHeight: 1.45 }}
           />
@@ -178,7 +178,7 @@ export default function SeriesEditModal({
 
         <div>
           <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 6 }}>
-            Rôle
+            Role
           </label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {categories.map((c) => {
@@ -208,7 +208,7 @@ export default function SeriesEditModal({
 
         <div>
           <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 6 }}>
-            Rythme <span style={{ fontWeight: 400, color: color.textFaint }}>— les jours où cette série publie</span>
+            Rhythm <span style={{ fontWeight: 400, color: color.textFaint }}>— the days this series publishes</span>
           </label>
           <RhythmPicker
             value={rhythm}
@@ -222,7 +222,7 @@ export default function SeriesEditModal({
 
         <div>
           <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 6 }}>
-            Réseaux <span style={{ fontWeight: 400, color: color.textFaint }}>— aucun sélectionné = tous</span>
+            Networks <span style={{ fontWeight: 400, color: color.textFaint }}>— none selected = all</span>
           </label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {KNOWN_PLATFORMS.map((p) => {
@@ -264,12 +264,12 @@ export default function SeriesEditModal({
           }}
         >
           <div style={{ fontSize: 13, color: color.text2, lineHeight: 1.5, marginBottom: 12 }}>
-            Retirer <strong>{series?.label}</strong> ? Elle disparaît de la direction et du calendrier à venir. Les scripts
-            déjà générés pour cette série sont conservés.
+            Remove <strong>{series?.label}</strong>? It disappears from Direction and from the upcoming calendar. Scripts
+            already generated for this series are kept.
           </div>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
             <Button variant="secondary" onClick={() => setConfirmingDelete(false)} disabled={saving}>
-              Annuler
+              Cancel
             </Button>
             <button
               onClick={remove}
@@ -286,7 +286,7 @@ export default function SeriesEditModal({
                 color: "#fff",
               }}
             >
-              {saving ? "..." : "Retirer la série"}
+              {saving ? "..." : "Remove series"}
             </button>
           </div>
         </div>
@@ -296,7 +296,7 @@ export default function SeriesEditModal({
             <button
               onClick={() => setConfirmingDelete(true)}
               disabled={saving}
-              title="Retirer cette série"
+              title="Remove this series"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -312,15 +312,15 @@ export default function SeriesEditModal({
               }}
             >
               <Trash2 size={15} strokeWidth={2} />
-              Retirer
+              Remove
             </button>
           )}
           <div style={{ flex: 1 }} />
           <Button variant="secondary" onClick={onClose} disabled={saving}>
-            Annuler
+            Cancel
           </Button>
           <Button onClick={save} disabled={saving}>
-            {saving ? "..." : "Enregistrer"}
+            {saving ? "..." : "Save"}
           </Button>
         </div>
       )}

@@ -8,16 +8,16 @@ import { TextField, heading1Style } from "@/components/ui/TextField";
 import { api, ApiClientError, type AdminAccountQuotas } from "@/lib/apiClient";
 import { color } from "@/lib/design/tokens";
 
-/** Champ de quota : vide = limite normale ; sinon un entier ≥ 0. */
-function parseQuota(value: string): number | null | "invalide" {
+/** Quota field: empty = normal limit; otherwise an integer >= 0. */
+function parseQuota(value: string): number | null | "invalid" {
   const trimmed = value.trim();
   if (!trimmed) return null;
-  return /^\d+$/.test(trimmed) ? Number(trimmed) : "invalide";
+  return /^\d+$/.test(trimmed) ? Number(trimmed) : "invalid";
 }
 
 /**
- * Écran /admin/quotas (docs/SPEC_QUOTAS_ADMIN.md) : chercher un compte par email, voir ses
- * compteurs, lui donner un quota de scripts et de retouches qui remplace la limite normale.
+ * /admin/quotas screen (docs/SPEC_QUOTAS_ADMIN.md): look up an account by email, see its
+ * counters, give it a script and edit quota that replaces the normal limit.
  */
 export default function AdminQuotasPanel({ adminEmail }: { adminEmail: string }) {
   const [email, setEmail] = useState("");
@@ -43,7 +43,7 @@ export default function AdminQuotasPanel({ adminEmail }: { adminEmail: string })
       show((await api.getAdminQuotas(target.trim())).account);
     } catch (err) {
       setAccount(null);
-      setError(err instanceof ApiClientError ? err.message : "Recherche impossible.");
+      setError(err instanceof ApiClientError ? err.message : "Search failed.");
     } finally {
       setBusy(false);
     }
@@ -53,8 +53,8 @@ export default function AdminQuotasPanel({ adminEmail }: { adminEmail: string })
     if (!account) return;
     const scripts = parseQuota(scriptLimit);
     const microEdits = parseQuota(microEditLimit);
-    if (scripts === "invalide" || microEdits === "invalide") {
-      setError("Un quota est un nombre entier, ou vide pour la limite normale.");
+    if (scripts === "invalid" || microEdits === "invalid") {
+      setError("A quota is a whole number, or empty for the normal limit.");
       return;
     }
     setBusy(true);
@@ -63,7 +63,7 @@ export default function AdminQuotasPanel({ adminEmail }: { adminEmail: string })
       show((await api.setAdminQuotas({ userId: account.userId, scriptLimit: scripts, microEditLimit: microEdits })).account);
       setSaved(true);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Enregistrement impossible.");
+      setError(err instanceof ApiClientError ? err.message : "Could not save.");
     } finally {
       setBusy(false);
     }
@@ -74,11 +74,11 @@ export default function AdminQuotasPanel({ adminEmail }: { adminEmail: string })
       <div>
         <div style={{ fontSize: 14, fontWeight: 600, color: color.text }}>{label}</div>
         <div style={{ fontSize: 13, color: color.textMuted, marginTop: 4 }}>
-          {counter.used} utilisé{counter.used > 1 ? "s" : ""} / {counter.limit} · {counter.planName}
+          {counter.used} used / {counter.limit} · {counter.planName}
         </div>
       </div>
       <TextField
-        label="Quota perso"
+        label="Custom quota"
         inputMode="numeric"
         value={value}
         placeholder={normal}
@@ -96,7 +96,7 @@ export default function AdminQuotasPanel({ adminEmail }: { adminEmail: string })
         <div>
           <h1 style={heading1Style}>Quotas</h1>
           <p style={{ margin: "6px 0 0", fontSize: 14, color: color.textMuted }}>
-            Admin : {adminEmail} · <Link href="/calendar">Retour à l&apos;application</Link>
+            Admin: {adminEmail} · <Link href="/calendar">Back to the app</Link>
           </p>
         </div>
 
@@ -109,10 +109,10 @@ export default function AdminQuotasPanel({ adminEmail }: { adminEmail: string })
             style={{ display: "flex", gap: 10, alignItems: "flex-end" }}
           >
             <div style={{ flex: 1 }}>
-              <TextField label="Email du compte" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="personne@exemple.fr" />
+              <TextField label="Account email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="someone@example.com" />
             </div>
             <Button type="submit" disabled={busy || !email.trim()}>
-              {busy && !account ? "…" : "Chercher"}
+              {busy && !account ? "…" : "Search"}
             </Button>
           </form>
           <button
@@ -123,7 +123,7 @@ export default function AdminQuotasPanel({ adminEmail }: { adminEmail: string })
             }}
             style={{ marginTop: 10, background: "none", border: "none", padding: 0, fontFamily: "inherit", fontSize: 13, color: color.textMuted, cursor: "pointer", textDecoration: "underline" }}
           >
-            Mon compte
+            My account
           </button>
         </Card>
 
@@ -134,20 +134,20 @@ export default function AdminQuotasPanel({ adminEmail }: { adminEmail: string })
             <div>
               <div style={{ fontSize: 16, fontWeight: 700, color: color.text }}>{account.email}</div>
               <div style={{ fontSize: 13, color: color.textMuted, marginTop: 4 }}>
-                {account.subscription ? `Abonnement ${account.subscription.plan} (${account.subscription.status})` : "Essai gratuit, sans abonnement"}
+                {account.subscription ? `${account.subscription.plan} subscription (${account.subscription.status})` : "Free trial, no subscription"}
               </div>
             </div>
-            {row("Scripts", account.scripts, scriptLimit, setScriptLimit, "limite normale")}
-            {row("Retouches", account.microEdits, microEditLimit, setMicroEditLimit, "limite normale")}
+            {row("Scripts", account.scripts, scriptLimit, setScriptLimit, "normal limit")}
+            {row("Edits", account.microEdits, microEditLimit, setMicroEditLimit, "normal limit")}
             <p style={{ margin: 0, fontSize: 12, color: color.textFaint, lineHeight: 1.5 }}>
-              Un quota perso remplace la limite de l&apos;essai ou du plan (sur la même période : depuis toujours pour
-              l&apos;essai, le mois en cours pour un abonnement). Vide = limite normale.
+              A custom quota replaces the trial or plan limit (over the same period: lifetime for the
+              trial, the current month for a subscription). Empty = normal limit.
             </p>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <Button onClick={save} disabled={busy}>
-                {busy ? "…" : "Enregistrer"}
+                {busy ? "…" : "Save"}
               </Button>
-              {saved && <span style={{ fontSize: 13, color: "oklch(0.5 0.14 150)" }}>Enregistré.</span>}
+              {saved && <span style={{ fontSize: 13, color: "oklch(0.5 0.14 150)" }}>Saved.</span>}
             </div>
           </Card>
         )}

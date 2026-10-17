@@ -14,7 +14,7 @@ export default function AssistantPage() {
     <div style={{ padding: "32px 36px", height: "100%", display: "flex", flexDirection: "column" }}>
       <h1 style={heading1Style}>Assistant</h1>
       <p style={{ margin: "6px 0 24px", color: color.textMuted, fontSize: 15 }}>
-        Discute des mises à jour de ton activité — l&apos;assistant propose des créations ou modifications de produits et de séries, à valider avant enregistrement.
+        Talk through updates to your work — the assistant proposes new or edited products and series for you to approve before anything is saved.
       </p>
       <div style={{ flex: 1, minHeight: 0, display: "flex", gap: 20 }}>
         <div style={{ flex: 1, minWidth: 0 }}>

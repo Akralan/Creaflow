@@ -8,10 +8,10 @@ import { api, ApiClientError, type ContentSeries, type Product, type Script } fr
 import { color, fontHeading, statusMeta } from "@/lib/design/tokens";
 
 /**
- * Panneau de droite de l'écran Direction : le sujet lié, le lecteur et la forme de la série avec
- * ses prochains épisodes (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4), et les scripts de la série.
- * Le cadrage par choix (docs/SPEC_CADRAGE_SERIE.md) a été retiré : la forme le remplace, signature comprise. Le plan en épisodes du rédacteur en chef a disparu avec lui (Lot 4) : le plan d'une
- * série, c'est la ligne de temps de son sujet vue par son lecteur.
+ * Right-hand panel of the Direction screen: the linked topic, the reader and the shape of the series with
+ * its upcoming episodes (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4), and the series' scripts.
+ * Framing by choices (docs/SPEC_CADRAGE_SERIE.md) was removed: the shape replaces it, signature included. The episode plan of the editor-in-chief disappeared with it (Lot 4): a
+ * series' plan is the timeline of its topic as seen by its reader.
  */
 
 const cardStyle: React.CSSProperties = {
@@ -46,8 +46,8 @@ export default function SeriesDetail({
     api.getProducts().then(({ products }) => setProducts(products));
   }, []);
 
-  // Scripts de la série — sans cela, un script importé ou écrit à la main n'est plus atteignable
-  // depuis Direction.
+  // The series' scripts — without this, a script imported or written by hand is no longer reachable
+  // from Direction.
   useEffect(() => {
     let cancelled = false;
     api
@@ -67,10 +67,10 @@ export default function SeriesDetail({
     try {
       await api.updateSeriesFields(series.id, { productId: nextId });
       const product = nextId ? (products.find((p) => p.id === nextId) ?? null) : null;
-      // Le lecteur se choisissait dans le portrait de l'ancien sujet : il est à rechoisir.
+      // The reader was picked from the old topic's portrait: it has to be picked again.
       onSeriesUpdate({ ...series, product: product ? { id: product.id, name: product.name } : null, readerLabel: null, form: null });
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors du changement de sujet.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong while changing the topic.");
     } finally {
       setSwitchingProduct(false);
     }
@@ -96,12 +96,12 @@ export default function SeriesDetail({
             padding: "5px 10px",
           }}
         >
-          Sujet :
+          Topic:
           <select
             value={series.product?.id ?? ""}
             onChange={(e) => switchProduct(e.target.value)}
             disabled={switchingProduct}
-            title="Le sujet dont cette série raconte la ligne de temps — sans sujet, la série n'a rien à raconter"
+            title="The topic whose timeline this series tells — without a topic, the series has nothing to tell"
             style={{
               fontSize: 12,
               fontWeight: 600,
@@ -112,7 +112,7 @@ export default function SeriesDetail({
               cursor: switchingProduct ? "default" : "pointer",
             }}
           >
-            <option value="">Aucun sujet</option>
+            <option value="">No topic</option>
             {products.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -124,13 +124,13 @@ export default function SeriesDetail({
 
       {error && <p style={{ margin: "0 0 12px", fontSize: 13, color: color.danger }}>{error}</p>}
 
-      {/* Le lecteur, la forme et les prochains épisodes tirés de la ligne de temps (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4). */}
+      {/* The reader, the shape and the upcoming episodes drawn from the timeline (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4). */}
       <SeriesReaderPanel series={series} onSeriesUpdate={onSeriesUpdate} />
 
 
       {scripts.length > 0 && (
         <div style={{ ...cardStyle, marginTop: 14 }}>
-          <div style={{ ...sectionLabelStyle, marginBottom: 12 }}>Scripts de cette série · {scripts.length}</div>
+          <div style={{ ...sectionLabelStyle, marginBottom: 12 }}>Scripts in this series · {scripts.length}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {scripts.map((script) => {
               const status = statusMeta[script.status];
@@ -149,7 +149,7 @@ export default function SeriesDetail({
                   }}
                 >
                   <PlatformBadge platform={script.platform} size={18} />
-                  <span style={{ flex: 1, fontSize: 13, color: color.text2, minWidth: 0 }}>{script.title ?? "(sans titre)"}</span>
+                  <span style={{ flex: 1, fontSize: 13, color: color.text2, minWidth: 0 }}>{script.title ?? "(untitled)"}</span>
                   <span
                     style={{
                       fontSize: 11,

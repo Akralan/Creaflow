@@ -95,9 +95,9 @@ function ReadingStep({
         const draft = await load();
         if (draft.extracted) return onSuccess(draft);
         fallback.current = draft;
-        reason = draft.failureReason ?? "La lecture de ta matière a échoué.";
+        reason = draft.failureReason ?? "We couldn't read your material.";
       } catch (err) {
-        reason = err instanceof ApiClientError ? err.message : "La lecture de ta matière a échoué.";
+        reason = err instanceof ApiClientError ? err.message : "We couldn't read your material.";
       }
       setFailure(reason);
       if (attempt < MAX_READING_ATTEMPTS) {
@@ -116,7 +116,7 @@ function ReadingStep({
     setAttempt(1);
   }
 
-  const current = lines.length > 0 ? lines[index % lines.length] : "Je lis ta matière…";
+  const current = lines.length > 0 ? lines[index % lines.length] : "Reading your material…";
   return (
     <div style={{ textAlign: "center", padding: "36px 0 20px" }}>
       {!gaveUp && (
@@ -135,7 +135,7 @@ function ReadingStep({
       )}
       <style>{"@keyframes cf-onboarding-spin{to{transform:rotate(360deg)}} @keyframes cf-onboarding-fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}"}</style>
       <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 22, margin: "0 0 10px" }}>
-        {gaveUp ? "La lecture n'a pas abouti" : "On découvre ce que tu fais"}
+        {gaveUp ? "Reading didn't work out" : "Getting to know what you do"}
       </h2>
       {!gaveUp && (
         <p key={index} style={{ margin: 0, color: color.textMuted, fontSize: 15, animation: "cf-onboarding-fade .4s ease both" }}>
@@ -150,7 +150,7 @@ function ReadingStep({
           {failure}
           {!gaveUp && (
             <div style={{ color: color.textMuted, fontSize: 13, marginTop: 4 }}>
-              Nouvel essai dans quelques secondes ({attempt + 1}/{MAX_READING_ATTEMPTS})…
+              Trying again in a few seconds ({attempt + 1}/{MAX_READING_ATTEMPTS})…
             </div>
           )}
         </div>
@@ -158,12 +158,12 @@ function ReadingStep({
       {gaveUp && (
         <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 10, marginTop: 22 }}>
           <Button variant="secondary" onClick={onBack}>
-            Précédent
+            Back
           </Button>
           <Button variant="secondary" onClick={() => onManual(fallback.current)}>
-            Remplir à la main
+            Fill in by hand
           </Button>
-          <Button onClick={retry}>Réessayer</Button>
+          <Button onClick={retry}>Try again</Button>
         </div>
       )}
     </div>
@@ -233,9 +233,9 @@ function OnboardingContent() {
 
   const readingLines = useMemo(
     () => [
-      ...(signedIn?.sources ?? []).map((s) => `Je lis ${s.label} sur ${s.providerLabel}…`),
-      ...((signedIn?.notes.length ?? 0) > 0 ? ["Je lis tes notes…"] : []),
-      "Je regroupe ce qui parle du même projet…",
+      ...(signedIn?.sources ?? []).map((s) => `Reading ${s.label} on ${s.providerLabel}…`),
+      ...((signedIn?.notes.length ?? 0) > 0 ? ["Reading your notes…"] : []),
+      "Grouping what belongs to the same project…",
     ],
     [signedIn]
   );
@@ -254,7 +254,7 @@ function OnboardingContent() {
     setError(null);
     if (step === "sources") {
       if (!signedIn || (signedIn.sources.length === 0 && signedIn.notes.length === 0)) {
-        setError("Branche au moins une source ou colle tes notes.");
+        setError("Connect at least one source or paste your notes.");
         return;
       }
       storeName(name);
@@ -262,10 +262,10 @@ function OnboardingContent() {
       return;
     }
     if (step === "profile") {
-      if (!name.trim()) return setError("Dis-nous comment tu t'appelles.");
-      if (!activityType.trim()) return setError("Décris en une phrase ce que tu fais.");
-      if (subjects.length > MAX_PRODUCTS) return setError(`Au plus ${MAX_PRODUCTS} sujets : regroupe ceux qui parlent du même projet.`);
-      if (subjects.some((s) => !s.name.trim())) return setError("Chaque sujet a besoin d'un nom.");
+      if (!name.trim()) return setError("Tell us your name.");
+      if (!activityType.trim()) return setError("Describe what you do in one sentence.");
+      if (subjects.length > MAX_PRODUCTS) return setError(`At most ${MAX_PRODUCTS} subjects: group the ones about the same project.`);
+      if (subjects.some((s) => !s.name.trim())) return setError("Every subject needs a name.");
       setStep("expectations");
       return;
     }
@@ -281,7 +281,7 @@ function OnboardingContent() {
   }
 
   async function finish() {
-    if (platforms.length === 0) return setError("Choisis au moins un réseau où publier.");
+    if (platforms.length === 0) return setError("Pick at least one network to publish on.");
     setError(null);
     setBusy(true);
     try {
@@ -305,7 +305,7 @@ function OnboardingContent() {
       // On choisit ses séries sur Direction ; la validation y planifie et remplit le calendrier.
       router.push("/direction?selection=1");
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Impossible de terminer, réessaie.");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't finish. Please try again.");
       setBusy(false);
     }
   }
@@ -319,7 +319,7 @@ function OnboardingContent() {
     <div style={{ height: "100vh", width: "100%", overflow: "auto", display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "22px 40px", display: "flex", alignItems: "center", gap: 10, borderBottom: `1px solid ${color.border}`, background: color.cardBg }}>
         <BrandMark size={32} />
-        <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, letterSpacing: "-0.02em" }}>CreaFlow</span>
+        <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, letterSpacing: "-0.02em" }}>Buildloud</span>
       </div>
 
       <div style={{ maxWidth: 680, width: "100%", margin: "0 auto", padding: "36px 20px 64px" }}>
@@ -361,15 +361,15 @@ function OnboardingContent() {
 
           {step === "profile" && (
             <div style={{ display: "grid", gap: 18 }}>
-              <StepHeading title="Ce que tu fais" marginBottom={0}>
+              <StepHeading title="What you do" marginBottom={0}>
                 {extracted
-                  ? "Voilà ce qu'on a compris en lisant ta matière. Corrige ce qui ne va pas."
-                  : "On n'a pas réussi à lire ta matière automatiquement : décris-toi en quelques mots."}
+                  ? "Here's what we understood from your material. Fix anything that's off."
+                  : "We couldn't read your material automatically. Describe yourself in a few words."}
               </StepHeading>
-              <TextField label="Ton nom" value={name} onChange={(e) => setName(e.target.value)} />
-              <TextAreaField label="Ce que tu fais" value={activityType} onChange={(e) => setActivityType(e.target.value)} style={{ minHeight: 80 }} />
+              <TextField label="Your name" value={name} onChange={(e) => setName(e.target.value)} />
+              <TextAreaField label="What you do" value={activityType} onChange={(e) => setActivityType(e.target.value)} style={{ minHeight: 80 }} />
               <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 7 }}>Tes sujets</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 7 }}>Your subjects</div>
                 <SubjectsEditor subjects={subjects} items={items} onChange={setSubjects} />
               </div>
             </div>
@@ -377,13 +377,13 @@ function OnboardingContent() {
 
           {step === "expectations" && (
             <div>
-              <StepHeading title="Qu'est-ce que tu attends de nous ?">
-                Dis-le avec tes mots : ce que tu veux que CreaFlow t&apos;aide à faire. On s&apos;en servira à chaque post.
+              <StepHeading title="What do you expect from us?">
+                Say it in your own words: what you want Buildloud to help you do. We&apos;ll use it for every post.
               </StepHeading>
               <TextAreaField
                 value={expectations}
                 onChange={(e) => setExpectations(e.target.value)}
-                placeholder="Je veux publier chaque semaine sans y passer mes soirées, et que les gens suivent la construction de mon produit jusqu'au lancement."
+                placeholder="I want to publish every week without spending my evenings on it, and have people follow my product being built all the way to launch."
                 style={{ minHeight: 150 }}
               />
             </div>
@@ -391,15 +391,14 @@ function OnboardingContent() {
 
           {step === "days" && (
             <div>
-              <StepHeading title="Tes jours de publication">
-                Les jours où tu peux publier. On les répartit entre tes séries, et tu pourras changer les jours de
-                chacune quand tu veux.
+              <StepHeading title="Your publishing days">
+                The days you can publish. We spread them across your series, and you can change each series&apos; days whenever you want.
               </StepHeading>
               <PublishingDaysPicker value={publishingDays} onChange={setPublishingDays} />
               <p style={{ fontSize: 14, color: color.textMuted, margin: "14px 0 26px" }}>
-                Tes séries publieront le {publishingDaysLabel(publishingDays)}.
+                Your series will publish on {publishingDaysLabel(publishingDays)}.
               </p>
-              <div style={{ fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 10 }}>Où tu publies</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 10 }}>Where you publish</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {PLATFORM_CHOICES.map((p) => {
                   const on = platforms.includes(p.key);
@@ -434,14 +433,14 @@ function OnboardingContent() {
           {showFooter && (
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 32, paddingTop: 24, borderTop: `1px solid ${color.dividerAlt}` }}>
               <Button variant="secondary" onClick={goPrev} disabled={busy}>
-                Précédent
+                Back
               </Button>
               {step === "days" ? (
                 <Button onClick={finish} disabled={busy}>
-                  {busy ? "On prépare tes séries…" : "C'est parti"}
+                  {busy ? "Setting up your series…" : "Let's go"}
                 </Button>
               ) : (
-                <Button onClick={goNext}>Continuer</Button>
+                <Button onClick={goNext}>Continue</Button>
               )}
             </div>
           )}

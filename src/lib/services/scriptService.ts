@@ -84,7 +84,7 @@ export async function buildGenerationContext(
     where: eq(creatorProfiles.userId, userId),
   });
   if (!profile) {
-    throw new ApiError(400, "Configure d'abord ton profil créateur (Module A) avant de générer un script.");
+    throw new ApiError(400, "Set up your creator profile (Module A) first before generating a script.");
   }
 
   const contentCategoryId = await resolveCategoryForGeneration(userId, { seriesId, contentCategoryId: requestedCategoryId });
@@ -92,7 +92,7 @@ export async function buildGenerationContext(
     where: and(eq(contentCategories.id, contentCategoryId), eq(contentCategories.userId, userId)),
   });
   if (!category) {
-    throw new ApiError(404, "Rôle introuvable.");
+    throw new ApiError(404, "Role not found.");
   }
 
   let series = null;
@@ -103,7 +103,7 @@ export async function buildGenerationContext(
       where: and(eq(contentSeries.id, seriesId), eq(contentSeries.userId, userId)),
     });
     if (!found) {
-      throw new ApiError(404, "Série introuvable.");
+      throw new ApiError(404, "Series not found.");
     }
     series = { id: found.id, label: found.label, description: found.description };
     seriesProductId = found.productId;
@@ -125,7 +125,7 @@ export async function buildGenerationContext(
     if (!eventBrief) {
       throw new ApiError(
         409,
-        "Rien à raconter pour cette série : sa ligne de temps est vide pour ce lecteur, ou tout a déjà été raconté. Ajoute de la matière, relis-la, ou choisis un autre lecteur dans la série."
+        "Nothing to tell for this series: its timeline is empty for this reader, or everything has already been told. Add material, reread it, or pick another reader in the series."
       );
     }
   }
@@ -143,7 +143,7 @@ export async function buildGenerationContext(
       where: and(eq(products.id, effectiveProductId), eq(products.userId, userId)),
     });
     if (!product) {
-      throw new ApiError(404, "Produit introuvable.");
+      throw new ApiError(404, "Product not found.");
     }
   }
 
@@ -306,7 +306,7 @@ export async function createScriptRecord(
  *  l'enregistrement, hors transaction : un échec ici ne doit jamais faire perdre le script. */
 async function recordInspirationFeedback(userId: string, generated: GeneratedScript): Promise<void> {
   await applyInspirationFeedback(userId, generated.trace).catch((err) =>
-    logger.error("Retours sur les fiches d'inspiration non appliqués", err, { userId })
+    logger.error("Feedback on inspiration cards not applied", err, { userId })
   );
 }
 
@@ -384,7 +384,7 @@ export async function patchScriptContent(userId: string, scriptId: string, patch
     .where(and(eq(scripts.id, scriptId), eq(scripts.userId, userId)))
     .returning();
   if (!script) {
-    throw new ApiError(404, "Script introuvable.");
+    throw new ApiError(404, "Script not found.");
   }
   // Les mots de la maquette viennent du storyboard (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2) : quand
   // ils changent, la maquette passe en "stale" — badge côté éditeur, jamais bloquant.
@@ -406,7 +406,7 @@ export async function deleteScriptForUser(userId: string, scriptId: string) {
     .where(and(eq(scripts.id, scriptId), eq(scripts.userId, userId)))
     .returning({ id: scripts.id });
   if (!deleted) {
-    throw new ApiError(404, "Script introuvable.");
+    throw new ApiError(404, "Script not found.");
   }
   return deleted;
 }

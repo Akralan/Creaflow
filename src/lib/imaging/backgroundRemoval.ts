@@ -1,14 +1,14 @@
 import { photoroomRemover } from "./providers/photoroom";
 
 /**
- * Détourage (docs/SPEC_COMPOSITION_VISUELLE.md §2 « Détourage », §5.3) — service externe derrière un
- * adaptateur, même motif que `LLM_PROVIDER` (src/lib/llm/provider.ts). Sans variable
- * d'environnement, la fonction est simplement absente : le prompt ne la propose pas, l'éditeur ne
- * montre pas la bascule, rien d'autre ne change.
+ * Background removal (docs/SPEC_COMPOSITION_VISUELLE.md §2 "Cutout", §5.3) — external service behind
+ * an adapter, same pattern as `LLM_PROVIDER` (src/lib/llm/provider.ts). Without an environment
+ * variable, the function is simply absent: the prompt doesn't offer it, the editor doesn't
+ * show the toggle, nothing else changes.
  */
 
 export interface BackgroundRemover {
-  /** Renvoie un PNG avec transparence. Lève en cas d'échec du service. */
+  /** Returns a PNG with transparency. Throws if the service fails. */
   removeBackground(bytes: Buffer, mimeType: string): Promise<Buffer>;
 }
 

@@ -21,10 +21,10 @@ export async function GET() {
       }),
     ]);
 
-    // Les plateformes suivies par le profil sont celles avec un objectif défini, union des
-    // plateformes déjà connectées. Avant l'onboarding (aucun objectif, aucune connexion —
-    // l'étape "réseaux" de l'onboarding n'a pas encore de suggestion de plateformes tant que
-    // le chat conversationnel n'existe pas), on retombe sur les plateformes à connexion OAuth.
+    // The platforms tracked by the profile are those with a defined goal, unioned with
+    // platforms already connected. Before onboarding (no goal, no connection —
+    // the onboarding "networks" step has no platform suggestion yet as long as
+    // the conversational chat does not exist), we fall back to the OAuth-connected platforms.
     const goalOrConnectionPlatforms = [...goals.map((g) => g.platform), ...connections.map((c) => c.platform)];
     const platforms = new Set<string>(
       goalOrConnectionPlatforms.length > 0

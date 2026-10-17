@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     // n'était déjà pas exécutée dans ce cas (court-circuit du `||`), pas de nouvelle différence de
     // timing exploitable.
     if (!user) {
-      throw new ApiError(401, "Email ou mot de passe incorrect.");
+      throw new ApiError(401, "Incorrect email or password.");
     }
     // passwordHash est nullable depuis l'arrivée des identités tierces (GitHub, Notion, Linear).
     // Sans ce garde, on répondrait "mot de passe incorrect" à quelqu'un qui n'en a simplement
@@ -42,11 +42,11 @@ export async function POST(request: NextRequest) {
     if (!user.passwordHash) {
       throw new ApiError(
         400,
-        "Ce compte a été créé avec GitHub, Notion ou Linear : utilise le bouton correspondant, ou « Mot de passe oublié ? » pour définir un mot de passe."
+        "This account was created with GitHub, Notion or Linear: use the matching button, or \"Forgot password?\" to set a password."
       );
     }
     if (!(await verifyPassword(body.password, user.passwordHash))) {
-      throw new ApiError(401, "Email ou mot de passe incorrect.");
+      throw new ApiError(401, "Incorrect email or password.");
     }
 
     await setSessionCookie(user.id);

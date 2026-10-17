@@ -3,7 +3,7 @@ import { requireUserId } from "@/lib/auth/session";
 import { saveSeriesForm, seriesFormEditSchema } from "@/lib/services/seriesReaderService";
 import { handleApiError } from "@/lib/api/errors";
 
-/** Correction à la main de la forme de la série (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4). */
+/** Hand correction of the series form (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4). */
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userId = await requireUserId();

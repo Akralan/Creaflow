@@ -11,11 +11,11 @@ import { color } from "@/lib/design/tokens";
 import { platformLabel } from "@/lib/social/types";
 
 /**
- * Point de déclenchement lazy de la synchronisation des métriques (docs/SPEC_METRIQUES_AUTO.md
- * §7.5) — le fetch se lance au montage de cette page, pas via un cron (aucun n'existe dans ce
- * repo). Affiche aussi les candidats de rattachement en attente de confirmation (§4) et, le cas
- * échéant, la proposition de rééquilibrage des catégories (§6/§7.4, via le mécanisme
- * AssistantProposal existant).
+ * Lazy trigger point for metrics syncing (docs/SPEC_METRIQUES_AUTO.md
+ * §7.5) — the fetch starts when this page mounts, not via a cron (none exists in this
+ * repo). Also shows the matching candidates awaiting confirmation (§4) and, where
+ * relevant, the category rebalancing proposal (§6/§7.4, via the existing
+ * AssistantProposal mechanism).
  */
 export default function PerformancePage() {
   const [loading, setLoading] = useState(true);
@@ -45,7 +45,7 @@ export default function PerformancePage() {
         await api.refreshPerformance();
         await loadState();
       } catch (err) {
-        setError(err instanceof ApiClientError ? err.message : "Erreur, réessaie.");
+        setError(err instanceof ApiClientError ? err.message : "Something went wrong, please try again.");
       } finally {
         setLoading(false);
         setSyncing(false);
@@ -59,7 +59,7 @@ export default function PerformancePage() {
       await api.resolveMatchCandidate(id, action);
       setCandidates((cs) => cs.filter((c) => c.id !== id));
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur, réessaie.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong, please try again.");
     }
   }
 
@@ -67,7 +67,7 @@ export default function PerformancePage() {
     return (
       <div style={{ padding: "32px 36px" }}>
         <h1 style={heading1Style}>Performance</h1>
-        <p style={{ color: color.textMuted, fontSize: 14 }}>Chargement…</p>
+        <p style={{ color: color.textMuted, fontSize: 14 }}>Loading…</p>
       </div>
     );
   }
@@ -76,20 +76,20 @@ export default function PerformancePage() {
     <div style={{ padding: "32px 36px", maxWidth: 760 }}>
       <h1 style={heading1Style}>Performance</h1>
       <p style={{ margin: "6px 0 20px", color: color.textMuted, fontSize: 15 }}>
-        Métriques récupérées automatiquement depuis tes comptes connectés — confirme les posts détectés pour qu&apos;ils
-        alimentent l&apos;arbitrage éditorial.
+        Metrics pulled automatically from your connected accounts — confirm the detected posts so they
+        feed editorial decisions.
       </p>
 
-      {syncing && <p style={{ fontSize: 13, color: color.textFaint, marginBottom: 16 }}>Synchronisation en cours…</p>}
+      {syncing && <p style={{ fontSize: 13, color: color.textFaint, marginBottom: 16 }}>Syncing…</p>}
       {error && <p style={{ fontSize: 13, color: color.danger, marginBottom: 16 }}>{error}</p>}
 
       {needsReconnect.length > 0 && (
         <Card style={{ padding: 16, marginBottom: 20 }}>
           <p style={{ margin: 0, fontSize: 13, color: color.danger }}>
-            Connexion expirée pour {needsReconnect.map((c) => platformLabel(c.platform)).join(", ")} — reconnecte
-            {needsReconnect.length > 1 ? "-les" : "-le"} depuis{" "}
+            Connection expired for {needsReconnect.map((c) => platformLabel(c.platform)).join(", ")} — reconnect
+            {needsReconnect.length > 1 ? " them" : " it"} from{" "}
             <a href="/settings" style={{ color: "inherit" }}>
-              les paramètres
+              settings
             </a>
             .
           </p>
@@ -98,14 +98,14 @@ export default function PerformancePage() {
 
       {proposals.length > 0 && (
         <div style={{ marginBottom: 28 }}>
-          <h2 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 10px" }}>Rééquilibrage proposé</h2>
+          <h2 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 10px" }}>Suggested rebalancing</h2>
           <AssistantProposalsPanel proposals={proposals} onProposalsChange={setProposals} />
         </div>
       )}
 
-      <h2 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 10px" }}>À confirmer</h2>
+      <h2 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 10px" }}>To confirm</h2>
       {candidates.length === 0 ? (
-        <p style={{ fontSize: 13, color: color.textMuted, margin: 0 }}>Aucun post en attente de confirmation.</p>
+        <p style={{ fontSize: 13, color: color.textMuted, margin: 0 }}>No posts waiting for confirmation.</p>
       ) : (
         <div style={{ display: "grid", gap: 10 }}>
           {candidates.map((c) => (
@@ -113,7 +113,7 @@ export default function PerformancePage() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{c.scriptTitle}</div>
                 <div style={{ fontSize: 12, color: color.textMuted, margin: "2px 0" }}>
-                  {platformLabel(c.platform)} · {c.metrics.views} vues · {c.metrics.likes} likes
+                  {platformLabel(c.platform)} · {c.metrics.views} views · {c.metrics.likes} likes
                 </div>
                 {c.captionText && (
                   <div
@@ -133,14 +133,14 @@ export default function PerformancePage() {
                 <IconActionButton
                   icon={X}
                   variant="danger"
-                  title="Ce n'est pas ce post"
+                  title="This isn't the post"
                   onClick={() => resolveCandidate(c.id, "dismiss")}
                   size={28}
                 />
                 <IconActionButton
                   icon={Check}
                   variant="primary"
-                  title="C'est ce post"
+                  title="This is the post"
                   onClick={() => resolveCandidate(c.id, "confirm")}
                   size={28}
                 />

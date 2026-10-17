@@ -82,7 +82,7 @@ export async function discardAttachment(userId: string, attachmentId: string) {
     )
     .returning({ id: assistantAttachments.id });
   if (!deleted) {
-    throw new ApiError(404, "Fichier introuvable ou déjà rangé.");
+    throw new ApiError(404, "File not found or already filed.");
   }
   return deleted;
 }
@@ -90,7 +90,7 @@ export async function discardAttachment(userId: string, attachmentId: string) {
 export async function createAttachment(userId: string, filename: string, rawText: string) {
   const text = rawText.trim();
   if (!text) {
-    throw new ApiError(400, "Ce fichier est vide.");
+    throw new ApiError(400, "This file is empty.");
   }
   const [row] = await db.insert(assistantAttachments).values({ userId, filename, rawText: text }).returning({
     id: assistantAttachments.id,
@@ -164,7 +164,7 @@ export async function runAssistantChatTurnForUser(userId: string, message: strin
   // on ne stocke jamais un message assistant vide, l'historique serait illisible au tour suivant.
   const reply =
     turn.reply.trim() ||
-    "J'ai enregistré des propositions dans le panneau à droite — dis-moi ce que tu en penses.";
+    "I've recorded some proposals in the panel on the right — tell me what you think.";
 
   const messages: AssistantMessage[] = [...messagesWithUser, { role: "assistant", content: reply }];
   if (session) {
@@ -418,7 +418,7 @@ async function resolveOwnedProductId(userId: string, productId: string | null | 
     columns: { id: true },
   });
   if (!product) {
-    throw new ApiError(404, "Sujet introuvable.");
+    throw new ApiError(404, "Subject not found.");
   }
   return product.id;
 }
@@ -433,10 +433,10 @@ export async function resolveProposal(
     where: and(eq(assistantProposals.id, proposalId), eq(assistantProposals.userId, userId)),
   });
   if (!proposal) {
-    throw new ApiError(404, "Proposition introuvable.");
+    throw new ApiError(404, "Proposal not found.");
   }
   if (proposal.status !== "pending") {
-    throw new ApiError(400, "Cette proposition a déjà été traitée.");
+    throw new ApiError(400, "This proposal has already been handled.");
   }
 
   if (action === "reject") {
@@ -464,7 +464,7 @@ export async function resolveProposal(
     portraitProductIds.push(...created.map((p) => p.id));
   } else if (proposal.kind === "product_update") {
     if (!proposal.targetId) {
-      throw new ApiError(400, "Proposition invalide : cible manquante.");
+      throw new ApiError(400, "Invalid proposal: missing target.");
     }
     const data = productPayloadSchema.parse(merged);
     await updateProductForUser(userId, proposal.targetId, {
@@ -480,7 +480,7 @@ export async function resolveProposal(
       data.categoryId ??
       (data.categoryLabel ? resolveCategoryLabelToId(data.categoryLabel, await listActiveCategoriesForUser(userId)) : null);
     if (!categoryId) {
-      throw new ApiError(400, "Choisis un rôle pour cette série avant de l'accepter.");
+      throw new ApiError(400, "Pick a role for this series before accepting it.");
     }
     // Le payload du LLM est contraint par un enum d'ids existants, mais `fields` est librement
     // éditable par l'utilisateur avant acceptation : on revérifie l'appartenance du sujet, comme le
@@ -491,7 +491,7 @@ export async function resolveProposal(
         columns: { id: true },
       });
       if (!product) {
-        throw new ApiError(404, "Sujet introuvable.");
+        throw new ApiError(404, "Subject not found.");
       }
     }
 
@@ -507,7 +507,7 @@ export async function resolveProposal(
         ...(data.productId ? { productId: data.productId } : {}),
       });
       if (!seriesId) {
-        throw new ApiError(404, "Série introuvable.");
+        throw new ApiError(404, "Series not found.");
       }
     });
     // Une série créée ou un rythme changé : le calendrier suit (docs/SPEC_RYTHME_DES_SERIES.md §3).
@@ -530,10 +530,10 @@ export async function resolveProposal(
     }>;
     if (proposal.kind === "category_update") {
       if (!proposal.targetId) {
-        throw new ApiError(400, "Proposition invalide : cible manquante.");
+        throw new ApiError(400, "Invalid proposal: missing target.");
       }
       if (!active.some((c) => c.id === proposal.targetId)) {
-        throw new ApiError(404, "Catégorie introuvable.");
+        throw new ApiError(404, "Category not found.");
       }
       nextItems = active.map((c) =>
         c.id === proposal.targetId
@@ -575,13 +575,13 @@ export async function resolveProposal(
     }
 
     if (nextItems.length < 2 || nextItems.length > 6) {
-      throw new ApiError(400, "Le nombre de rôles actifs doit rester entre 2 et 6.");
+      throw new ApiError(400, "The number of active roles must stay between 2 and 6.");
     }
     await saveCategoriesForUser(userId, nextItems);
   } else if (proposal.kind === "angle_create" || proposal.kind === "angle_update") {
     const data = anglePayloadSchema.parse(merged);
     if (proposal.kind === "angle_update" && !proposal.targetId) {
-      throw new ApiError(400, "Proposition invalide : cible manquante.");
+      throw new ApiError(400, "Invalid proposal: missing target.");
     }
     const result = await upsertAngleItem(userId, {
       id: proposal.kind === "angle_update" ? (proposal.targetId ?? undefined) : undefined,
@@ -589,7 +589,7 @@ export async function resolveProposal(
       description: data.description,
     });
     if (!result) {
-      throw new ApiError(404, "Angle introuvable.");
+      throw new ApiError(404, "Angle not found.");
     }
   } else if (proposal.kind === "category_reweight") {
     const data = categoryReweightPayloadSchema.parse(merged);
@@ -609,7 +609,7 @@ export async function resolveProposal(
     }));
 
     if (nextItems.length < 2 || nextItems.length > 6) {
-      throw new ApiError(400, "Le nombre de rôles actifs doit rester entre 2 et 6.");
+      throw new ApiError(400, "The number of active roles must stay between 2 and 6.");
     }
     await saveCategoriesForUser(userId, nextItems);
   } else if (proposal.kind === "material_create") {
@@ -628,7 +628,7 @@ export async function resolveProposal(
         ),
       });
       if (!attachment) {
-        throw new ApiError(404, "Fichier introuvable ou déjà rangé.");
+        throw new ApiError(404, "File not found or already filed.");
       }
       material = await createFileMaterial(userId, {
         productId,
@@ -641,7 +641,7 @@ export async function resolveProposal(
         .where(eq(assistantAttachments.id, attachment.id));
     } else {
       if (!data.text?.trim()) {
-        throw new ApiError(400, "Cette matière n'a pas de contenu à enregistrer.");
+        throw new ApiError(400, "This material has no content to save.");
       }
       // kind="interview" : extraite d'une conversation, ni collée ni importée — même provenance que
       // l'interview-chat (docs/SPEC_MATIERE_EDITEUR.md §3.7).
@@ -652,7 +652,7 @@ export async function resolveProposal(
     summarizeMaterialId = material.id;
   } else if (proposal.kind === "material_update") {
     if (!proposal.targetId) {
-      throw new ApiError(400, "Proposition invalide : cible manquante.");
+      throw new ApiError(400, "Invalid proposal: missing target.");
     }
     const data = materialPayloadSchema.parse(merged);
     const updated = await updateMaterialForUser(userId, proposal.targetId, {
@@ -666,29 +666,29 @@ export async function resolveProposal(
     }
   } else if (proposal.kind === "material_delete") {
     if (!proposal.targetId) {
-      throw new ApiError(400, "Proposition invalide : cible manquante.");
+      throw new ApiError(400, "Invalid proposal: missing target.");
     }
     await deleteMaterialForUser(userId, proposal.targetId);
   } else if (proposal.kind === "series_archive") {
     if (!proposal.targetId) {
-      throw new ApiError(400, "Proposition invalide : cible manquante.");
+      throw new ApiError(400, "Invalid proposal: missing target.");
     }
     archivePayloadSchema.parse(merged);
     await archiveSeriesForUser(userId, proposal.targetId);
   } else if (proposal.kind === "angle_archive") {
     if (!proposal.targetId) {
-      throw new ApiError(400, "Proposition invalide : cible manquante.");
+      throw new ApiError(400, "Invalid proposal: missing target.");
     }
     archivePayloadSchema.parse(merged);
     await archiveAngleForUser(userId, proposal.targetId);
   } else if (proposal.kind === "category_archive") {
     if (!proposal.targetId) {
-      throw new ApiError(400, "Proposition invalide : cible manquante.");
+      throw new ApiError(400, "Invalid proposal: missing target.");
     }
     archivePayloadSchema.parse(merged);
     const active = await listActiveCategoriesForUser(userId);
     if (!active.some((c) => c.id === proposal.targetId)) {
-      throw new ApiError(404, "Catégorie introuvable.");
+      throw new ApiError(404, "Category not found.");
     }
     // Archivage par omission : on repasse par saveCategoriesForUser pour conserver ses deux garde-fous
     // — refus si le rôle est encore porté par une série active, et renormalisation des poids à 100%.
@@ -703,7 +703,7 @@ export async function resolveProposal(
         materialHungry: c.materialHungry,
       }));
     if (nextItems.length < 2) {
-      throw new ApiError(400, "Le nombre de rôles actifs doit rester entre 2 et 6.");
+      throw new ApiError(400, "The number of active roles must stay between 2 and 6.");
     }
     await saveCategoriesForUser(userId, nextItems);
   } else if (proposal.kind === "profile_update") {

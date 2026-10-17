@@ -2,9 +2,9 @@ import { z } from "zod";
 import { MAX_DURATION_MS, MIN_DURATION_MS } from "./visualFormat";
 
 /**
- * Ligne de temps d'une maquette animée (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §2 « Le modèle de
- * l'animation ») : une entrée par calque qui apparaît ou disparaît. Un calque absent est visible du
- * début à la fin. Objet séparé du HTML — jamais de CSS d'animation dans les slides.
+ * Timeline of an animated mockup (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §2 "The animation
+ * model"): one entry per layer that appears or disappears. An absent layer is visible from start
+ * to end. An object separate from the HTML — never animation CSS in the slides.
  */
 export const ENTER_EFFECTS = ["fade", "slide-up", "slide-left", "zoom-in", "typewriter"] as const;
 export const EXIT_EFFECTS = ["fade", "slide-down", "slide-right", "none"] as const;
@@ -34,16 +34,16 @@ export const durationMsSchema = z.number().int().min(MIN_DURATION_MS).max(MAX_DU
 export class TimelineValidationError extends Error {
   readonly issues: string[];
   constructor(issues: string[]) {
-    super(`Ligne de temps refusée : ${issues.join(" · ")}`);
+    super(`Timeline rejected: ${issues.join(" · ")}`);
     this.name = "TimelineValidationError";
     this.issues = issues;
   }
 }
 
 /**
- * Valide et normalise : calques existants, un seul passage par calque, temps dans la durée, sortie
- * après l'entrée, tri par début. Lève TimelineValidationError avec la liste des problèmes (renvoyée
- * au modèle pour une seconde tentative, ou en 422 à une écriture manuelle).
+ * Validates and normalizes: existing layers, a single pass per layer, times within the duration,
+ * exit after entrance, sorted by start. Throws TimelineValidationError with the list of problems
+ * (returned to the model for a second attempt, or as a 422 to a manual write).
  */
 export function normalizeTimeline(raw: unknown, layerIds: string[], durationMs: number): Timeline {
   const parsed = timelineSchema.safeParse(raw);
@@ -56,16 +56,16 @@ export function normalizeTimeline(raw: unknown, layerIds: string[], durationMs: 
   const out: Timeline = [];
   for (const entry of parsed.data) {
     if (!known.has(entry.layerId)) {
-      issues.push(`calque « ${entry.layerId} » inconnu`);
+      issues.push(`layer "${entry.layerId}" unknown`);
       continue;
     }
     if (seen.has(entry.layerId)) {
-      issues.push(`calque « ${entry.layerId} » présent deux fois`);
+      issues.push(`layer "${entry.layerId}" present twice`);
       continue;
     }
     seen.add(entry.layerId);
     if (entry.startMs >= durationMs) {
-      issues.push(`calque « ${entry.layerId} » : début ${entry.startMs} ms au-delà de la durée ${durationMs} ms`);
+      issues.push(`layer "${entry.layerId}": start ${entry.startMs} ms beyond the duration ${durationMs} ms`);
       continue;
     }
     const startMs = entry.startMs;
@@ -77,13 +77,13 @@ export function normalizeTimeline(raw: unknown, layerIds: string[], durationMs: 
       exitAtMs = null;
     }
     if (exit !== null && exitAtMs === null) {
-      issues.push(`calque « ${entry.layerId} » : effet de sortie sans instant de sortie`);
+      issues.push(`layer "${entry.layerId}": exit effect without an exit time`);
       continue;
     }
     if (exit === null) exitAtMs = null;
     if (exitAtMs !== null) {
       if (exitAtMs <= startMs + enterMs) {
-        issues.push(`calque « ${entry.layerId} » : sortie à ${exitAtMs} ms avant la fin de l'entrée (${startMs + enterMs} ms)`);
+        issues.push(`layer "${entry.layerId}": exit at ${exitAtMs} ms before the end of the entrance (${startMs + enterMs} ms)`);
         continue;
       }
       if (exitAtMs > durationMs) exitAtMs = durationMs;
@@ -94,13 +94,13 @@ export function normalizeTimeline(raw: unknown, layerIds: string[], durationMs: 
   return out.sort((a, b) => a.startMs - b.startMs);
 }
 
-/** Décrit la ligne de temps au modèle (révision) ou à l'auteur. */
+/** Describes the timeline to the model (revision) or to the author. */
 export function describeTimeline(timeline: Timeline): string {
-  if (timeline.length === 0) return "(aucun calque animé)";
+  if (timeline.length === 0) return "(no animated layer)";
   return timeline
     .map(
       (t) =>
-        `${t.layerId} : ${t.enter} à ${t.startMs} ms (${t.enterMs} ms)${t.exit && t.exitAtMs !== null ? `, sort en ${t.exit} à ${t.exitAtMs} ms` : ", reste jusqu'à la fin"}`
+        `${t.layerId}: ${t.enter} at ${t.startMs} ms (${t.enterMs} ms)${t.exit && t.exitAtMs !== null ? `, exits with ${t.exit} at ${t.exitAtMs} ms` : ", stays until the end"}`
     )
     .join("\n");
 }

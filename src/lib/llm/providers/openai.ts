@@ -10,7 +10,7 @@ function getClient(): OpenAI {
   if (!client) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      throw new Error("OPENAI_API_KEY n'est pas défini dans l'environnement.");
+      throw new Error("OPENAI_API_KEY is not set in the environment.");
     }
     client = new OpenAI({ apiKey });
   }
@@ -19,13 +19,13 @@ function getClient(): OpenAI {
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-5-mini";
 
-// API Responses (/v1/responses), pas Chat Completions : sur les modèles reasoning (famille gpt-5.x),
-// Chat Completions refuse explicitement de combiner function tools et raisonnement actif
-// ("Function tools with reasoning_effort are not supported... use /v1/responses"). Responses les
-// combine nativement. Effort "low" plutôt que "none" : un peu de raisonnement bénéficie à la
-// génération de script sans le coût (tokens/latence) d'un effort plus élevé. "minimal" n'existe
-// pas pour tous les modèles reasoning — gpt-5.6-luna refuse explicitement cette valeur (supportées :
-// none/low/medium/high/xhigh/max) ; "low" est la valeur la plus basse au-dessus de "none" ici.
+// Responses API (/v1/responses), not Chat Completions: on reasoning models (gpt-5.x family),
+// Chat Completions explicitly refuses to combine function tools and active reasoning
+// ("Function tools with reasoning_effort are not supported... use /v1/responses"). Responses
+// combines them natively. Effort "low" rather than "none": a bit of reasoning benefits
+// script generation without the cost (tokens/latency) of a higher effort. "minimal" doesn't exist
+// for all reasoning models — gpt-5.6-luna explicitly refuses this value (supported:
+// none/low/medium/high/xhigh/max); "low" is the lowest value above "none" here.
 export async function callOpenAI({ system, userMessage, tool, maxTokens, strict }: StructuredCallParams): Promise<unknown> {
   const response = await getClient().responses.create({
     model: MODEL,
@@ -39,10 +39,10 @@ export async function callOpenAI({ system, userMessage, tool, maxTokens, strict 
         name: tool.name,
         description: tool.description,
         parameters: tool.input_schema,
-        // strict:true (activé au cas par cas par l'appelant, voir StructuredCallParams) fait respecter
-        // le schéma par contrainte de décodage côté API (garantie, pas une suggestion) — nécessaire
-        // pour generateScript.ts car en mode non strict le modèle omettait `usedExcerpts` malgré
-        // `required` (observé en usage réel, docs/SPEC_MATIERE_EDITEUR.md §3).
+        // strict:true (enabled case by case by the caller, see StructuredCallParams) enforces
+        // the schema by decoding constraint on the API side (a guarantee, not a suggestion) — needed
+        // for generateScript.ts because in non-strict mode the model omitted `usedExcerpts` despite
+        // `required` (seen in real use, docs/SPEC_MATIERE_EDITEUR.md §3).
         strict: strict ?? false,
       },
     ],
@@ -53,15 +53,15 @@ export async function callOpenAI({ system, userMessage, tool, maxTokens, strict 
     (item): item is Extract<typeof item, { type: "function_call" }> => item.type === "function_call"
   );
   if (!call) {
-    throw new Error("Le modèle n'a pas renvoyé de réponse structurée.");
+    throw new Error("The model did not return a structured response.");
   }
 
   return JSON.parse(call.arguments);
 }
 
 /**
- * Recherche web (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.2) : outil `web_search` intégré à l'API Responses,
- * exécuté côté OpenAI — pas de boucle de notre côté. Renvoie le compte rendu et les pages citées.
+ * Web search (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.2): `web_search` tool built into the Responses API,
+ * executed on OpenAI's side — no loop on our side. Returns the report and the cited pages.
  */
 export async function callOpenAIWebResearch({ system, userMessage, maxTokens }: WebResearchParams): Promise<WebResearchResult> {
   const response = await getClient().responses.create({
@@ -71,8 +71,8 @@ export async function callOpenAIWebResearch({ system, userMessage, maxTokens }: 
     max_output_tokens: maxTokens,
     reasoning: { effort: "low" },
     tools: [{ type: "web_search", search_context_size: "medium" }],
-    // « required » et pas « auto » : en auto, le modèle répondait parfois de mémoire sans chercher —
-    // aucune page consultée, donc aucun lien vérifiable, donc zéro fiche (observé au premier essai réel).
+    // "required" and not "auto": with auto, the model sometimes answered from memory without searching —
+    // no page consulted, hence no verifiable link, hence zero cards (seen on the first real try).
     tool_choice: "required",
   });
   const sources: WebResearchResult["sources"] = [];
@@ -88,26 +88,26 @@ export async function callOpenAIWebResearch({ system, userMessage, maxTokens }: 
   return { text: response.output_text ?? "", sources };
 }
 
-/** Garde-fou de volume (docs/SPEC_ASSISTANT_AGENTIQUE.md §2.3) : un retour d'outil peut peser plus
- *  lourd que tout le reste du contexte (un document de matière entier, par exemple). On tronque en
- *  le disant au modèle, plutôt que de laisser gonfler le prompt de chaque tour suivant. */
+/** Volume guardrail (docs/SPEC_ASSISTANT_AGENTIQUE.md §2.3): a tool return can weigh more
+ *  than all the rest of the context (an entire material document, for example). We truncate while
+ *  telling the model, rather than letting the prompt of every following turn swell. */
 const MAX_TOOL_OUTPUT_CHARS = 20_000;
 
 function serializeToolOutput(value: unknown): string {
   const raw = JSON.stringify(value ?? null);
   if (raw.length <= MAX_TOOL_OUTPUT_CHARS) return raw;
-  return `${raw.slice(0, MAX_TOOL_OUTPUT_CHARS)}… [tronqué : réponse trop volumineuse, affine ta demande]`;
+  return `${raw.slice(0, MAX_TOOL_OUTPUT_CHARS)}… [truncated: response too large, narrow your request]`;
 }
 
 const DEFAULT_MAX_TURNS = 8;
 
 /**
- * Boucle agentique (docs/SPEC_ASSISTANT_AGENTIQUE.md §2.2) — seul provider à l'implémenter.
+ * Agentic loop (docs/SPEC_ASSISTANT_AGENTIQUE.md §2.2) — the only provider to implement it.
  *
- * Deux différences de fond avec `callOpenAI` : les outils ne sont pas imposés (`tool_choice: "auto"`,
- * répondre en texte est une issue légitime), et l'historique s'accumule d'un tour à l'autre. Les items
- * renvoyés par le modèle sont réinjectés tels quels dans l'`input` du tour suivant — y compris les
- * items de raisonnement, que l'API Responses attend pour conserver le fil sur les modèles reasoning.
+ * Two fundamental differences with `callOpenAI`: tools are not forced (`tool_choice: "auto"`,
+ * answering in text is a legitimate outcome), and the history accumulates from one turn to the next.
+ * The items returned by the model are fed back as is into the next turn's `input` — including
+ * the reasoning items, which the Responses API expects in order to keep the thread on reasoning models.
  */
 export async function callOpenAIAgentic({
   system,
@@ -155,9 +155,9 @@ export async function callOpenAIAgentic({
       try {
         parsed = JSON.parse(call.arguments);
       } catch {
-        // Arguments illisibles : on le dit au modèle plutôt que d'abandonner le tour, il peut rappeler
-        // l'outil correctement.
-        const failure = { error: "Arguments JSON invalides." };
+        // Unreadable arguments: we tell the model rather than abandon the turn, it can call
+        // the tool again correctly.
+        const failure = { error: "Invalid JSON arguments." };
         toolCalls.push({ name: call.name, input: call.arguments, output: failure, failed: true });
         input.push({ type: "function_call_output", call_id: call.call_id, output: serializeToolOutput(failure) });
         continue;
@@ -168,10 +168,10 @@ export async function callOpenAIAgentic({
         toolCalls.push({ name: call.name, input: parsed, output });
         input.push({ type: "function_call_output", call_id: call.call_id, output: serializeToolOutput(output) });
       } catch (err) {
-        // Un outil qui échoue (droits, cible introuvable, validation) est une information pour le
-        // modèle, pas une panne : il peut corriger son appel ou l'expliquer à l'utilisateur.
+        // A tool that fails (permissions, target not found, validation) is information for the
+        // model, not an outage: it can fix its call or explain it to the user.
         const message = err instanceof Error ? err.message : String(err);
-        logger.warn("Appel d'outil agentique échoué", { tool: call.name, err: message });
+        logger.warn("Agentic tool call failed", { tool: call.name, err: message });
         const failure = { error: message };
         toolCalls.push({ name: call.name, input: parsed, output: failure, failed: true });
         input.push({ type: "function_call_output", call_id: call.call_id, output: serializeToolOutput(failure) });
@@ -179,8 +179,8 @@ export async function callOpenAIAgentic({
     }
   }
 
-  // Plafond atteint : un dernier appel SANS outils, pour ne jamais rendre la main sans réponse.
-  logger.warn("Boucle agentique interrompue au plafond de tours", { maxTurns, toolCalls: toolCalls.length });
+  // Cap reached: one last call WITHOUT tools, to never hand back control without a reply.
+  logger.warn("Agentic loop interrupted at the turn cap", { maxTurns, toolCalls: toolCalls.length });
   const closing = await client.responses.create({
     model: MODEL,
     instructions: system,

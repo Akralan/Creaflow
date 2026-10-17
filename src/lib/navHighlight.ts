@@ -1,7 +1,7 @@
 /**
- * Mise en lumière passagère d'une entrée du menu, pour montrer où aller ensuite (ex. le calendrier
- * juste rempli après la validation des séries). Survit à un rechargement le temps de la session,
- * s'éteint dès que la page est ouverte. Côté client uniquement.
+ * Temporary highlight of a menu entry, to show where to go next (e.g. the calendar
+ * just filled after validating the series). Survives a reload for the length of the session,
+ * goes out as soon as the page is opened. Client side only.
  */
 const KEY = "creaflow.navHighlight";
 export const NAV_HIGHLIGHT_EVENT = "creaflow:nav-highlight";
@@ -10,7 +10,7 @@ export function highlightNav(href: string) {
   try {
     sessionStorage.setItem(KEY, href);
   } catch {
-    // Stockage indisponible : la mise en lumière vaudra pour cette page seulement.
+    // Storage unavailable: the highlight will only apply to this page.
   }
   window.dispatchEvent(new CustomEvent(NAV_HIGHLIGHT_EVENT, { detail: href }));
 }

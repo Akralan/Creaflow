@@ -44,7 +44,7 @@ export function buildUpdateJournal(updates: LinearProjectUpdate[]): string {
 /** Une issue terminée en un document : le titre porte l'anecdote, la description le détail. */
 export function issueToText(issue: LinearIssue): string {
   const parts = [`# ${issue.identifier} — ${issue.title}`];
-  if (issue.completedAt) parts.push(`Terminée le ${issue.completedAt.slice(0, 10)}.`);
+  if (issue.completedAt) parts.push(`Completed on ${issue.completedAt.slice(0, 10)}.`);
   if (issue.description?.trim()) parts.push(issue.description.trim());
   return parts.join("\n\n");
 }

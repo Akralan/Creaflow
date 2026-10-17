@@ -67,17 +67,17 @@ describe("sanitizeSlideHtml — HTML valide", () => {
 describe("sanitizeSlideHtml — refus", () => {
   it("refuse les balises hors liste, y compris script et iframe", () => {
     expect(issuesOf(() => sanitizeSlideHtml(`<div><script>alert(1)</script><div>ok</div></div>`, opts))).toEqual(
-      expect.arrayContaining([expect.stringContaining("balise <script> interdite")])
+      expect.arrayContaining([expect.stringContaining("tag <script> is forbidden")])
     );
     expect(issuesOf(() => sanitizeSlideHtml(`<div><iframe src="x"></iframe></div>`, opts))).toEqual(
-      expect.arrayContaining([expect.stringContaining("balise <iframe> interdite")])
+      expect.arrayContaining([expect.stringContaining("tag <iframe> is forbidden")])
     );
   });
 
   it("refuse les attributs d'événement et les src externes", () => {
     const issues = issuesOf(() => sanitizeSlideHtml(`<div><div onclick="x()"><img src="https://evil/x.png"></div></div>`, opts));
     expect(issues).toEqual(
-      expect.arrayContaining([expect.stringContaining("attribut « onclick » interdit"), expect.stringContaining("src d'image interdit")])
+      expect.arrayContaining([expect.stringContaining("attribute \"onclick\" is forbidden"), expect.stringContaining("image src forbidden")])
     );
   });
 
@@ -87,18 +87,18 @@ describe("sanitizeSlideHtml — refus", () => {
     );
     expect(issues).toEqual(
       expect.arrayContaining([
-        expect.stringContaining("valeur interdite pour « background »"),
-        expect.stringContaining("propriété « cursor » interdite"),
-        expect.stringContaining("valeur interdite pour « width »"),
+        expect.stringContaining("forbidden value for \"background\""),
+        expect.stringContaining("property \"cursor\" is forbidden"),
+        expect.stringContaining("forbidden value for \"width\""),
       ])
     );
   });
 
   it("refuse une photo non déclarée et accepte clip-path / outline", () => {
     const issues = issuesOf(() => sanitizeSlideHtml(`<div><div><img src="{{IMG:p3}}"></div></div>`, opts));
-    expect(issues).toEqual(expect.arrayContaining([expect.stringContaining("photo « p3 » non déclarée")]));
+    expect(issues).toEqual(expect.arrayContaining([expect.stringContaining("photo \"p3\" not declared")]));
     expect(issuesOf(() => sanitizeSlideHtml(`<div><div><img src="{{BASE_IMAGE}}"></div></div>`, opts))).toEqual(
-      expect.arrayContaining([expect.stringContaining("src d'image interdit")])
+      expect.arrayContaining([expect.stringContaining("image src forbidden")])
     );
     const { html } = sanitizeSlideHtml(
       `<div><div style="clip-path:circle(50% at 50% 50%);outline:4px solid #fff;outline-offset:-4px;aspect-ratio:1 / 1"><img src="{{IMG:p2}}"></div></div>`,
@@ -112,29 +112,29 @@ describe("sanitizeSlideHtml — refus", () => {
     const issues = issuesOf(() =>
       sanitizeSlideHtml(`<div><div style="font-family:Comic Sans">a</div><div><img src="{{LOGO}}"></div></div>`, opts)
     );
-    expect(issues).toEqual(expect.arrayContaining([expect.stringContaining("police « Comic Sans » hors liste"), expect.stringContaining("{{LOGO}}")]));
+    expect(issues).toEqual(expect.arrayContaining([expect.stringContaining("font \"Comic Sans\" is not in the list"), expect.stringContaining("{{LOGO}}")]));
     expect(() => sanitizeSlideHtml(`<div><div><img src="{{LOGO}}"></div></div>`, { ...opts, hasLogo: true })).not.toThrow();
   });
 
   it("refuse plusieurs racines, une racine non-div, et le texte nu sous la racine", () => {
-    expect(issuesOf(() => sanitizeSlideHtml(`<div></div><div></div>`, opts))).toEqual(expect.arrayContaining([expect.stringContaining("un seul élément racine")]));
-    expect(issuesOf(() => sanitizeSlideHtml(`<p></p>`, opts))).toEqual(expect.arrayContaining([expect.stringContaining("la racine doit être un <div>")]));
-    expect(issuesOf(() => sanitizeSlideHtml(`<div>texte<div>a</div></div>`, opts))).toEqual(expect.arrayContaining([expect.stringContaining("texte nu sous la racine")]));
+    expect(issuesOf(() => sanitizeSlideHtml(`<div></div><div></div>`, opts))).toEqual(expect.arrayContaining([expect.stringContaining("a single root element")]));
+    expect(issuesOf(() => sanitizeSlideHtml(`<p></p>`, opts))).toEqual(expect.arrayContaining([expect.stringContaining("the root must be a <div>")]));
+    expect(issuesOf(() => sanitizeSlideHtml(`<div>texte<div>a</div></div>`, opts))).toEqual(expect.arrayContaining([expect.stringContaining("bare text under the root")]));
   });
 
   it("refuse au-delà du plafond de calques", () => {
     const layers = Array.from({ length: MAX_LAYERS_PER_SLIDE + 1 }, (_, i) => `<div>${i}</div>`).join("");
-    expect(issuesOf(() => sanitizeSlideHtml(`<div>${layers}</div>`, opts))).toEqual(expect.arrayContaining([expect.stringContaining("calques, 12 maximum")]));
+    expect(issuesOf(() => sanitizeSlideHtml(`<div>${layers}</div>`, opts))).toEqual(expect.arrayContaining([expect.stringContaining("layers, 12 maximum")]));
   });
 
   it("refuse un HTML mal formé", () => {
     expect(issuesOf(() => sanitizeSlideHtml(`<div><div>a</span></div>`, opts)).length).toBeGreaterThan(0);
-    expect(issuesOf(() => sanitizeSlideHtml(`<div><div>a`, opts))).toEqual(expect.arrayContaining([expect.stringContaining("jamais fermé")]));
+    expect(issuesOf(() => sanitizeSlideHtml(`<div><div>a`, opts))).toEqual(expect.arrayContaining([expect.stringContaining("never closed")]));
   });
 
   it("refuse un HTML trop volumineux", () => {
     const big = `<div><div>${"a".repeat(30 * 1024)}</div></div>`;
-    expect(issuesOf(() => sanitizeSlideHtml(big, opts))).toEqual(expect.arrayContaining([expect.stringContaining("trop volumineux")]));
+    expect(issuesOf(() => sanitizeSlideHtml(big, opts))).toEqual(expect.arrayContaining([expect.stringContaining("too large")]));
   });
 });
 

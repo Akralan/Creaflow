@@ -28,7 +28,7 @@ export async function getSocialConnectionForUser(userId: string, platform: strin
 export async function getValidSocialAccessToken(userId: string, platform: string): Promise<string> {
   const connection = await getSocialConnectionForUser(userId, platform);
   if (!connection) {
-    throw new ApiError(409, `Aucune connexion ${platformLabel(platform)} — connecte ton compte pour continuer.`);
+    throw new ApiError(409, `No ${platformLabel(platform)} connection — connect your account to continue.`);
   }
 
   if (!connection.accessTokenExpiresAt || connection.accessTokenExpiresAt.getTime() - EXPIRY_MARGIN_MS > Date.now()) {
@@ -38,7 +38,7 @@ export async function getValidSocialAccessToken(userId: string, platform: string
   const provider = socialProviders[platform];
   if (!provider?.refreshToken || !connection.refreshToken) {
     await db.update(socialConnections).set({ status: "needs_reconnect" }).where(eq(socialConnections.id, connection.id));
-    throw new ApiError(409, `Connexion ${platformLabel(platform)} expirée — reconnecte ton compte pour continuer.`);
+    throw new ApiError(409, `${platformLabel(platform)} connection expired — reconnect your account to continue.`);
   }
 
   try {
@@ -55,6 +55,6 @@ export async function getValidSocialAccessToken(userId: string, platform: string
     return refreshed.accessToken;
   } catch {
     await db.update(socialConnections).set({ status: "needs_reconnect" }).where(eq(socialConnections.id, connection.id));
-    throw new ApiError(409, `Connexion ${platformLabel(platform)} expirée — reconnecte ton compte pour continuer.`);
+    throw new ApiError(409, `${platformLabel(platform)} connection expired — reconnect your account to continue.`);
   }
 }

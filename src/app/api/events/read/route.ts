@@ -8,9 +8,9 @@ import { handleApiError } from "@/lib/api/errors";
 const schema = z.object({ productId: z.uuid() });
 
 /**
- * Bouton « Relire la matière » (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3) : lit les documents du sujet
- * pas encore lus et enregistre leurs événements. Synchrone : la réponse arrive quand la lecture est
- * finie, avec son rapport. Plusieurs minutes possibles sur un gros sujet.
+ * "Re-read the material" button (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3): reads the topic's documents
+ * not yet read and records their events. Synchronous: the response arrives when the reading is
+ * done, with its report. Several minutes possible on a large topic.
  */
 export async function POST(request: NextRequest) {
   try {

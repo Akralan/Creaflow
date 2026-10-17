@@ -13,9 +13,9 @@ const saveSchema = z.object({
       id: z.uuid().optional(),
       label: z.string().min(1),
       description: z.string().min(1),
-      // Ordre d'affichage seulement depuis docs/SPEC_RYTHME_DES_SERIES.md.
+      // Display order only since docs/SPEC_RYTHME_DES_SERIES.md.
       weight: z.number().int().min(0).max(100).optional(),
-      // Un rôle unique par série (docs/SPEC_SERIES_ET_ROLES.md §1).
+      // One unique role per series (docs/SPEC_SERIES_ET_ROLES.md §1).
       categoryId: z.uuid(),
       platforms: z.array(platformSchema).default([]),
       rhythm: seriesRhythmSchema.nullable().optional(),
@@ -39,14 +39,14 @@ export async function POST(request: NextRequest) {
 
     const rawBody = await request.text();
     if (rawBody) {
-      // Édition manuelle : on valide sans repasser par l'IA.
+      // Manual edit: we validate without going through the AI again.
       const { series: items } = saveSchema.parse(JSON.parse(rawBody));
       const { series, slotChanges } = await saveSeriesForUser(userId, items);
       return NextResponse.json({ series, slotChanges });
     }
 
-    // Régénération complète des séries via l'IA (contrairement à l'édition manuelle ci-dessus) —
-    // même ordre de grandeur que style-analysis pour une action de ce type.
+    // Full regeneration of the series via AI (unlike the manual edit above) —
+    // same order of magnitude as style-analysis for an action of this kind.
     await enforceRateLimit("series-generate", userId, 5, 60);
     const series = await generateSeriesForUser(userId);
     return NextResponse.json({ series });

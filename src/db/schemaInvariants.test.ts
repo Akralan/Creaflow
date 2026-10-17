@@ -3,12 +3,12 @@ import { getTableColumns, getTableName, isTable } from "drizzle-orm";
 import * as schema from "./schema";
 
 /**
- * Garde-fou du chantier 4 (docs/ARCHITECTURE_VERTICALES.md) : une verticale n'ajoute pas de table
- * et ne partitionne pas le modèle de données.
+ * Guard rail for work item 4 (docs/ARCHITECTURE_VERTICALES.md): a vertical adds no table
+ * and does not partition the data model.
  *
- * La règle a besoin d'un test parce qu'elle ne se voit pas dans une revue ligne à ligne : ajouter
- * une colonne `vertical` à une table paraît anodin, et c'est exactement le premier pas vers deux
- * jeux de migrations divergents — le point de non-retour qui transformerait l'option A en option C.
+ * The rule needs a test because it is not visible in a line-by-line review: adding
+ * a `vertical` column to a table looks harmless, and it is exactly the first step toward two
+ * diverging sets of migrations — the point of no return that would turn option A into option C.
  */
 
 type IntrospectableColumn = { getSQLType: () => string };
@@ -27,25 +27,25 @@ function columnsOfType(sqlType: string): string[] {
   return found.sort();
 }
 
-describe("la verticale ne partitionne pas le modèle de données", () => {
-  it("n'est portée que par users.vertical, et par aucune autre table", () => {
-    // Une deuxième colonne `vertical` ailleurs voudrait dire que des lignes appartiennent à une
-    // verticale — donc des requêtes, des index et bientôt des tables qui divergent par verticale.
-    // Ce qu'une verticale a de spécifique passe par materialSources.config, pas par le schéma.
+describe("the vertical does not partition the data model", () => {
+  it("is carried only by users.vertical, and by no other table", () => {
+    // A second `vertical` column elsewhere would mean rows belong to a
+    // vertical — hence queries, indexes and soon tables that diverge by vertical.
+    // What is specific to a vertical goes through materialSources.config, not through the schema.
     expect(columnsOfType("vertical")).toEqual(["users.vertical"]);
   });
 });
 
-describe("le point d'extension des connecteurs reste ouvert", () => {
+describe("the connector extension point stays open", () => {
   const materialSources = getTableColumns(schema.materialSources);
 
-  it("materialSources.config est un jsonb : c'est là que va le spécifique d'un fournisseur", () => {
-    // Le remplacer par des colonnes typées par fournisseur (github_branch, notion_database_id…)
-    // ferait porter au cœur la connaissance de chaque connecteur.
+  it("materialSources.config is a jsonb: this is where a provider's specifics go", () => {
+    // Replacing it with provider-typed columns (github_branch, notion_database_id…)
+    // would make the core carry knowledge of each connector.
     expect((materialSources.config as IntrospectableColumn).getSQLType()).toBe("jsonb");
   });
 
-  it("materialSources.type reste un enum, seul discriminant du connecteur à résoudre", () => {
+  it("materialSources.type stays an enum, the single discriminant of the connector to resolve", () => {
     expect((materialSources.type as IntrospectableColumn).getSQLType()).toBe("material_source_type");
   });
 });

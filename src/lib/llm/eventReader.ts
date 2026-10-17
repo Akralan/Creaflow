@@ -2,12 +2,12 @@ import { z } from "zod";
 import type { LlmToolDefinition } from "./types";
 
 /**
- * Le lecteur d'événements (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3) : un agent qui lit TOUTE la
- * matière d'un sujet, document par document et en entier, et en sort des événements datés. Il
- * remplace le rédacteur en chef, qui ne voyait qu'un résumé d'une phrase par document.
+ * The event reader (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3): an agent that reads ALL of a
+ * subject's material, document by document and in full, and produces dated events from it. It
+ * replaces the editor-in-chief, which only saw a one-sentence summary per document.
  *
- * Ce module ne contient que le prompt, les outils et les schémas de validation ; l'orchestration
- * (lecture en base, enregistrement, marquage des documents lus) est dans
+ * This module only holds the prompt, the tools and the validation schemas; the orchestration
+ * (database reads, saving, marking documents as read) lives in
  * src/lib/services/materialEventService.ts.
  */
 
@@ -15,21 +15,21 @@ export const EVENT_KINDS = ["failure", "decision", "result", "feedback", "milest
 export type EventKind = (typeof EVENT_KINDS)[number];
 
 export const EVENT_KIND_LABELS: Record<EventKind, string> = {
-  failure: "Échec",
-  decision: "Décision",
-  result: "Résultat",
-  feedback: "Retour",
-  milestone: "Étape",
+  failure: "Failure",
+  decision: "Decision",
+  result: "Result",
+  feedback: "Feedback",
+  milestone: "Milestone",
 };
 
 export const DATE_PRECISIONS = ["day", "month", "unknown"] as const;
 export type DatePrecision = (typeof DATE_PRECISIONS)[number];
 
-/** Taille d'une partie de document renvoyée par `read_document`. Un journal de commits de 100 Ko
- *  fait neuf parties : lisible en entier sans jamais saturer un tour. */
+/** Size of a document part returned by `read_document`. A 100 KB commit log makes nine parts:
+ *  readable in full without ever saturating a turn. */
 export const DOCUMENT_PART_CHARS = 12_000;
 
-/** Longueur maximale du passage copié qui prouve l'événement. */
+/** Maximum length of the copied passage that proves the event. */
 export const MAX_EXCERPT_CHARS = 300;
 
 export const LIST_DOCUMENTS_TOOL = "list_documents";
@@ -38,7 +38,7 @@ export const SAVE_EVENT_TOOL = "save_event";
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
-/** Ce que le modèle envoie à `save_event`, avant normalisation (date vide autorisée). */
+/** What the model sends to `save_event`, before normalization (empty date allowed). */
 export const saveEventInputSchema = z.object({
   date: z.string().trim(),
   datePrecision: z.enum(DATE_PRECISIONS),
@@ -58,35 +58,35 @@ export interface NormalizedEventDate {
 }
 
 /**
- * Une date de précision `day` ou `month` doit être un jour ISO valide ; au mois, le jour est ramené
- * au 1er. `unknown` efface la date. Une date impossible est une erreur renvoyée au modèle, qui
- * corrige son appel.
+ * A date of `day` or `month` precision must be a valid ISO day; at month precision, the day is
+ * brought back to the 1st. `unknown` clears the date. An impossible date is an error returned to
+ * the model, which corrects its call.
  */
 export function normalizeEventDate(date: string, precision: DatePrecision): NormalizedEventDate {
   if (precision === "unknown") return { date: null, datePrecision: "unknown" };
   if (!ISO_DAY.test(date)) {
-    throw new Error(`Date « ${date} » invalide : attendu AAAA-MM-JJ, ou datePrecision "unknown" si le texte ne la donne pas.`);
+    throw new Error(`Invalid date "${date}": expected YYYY-MM-DD, or datePrecision "unknown" if the text doesn't give it.`);
   }
   const parsed = new Date(`${date}T00:00:00.000Z`);
   if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) {
-    throw new Error(`Date « ${date} » impossible dans le calendrier.`);
+    throw new Error(`Date "${date}" is impossible in the calendar.`);
   }
   return { date: precision === "month" ? `${date.slice(0, 7)}-01` : date, datePrecision: precision };
 }
 
-/** Espaces, retours à la ligne et apostrophes normalisés : le modèle recopie « tel quel » à une
- *  ponctuation près, pas au caractère près. */
+/** Whitespace, line breaks and apostrophes normalized: the model copies "as is" up to
+ *  punctuation, not to the exact character. */
 export function normalizeForMatch(text: string): string {
   return text
     .replace(/[’‘`´]/g, "'")
-    // Les guillemets disparaissent des deux côtés : « x » et "x" doivent se retrouver, espaces compris.
+    // Quotation marks disappear on both sides: « x » and "x" must match, spaces included.
     .replace(/["“”«»]/g, "")
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();
 }
 
-/** Le passage doit se trouver dans le document : c'est la preuve que l'événement n'est pas inventé. */
+/** The passage must be found in the document: it is the proof that the event isn't made up. */
 export function excerptIsInDocument(excerpt: string, documentText: string): boolean {
   const needle = normalizeForMatch(excerpt);
   return needle.length > 0 && normalizeForMatch(documentText).includes(needle);
@@ -98,8 +98,7 @@ export function splitDocumentIntoParts(text: string, partChars = DOCUMENT_PART_C
   let cursor = 0;
   while (cursor < text.length) {
     let end = Math.min(cursor + partChars, text.length);
-    // Coupe à une fin de ligne quand c'est possible : une entrée de journal ne doit pas être
-    // tranchée en deux au milieu d'une phrase.
+    // Cut at a line end when possible: a log entry must not be sliced in two mid-sentence.
     if (end < text.length) {
       const newline = text.lastIndexOf("\n", end);
       if (newline > cursor + partChars / 2) end = newline + 1;
@@ -113,23 +112,23 @@ export function splitDocumentIntoParts(text: string, partChars = DOCUMENT_PART_C
 export function buildEventReaderTools(params: { audienceLabels: string[] }): LlmToolDefinition[] {
   const audienceProperty =
     params.audienceLabels.length > 0
-      ? { type: "array", items: { type: "string", enum: params.audienceLabels }, description: "Les publics du sujet pour qui cet événement est intéressant. Vide si tu ne sais pas." }
-      : { type: "array", items: { type: "string" }, description: "Vide : aucun public n'est encore défini pour ce sujet." };
+      ? { type: "array", items: { type: "string", enum: params.audienceLabels }, description: "The subject's audiences for whom this event is interesting. Empty if you don't know." }
+      : { type: "array", items: { type: "string" }, description: "Empty: no audience is defined yet for this subject." };
 
   return [
     {
       name: LIST_DOCUMENTS_TOOL,
-      description: "Les documents du sujet qui restent à lire, avec leur nombre de parties.",
+      description: "The subject's documents that remain to be read, with their number of parts.",
       input_schema: { type: "object", properties: {}, required: [] },
     },
     {
       name: READ_DOCUMENT_TOOL,
-      description: "Le texte intégral d'une partie d'un document. Lis toutes les parties d'un document, dans l'ordre.",
+      description: "The full text of one part of a document. Read all the parts of a document, in order.",
       input_schema: {
         type: "object",
         properties: {
-          documentId: { type: "string", description: "Id du document, tel que list_documents le donne." },
-          part: { type: "integer", description: "Numéro de la partie, à partir de 1." },
+          documentId: { type: "string", description: "Id of the document, as list_documents gives it." },
+          part: { type: "integer", description: "Number of the part, starting at 1." },
         },
         required: ["documentId", "part"],
       },
@@ -137,19 +136,19 @@ export function buildEventReaderTools(params: { audienceLabels: string[] }): Llm
     {
       name: SAVE_EVENT_TOOL,
       description:
-        "Enregistre UN événement trouvé dans le document en cours de lecture. Appelle-le dès que tu rencontres l'événement, avant de continuer à lire.",
+        "Saves ONE event found in the document being read. Call it as soon as you meet the event, before reading on.",
       input_schema: {
         type: "object",
         properties: {
-          date: { type: "string", description: "AAAA-MM-JJ. Au mois près : AAAA-MM-01. Chaîne vide si la précision est unknown." },
-          datePrecision: { type: "string", enum: [...DATE_PRECISIONS], description: "day : le texte donne le jour. month : le mois seulement. unknown : aucune date dans le texte." },
-          title: { type: "string", description: "Le moment, pas un thème. « Le testeur lâche la manette au bout de 40 secondes », jamais « Le test »." },
-          whatHappened: { type: "string", description: "2 à 5 phrases : les faits, avec les chiffres et les noms tels qu'ils sont dans le texte. Rien d'autre." },
-          whatChanged: { type: "string", description: "Ce que ça a changé ensuite d'après le texte (une décision, un abandon, un chiffre qui bouge). Chaîne vide si le texte ne le dit pas." },
-          kind: { type: "string", enum: [...EVENT_KINDS], description: "failure : quelque chose a cassé ou raté. decision : un choix pris. result : une mesure, un chiffre. feedback : ce qu'une personne a dit ou fait. milestone : une étape franchie, une première fois." },
+          date: { type: "string", description: "YYYY-MM-DD. To the month: YYYY-MM-01. Empty string if the precision is unknown." },
+          datePrecision: { type: "string", enum: [...DATE_PRECISIONS], description: "day: the text gives the day. month: the month only. unknown: no date in the text." },
+          title: { type: "string", description: "The moment, not a theme. \"The tester drops the controller after 40 seconds\", never \"The test\". Written in English." },
+          whatHappened: { type: "string", description: "2 to 5 sentences: the facts, with the numbers and names as they are in the text. Nothing else. Written in English." },
+          whatChanged: { type: "string", description: "What it changed afterwards according to the text (a decision, an abandonment, a number that moves). Empty string if the text doesn't say. Written in English." },
+          kind: { type: "string", enum: [...EVENT_KINDS], description: "failure: something broke or failed. decision: a choice made. result: a measurement, a number. feedback: what a person said or did. milestone: a step crossed, a first time." },
           audiences: audienceProperty,
-          sourceMaterialId: { type: "string", description: "Id du document où se trouve l'événement." },
-          excerpt: { type: "string", description: `Le passage exact du document qui prouve l'événement, copié tel quel, ${MAX_EXCERPT_CHARS} caractères au plus.` },
+          sourceMaterialId: { type: "string", description: "Id of the document where the event is found." },
+          excerpt: { type: "string", description: `The exact passage from the document that proves the event, copied as is (in its original language), ${MAX_EXCERPT_CHARS} characters at most.` },
         },
         required: ["date", "datePrecision", "title", "whatHappened", "whatChanged", "kind", "audiences", "sourceMaterialId", "excerpt"],
       },
@@ -168,56 +167,58 @@ export interface EventReaderPromptContext {
 }
 
 export function buildEventReaderSystemPrompt(context: EventReaderPromptContext): string {
-  return `Tu es le lecteur de la matière de ${context.brandName}, sur le sujet « ${context.subjectName} ». Tu lis tout ce qui a été déposé et tu en sors les événements : ce qui s'est passé, quand, et ce que ça a changé. Tu n'écris jamais de post : d'autres s'en serviront pour raconter.
+  return `You are the material reader for ${context.brandName}, on the subject "${context.subjectName}". You read everything that was uploaded and extract the events from it: what happened, when, and what it changed. You never write a post: others will use your events to tell the story.
 
-Un événement est un moment précis : un échec, une décision, un résultat mesuré, ce qu'une personne a dit ou fait, une étape franchie. Ce n'est ni un thème, ni une fonctionnalité, ni une description de comment le système marche. « Le premier testeur lâche la manette au bout de 40 secondes parce que le saut semble mou », jamais « Le test » ni « La mécanique de saut ». (Exemple fictif : ne le réutilise jamais.)
+An event is a precise moment: a failure, a decision, a measured result, something a person said or did, a step crossed. It is neither a theme, nor a feature, nor a description of how the system works. "The first tester drops the controller after 40 seconds because the jump feels mushy", never "The test" nor "The jump mechanic". (Fictional example: never reuse it.)
 
-<methode>
-1. Appelle ${LIST_DOCUMENTS_TOOL}.
-2. Lis chaque document qui reste à lire, en entier, partie par partie et dans l'ordre, avec ${READ_DOCUMENT_TOOL}. Ne saute aucune partie.
-3. Dès que tu rencontres un événement, enregistre-le avec ${SAVE_EVENT_TOOL}, avant de continuer. Plusieurs événements dans une même partie : plusieurs appels.
-4. Quand tout est lu, réponds en une ou deux phrases ce que tu as lu et combien d'événements tu as enregistrés.
-</methode>
+All the text you write (titles, descriptions) is in English, even if the documents are in another language. Only the excerpt stays in the document's own words.
 
-<regles>
-- Les faits viennent du texte, et seulement du texte. Chiffres, noms, dates : tels quels. Rien n'est déduit, rien n'est arrondi, rien n'est ajouté.
-- La date est celle que le texte donne. Un journal daté : la date de l'entrée (précision day). Un texte qui dit « en mars » : le mois (precision month). Une doc technique sans date : unknown, même si tu as une intuition. « Dernière mise à jour : octobre 2026 » date le document, pas ce qu'il rapporte : un fait tiré d'une telle doc est unknown, sauf si le texte lui donne sa propre date.
-- Dans un journal, chaque entrée datée qui rapporte quelque chose est un événement : n'en saute pas parce qu'elle paraît petite. Le tout premier moment d'un projet (la conversation ou le constat qui l'a déclenché, le premier prototype) est un événement, et souvent le plus important.
-- Un même document peut donner plusieurs événements à la même date s'il raconte plusieurs choses ce jour-là (une décision et un échec, par exemple).
-- Une doc technique qui décrit comment le système fonctionne ne contient pas d'événement, sauf ce qu'elle rapporte d'arrivé : une mesure (« 4 % de faux positifs sur 120 répétitions »), un abandon (« statut : abandonné »), un seuil choisi après un test. Dans ce cas enregistre-le, avec precision unknown si rien ne le date.
-- Un journal de commits : pas un événement par commit. Regroupe, et garde ce qui raconte quelque chose : une décision, un échec, un chiffre, un abandon, une première fois. Un simple « ajout de la page X » n'est pas un événement.
-- Un événement déjà enregistré (liste ci-dessous) ne se réenregistre pas, même raconté par un autre document. Passe.
-- whatChanged dit la suite que le texte donne (« une semaine après, la caméra à 45° est imposée »). Si le texte ne dit rien, chaîne vide : ne devine pas.
-- excerpt est copié tel quel du document, ${MAX_EXCERPT_CHARS} caractères au plus. C'est la preuve. Un passage introuvable fait refuser l'événement : recopie alors plus court et plus exactement.
-- audiences : seulement parmi les publics listés. Vide si aucun ne s'impose.
-</regles>`;
+<method>
+1. Call ${LIST_DOCUMENTS_TOOL}.
+2. Read every document that remains to be read, in full, part by part and in order, with ${READ_DOCUMENT_TOOL}. Skip no part.
+3. As soon as you meet an event, save it with ${SAVE_EVENT_TOOL}, before reading on. Several events in the same part: several calls.
+4. When everything is read, answer in one or two sentences what you read and how many events you saved.
+</method>
+
+<rules>
+- The facts come from the text, and only from the text. Numbers, names, dates: as is. Nothing is deduced, nothing is rounded, nothing is added.
+- The date is the one the text gives. A dated log: the date of the entry (precision day). A text that says "in March": the month (precision month). Technical docs without a date: unknown, even if you have a hunch. "Last updated: October 2026" dates the document, not what it reports: a fact taken from such a doc is unknown, unless the text gives it its own date.
+- In a log, every dated entry that reports something is an event: don't skip one because it looks small. The very first moment of a project (the conversation or realization that triggered it, the first prototype) is an event, and often the most important.
+- The same document can yield several events on the same date if it tells several things that day (a decision and a failure, for example).
+- Technical docs describing how the system works contain no event, except what they report as having happened: a measurement ("4% false positives over 120 repetitions"), an abandonment ("status: abandoned"), a threshold chosen after a test. In that case save it, with precision unknown if nothing dates it.
+- A commit log: not one event per commit. Group them, and keep what tells something: a decision, a failure, a number, an abandonment, a first time. A plain "add page X" is not an event.
+- An event already saved (list below) is not saved again, even if another document tells it. Skip it.
+- whatChanged gives the follow-up that the text gives ("a week later, the 45° camera is mandatory"). If the text says nothing, empty string: don't guess.
+- excerpt is copied as is from the document, ${MAX_EXCERPT_CHARS} characters at most. It is the proof. A passage that can't be found gets the event refused: copy again shorter and more exactly.
+- audiences: only among the listed audiences. Empty if none stands out.
+</rules>`;
 }
 
 export function buildEventReaderUserMessage(context: EventReaderPromptContext): string {
   const lines: string[] = [];
-  lines.push(`Sujet : ${context.subjectName}${context.subjectDescription ? ` — ${context.subjectDescription}` : ""}`);
+  lines.push(`Subject: ${context.subjectName}${context.subjectDescription ? ` — ${context.subjectDescription}` : ""}`);
   if (context.audiences.length > 0) {
-    lines.push("Publics du sujet :");
-    for (const a of context.audiences) lines.push(`- ${a.label} : ${a.who}`);
+    lines.push("Subject audiences:");
+    for (const a of context.audiences) lines.push(`- ${a.label}: ${a.who}`);
   } else {
-    lines.push("Publics du sujet : aucun défini pour l'instant (laisse audiences vide).");
+    lines.push("Subject audiences: none defined for now (leave audiences empty).");
   }
   lines.push(
-    `Documents à lire : ${context.unreadDocuments}.${context.alreadyReadDocuments > 0 ? ` Déjà lus lors d'une lecture précédente : ${context.alreadyReadDocuments}, ne les relis pas.` : ""}`
+    `Documents to read: ${context.unreadDocuments}.${context.alreadyReadDocuments > 0 ? ` Already read in a previous pass: ${context.alreadyReadDocuments}, don't read them again.` : ""}`
   );
   if (context.existingEvents.length > 0) {
-    lines.push(`Événements déjà enregistrés (${context.existingEvents.length}), à ne pas refaire :`);
-    for (const e of context.existingEvents) lines.push(`- ${e.date ?? "date inconnue"} : ${e.title}`);
+    lines.push(`Events already saved (${context.existingEvents.length}), not to be redone:`);
+    for (const e of context.existingEvents) lines.push(`- ${e.date ?? "unknown date"}: ${e.title}`);
   } else {
-    lines.push("Aucun événement enregistré pour l'instant.");
+    lines.push("No event saved for now.");
   }
-  lines.push("", `Commence par ${LIST_DOCUMENTS_TOOL}.`);
+  lines.push("", `Start with ${LIST_DOCUMENTS_TOOL}.`);
   return lines.join("\n");
 }
 
-// --- Qualification des publics (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3) ---
-// Les événements lus avant que le portrait des lecteurs existe n'ont pas de public ; quand le portrait
-// naît ou change, on leur en donne un en un appel structuré par lot, sans relire les documents.
+// --- Audience qualification (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3) ---
+// Events read before the reader portrait existed have no audience; when the portrait is born or
+// changes, they are given one in a structured call per batch, without re-reading the documents.
 
 export const QUALIFY_EVENTS_TOOL = "qualify_events";
 
@@ -228,13 +229,13 @@ export const qualifiedEventsSchema = z.object({
 export function buildQualifyEventsTool(audienceLabels: string[]): LlmToolDefinition {
   return {
     name: QUALIFY_EVENTS_TOOL,
-    description: "Dit, pour chaque événement, à quels publics du sujet il peut intéresser.",
+    description: "Says, for each event, which of the subject's audiences it can interest.",
     input_schema: {
       type: "object",
       properties: {
         events: {
           type: "array",
-          description: "Un élément par événement fourni, dans le même ordre, avec son id tel quel.",
+          description: "One element per event supplied, in the same order, with its id as is.",
           items: {
             type: "object",
             properties: {
@@ -242,7 +243,7 @@ export function buildQualifyEventsTool(audienceLabels: string[]): LlmToolDefinit
               audiences: {
                 type: "array",
                 items: { type: "string", enum: audienceLabels },
-                description: "Les publics pour qui cet événement vaut un post. Vide si aucun : il restera visible de toutes les séries.",
+                description: "The audiences for whom this event is worth a post. Empty if none: it will remain visible to all series.",
               },
             },
             required: ["id", "audiences"],
@@ -259,16 +260,16 @@ export function buildQualifyEventsPrompt(params: {
   readers: Array<{ label: string; who: string; wants: string; stopsFor: string; turnsOff: string }>;
   events: Array<{ id: string; date: string | null; title: string; whatHappened: string; kind: string }>;
 }): { system: string; userMessage: string } {
-  const system = `Tu ranges les événements de la ligne de temps de « ${params.subjectName} » par public. Pour chaque événement, dis à quels publics du sujet il peut faire un post qui les arrête : un public est retenu si l'événement lui apprend quelque chose qu'il vient chercher, pas s'il peut vaguement le concerner. Un événement peut viser plusieurs publics, ou aucun. Ne modifie pas les événements, ne saute aucun id.`;
+  const system = `You sort the events on the timeline of "${params.subjectName}" by audience. For each event, say which of the subject's audiences it can make a post that stops them: an audience is kept if the event teaches them something they come looking for, not if it might vaguely concern them. An event can target several audiences, or none. Don't modify the events, don't skip any id.`;
   const readers = params.readers
-    .map((r) => `- ${r.label} : ${r.who}${r.wants ? ` Vient chercher : ${r.wants}` : ""}${r.stopsFor ? ` S'arrête pour : ${r.stopsFor}` : ""}${r.turnsOff ? ` Fuit : ${r.turnsOff}` : ""}`)
+    .map((r) => `- ${r.label}: ${r.who}${r.wants ? ` Comes looking for: ${r.wants}` : ""}${r.stopsFor ? ` Stops for: ${r.stopsFor}` : ""}${r.turnsOff ? ` Turned off by: ${r.turnsOff}` : ""}`)
     .join("\n");
-  const events = params.events.map((e) => `- [${e.id}] ${e.date ?? "sans date"} · ${e.kind} · ${e.title} — ${e.whatHappened}`).join("\n");
-  return { system, userMessage: `Publics du sujet :\n${readers}\n\nÉvénements :\n${events}\n\nRéponds via ${QUALIFY_EVENTS_TOOL}.` };
+  const events = params.events.map((e) => `- [${e.id}] ${e.date ?? "undated"} · ${e.kind} · ${e.title} — ${e.whatHappened}`).join("\n");
+  return { system, userMessage: `Subject audiences:\n${readers}\n\nEvents:\n${events}\n\nAnswer via ${QUALIFY_EVENTS_TOOL}.` };
 }
 
-/** Plafond de tours pour une lecture : chaque partie demande au moins un tour, et les enregistrements
- *  s'ajoutent (souvent groupés dans le même tour). Borné pour qu'une lecture ne tourne jamais sans fin. */
+/** Turn cap for a read: each part needs at least one turn, and the saves add up (often grouped in
+ *  the same turn). Bounded so that a read never runs endlessly. */
 export function maxTurnsForParts(totalParts: number): number {
   return Math.min(160, 12 + totalParts * 4);
 }

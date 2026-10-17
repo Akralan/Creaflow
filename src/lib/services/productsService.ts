@@ -9,8 +9,8 @@ interface ProductCreateInput {
   description?: string;
   valueProposition?: string;
   photoUrl?: string;
-  /** Override d'audience par sujet (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — null/absent = fallback
-   *  sur CreatorProfile.targetAudience à l'injection. */
+  /** Per-topic audience override (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — null/absent = fallback
+   *  to CreatorProfile.targetAudience at injection. */
   targetAudience?: string | null;
 }
 
@@ -29,7 +29,7 @@ export async function createProductsForUser(userId: string, items: ProductCreate
     .where(eq(products.userId, userId));
 
   if (existingCount + items.length > MAX_PRODUCTS) {
-    throw new ApiError(400, `Maximum ${MAX_PRODUCTS} produits par catalogue (${existingCount} déjà enregistrés).`);
+    throw new ApiError(400, `Maximum ${MAX_PRODUCTS} topics per catalogue (${existingCount} already saved).`);
   }
 
   return db
@@ -46,7 +46,7 @@ export async function updateProductForUser(userId: string, id: string, data: Pro
     .returning();
 
   if (!updated) {
-    throw new ApiError(404, "Produit introuvable.");
+    throw new ApiError(404, "Topic not found.");
   }
 
   return updated;

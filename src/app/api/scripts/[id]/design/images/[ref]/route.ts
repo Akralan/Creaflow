@@ -5,10 +5,10 @@ import { getDesignImage } from "@/lib/services/visualDesignService";
 import { DESIGN_IMAGE_VARIANTS, type DesignImageVariant } from "@/lib/visualDesign/designImages";
 
 /**
- * Octets d'une photo de la maquette (`{{IMG:ref}}`), servis same-origin (docs/SPEC_COMPOSITION_VISUELLE.md
- * §5.2) : le canevas et l'export PNG la lisent sans CORS avec R2 ou Drive. `?variant=` permet au
- * client de demander l'autre variante ; un détouré pas encore calculé est servi comme l'original
- * (cette lecture ne déclenche jamais de détourage, voir `getDesignImage`).
+ * Bytes of a mockup photo (`{{IMG:ref}}`), served same-origin (docs/SPEC_COMPOSITION_VISUELLE.md
+ * §5.2): the canvas and the PNG export read it without CORS with R2 or Drive. `?variant=` lets the
+ * client ask for the other variant; a cutout not yet computed is served like the original
+ * (this read never triggers background removal, see `getDesignImage`).
  */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string; ref: string }> }) {
   try {

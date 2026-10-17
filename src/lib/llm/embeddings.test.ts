@@ -31,6 +31,6 @@ describe("embedText", () => {
 
   it("lève une erreur si aucun embedding n'est renvoyé", async () => {
     createMock.mockResolvedValue({ data: [] });
-    await expect(embedText("texte")).rejects.toThrow("Aucun embedding renvoyé");
+    await expect(embedText("texte")).rejects.toThrow("No embedding returned");
   });
 });

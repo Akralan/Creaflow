@@ -14,21 +14,21 @@ export const linearConnector: SourceConnector<LinearCandidateMeta> = {
   type: "linear_project",
   displayName: "Linear",
 
-  emptyMessage: "Ce projet Linear n'a ni description, ni update, ni issue terminée.",
-  truncatedMessage: "Projet volumineux : seules les issues et updates les plus récents ont été ingérés.",
+  emptyMessage: "This Linear project has no description, no update and no completed issue.",
+  truncatedMessage: "Large project: only the most recent issues and updates were ingested.",
 
   // Projet supprimé ou hors de portée du scope → "error" ; token révoqué → "needs_reconnect".
   isAuthError: (error) => error instanceof LinearAuthError,
 
   candidateHint: (meta) => {
     const teams = meta.teamNames.length > 0 ? meta.teamNames.join(", ") : null;
-    const updated = meta.updatedAt ? `mis à jour le ${meta.updatedAt.slice(0, 10)}` : null;
+    const updated = meta.updatedAt ? `updated on ${meta.updatedAt.slice(0, 10)}` : null;
     return [teams, updated].filter(Boolean).join(" · ");
   },
 
   picker: {
-    emptyMessage: "Aucun projet Linear visible sur ce compte.",
-    footnote: "On récupère la description du projet, son journal d'updates et ses issues terminées.",
+    emptyMessage: "No Linear project visible on this account.",
+    footnote: "We pull the project description, its update log and its completed issues.",
   },
 
   async assertReady(userId) {
@@ -66,7 +66,7 @@ export const linearConnector: SourceConnector<LinearCandidateMeta> = {
         externalRef: UPDATES_EXTERNAL_REF,
         // Le plus récent des updates : le journal change exactement quand il change.
         externalChecksum: updates.reduce((max, u) => (u.createdAt > max ? u.createdAt : max), ""),
-        title: `Journal du projet — ${project.name}`,
+        title: `Project log — ${project.name}`,
         rawText: journal,
       });
     }

@@ -5,41 +5,41 @@ import { consoleSender } from "./console";
 import { accountDeletedEmail, passwordChangedEmail, passwordResetEmail } from "./templates";
 
 describe("parseSenderIdentity", () => {
-  it("lit « Nom <adresse> » et une adresse nue", () => {
-    expect(parseSenderIdentity("CreaFlow <no-reply@creaflow.example>")).toEqual({
-      name: "CreaFlow",
-      email: "no-reply@creaflow.example",
+  it("reads a \"Name <address>\" form and a bare address", () => {
+    expect(parseSenderIdentity("Buildloud <no-reply@buildloud.example>")).toEqual({
+      name: "Buildloud",
+      email: "no-reply@buildloud.example",
     });
-    expect(parseSenderIdentity("no-reply@creaflow.example")).toEqual({
-      name: "CreaFlow",
-      email: "no-reply@creaflow.example",
+    expect(parseSenderIdentity("no-reply@buildloud.example")).toEqual({
+      name: "Buildloud",
+      email: "no-reply@buildloud.example",
     });
   });
 
-  it("renvoie null quand il n'y a rien d'exploitable", () => {
+  it("returns null when nothing is usable", () => {
     expect(parseSenderIdentity(undefined)).toBeNull();
-    expect(parseSenderIdentity("pas une adresse")).toBeNull();
+    expect(parseSenderIdentity("not an address")).toBeNull();
   });
 });
 
 describe("getEmailSender", () => {
-  it("retombe sur le mode console sans clé Brevo, comme Stripe ou GitHub absents", () => {
+  it("falls back to console mode without a Brevo key, like missing Stripe or GitHub", () => {
     expect(getEmailSender({})).toBe(consoleSender);
   });
 
-  it("choisit Brevo dès qu'une clé est présente, sans EMAIL_PROVIDER explicite", () => {
+  it("picks Brevo as soon as a key is present, without explicit EMAIL_PROVIDER", () => {
     expect(getEmailSender({ BREVO_API_KEY: "xkeysib-test" })).not.toBe(consoleSender);
   });
 
-  it("refuse franchement EMAIL_PROVIDER=brevo sans clé plutôt que d'envoyer dans les logs", () => {
+  it("flatly rejects EMAIL_PROVIDER=brevo without a key rather than sending to the logs", () => {
     expect(() => getEmailSender({ EMAIL_PROVIDER: "brevo" })).toThrow(/BREVO_API_KEY/);
   });
 
-  it("refuse un provider inconnu", () => {
-    expect(() => getEmailSender({ EMAIL_PROVIDER: "sendgrid" })).toThrow(/inconnu/);
+  it("rejects an unknown provider", () => {
+    expect(() => getEmailSender({ EMAIL_PROVIDER: "sendgrid" })).toThrow(/Unknown/);
   });
 
-  it("en production, ne retombe jamais silencieusement sur la console — il faut une clé ou un choix explicite", () => {
+  it("in production, never silently falls back to console — a key or an explicit choice is required", () => {
     expect(() => getEmailSender({ NODE_ENV: "production" })).toThrow(/production/);
     expect(getEmailSender({ NODE_ENV: "production", EMAIL_PROVIDER: "console" })).toBe(consoleSender);
     expect(getEmailSender({ NODE_ENV: "production", BREVO_API_KEY: "xkeysib-test" })).not.toBe(consoleSender);
@@ -51,12 +51,12 @@ describe("createBrevoSender", () => {
     vi.unstubAllGlobals();
   });
 
-  it("envoie le corps attendu par l'API transactionnelle Brevo", async () => {
+  it("sends the body expected by the Brevo transactional API", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ messageId: "1" }), { status: 201 }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const sender = createBrevoSender("xkeysib-test", { name: "CreaFlow", email: "no-reply@creaflow.example" });
-    await sender.send({ to: "alix@example.com", subject: "Sujet", html: "<p>Bonjour</p>", text: "Bonjour" });
+    const sender = createBrevoSender("xkeysib-test", { name: "Buildloud", email: "no-reply@buildloud.example" });
+    await sender.send({ to: "alix@example.com", subject: "Subject", html: "<p>Hello</p>", text: "Hello" });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -64,26 +64,26 @@ describe("createBrevoSender", () => {
     expect(init.method).toBe("POST");
     expect((init.headers as Record<string, string>)["api-key"]).toBe("xkeysib-test");
     expect(JSON.parse(init.body as string)).toEqual({
-      sender: { name: "CreaFlow", email: "no-reply@creaflow.example" },
+      sender: { name: "Buildloud", email: "no-reply@buildloud.example" },
       to: [{ email: "alix@example.com" }],
-      subject: "Sujet",
-      htmlContent: "<p>Bonjour</p>",
-      textContent: "Bonjour",
+      subject: "Subject",
+      htmlContent: "<p>Hello</p>",
+      textContent: "Hello",
     });
   });
 
-  it("lève une erreur lisible quand Brevo refuse", async () => {
+  it("throws a readable error when Brevo refuses", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: "unauthorized", message: "Key not found" }), { status: 401 }))
     );
-    const sender = createBrevoSender("mauvaise", { name: "CreaFlow", email: "no-reply@creaflow.example" });
+    const sender = createBrevoSender("wrong", { name: "Buildloud", email: "no-reply@buildloud.example" });
     await expect(sender.send({ to: "a@b.c", subject: "s", html: "h", text: "t" })).rejects.toThrow(/HTTP 401/);
   });
 });
 
 describe("templates", () => {
-  it("le lien de réinitialisation est dans le texte et dans le HTML, échappé", () => {
+  it("the reset link is in the text and in the HTML, escaped", () => {
     const url = "https://app.example/reinitialiser-mot-de-passe?token=abc&x=1";
     const email = passwordResetEmail({ resetUrl: url, expiresInMinutes: 60 });
     expect(email.text).toContain(url);
@@ -91,14 +91,14 @@ describe("templates", () => {
     expect(email.text).toContain("60 minutes");
   });
 
-  it("l'avis de changement cite l'adresse de contact seulement quand elle existe", () => {
+  it("the change notice mentions the contact address only when it exists", () => {
     expect(passwordChangedEmail({ contactEmail: "contact@example.com" }).text).toContain("contact@example.com");
-    expect(passwordChangedEmail({ contactEmail: null }).text).not.toContain("écrivez-nous");
+    expect(passwordChangedEmail({ contactEmail: null }).text).not.toContain("write to us");
   });
 
-  it("l'email de suppression ne contient aucune donnée personnelle", () => {
+  it("the deletion email contains no personal data", () => {
     const email = accountDeletedEmail();
     expect(email.text).not.toMatch(/@/);
-    expect(email.subject).toMatch(/supprimé/);
+    expect(email.subject).toMatch(/deleted/);
   });
 });

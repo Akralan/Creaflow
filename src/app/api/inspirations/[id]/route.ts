@@ -6,7 +6,7 @@ import { deleteInspiration, setInspirationStatus } from "@/lib/services/inspirat
 
 const schema = z.object({ status: z.enum(["active", "dismissed"]) });
 
-/** Écarter ou remettre une fiche d'inspiration (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.4). */
+/** Dismiss or restore an inspiration card (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.4). */
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userId = await requireUserId();

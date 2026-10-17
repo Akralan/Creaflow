@@ -10,9 +10,9 @@ import GooglePickerButton from "./GooglePickerButton";
 const POLL_INTERVAL_MS = 3000;
 
 /**
- * Bibliothèque d'images de marque (docs/SPEC_RESSOURCES_VISUELLES.md) : import (upload, Google
- * Picker), grille, détourage à la demande (docs/SPEC_COMPOSITION_VISUELLE.md §6). La génération
- * d'image a été retirée : les photos servent telles quelles, ou détourées, dans la maquette.
+ * Brand image library (docs/SPEC_RESSOURCES_VISUELLES.md): import (upload, Google
+ * Picker), grid, on-demand cutout (docs/SPEC_COMPOSITION_VISUELLE.md §6). Image generation
+ * was removed: photos are used as they are, or cut out, in the mockup.
  */
 export default function BrandAssetLibrary() {
   const [assets, setAssets] = useState<BrandAsset[]>([]);
@@ -36,8 +36,8 @@ export default function BrandAssetLibrary() {
     refresh().then(() => setLoaded(true));
   }, [refresh]);
 
-  // Poll léger tant qu'au moins un asset est encore en cours de traitement — pas de websocket,
-  // cohérent avec l'absence d'infra async ailleurs dans le repo (§7.2 du cadrage).
+  // Light polling while at least one asset is still being processed — no websocket,
+  // consistent with the absence of async infra elsewhere in the repo (§7.2 of the brief).
   useEffect(() => {
     const hasPending = assets.some((a) => a.status === "pending");
     if (hasPending && !pollRef.current) {
@@ -64,7 +64,7 @@ export default function BrandAssetLibrary() {
       const { assets: created } = await api.uploadAssets(files);
       setAssets((prev) => [...created, ...prev]);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Échec de l'envoi des photos.");
+      setError(err instanceof ApiClientError ? err.message : "Photo upload failed.");
     }
   }
 
@@ -74,7 +74,7 @@ export default function BrandAssetLibrary() {
       const { assets: created } = await api.finalizeAssetPicker(fileIds);
       setAssets((prev) => [...created, ...prev]);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Échec de l'import depuis Google Drive.");
+      setError(err instanceof ApiClientError ? err.message : "Import from Google Drive failed.");
     }
   }
 
@@ -85,7 +85,7 @@ export default function BrandAssetLibrary() {
       setAssets((prev) => prev.filter((a) => a.id !== id));
       setSelectedIds((prev) => prev.filter((x) => x !== id));
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Échec de la suppression.");
+      setError(err instanceof ApiClientError ? err.message : "Deletion failed.");
     }
   }
 
@@ -96,7 +96,7 @@ export default function BrandAssetLibrary() {
       const { asset } = await api.cutoutAsset(id);
       setAssets((prev) => prev.map((a) => (a.id === id ? asset : a)));
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Détourage impossible.");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't cut out the subject.");
     } finally {
       setCutoutBusyId(null);
     }
@@ -119,8 +119,8 @@ export default function BrandAssetLibrary() {
         cutout={{ available: cutoutAvailable, busyId: cutoutBusyId, onCutout: handleCutout }}
       />
       <p style={{ margin: 0, fontSize: 12, color: color.textFaint }}>
-        Ces photos servent telles quelles dans les maquettes de tes posts visuels. « Détourer » isole le sujet sur fond transparent
-        {cutoutAvailable ? "" : " (non configuré sur ce serveur)"}.
+        These photos are used as they are in the mockups of your visual posts. &ldquo;Cut out&rdquo; isolates the subject on a transparent background
+        {cutoutAvailable ? "" : " (not configured on this server)"}.
       </p>
 
       {error && <p style={{ color: color.danger, fontSize: 13, margin: 0 }}>{error}</p>}

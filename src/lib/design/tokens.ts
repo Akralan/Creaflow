@@ -40,8 +40,8 @@ export type Platform = string;
 export type ScriptStatus = "draft" | "planned" | "shot" | "published";
 export type CalendarStatus = "planned" | "shot" | "published";
 
-/** Palette assignée par position (hash de l'id) aux catégories de contenu dynamiques —
- *  il n'y a plus de clé stable (vente/coulisses/educatif) à mapper vers une couleur fixe. */
+/** Palette assigned by position (hash of the id) to the dynamic content categories —
+ *  there is no stable key (sales/behind-the-scenes/educational) left to map to a fixed color. */
 export const categoryPalette: Array<{ base: string; bg: string; border: string; fg: string }> = [
   { base: "oklch(0.62 0.15 25)", bg: "oklch(0.62 0.15 25 / 0.12)", border: "oklch(0.62 0.15 25 / 0.28)", fg: "oklch(0.5 0.16 25)" },
   { base: "oklch(0.62 0.12 250)", bg: "oklch(0.62 0.12 250 / 0.12)", border: "oklch(0.62 0.12 250 / 0.28)", fg: "oklch(0.45 0.14 250)" },
@@ -51,8 +51,8 @@ export const categoryPalette: Array<{ base: string; bg: string; border: string; 
   { base: "oklch(0.6 0.14 340)", bg: "oklch(0.6 0.14 340 / 0.12)", border: "oklch(0.6 0.14 340 / 0.28)", fg: "oklch(0.5 0.15 340)" },
 ];
 
-/** Couvre toutes les clés de KNOWN_PLATFORMS (src/lib/social/types.ts) — PlatformBadge
- *  applique un repli générique si une plateforme inconnue devait malgré tout apparaître. */
+/** Covers every key of KNOWN_PLATFORMS (src/lib/social/types.ts) — PlatformBadge
+ *  applies a generic fallback if an unknown platform were to appear anyway. */
 export const platformMeta: Record<string, { label: string; badge: string; badgeBg: string }> = {
   instagram: { label: "Instagram", badge: "IG", badgeBg: "oklch(0.6 0.2 15)" },
   linkedin: { label: "LinkedIn", badge: "IN", badgeBg: "oklch(0.5 0.14 250)" },
@@ -67,9 +67,9 @@ export const genericPlatformMeta = { badge: "?", badgeBg: "#6b6259" };
 
 export const statusMeta: Record<ScriptStatus, { label: string; bg: string; fg: string }> = {
   draft: { label: "Brouillon", bg: color.trackBg, fg: "#8a8078" },
-  planned: { label: "Planifié", bg: accentAlpha(0.14), fg: accentText },
-  shot: { label: "Prêt", bg: "oklch(0.62 0.13 60 / 0.16)", fg: "oklch(0.5 0.13 60)" },
-  published: { label: "Publié", bg: "oklch(0.62 0.13 150 / 0.16)", fg: "oklch(0.42 0.14 150)" },
+  planned: { label: "Planned", bg: accentAlpha(0.14), fg: accentText },
+  shot: { label: "Ready", bg: "oklch(0.62 0.13 60 / 0.16)", fg: "oklch(0.5 0.13 60)" },
+  published: { label: "Published", bg: "oklch(0.62 0.13 150 / 0.16)", fg: "oklch(0.42 0.14 150)" },
 };
 
 export const calendarStatusMeta: Record<CalendarStatus, { label: string; bg: string; fg: string }> = {

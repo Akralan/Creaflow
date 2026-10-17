@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { accent, accentText, bg } from "@/components/landing/theme";
 import { fontMono } from "@/lib/design/tokens";
 
-/** Cycle toutes les 2600ms : l'anti-répétition impose un angle neuf à chaque génération. */
+/** Cycles every 2600ms: the anti-repetition rule forces a fresh angle on every generation. */
 const angles = [
-  "angle déjà utilisé — on change",
-  "nouveau : la décision qu'on regrette",
-  "nouveau : le chiffre qui a surpris",
-  "nouveau : ce qu'on referait autrement",
+  "angle already used — switching",
+  "new: the decision we regret",
+  "new: the number that surprised us",
+  "new: what we'd do differently",
 ];
 
 export default function AngleRotator() {

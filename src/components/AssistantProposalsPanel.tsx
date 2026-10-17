@@ -14,25 +14,25 @@ import { KNOWN_PLATFORMS, platformLabel } from "@/lib/social/types";
 import { publishingDaysLabel } from "@/lib/services/calendarService";
 
 const KIND_LABEL: Record<AssistantProposal["kind"], string> = {
-  product_create: "Nouveau sujet",
-  product_update: "Modifier le sujet",
-  series_create: "Nouvelle série",
-  series_update: "Modifier la série",
-  category_create: "Nouveau rôle",
-  category_update: "Modifier le rôle",
-  angle_create: "Nouvel angle",
-  angle_update: "Modifier l'angle",
-  posting_goal_update: "Plateforme",
-  material_create: "Ajouter à la matière",
-  material_update: "Modifier la matière",
-  material_delete: "Retirer de la matière",
-  series_archive: "Archiver la série",
-  category_archive: "Archiver le rôle",
-  angle_archive: "Archiver l'angle",
-  category_reweight: "Rééquilibrage des rôles",
-  profile_update: "Audience de la marque",
-  style_profile_update: "Style d'écriture",
-  publishing_days_update: "Jours de publication",
+  product_create: "New topic",
+  product_update: "Edit topic",
+  series_create: "New series",
+  series_update: "Edit series",
+  category_create: "New role",
+  category_update: "Edit role",
+  angle_create: "New angle",
+  angle_update: "Edit angle",
+  posting_goal_update: "Platform",
+  material_create: "Add to material",
+  material_update: "Edit material",
+  material_delete: "Remove from material",
+  series_archive: "Archive series",
+  category_archive: "Archive role",
+  angle_archive: "Archive angle",
+  category_reweight: "Role rebalancing",
+  profile_update: "Brand audience",
+  style_profile_update: "Writing style",
+  publishing_days_update: "Publishing days",
 };
 
 const inputStyle: React.CSSProperties = {
@@ -139,7 +139,7 @@ interface ProductDraft {
 interface SeriesDraft {
   label: string;
   description: string;
-  /** Absent = rythme inchangé (proposition d'avant le rythme, ou update qui n'y touche pas). */
+  /** Absent = rhythm unchanged (proposal from before rhythms existed, or an update that doesn't touch it). */
   rhythm?: SeriesRhythm;
   categoryId: string;
   platforms: string[];
@@ -150,9 +150,9 @@ interface CategoryDraft {
   description: string;
   weight: number;
   platforms: string[];
-  /** `undefined` = non touché par l'utilisateur : la clé est alors absente du JSON envoyé et
-   *  `resolveProposal` conserve la valeur actuelle du rôle. Ne jamais initialiser à `false`
-   *  d'après le contexte, qui peut ne pas être encore chargé au premier rendu. */
+  /** `undefined` = untouched by the user: the key is then absent from the JSON sent and
+   *  `resolveProposal` keeps the role's current value. Never initialise to `false`
+   *  from context, which may not be loaded yet on first render. */
   materialHungry?: boolean;
 }
 
@@ -230,7 +230,7 @@ function toAngleDraft(payload: Record<string, unknown>): AngleDraft {
 function toPostingGoalDraft(payload: Record<string, unknown>): PostingGoalDraft {
   return {
     platform: typeof payload.platform === "string" ? payload.platform : "",
-    // Une proposition antérieure au passage « active / coupée » porte encore un nombre par semaine.
+    // A proposal from before the "active / off" switch still carries a count per week.
     active:
       typeof payload.active === "boolean"
         ? payload.active
@@ -276,8 +276,8 @@ function ProposalCard({
 }) {
   const categories = useContentCategories();
   const group = proposalGroup(proposal.kind);
-  // Valeur actuelle du rôle ciblé : sert uniquement à AFFICHER la case dans son bon état tant que
-  // l'utilisateur n'y a pas touché — jamais à composer le payload envoyé (cf. CategoryDraft).
+  // Current value of the targeted role: only used to DISPLAY the checkbox in the right state until
+  // the user touches it — never to build the payload sent (see CategoryDraft).
   const currentMaterialHungry = categories.find((c) => c.id === proposal.targetId)?.materialHungry ?? false;
   const [editing, setEditing] = useState(false);
   const [productDraft, setProductDraft] = useState<ProductDraft>(() => toProductDraft(proposal.payload));
@@ -292,8 +292,8 @@ function ProposalCard({
     toCategoryReweightDraft(proposal.payload)
   );
   const [profileDraft, setProfileDraft] = useState<ProfileDraft>(() => toProfileDraft(proposal.payload));
-  // Les règles se décochent avant acceptation : c'est le seul champ éditable d'une proposition de
-  // style (docs/SPEC_APPRENTISSAGE_STYLE.md §6.3) — le reste se retouche ensuite dans Paramètres.
+  // Rules can be unchecked before accepting: it's the only editable field of a style
+  // proposal (docs/SPEC_APPRENTISSAGE_STYLE.md §6.3) — the rest is edited afterwards in Settings.
   const [styleDraft, setStyleDraft] = useState<StyleDraft>(() => toStyleDraft(proposal.payload));
   const [materialDraft, setMaterialDraft] = useState<MaterialDraft>(() => toMaterialDraft(proposal.payload));
   const [busy, setBusy] = useState(false);
@@ -322,7 +322,7 @@ function ProposalCard({
                       ? { styleProfile: styleDraft.styleProfile }
                     : group === "material"
                       ? materialDraft
-                      : // Un archivage n'a rien d'éditable : accepter, c'est archiver la cible.
+                      : // An archive has nothing to edit: accepting means archiving the target.
                         group === "archive"
                         ? {}
                         : productDraft;
@@ -330,13 +330,13 @@ function ProposalCard({
       const { proposals } = await api.resolveAssistantProposal(proposal.id, action, fields);
       onResolved(proposals);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur, réessaie.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong, please try again.");
     } finally {
       setBusy(false);
     }
   }
 
-  // Rôle unique par série (docs/SPEC_SERIES_ET_ROLES.md §1) — sélection exclusive.
+  // One role per series (docs/SPEC_SERIES_ET_ROLES.md §1) — exclusive selection.
   function selectSeriesCategory(categoryId: string) {
     setSeriesDraft((d) => ({ ...d, categoryId }));
   }
@@ -365,19 +365,19 @@ function ProposalCard({
           : group === "postingGoal"
             ? platformLabel(postingGoalDraft.platform)
             : group === "publishingDays"
-              ? "Nouveaux jours de publication"
+              ? "New publishing days"
             : group === "categoryReweight"
-              ? "Rééquilibrage des rôles"
+              ? "Role rebalancing"
               : group === "profile"
-                ? "Audience de marque"
+                ? "Brand audience"
                 : group === "style"
-                  ? "Mise à jour de ton style"
+                  ? "Update to your style"
                 : group === "material"
-                  ? materialDraft.title || "Matière"
+                  ? materialDraft.title || "Material"
                   : group === "archive"
                     ? typeof proposal.payload.label === "string"
                       ? proposal.payload.label
-                      : "Élément à archiver"
+                      : "Item to archive"
                     : productDraft.name;
 
   const description =
@@ -391,10 +391,10 @@ function ProposalCard({
           ? angleDraft.description
           : group === "postingGoal"
             ? postingGoalDraft.active
-              ? "Active : un post par jour de publication"
-              : "Coupée : plus aucun post sur cette plateforme"
+              ? "On: one post per publishing day"
+              : "Off: no more posts on this platform"
             : group === "publishingDays"
-              ? `Un post chaque ${publishingDaysLabel(publishingDaysDraft.publishingDays)}`
+              ? `One post every ${publishingDaysLabel(publishingDaysDraft.publishingDays)}`
             : group === "categoryReweight"
               ? categoryReweightDraft.reasonSummary
               : group === "profile"
@@ -416,20 +416,20 @@ function ProposalCard({
           <div style={{ fontSize: 11, fontWeight: 700, color: color.textMuted, textTransform: "uppercase", letterSpacing: "0.02em", marginBottom: 3 }}>
             {KIND_LABEL[proposal.kind]}
           </div>
-          {!editing && <div style={{ fontSize: 14, fontWeight: 600 }}>{title || "(sans nom)"}</div>}
+          {!editing && <div style={{ fontSize: 14, fontWeight: 600 }}>{title || "(unnamed)"}</div>}
         </div>
         <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-          <IconActionButton icon={SquarePen} variant="neutral" title="Éditer avant d'enregistrer" onClick={() => setEditing((e) => !e)} disabled={busy} size={28} />
-          <IconActionButton icon={X} variant="danger" title="Refuser" onClick={() => resolve("reject")} disabled={busy} size={28} />
-          <IconActionButton icon={Check} variant="primary" title="Accepter" onClick={() => resolve("accept")} disabled={busy} size={28} />
+          <IconActionButton icon={SquarePen} variant="neutral" title="Edit before saving" onClick={() => setEditing((e) => !e)} disabled={busy} size={28} />
+          <IconActionButton icon={X} variant="danger" title="Reject" onClick={() => resolve("reject")} disabled={busy} size={28} />
+          <IconActionButton icon={Check} variant="primary" title="Accept" onClick={() => resolve("accept")} disabled={busy} size={28} />
         </div>
       </div>
 
       {editing ? (
         group === "series" ? (
           <div style={{ display: "grid", gap: 8 }}>
-            <input style={inputStyle} value={seriesDraft.label} onChange={(e) => setSeriesDraft((d) => ({ ...d, label: e.target.value }))} placeholder="Nom de la série" />
-            <input style={inputStyle} value={seriesDraft.description} onChange={(e) => setSeriesDraft((d) => ({ ...d, description: e.target.value }))} placeholder="Identité de la série" />
+            <input style={inputStyle} value={seriesDraft.label} onChange={(e) => setSeriesDraft((d) => ({ ...d, label: e.target.value }))} placeholder="Series name" />
+            <input style={inputStyle} value={seriesDraft.description} onChange={(e) => setSeriesDraft((d) => ({ ...d, description: e.target.value }))} placeholder="Series identity" />
             <RhythmPicker
               value={seriesDraft.rhythm ?? { days: [3], every: 1, anchor: null }}
               onChange={(rhythm) => setSeriesDraft((d) => ({ ...d, rhythm }))}
@@ -441,14 +441,14 @@ function ProposalCard({
                 </button>
               ))}
             </div>
-            {/* Sujet lié : appliqué à l'acceptation mais non éditable ici — le rattachement se change
-                depuis l'écran Direction, qui a le sélecteur de sujet complet. */}
+            {/* Linked topic: applied on acceptance but not editable here — the link is changed
+                from the Direction screen, which has the full topic selector. */}
             {typeof proposal.payload.productName === "string" && (
-              <span style={{ fontSize: 11, color: color.textFaint }}>Matière tirée du sujet : {proposal.payload.productName}</span>
+              <span style={{ fontSize: 11, color: color.textFaint }}>Material drawn from topic: {proposal.payload.productName}</span>
             )}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
               <span style={{ fontSize: 11, color: color.textFaint, marginRight: 2 }}>
-                {seriesDraft.platforms.length === 0 ? "Tous les réseaux" : "Réseaux :"}
+                {seriesDraft.platforms.length === 0 ? "All networks" : "Networks:"}
               </span>
               {KNOWN_PLATFORMS.map((p) => (
                 <button key={p.key} onClick={() => toggleSeriesPlatform(p.key)} style={pillStyle(seriesDraft.platforms.includes(p.key))}>
@@ -459,8 +459,8 @@ function ProposalCard({
           </div>
         ) : group === "category" ? (
           <div style={{ display: "grid", gap: 8 }}>
-            <input style={inputStyle} value={categoryDraft.label} onChange={(e) => setCategoryDraft((d) => ({ ...d, label: e.target.value }))} placeholder="Libellé du rôle" />
-            <input style={inputStyle} value={categoryDraft.description} onChange={(e) => setCategoryDraft((d) => ({ ...d, description: e.target.value }))} placeholder="Consigne pour l'IA" />
+            <input style={inputStyle} value={categoryDraft.label} onChange={(e) => setCategoryDraft((d) => ({ ...d, label: e.target.value }))} placeholder="Role label" />
+            <input style={inputStyle} value={categoryDraft.description} onChange={(e) => setCategoryDraft((d) => ({ ...d, description: e.target.value }))} placeholder="Instruction for the AI" />
             <input
               style={{ ...inputStyle, width: 100 }}
               type="number"
@@ -471,7 +471,7 @@ function ProposalCard({
             />
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
               <span style={{ fontSize: 11, color: color.textFaint, marginRight: 2 }}>
-                {categoryDraft.platforms.length === 0 ? "Tous les réseaux" : "Réseaux :"}
+                {categoryDraft.platforms.length === 0 ? "All networks" : "Networks:"}
               </span>
               {KNOWN_PLATFORMS.map((p) => (
                 <button key={p.key} onClick={() => toggleCategoryPlatform(p.key)} style={pillStyle(categoryDraft.platforms.includes(p.key))}>
@@ -485,13 +485,13 @@ function ProposalCard({
                 checked={categoryDraft.materialHungry ?? currentMaterialHungry}
                 onChange={(e) => setCategoryDraft((d) => ({ ...d, materialHungry: e.target.checked }))}
               />
-              Ne tourne pas sans matière documentée
+              Doesn&apos;t run without documented material
             </label>
           </div>
         ) : group === "angle" ? (
           <div style={{ display: "grid", gap: 8 }}>
-            <input style={inputStyle} value={angleDraft.label} onChange={(e) => setAngleDraft((d) => ({ ...d, label: e.target.value }))} placeholder="Nom de l'angle" />
-            <input style={inputStyle} value={angleDraft.description} onChange={(e) => setAngleDraft((d) => ({ ...d, description: e.target.value }))} placeholder="Consigne de traitement" />
+            <input style={inputStyle} value={angleDraft.label} onChange={(e) => setAngleDraft((d) => ({ ...d, label: e.target.value }))} placeholder="Angle name" />
+            <input style={inputStyle} value={angleDraft.description} onChange={(e) => setAngleDraft((d) => ({ ...d, description: e.target.value }))} placeholder="Treatment instruction" />
           </div>
         ) : group === "postingGoal" ? (
           <div style={{ display: "grid", gap: 8 }}>
@@ -508,10 +508,10 @@ function ProposalCard({
             </select>
             <div style={{ display: "flex", gap: 6 }}>
               <button onClick={() => setPostingGoalDraft((d) => ({ ...d, active: true }))} style={pillStyle(postingGoalDraft.active)}>
-                Active
+                On
               </button>
               <button onClick={() => setPostingGoalDraft((d) => ({ ...d, active: false }))} style={pillStyle(!postingGoalDraft.active)}>
-                Coupée
+                Off
               </button>
             </div>
           </div>
@@ -552,7 +552,7 @@ function ProposalCard({
               style={{ ...inputStyle, minHeight: 70, resize: "vertical" }}
               value={profileDraft.targetAudience}
               onChange={(e) => setProfileDraft({ targetAudience: e.target.value })}
-              placeholder="Qui achète ou lit, ce qui l'intéresse, ce qu'il doit retenir de la marque"
+              placeholder="Who buys or reads, what they care about, what they should remember about the brand"
             />
           </div>
         ) : group === "style" ? (
@@ -563,44 +563,44 @@ function ProposalCard({
               style={inputStyle}
               value={materialDraft.title}
               onChange={(e) => setMaterialDraft((d) => ({ ...d, title: e.target.value }))}
-              placeholder="Titre du document"
+              placeholder="Document title"
             />
-            {/* Le texte reste éditable avant enregistrement : c'est le dernier filet contre une
-                information mal rapportée par l'assistant. Vide pour une suppression. */}
+            {/* The text stays editable before saving: it's the last safety net against
+                information misreported by the assistant. Empty for a deletion. */}
             {proposal.kind !== "material_delete" && (
               <textarea
                 style={{ ...inputStyle, minHeight: 110, resize: "vertical" }}
                 value={materialDraft.text}
                 onChange={(e) => setMaterialDraft((d) => ({ ...d, text: e.target.value }))}
-                placeholder="Contenu du document"
+                placeholder="Document content"
               />
             )}
             <span style={{ fontSize: 11, color: color.textFaint }}>
               {typeof proposal.payload.productName === "string"
-                ? `Sujet : ${proposal.payload.productName}`
-                : "Matière de niveau marque (aucun sujet)"}
+                ? `Topic: ${proposal.payload.productName}`
+                : "Brand-level material (no topic)"}
             </span>
           </div>
         ) : group === "archive" ? (
           <p style={{ margin: 0, fontSize: 12, color: color.textMuted }}>
-            Rien à éditer : accepter archive l&apos;élément. Il disparaît de la circulation, mais les scripts et créneaux
-            déjà produits le conservent.
+            Nothing to edit: accepting archives the item. It drops out of circulation, but scripts and slots
+            already produced keep it.
           </p>
         ) : (
           <div style={{ display: "grid", gap: 8 }}>
-            <input style={inputStyle} value={productDraft.name} onChange={(e) => setProductDraft((d) => ({ ...d, name: e.target.value }))} placeholder="Nom du sujet" />
+            <input style={inputStyle} value={productDraft.name} onChange={(e) => setProductDraft((d) => ({ ...d, name: e.target.value }))} placeholder="Topic name" />
             <input style={inputStyle} value={productDraft.description} onChange={(e) => setProductDraft((d) => ({ ...d, description: e.target.value }))} placeholder="Description" />
             <input
               style={inputStyle}
               value={productDraft.valueProposition}
               onChange={(e) => setProductDraft((d) => ({ ...d, valueProposition: e.target.value }))}
-              placeholder="Proposition de valeur"
+              placeholder="Value proposition"
             />
             <input
               style={inputStyle}
               value={productDraft.targetAudience}
               onChange={(e) => setProductDraft((d) => ({ ...d, targetAudience: e.target.value }))}
-              placeholder="Audience de ce sujet (vide = audience de la marque)"
+              placeholder="Audience for this topic (empty = brand audience)"
             />
           </div>
         )
@@ -636,7 +636,7 @@ function StyleRulesSummary({ styleProfile }: { styleProfile: StyleProfile }) {
   const rules = styleProfile.rules ?? [];
   return (
     <div style={{ display: "grid", gap: 4, fontSize: 12, color: color.textMuted }}>
-      <span>Voix : {styleProfile.summary}</span>
+      <span>Voice: {styleProfile.summary}</span>
       {rules.length > 0 && (
         <div style={{ display: "grid", gap: 2 }}>
           {rules.map((r, i) => (
@@ -647,18 +647,18 @@ function StyleRulesSummary({ styleProfile }: { styleProfile: StyleProfile }) {
           ))}
         </div>
       )}
-      {(styleProfile.avoid?.length ?? 0) > 0 && <span>À bannir : {styleProfile.avoid!.join(", ")}</span>}
-      {(styleProfile.prefer?.length ?? 0) > 0 && <span>À privilégier : {styleProfile.prefer!.join(", ")}</span>}
+      {(styleProfile.avoid?.length ?? 0) > 0 && <span>To avoid: {styleProfile.avoid!.join(", ")}</span>}
+      {(styleProfile.prefer?.length ?? 0) > 0 && <span>Preferred: {styleProfile.prefer!.join(", ")}</span>}
     </div>
   );
 }
 
-/** Mode édition d'une proposition de style : décocher les règles qu'on ne veut pas garder. */
+/** Edit mode of a style proposal: uncheck the rules you don't want to keep. */
 function StyleRulesPicker({ draft, onChange }: { draft: StyleDraft; onChange: (d: StyleDraft) => void }) {
   const rules = draft.styleProfile.rules ?? [];
   return (
     <div style={{ display: "grid", gap: 6 }}>
-      <span style={{ fontSize: 12, color: color.textFaint }}>Décoche les règles que tu ne veux pas garder :</span>
+      <span style={{ fontSize: 12, color: color.textFaint }}>Uncheck the rules you don&apos;t want to keep:</span>
       {rules.map((r, i) => (
         <label key={`${r.text}-${i}`} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13, cursor: "pointer" }}>
           <input
@@ -677,7 +677,7 @@ function StyleRulesPicker({ draft, onChange }: { draft: StyleDraft; onChange: (d
           </span>
         </label>
       ))}
-      {rules.length === 0 && <span style={{ fontSize: 12, color: color.textFaint }}>Aucune règle dans cette proposition.</span>}
+      {rules.length === 0 && <span style={{ fontSize: 12, color: color.textFaint }}>No rules in this proposal.</span>}
     </div>
   );
 }
@@ -693,7 +693,7 @@ export default function AssistantProposalsPanel({
     <div style={{ height: "100%", overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
       {proposals.length === 0 ? (
         <p style={{ fontSize: 13, color: color.textMuted, margin: 0 }}>
-          Les propositions de l&apos;assistant apparaîtront ici au fil de la conversation.
+          The assistant&apos;s proposals will appear here as the conversation goes on.
         </p>
       ) : (
         proposals.map((p) => <ProposalCard key={p.id} proposal={p} onResolved={onProposalsChange} />)

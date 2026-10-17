@@ -18,7 +18,7 @@ async function insertSourceMaterial(
 ) {
   const rawText = params.rawText.trim();
   if (!rawText) {
-    throw new ApiError(400, "La matière ne peut pas être vide.");
+    throw new ApiError(400, "Material cannot be empty.");
   }
   const [row] = await db
     .insert(sourceMaterials)
@@ -72,7 +72,7 @@ export async function getMaterialForUser(userId: string, materialId: string) {
     where: and(eq(sourceMaterials.id, materialId), eq(sourceMaterials.userId, userId)),
   });
   if (!material) {
-    throw new ApiError(404, "Matière introuvable.");
+    throw new ApiError(404, "Material not found.");
   }
   return material;
 }
@@ -94,7 +94,7 @@ export async function updateMaterialForUser(
   const existing = await getMaterialForUser(userId, materialId);
   const nextText = fields.rawText?.trim();
   if (fields.rawText !== undefined && !nextText) {
-    throw new ApiError(400, "La matière ne peut pas être vide.");
+    throw new ApiError(400, "Material cannot be empty.");
   }
   const textChanged = nextText !== undefined && nextText !== existing.rawText;
 
@@ -124,7 +124,7 @@ export async function deleteMaterialForUser(userId: string, materialId: string) 
     .where(and(eq(sourceMaterials.id, materialId), eq(sourceMaterials.userId, userId)))
     .returning({ id: sourceMaterials.id });
   if (!deleted) {
-    throw new ApiError(404, "Matière introuvable.");
+    throw new ApiError(404, "Material not found.");
   }
   return deleted;
 }
@@ -138,7 +138,7 @@ export async function updateMaterialSummary(userId: string, materialId: string, 
     .where(and(eq(sourceMaterials.id, materialId), eq(sourceMaterials.userId, userId)))
     .returning();
   if (!updated) {
-    throw new ApiError(404, "Matière introuvable.");
+    throw new ApiError(404, "Material not found.");
   }
   return updated;
 }
@@ -176,7 +176,7 @@ export async function backfillMaterialSummaries(userId: string, productId: strin
   });
   for (const m of pending) {
     await summarizeMaterialDocument(m.id).catch((err) =>
-      logger.error("Résumé de matière échoué (backfill)", err, { materialId: m.id })
+      logger.error("Material summary failed (backfill)", err, { materialId: m.id })
     );
   }
 }

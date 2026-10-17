@@ -1,8 +1,8 @@
 /**
- * Heuristique de rattachement post↔script (docs/SPEC_METRIQUES_AUTO.md §4, piste retenue :
- * heuristique de pré-remplissage + confirmation utilisateur unique). Purement déterministe,
- * pas d'appel LLM — même esprit que performanceService.ts. Fonctions pures, sans DB : la
- * lecture (candidats scripts) et l'écriture (postMatchCandidates) vivent dans
+ * Post↔script link heuristic (docs/SPEC_METRIQUES_AUTO.md §4, approach chosen:
+ * heuristic (pre-fill + single user confirmation). Purely deterministic,
+ * no LLM call — same spirit as performanceService.ts. Pure functions, no DB: reading
+ * (candidate scripts) and writing (postMatchCandidates) live in
  * postMetricsFetchService.ts.
  */
 
@@ -10,9 +10,9 @@ const DATE_PROXIMITY_WINDOW_DAYS = 7;
 const DATE_WEIGHT = 0.5;
 const CAPTION_WEIGHT = 0.5;
 
-/** Score minimal pour proposer un candidat à confirmation — volontairement bas : c'est une
- *  suggestion pré-remplie, pas une décision automatique, mieux vaut proposer un faux positif
- *  que rater un vrai match. */
+/** Minimum score to propose a candidate for confirmation — deliberately low: it is a
+ *  pre-filled suggestion, not an automatic decision, better to propose a false positive
+ *  than to miss a real match. */
 export const MATCH_SCORE_THRESHOLD = 0.35;
 
 export interface MatchablePost {
@@ -21,14 +21,14 @@ export interface MatchablePost {
 }
 
 export interface MatchableScript {
-  /** Date de publication prévue (CalendarEntry.scheduledDate), pas Script.createdAt qui ne
-   *  reflète pas la date de publication réelle. */
+  /** Planned publication date (CalendarEntry.scheduledDate), not Script.createdAt which does not
+   *  reflect the real publication date. */
   scheduledDate: Date | null;
   caption: string | null;
 }
 
-/** Tokenise pour la similarité de caption : minuscule, URLs et hashtags retirés (les hashtags
- *  sont déjà un champ Script.hashtags séparé), ponctuation/emoji hors lettres et chiffres retirés. */
+/** Tokenises for caption similarity: lowercase, URLs and hashtags removed (hashtags
+ *  are already a separate Script.hashtags field), punctuation/emoji other than letters and digits removed. */
 function tokenize(text: string | null | undefined): Set<string> {
   if (!text) return new Set();
   const cleaned = text
@@ -47,8 +47,8 @@ function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
   return union === 0 ? 0 : intersection / union;
 }
 
-/** Score de correspondance 0-1 entre un post récupéré via API et un script candidat :
- *  50% proximité de date (0 au-delà de 7 jours d'écart), 50% similarité Jaccard des captions. */
+/** Match score 0-1 between a post retrieved via API and a candidate script:
+ *  50% date proximity (0 beyond 7 days apart), 50% Jaccard similarity of captions. */
 export function scorePostMatch(post: MatchablePost, candidate: MatchableScript): number {
   let dateScore = 0;
   if (post.publishedAt && candidate.scheduledDate) {
@@ -62,9 +62,9 @@ export function scorePostMatch(post: MatchablePost, candidate: MatchableScript):
   return DATE_WEIGHT * dateScore + CAPTION_WEIGHT * captionScore;
 }
 
-/** Meilleur script candidat pour un post donné, au-dessus du seuil — null si aucun candidat
- *  n'atteint MATCH_SCORE_THRESHOLD. Un post ne garde qu'un seul candidat (contrainte unique
- *  (platform, platformPostId) sur postMatchCandidates). */
+/** Best candidate script for a given post, above the threshold — null if no candidate
+ *  reaches MATCH_SCORE_THRESHOLD. A post keeps only one candidate (unique constraint
+ *  (platform, platformPostId) on postMatchCandidates). */
 export function findBestMatchingScript<T extends MatchableScript>(
   post: MatchablePost,
   candidates: T[]

@@ -86,14 +86,14 @@ export default function GooglePickerButton({ onSelected }: { onSelected: (fileId
       .setVisible(true);
   }
 
-  // Systématiquement re-demandé à chaque clic (y compris "Ajouter des images" une fois déjà
-  // connecté) : le widget Picker a besoin d'un access token frais côté navigateur, que seul ce
-  // flow peut fournir — mais Google n'affiche généralement plus l'écran de consentement complet
-  // une fois l'accès déjà accordé.
+  // Always re-requested on every click (including "Add images" once already
+  // connected): the Picker widget needs a fresh access token in the browser, which only this
+  // flow can provide — but Google generally no longer shows the full consent screen
+  // once access has already been granted.
   function handleClick() {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     if (!window.google || !clientId) {
-      setError("Google Picker n'est pas configuré.");
+      setError("Google Picker isn't configured.");
       return;
     }
     setError(null);
@@ -106,14 +106,14 @@ export default function GooglePickerButton({ onSelected }: { onSelected: (fileId
         callback: async (response) => {
           if (!response.code) {
             setLoading(false);
-            if (response.error) setError("Connexion Google Drive annulée ou refusée.");
+            if (response.error) setError("Google Drive connection cancelled or denied.");
             return;
           }
           try {
             const { accessToken } = await api.connectGoogleDrive(response.code);
             openPicker(accessToken);
           } catch (err) {
-            setError(err instanceof ApiClientError ? err.message : "Connexion Google Drive échouée.");
+            setError(err instanceof ApiClientError ? err.message : "Google Drive connection failed.");
           } finally {
             setLoading(false);
           }
@@ -125,7 +125,7 @@ export default function GooglePickerButton({ onSelected }: { onSelected: (fileId
   return (
     <div>
       <Button variant="secondary" onClick={handleClick} disabled={!ready || loading}>
-        {loading ? "…" : "Importer depuis Google Drive"}
+        {loading ? "…" : "Import from Google Drive"}
       </Button>
       {error && <p style={{ color: "#b04a3a", fontSize: 13, margin: "8px 0 0" }}>{error}</p>}
     </div>

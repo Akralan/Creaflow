@@ -27,7 +27,7 @@ async function exchangeForLongLivedToken(shortLivedToken: string, platformUserId
   });
   const response = await fetch(`https://graph.instagram.com/access_token?${params.toString()}`);
   if (!response.ok) {
-    throw new Error(`Échange vers un token Instagram longue durée échoué (${response.status})`);
+    throw new Error(`Exchange for a long-lived Instagram token failed (${response.status})`);
   }
   const data: { access_token: string; expires_in: number } = await response.json();
   return {
@@ -84,7 +84,7 @@ export const instagramProvider: SocialProvider = {
       }),
     });
     if (!response.ok) {
-      throw new Error(`Échange du code Instagram échoué (${response.status})`);
+      throw new Error(`Instagram code exchange failed (${response.status})`);
     }
     const data = await response.json();
     // Le token retourné par cet échange initial est un short-lived token (1h) — on l'échange
@@ -98,7 +98,7 @@ export const instagramProvider: SocialProvider = {
     const params = new URLSearchParams({ grant_type: "ig_refresh_token", access_token: refreshToken });
     const response = await fetch(`https://graph.instagram.com/refresh_access_token?${params.toString()}`);
     if (!response.ok) {
-      throw new Error(`Rafraîchissement du token Instagram échoué (${response.status})`);
+      throw new Error(`Instagram token refresh failed (${response.status})`);
     }
     const data: { access_token: string; expires_in: number } = await response.json();
     return {
@@ -119,7 +119,7 @@ export const instagramProvider: SocialProvider = {
     });
     const response = await fetch(`https://graph.instagram.com/me/media?${params.toString()}`);
     if (!response.ok) {
-      throw new Error(`Récupération des médias Instagram échouée (${response.status})`);
+      throw new Error(`Fetching Instagram media failed (${response.status})`);
     }
     const data = await response.json();
     const media: Array<{ id: string; caption?: string; permalink: string }> = data.data || [];
@@ -141,7 +141,7 @@ export const instagramProvider: SocialProvider = {
     });
     const response = await fetch(`https://graph.instagram.com/me/media?${params.toString()}`);
     if (!response.ok) {
-      throw new Error(`Récupération des médias Instagram échouée (${response.status})`);
+      throw new Error(`Fetching Instagram media failed (${response.status})`);
     }
     const data = await response.json();
     const media: Array<{

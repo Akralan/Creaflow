@@ -5,70 +5,70 @@ import { EDITORIAL_WRITING_RULES } from "./prompts";
 import { storyboardStepSchema } from "./scriptSchema";
 
 /**
- * Micro-retouches dans l'éditeur (docs/SPEC_MATIERE_EDITEUR.md §4.4/§4.6) : deux gestes, pas plus —
- * sélection→instruction (rewrite_selection) et régénération d'un bloc (regenerate_*). Chacun reste
- * un appel LLM texte court et contraint, jamais une re-génération de structure complète.
+ * Micro-edits in the editor (docs/SPEC_MATIERE_EDITEUR.md §4.4/§4.6): two actions, no more —
+ * selection→instruction (rewrite_selection) and single-block regeneration (regenerate_*). Each
+ * stays a short, constrained text LLM call, never a regeneration of the whole structure.
  */
 
-export const REWRITE_SELECTION_SYSTEM_PROMPT = `Tu es un rédacteur qui retouche un texte existant à la demande, pour CreaFlow.
+export const REWRITE_SELECTION_SYSTEM_PROMPT = `You are a writer who edits existing text on request, for Buildloud.
 
-Règles :
-- Tu ne réécris QUE le passage sélectionné, fourni ci-dessous — jamais le reste du script.
-- Applique l'instruction donnée, rien d'autre.
-- Garde la langue, le ton et le format du texte d'origine sauf si l'instruction demande explicitement de les changer.
-- Si l'instruction demande de supprimer/enlever/retirer le passage : renvoie une chaîne VIDE. Ne le reformule pas, ne le raccourcis pas, ne le résume pas — supprimer veut dire qu'il ne doit plus rien rester de ce passage, pas une version plus courte.
-- De la matière factuelle sur le sujet peut être fournie ci-dessous (documents déposés par l'utilisateur) — sers-t'en si l'instruction le demande ou le suggère (ex. « base-toi sur... », « parle plutôt de... »), copié MOT POUR MOT pour toute information factuelle reprise.
-- Tu ne dois JAMAIS inventer une information factuelle (nom, chiffre, date, anecdote, résultat...) qui ne t'a pas été donnée explicitement — ni dans le texte d'origine, ni dans la matière fournie. Si une précision manque, écris littéralement "[à compléter]" plutôt que d'inventer.
-- Renvoie uniquement le texte de remplacement via l'outil fourni, sans guillemets ni commentaire autour.
-- Le champ "usedExcerpts" de l'outil est obligatoire : renvoie un tableau vide [] si tu n'as repris aucun passage mot pour mot depuis la matière fournie.
+Rules:
+- You rewrite ONLY the selected passage, provided below — never the rest of the script.
+- Apply the given instruction, nothing else.
+- Keep the language, tone and format of the original text unless the instruction explicitly asks to change them. Posts are written in English.
+- If the instruction asks to delete/remove/cut the passage: return an EMPTY string. Don't rephrase it, don't shorten it, don't summarize it — deleting means nothing of that passage should remain, not a shorter version.
+- Factual material about the subject may be provided below (documents uploaded by the user) — use it if the instruction asks or suggests it (e.g. "base it on...", "talk about... instead"), copied WORD FOR WORD for any factual information reused.
+- You must NEVER invent factual information (name, number, date, anecdote, result...) that was not explicitly given to you — neither in the original text nor in the supplied material. If a detail is missing, literally write "[to be completed]" rather than invent it.
+- Return only the replacement text via the provided tool, without quotation marks or comments around it.
+- The tool's "usedExcerpts" field is mandatory: return an empty array [] if you reused no passage word for word from the supplied material.
 
 ${EDITORIAL_WRITING_RULES}`;
 
-// Annexe A.6 de docs/SPEC_PROMPT_GENERATION_TECH.md — ligne de contexte ajoutée au message des tools
-// regenerate_* (hook/storyboard/hashtags/caption), jamais à rewrite_selection (§4.3 : la sélection→
-// instruction ne reçoit pas le concept). Chaîne vide si le script n'a pas de concept (origin manual/
-// imported, ou script antérieur à la migration §2) — à ajouter avec un séparateur, jamais collée sans
-// vérifier la longueur.
+// Annex A.6 of docs/SPEC_PROMPT_GENERATION_TECH.md — context line added to the message of the
+// regenerate_* tools (hook/storyboard/hashtags/caption), never to rewrite_selection (§4.3:
+// selection→instruction does not receive the concept). Empty string if the script has no concept
+// (origin manual/imported, or a script predating migration §2) — to be added with a separator,
+// never glued on without checking the length.
 export function buildConceptContextLine(concept: string | null): string {
   if (!concept) return "";
-  return `Intention du script (le bloc régénéré doit rester cohérent avec elle) : ${concept}`;
+  return `Script intent (the regenerated block must stay consistent with it): ${concept}`;
 }
 
 export const REWRITE_SELECTION_TOOL_NAME = "rewrite_selection";
 
 /**
- * `includeTitle=false` uniquement quand la sélection retouchée EST déjà le titre lui-même
- * (`blockField === "title"`, microEditService.ts) — redemander un titre séparé dans ce cas précis
- * serait redondant avec `rewrittenText` et contradictoire avec la consigne "renvoie-le inchangé si
- * non concerné" (ici il EST concerné, c'est le champ édité). Dans tous les autres cas, le titre est
- * redemandé à chaque retouche mais reconsidéré seulement si nécessaire — même convention que le
- * `title` de `regenerate_hook` (contentType "text") plus bas dans ce fichier.
+ * `includeTitle=false` only when the edited selection IS already the title itself
+ * (`blockField === "title"`, microEditService.ts) — asking again for a separate title in that
+ * specific case would be redundant with `rewrittenText` and contradict the "return it unchanged if
+ * not concerned" instruction (here it IS concerned, it is the edited field). In all other cases,
+ * the title is requested at each edit but reconsidered only if necessary — same convention as the
+ * `title` of `regenerate_hook` (contentType "text") further down in this file.
  */
 export function buildRewriteSelectionTool(includeTitle: boolean): LlmToolDefinition {
   return {
     name: REWRITE_SELECTION_TOOL_NAME,
-    description: "Renvoie le texte de remplacement pour la sélection, appliquant l'instruction donnée.",
+    description: "Returns the replacement text for the selection, applying the given instruction.",
     input_schema: {
       type: "object",
       properties: {
         rewrittenText: {
           type: "string",
           description:
-            "Texte de remplacement, prêt à insérer à la place exacte de la sélection. Chaîne VIDE si l'instruction demande de supprimer ce passage — jamais une reformulation ou un raccourci à la place d'une vraie suppression.",
+            "Replacement text, ready to insert in the exact place of the selection. EMPTY string if the instruction asks to delete this passage — never a rephrasing or a shortcut in place of a real deletion.",
         },
         ...(includeTitle
           ? {
               title: {
                 type: "string",
                 description:
-                  "Titre cohérent avec le script une fois cette retouche appliquée. Renvoie le titre actuel (fourni en contexte) INCHANGÉ s'il décrit toujours bien le sujet — ne le change que si la retouche fait dévier significativement le sujet du post, pas pour une reformulation mineure.",
+                  "Title consistent with the script once this edit is applied. Return the current title (supplied in context) UNCHANGED if it still describes the subject well — change it only if the edit makes the post's subject drift significantly, not for a minor rewording.",
               },
             }
           : {}),
         usedExcerpts: {
           type: "array",
           description:
-            "OBLIGATOIRE — ne jamais omettre ce champ. Passages copiés MOT POUR MOT depuis la matière factuelle fournie que tu as utilisés dans ce remplacement. Tableau vide [] si aucune matière fournie ou utilisée.",
+            "REQUIRED — never omit this field. Passages copied WORD FOR WORD from the supplied factual material that you used in this replacement. Empty array [] if no material was supplied or used.",
           items: { type: "string" },
         },
       },
@@ -86,8 +86,8 @@ export const rewriteSelectionResultSchema = z.object({
 
 export function buildRewriteSelectionUserMessage(params: {
   brandContext: string;
-  /** Bloc `=== STYLE ===` (buildStyleBlock) — les règles apprises valent aussi pour une retouche
-   *  de phrase (docs/SPEC_APPRENTISSAGE_STYLE.md §5.4). Chaîne vide si aucun profil. */
+  /** `=== STYLE ===` block (buildStyleBlock) — the learned rules also apply to a sentence edit
+   *  (docs/SPEC_APPRENTISSAGE_STYLE.md §5.4). Empty string if no profile. */
   styleBlock?: string;
   selectedText: string;
   instruction: string;
@@ -97,22 +97,22 @@ export function buildRewriteSelectionUserMessage(params: {
   const lines = [
     params.brandContext,
     params.styleBlock ?? "",
-    params.currentTitle ? `Titre actuel : ${params.currentTitle}` : "",
-    `Passage sélectionné à retoucher : "${params.selectedText}"`,
-    `Instruction : ${params.instruction}`,
+    params.currentTitle ? `Current title: ${params.currentTitle}` : "",
+    `Selected passage to edit: "${params.selectedText}"`,
+    `Instruction: ${params.instruction}`,
   ];
   if (params.materialDocuments?.length) {
     const combined = params.materialDocuments
       .map((d) => (d.title ? `[${d.title}]\n${d.annotatedText}` : d.annotatedText))
       .join("\n\n---\n\n");
     lines.push(
-      `Matière factuelle disponible sur ce sujet (utilise-la si l'instruction le demande, MOT POUR MOT pour tout fait repris) :\n${combined}`
+      `Factual material available on this subject (use it if the instruction asks, WORD FOR WORD for any fact reused):\n${combined}`
     );
   }
   return lines.filter(Boolean).join("\n\n");
 }
 
-// --- Régénération d'un seul bloc ---
+// --- Single-block regeneration ---
 
 export type MicroEditBlock = "hook" | "storyboard" | "caption" | "hashtags";
 
@@ -121,31 +121,31 @@ export function toolForBlock(block: MicroEditBlock, contentType: ContentType): L
     if (contentType === "visual") {
       return {
         name: "regenerate_hook",
-        description: "Régénère uniquement l'accroche visuelle (composition) du post.",
+        description: "Regenerates only the post's visual hook (composition).",
         input_schema: {
           type: "object",
           properties: {
-            hookVisual: { type: "string", description: "Composition visuelle qui capte l'attention (1re slide ou image unique)." },
+            hookVisual: { type: "string", description: "Visual composition that grabs attention (1st slide or single image)." },
           },
           required: ["hookVisual"],
         },
       };
     }
-    // Pour un post texte, l'accroche EST la première phrase du texte actuel (fourni comme référence
-    // fixe dans le message, cf. microEditService.ts) — le titre est inclus pour rester cohérent avec
-    // ce même texte, mais SI le titre actuel décrit déjà bien le sujet, le renvoyer inchangé plutôt
-    // que de le changer pour changer (champ `required`, jamais omis, pour la fiabilité — cf.
-    // usedExcerpts dans scriptSchema.ts — mais la valeur peut rester identique à l'actuelle).
+    // For a text post, the hook IS the first sentence of the current text (supplied as a fixed
+    // reference in the message, see microEditService.ts) — the title is included to stay consistent
+    // with that same text, but IF the current title already describes the subject well, return it
+    // unchanged rather than change it for the sake of changing (`required` field, never omitted, for
+    // reliability — see usedExcerpts in scriptSchema.ts — but the value may stay identical to the current one).
     return {
       name: "regenerate_hook",
-      description: "Régénère l'accroche (première phrase du texte) cohérente avec le texte actuel fourni, et ajuste le titre uniquement s'il ne correspond plus à ce texte.",
+      description: "Regenerates the hook (first sentence of the text) consistent with the current text supplied, and adjusts the title only if it no longer matches that text.",
       input_schema: {
         type: "object",
         properties: {
-          hookText: { type: "string", description: "Première phrase du texte actuel, pensée pour capter l'attention — cohérente avec ce texte, pas avec un ancien sujet." },
+          hookText: { type: "string", description: "First sentence of the current text, designed to grab attention — consistent with this text, not with a former subject." },
           title: {
             type: "string",
-            description: "Titre cohérent avec le texte actuel fourni. Renvoie le titre actuel INCHANGÉ s'il décrit déjà bien ce texte — ne le change que si le sujet réel du texte ne correspond plus au titre actuel.",
+            description: "Title consistent with the current text supplied. Return the current title UNCHANGED if it already describes this text well — change it only if the text's real subject no longer matches the current title.",
           },
         },
         required: ["hookText", "title"],
@@ -156,13 +156,13 @@ export function toolForBlock(block: MicroEditBlock, contentType: ContentType): L
   if (block === "storyboard") {
     return {
       name: "regenerate_storyboard",
-      description: "Régénère uniquement les slides du post visuel.",
+      description: "Regenerates only the slides of the visual post.",
       input_schema: {
         type: "object",
         properties: {
           storyboard: {
             type: "array",
-            description: "Slides simples et numérotées.",
+            description: "Simple, numbered slides.",
             items: {
               type: "object",
               properties: { planNumber: { type: "integer" }, description: { type: "string" } },
@@ -177,21 +177,21 @@ export function toolForBlock(block: MicroEditBlock, contentType: ContentType): L
   if (block === "caption") {
     return {
       name: "regenerate_caption",
-      description: "Régénère uniquement la légende (ou le corps du texte) du script.",
+      description: "Regenerates only the script's caption (or body text).",
       input_schema: {
         type: "object",
-        properties: { caption: { type: "string", description: "Légende ou corps du texte, prêt à publier." } },
+        properties: { caption: { type: "string", description: "Caption or body text, ready to publish." } },
         required: ["caption"],
       },
     };
   }
   return {
     name: "regenerate_hashtags",
-    description: "Régénère uniquement la liste de hashtags.",
+    description: "Regenerates only the list of hashtags.",
     input_schema: {
       type: "object",
       properties: {
-        hashtags: { type: "array", description: "Liste de hashtags pertinents pour la plateforme visée.", items: { type: "string" } },
+        hashtags: { type: "array", description: "List of relevant hashtags for the target platform.", items: { type: "string" } },
       },
       required: ["hashtags"],
     },
@@ -202,7 +202,7 @@ const blockResultSchemas = {
   hook: z.object({
     hookVisual: z.string().optional(),
     hookText: z.string().optional(),
-    // Présent uniquement pour contentType "text" (cf. toolForBlock) — le titre ajusté si besoin.
+    // Present only for contentType "text" (see toolForBlock) — the title adjusted if needed.
     title: z.string().optional(),
   }),
   storyboard: z.object({ storyboard: z.array(storyboardStepSchema).min(1) }),

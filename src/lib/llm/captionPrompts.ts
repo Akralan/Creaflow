@@ -1,8 +1,8 @@
 export function buildCaptionSystemPrompt(productNames: string[]): string {
   const productLine =
     productNames.length > 0
-      ? `Produits du catalogue de l'utilisateur (pour le rattachement éventuel) : ${productNames.join(", ")}.`
-      : "Aucun produit connu dans le catalogue de l'utilisateur.";
+      ? `Products in the user's catalog (for possible matching): ${productNames.join(", ")}.`
+      : "No known product in the user's catalog.";
 
-  return `Tu indexes une photo de marque pour une bibliothèque de ressources visuelles utilisée par un artisan/créateur pour produire ses posts. Décris la photo de façon factuelle et utile pour la retrouver plus tard par recherche sémantique. ${productLine}`;
+  return `You index a brand photo for a library of visual resources used by a craftsperson/creator to produce their posts. Describe the photo factually and in a way that is useful to find it later through semantic search. Write the description in English. ${productLine}`;
 }

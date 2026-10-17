@@ -1,7 +1,7 @@
 /**
- * Recherche approximative d'un extrait cité par le LLM dans le texte source, et annotation des
- * passages déjà utilisés (docs/SPEC_MATIERE_EDITEUR.md §3 — remplace le découpage en unités
- * typées). Fonctions pures, testées unitairement, aucun accès DB (voir citationService.ts pour la
+ * Approximate search for an excerpt quoted by the LLM in the source text, and annotation of
+ * already-used passages (docs/SPEC_MATIERE_EDITEUR.md §3 — replaces the split into typed
+ * units). Pure functions, unit-tested, no DB access (see citationService.ts for the
  * partie DB-aware).
  */
 
@@ -34,7 +34,7 @@ export interface TextSpan {
   start: number;
 }
 
-/** Découpe un texte en phrases, en conservant la position d'origine de chacune. */
+/** Splits a text into sentences, keeping the original position of each. */
 export function splitIntoSentences(text: string): TextSpan[] {
   const spans: TextSpan[] = [];
   let cursor = 0;
@@ -55,10 +55,10 @@ export interface CitationMatch {
 }
 
 /**
- * Cherche `excerpt` (rapporté par le LLM, censé être une citation verbatim mais pas garanti) dans
- * `sourceText`. Chemin rapide : sous-chaîne exacte après normalisation (espaces/casse) — cas le
- * plus fréquent si le modèle a bien cité mot pour mot. Repli : recouvrement de mots (Jaccard) entre
- * l'extrait et chaque phrase du texte source, tolère une reformulation légère. `null` si rien
+ * Searches for `excerpt` (reported by the LLM, supposed to be a verbatim quote but not guaranteed) in
+ * `sourceText`. Fast path: exact substring after normalisation (spaces/case) — the most
+ * frequent case if the model quoted word for word. Fallback: word overlap (Jaccard) between
+ * the excerpt and each sentence of the source text, tolerates a light rewording. `null` if nothing
  * n'atteint `MATCH_THRESHOLD`.
  */
 export function findBestMatchInText(excerpt: string, sourceText: string): CitationMatch | null {
@@ -68,8 +68,8 @@ export function findBestMatchInText(excerpt: string, sourceText: string): Citati
   const normalizedSource = normalize(sourceText);
   const exactIndex = normalizedSource.indexOf(normalizedExcerpt);
   if (exactIndex !== -1) {
-    // Position approximative dans le texte d'origine — la normalisation (espaces compressés) peut
-    // légèrement décaler l'index ; suffisant pour l'usage visé (surlignage debug), pas pixel-parfait.
+    // Approximate position in the original text — normalisation (collapsed spaces) may
+    // shift the index slightly; sufficient for the intended use (debug highlighting), not pixel-perfect.
     return { start: exactIndex, length: normalizedExcerpt.length, score: 1 };
   }
 
@@ -91,7 +91,7 @@ export interface Interval {
   length: number;
 }
 
-/** Fusionne les intervalles qui se chevauchent ou se touchent, triés par position de départ. */
+/** Merges intervals that overlap or touch, sorted by start position. */
 export function mergeIntervals(spans: Interval[]): Interval[] {
   if (spans.length === 0) return [];
   const sorted = [...spans].sort((a, b) => a.start - b.start);
@@ -109,11 +109,11 @@ export function mergeIntervals(spans: Interval[]): Interval[] {
   return merged;
 }
 
-const USED_MARKER_START = "[déjà utilisé dans un post précédent]";
-const USED_MARKER_END = "[/déjà utilisé]";
+const USED_MARKER_START = "[already used in a previous post]";
+const USED_MARKER_END = "[/already used]";
 
-/** Entoure les zones déjà citées de marqueurs, pour inciter (pas imposer) le LLM à varier plutôt
- *  qu'à reprendre tel quel un passage déjà exploité — jamais de suppression du texte. */
+/** Wraps already-quoted zones in markers, to encourage (not impose) the LLM to vary rather
+ *  than reuse an already exploited passage as is — never deleting text. */
 export function annotateUsedSpans(text: string, spans: Interval[]): string {
   const merged = mergeIntervals(spans.filter((s) => s.start >= 0 && s.length > 0 && s.start < text.length));
   if (merged.length === 0) return text;

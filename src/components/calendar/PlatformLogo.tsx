@@ -1,7 +1,7 @@
 import { PlatformBadge } from "@/components/ui/Badge";
 
-/** Logos des réseaux où l'on publie, dessinés à la main (pas de dépendance d'icônes pour trois
- *  marques). Les autres plateformes (newsletter, blog…) gardent leur pastille. */
+/** Logos of the networks you publish on, hand-drawn (no icon dependency for three
+ *  brands). Other platforms (newsletter, blog…) keep their badge. */
 export default function PlatformLogo({ platform, size = 16 }: { platform: string; size?: number }) {
   if (platform === "linkedin") {
     return (

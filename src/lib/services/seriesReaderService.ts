@@ -19,7 +19,7 @@ async function loadSeriesWithProduct(userId: string, seriesId: string) {
     where: and(eq(contentSeries.id, seriesId), eq(contentSeries.userId, userId)),
     with: { product: true, contentSeriesPlatforms: { columns: { platform: true } } },
   });
-  if (!series) throw new ApiError(404, "Série introuvable.");
+  if (!series) throw new ApiError(404, "Series not found.");
   return series;
 }
 
@@ -61,9 +61,9 @@ async function generateForm(userId: string, series: Awaited<ReturnType<typeof lo
  */
 export async function setSeriesReader(userId: string, seriesId: string, readerLabel: string) {
   const series = await loadSeriesWithProduct(userId, seriesId);
-  if (!series.productId) throw new ApiError(400, "Rattache d'abord la série à un sujet : le lecteur se choisit parmi les publics du sujet.");
+  if (!series.productId) throw new ApiError(400, "Attach the series to a subject first: the reader is chosen among the subject's audiences.");
   const reader = readersOfProduct(series.product).find((r) => r.label === readerLabel);
-  if (!reader) throw new ApiError(400, "Ce public n'est pas dans le portrait des lecteurs du sujet.");
+  if (!reader) throw new ApiError(400, "This audience is not in the subject's reader portrait.");
   const form = await generateForm(userId, series, reader);
   await db.update(contentSeries).set({ readerLabel: reader.label, form }).where(eq(contentSeries.id, seriesId));
   return (await listActiveSeriesForUser(userId)).find((s) => s.id === seriesId) ?? null;
@@ -94,7 +94,7 @@ export async function ensureReaderForSeries(userId: string, seriesId: string): P
     const form = await generateForm(userId, series, main);
     await db.update(contentSeries).set({ readerLabel: main.label, form }).where(eq(contentSeries.id, seriesId));
   } catch (err) {
-    logger.error("Forme de série impossible à écrire", err, { seriesId });
+    logger.error("Series form could not be written", err, { seriesId });
   }
 }
 

@@ -17,7 +17,7 @@ const context = {
   activityType: "Freelance produit web",
   products: [],
   categories: [
-    { label: "Coulisses", description: "Ce qui se passe derrière." },
+    { label: "Behind the scenes", description: "What happens behind." },
     { label: "Expertise", description: "Ce qu'on apprend." },
   ],
 };
@@ -29,13 +29,13 @@ describe("suggestContentSeries", () => {
 
   it("accepte une série avec un rôle unique et transmet l'enum des rôles à l'outil", async () => {
     callStructuredMock.mockResolvedValue({
-      series: [{ label: "Build in public", description: "Chaque semaine, l'avancement.", categoryLabel: "Coulisses" }],
+      series: [{ label: "Build in public", description: "Chaque semaine, l'avancement.", categoryLabel: "Behind the scenes" }],
     });
 
     const result = await suggestContentSeries(context);
 
     expect(result).toEqual([
-      { label: "Build in public", description: "Chaque semaine, l'avancement.", categoryLabel: "Coulisses", subjectName: "" },
+      { label: "Build in public", description: "Chaque semaine, l'avancement.", categoryLabel: "Behind the scenes", subjectName: "" },
     ]);
     const tool = callStructuredMock.mock.calls[0][0].tool;
     // Le sujet est choisi parmi ceux du compte (rattachement de la matière, 2026-10-17).
@@ -43,14 +43,14 @@ describe("suggestContentSeries", () => {
     expect(tool.input_schema.properties.series.items.required).toContain("subjectName");
     const categoryField = tool.input_schema.properties.series.items.properties.categoryLabel;
     expect(categoryField.type).toBe("string");
-    expect(categoryField.enum).toEqual(["Coulisses", "Expertise"]);
+    expect(categoryField.enum).toEqual(["Behind the scenes", "Expertise"]);
     expect(tool.input_schema.properties.series.items.required).toContain("categoryLabel");
     expect(tool.input_schema.properties.series.items.properties.categoryLabels).toBeUndefined();
   });
 
   it("rejette une réponse qui renvoie encore une liste de rôles", async () => {
     callStructuredMock.mockResolvedValue({
-      series: [{ label: "X", description: "Y", weight: 10, categoryLabels: ["Coulisses", "Expertise"] }],
+      series: [{ label: "X", description: "Y", weight: 10, categoryLabels: ["Behind the scenes", "Expertise"] }],
     });
 
     await expect(suggestContentSeries(context)).rejects.toThrow();
@@ -60,20 +60,20 @@ describe("suggestContentSeries", () => {
     callStructuredMock.mockResolvedValue({ series: [] });
     await suggestContentSeries(context);
     const system: string = callStructuredMock.mock.calls[0][0].system;
-    expect(system).toMatch(/UN SEUL rôle/);
-    expect(system).toMatch(/deux séries/);
+    expect(system).toMatch(/ONE SINGLE editorial role/);
+    expect(system).toMatch(/two series/);
   });
 });
 
 describe("schémas d'entrée série (rôle unique)", () => {
   it("seriesEntrySchema exige categoryLabel", () => {
     expect(seriesEntrySchema.safeParse({ label: "A", description: "B", weight: 10 }).success).toBe(false);
-    expect(seriesEntrySchema.safeParse({ label: "A", description: "B", weight: 10, categoryLabel: "Coulisses" }).success).toBe(true);
+    expect(seriesEntrySchema.safeParse({ label: "A", description: "B", weight: 10, categoryLabel: "Behind the scenes" }).success).toBe(true);
   });
 
   it("seriesProposalSchema (assistant) exige categoryLabel et refuse categoryLabels", () => {
     const base = { action: "create", label: "A", description: "B", weight: 10, platforms: [] };
-    expect(seriesProposalSchema.safeParse({ ...base, categoryLabels: ["Coulisses"] }).success).toBe(false);
-    expect(seriesProposalSchema.safeParse({ ...base, categoryLabel: "Coulisses" }).success).toBe(true);
+    expect(seriesProposalSchema.safeParse({ ...base, categoryLabels: ["Behind the scenes"] }).success).toBe(false);
+    expect(seriesProposalSchema.safeParse({ ...base, categoryLabel: "Behind the scenes" }).success).toBe(true);
   });
 });

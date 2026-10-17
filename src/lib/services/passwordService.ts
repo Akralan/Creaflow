@@ -12,12 +12,12 @@ import { logger } from "@/lib/logger";
 export const RESET_TOKEN_TTL_MINUTES = 60;
 export const RESET_PASSWORD_PATH = "/reinitialiser-mot-de-passe";
 
-/** 32 octets aléatoires en base64url : 43 caractères, sans `+`/`/`, sûrs dans une URL. */
+/** 32 random bytes in base64url: 43 characters, no `+`/`/`, safe in a URL. */
 export function generateResetToken(): string {
   return randomBytes(32).toString("base64url");
 }
 
-/** Seul le hash vit en base : la table ne contient jamais un lien utilisable. */
+/** Only the hash lives in the database: the table never contains a usable link. */
 export function hashResetToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
@@ -28,18 +28,18 @@ export function buildResetUrl(appUrl: string, token: string): string {
 
 function appUrl(): string {
   const url = process.env.APP_URL;
-  if (!url) throw new Error("APP_URL n'est pas défini dans l'environnement.");
+  if (!url) throw new Error("APP_URL is not set in the environment.");
   return url;
 }
 
 /**
- * Ne révèle jamais si l'adresse est connue : la route répond pareil dans tous les cas. Un échec
- * d'envoi est logué (donc remonté à Sentry) sans faire échouer la requête, pour la même raison —
- * un 500 ne surviendrait que pour une adresse connue.
+ * Never reveals whether the address is known: the route responds the same in every case. A sending
+ * failure is logged (hence reported to Sentry) without failing the request, for the same reason —
+ * a 500 would only occur for a known address.
  */
 export async function requestPasswordReset(email: string): Promise<void> {
-  // Lu avant toute lecture du compte : une APP_URL absente doit planter pareil pour tout le monde,
-  // pas seulement pour les adresses connues (sinon le 500 révélerait qui est inscrit).
+  // Read before any account lookup: a missing APP_URL must crash the same way for everyone,
+  // not only for known addresses (otherwise the 500 would reveal who is registered).
   const baseUrl = appUrl();
   const user = await db.query.users.findFirst({ where: eq(users.email, email), columns: { id: true } });
   if (!user) return;
@@ -48,7 +48,7 @@ export async function requestPasswordReset(email: string): Promise<void> {
   const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MINUTES * 60 * 1000);
 
   await db.transaction(async (tx) => {
-    // Une demande invalide les précédentes : un seul lien valide à la fois par compte.
+    // A request invalidates the previous ones: only one valid link at a time per account.
     await tx
       .update(passwordResetTokens)
       .set({ usedAt: new Date() })
@@ -56,28 +56,28 @@ export async function requestPasswordReset(email: string): Promise<void> {
     await tx.insert(passwordResetTokens).values({ userId: user.id, tokenHash: hashResetToken(token), expiresAt });
   });
 
-  // Envoi non attendu : la réponse ne doit pas durer des centaines de ms de plus pour une adresse
-  // connue que pour une inconnue (énumération par le temps de réponse). L'échec est logué (Sentry).
+  // Sending is not awaited: the response must not take hundreds of ms longer for a known address
+  // than for an unknown one (enumeration by response time). The failure is logged (Sentry).
   const content = passwordResetEmail({ resetUrl: buildResetUrl(baseUrl, token), expiresInMinutes: RESET_TOKEN_TTL_MINUTES });
   void sendEmail({ to: email, ...content }).catch((error) => {
-    logger.error("Échec d'envoi de l'email de réinitialisation", error, { userId: user.id });
+    logger.error("Failed to send the password reset email", error, { userId: user.id });
   });
 }
 
 /**
- * Remplace le mot de passe, ferme les autres sessions, marque le jeton consommé — dans une seule
- * transaction. Fonctionne aussi pour un compte GitHub/Notion/Linear sans mot de passe : ça lui en
- * crée un (docs/SPEC_LEGAL_EMAIL_RGPD.md §3.3).
+ * Replaces the password, closes the other sessions, marks the token consumed — in a single
+ * transaction. Also works for a GitHub/Notion/Linear account with no password: it creates
+ * one for it (docs/SPEC_LEGAL_EMAIL_RGPD.md §3.3).
  */
 export async function resetPasswordWithToken(token: string, newPassword: string): Promise<{ userId: string }> {
-  // Le hash est calculé avant la transaction (~100 ms) pour ne pas tenir la ligne pendant ce temps.
+  // The hash is computed before the transaction (~100 ms) so as not to hold the row during that time.
   const passwordHash = await hashPassword(newPassword);
   const now = new Date();
 
   const userId = await db.transaction(async (tx) => {
-    // Consommation atomique : l'UPDATE conditionnel est le seul à pouvoir « gagner » le jeton.
-    // Deux requêtes simultanées avec le même lien ne passent pas toutes les deux — un SELECT
-    // préalable le permettrait, puisque le hash bcrypt laisse une fenêtre de course.
+    // Atomic consumption: the conditional UPDATE is the only one that can "win" the token.
+    // Two simultaneous requests with the same link do not both go through — a prior SELECT
+    // would allow it, since the bcrypt hash leaves a race window.
     const [consumed] = await tx
       .update(passwordResetTokens)
       .set({ usedAt: now })
@@ -90,7 +90,7 @@ export async function resetPasswordWithToken(token: string, newPassword: string)
       )
       .returning({ userId: passwordResetTokens.userId });
     if (!consumed) {
-      throw new ApiError(400, "Ce lien n'est plus valide. Refais une demande de réinitialisation.");
+      throw new ApiError(400, "This link is no longer valid. Request a new password reset.");
     }
     await tx.update(users).set({ passwordHash, sessionsInvalidatedBefore: now }).where(eq(users.id, consumed.userId));
     return consumed.userId;
@@ -101,17 +101,17 @@ export async function resetPasswordWithToken(token: string, newPassword: string)
 }
 
 /**
- * Changement depuis l'onglet Compte. `currentPassword` est exigé dès que le compte en a un ; un
- * compte sans mot de passe (identité tierce) en définit un sans rien fournir — il est déjà
- * authentifié par sa session, et c'est le seul chemin pour lui ouvrir la connexion par email.
+ * Change from the Account tab. `currentPassword` is required as soon as the account has one; an
+ * account without a password (third-party identity) sets one without providing anything — it is already
+ * authenticated by its session, and this is the only path to open email sign-in for it.
  */
 export async function changePassword(userId: string, currentPassword: string | undefined, newPassword: string): Promise<void> {
   const user = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { passwordHash: true } });
-  if (!user) throw new ApiError(404, "Compte introuvable.");
+  if (!user) throw new ApiError(404, "Account not found.");
 
   if (user.passwordHash) {
     if (!currentPassword || !(await verifyPassword(currentPassword, user.passwordHash))) {
-      throw new ApiError(400, "Le mot de passe actuel est incorrect.");
+      throw new ApiError(400, "The current password is incorrect.");
     }
   }
 
@@ -126,6 +126,6 @@ async function notifyPasswordChanged(userId: string): Promise<void> {
   try {
     await sendEmail({ to: user.email, ...passwordChangedEmail({ contactEmail: getContactEmail() }) });
   } catch (error) {
-    logger.error("Échec d'envoi de l'avis de modification de mot de passe", error, { userId });
+    logger.error("Failed to send the password change notice", error, { userId });
   }
 }

@@ -2,14 +2,14 @@ import { z } from "zod";
 import type { LlmToolDefinition } from "./types";
 import type { ContentType } from "./prompts";
 
-// Annexe A.4 de docs/SPEC_PROMPT_GENERATION_TECH.md — texte à recopier tel quel, identique sur les
-// 2 tools de génération.
+// Annex A.4 of docs/SPEC_PROMPT_GENERATION_TECH.md — text to copy as is, identical on the
+// 2 generation tools.
 const CONCEPT_FIELD_DESCRIPTION =
-  "À rédiger en premier, avant tous les autres champs : en 1 ou 2 phrases, l'idée unique de ce post, à qui il s'adresse précisément, et ce que cette personne doit retenir ou faire après l'avoir vu. Une vraie décision éditoriale — pas une paraphrase du brief.";
+  "Write this first, before all the other fields: in 1 or 2 sentences, the single idea of this post, exactly who it addresses, and what that person should remember or do after seeing it. A real editorial decision — not a paraphrase of the brief. Written in English.";
 
-// Annexe B.6 de docs/SPEC_REDACTEUR_EN_CHEF.md, verbatim — identique sur les 2 tools de génération.
+// Annex B.6 of docs/SPEC_REDACTEUR_EN_CHEF.md — identical on the 2 generation tools.
 const PROMISES_MADE_FIELD_DESCRIPTION =
-  'Les promesses explicites que ce script fait à l\'audience ("je publierai le verdict", "la semaine prochaine je teste X"), copiées telles qu\'elles apparaissent dans le script. Tableau vide [] si le script n\'en fait aucune.';
+  'The explicit promises this script makes to the audience ("I\'ll publish the verdict", "next week I\'m testing X"), copied as they appear in the script. Empty array [] if the script makes none.';
 
 export const storyboardStepSchema = z.object({
   planNumber: z.number().int().positive(),
@@ -17,22 +17,22 @@ export const storyboardStepSchema = z.object({
 });
 
 const baseFields = {
-  // Première propriété du schéma — l'ordre des propriétés est le mécanisme qui force le LLM à
-  // décider l'idée avant de rédiger le reste (docs/SPEC_PROMPT_GENERATION_TECH.md §4.1) : ne pas
-  // déplacer. Persisté sur Script.concept par createScriptRecord (scriptService.ts).
+  // First property of the schema — property order is the mechanism that forces the LLM to
+  // decide the idea before writing the rest (docs/SPEC_PROMPT_GENERATION_TECH.md §4.1): do not
+  // move. Persisted on Script.concept by createScriptRecord (scriptService.ts).
   concept: z.string().min(1),
   title: z.string().min(1),
   caption: z.string().min(1),
   hashtags: z.array(z.string()).min(1),
-  // Citations post-génération (docs/SPEC_MATIERE_EDITEUR.md §3) — passages copiés mot pour mot
-  // depuis la matière factuelle fournie, utilisés comme base de ce script. `required` côté JSON
-  // schema des 2 tools (voir plus bas) : un champ vraiment optionnel est rempli de façon peu
-  // fiable par le modèle (observé en usage réel — tantôt absent, tantôt renseigné, mêmes entrées).
-  // `.default([])` ici en filet de sécurité si le provider l'omet quand même.
+  // Post-generation citations (docs/SPEC_MATIERE_EDITEUR.md §3) — passages copied word for word
+  // from the supplied factual material, used as the basis of this script. `required` on the JSON
+  // schema of the 2 tools (see below): a truly optional field is filled unreliably by the
+  // model (seen in real use — sometimes absent, sometimes set, same inputs).
+  // `.default([])` here as a safety net if the provider omits it anyway.
   usedExcerpts: z.array(z.string()).default([]),
-  // Annexe B.6 (docs/SPEC_REDACTEUR_EN_CHEF.md Lot B3) — `required` côté JSON schema des 2 tools,
-  // même raisonnement que usedExcerpts (un champ optionnel est rempli de façon peu fiable) ;
-  // `.default([])` en filet de sécurité si le provider l'omet quand même.
+  // Annex B.6 (docs/SPEC_REDACTEUR_EN_CHEF.md Lot B3) — `required` on the JSON schema of the 2 tools,
+  // same reasoning as usedExcerpts (an optional field is filled unreliably);
+  // `.default([])` as a safety net if the provider omits it anyway.
   promisesMade: z.array(z.string()).default([]),
 };
 
@@ -45,14 +45,14 @@ export type VisualGeneratedScript = z.infer<typeof visualScriptSchema> & { conte
 
 export const textScriptSchema = z.object({
   ...baseFields,
-  hashtags: z.array(z.string()), // vide accepté : certaines plateformes texte (newsletter...) n'en utilisent pas.
+  hashtags: z.array(z.string()), // empty accepted: some text platforms (newsletter...) don't use any.
   hookText: z.string().min(1),
 });
 export type TextGeneratedScript = z.infer<typeof textScriptSchema> & { contentType: "text" };
 
-// --- Préparation et relecture (docs/SPEC_PROMPT_GENERATION_V3.md §3, Annexe A.4) ---
-// Lues à part des champs du post, avec tolérance : un provider qui les omettrait ne doit jamais faire
-// échouer une génération, il perd seulement la trace.
+// --- Preparation and review (docs/SPEC_PROMPT_GENERATION_V3.md §3, Annex A.4) ---
+// Read separately from the post fields, tolerantly: a provider that omits them must never make a
+// generation fail, it only loses the trace.
 
 const pickSchema = z.object({ index: z.number().int(), why: z.string() });
 
@@ -65,7 +65,7 @@ export const generationPrepSchema = z.object({
   chosenMoment: pickSchema,
   hookOptions: z.array(z.object({ kind: z.string(), text: z.string() })).default([]),
   chosenHook: pickSchema,
-  // docs/SPEC_MEMOIRE_ET_VEILLE.md §3.3 — références i1…i10 des fiches d'inspiration.
+  // docs/SPEC_MEMOIRE_ET_VEILLE.md §3.3 — references i1…i10 of the inspiration cards.
   inspirationsUsed: z.array(z.string()).default([]),
   inspirationsToDrop: z.array(z.object({ ref: z.string(), why: z.string().default("") })).default([]),
   selfCheck: z.object({
@@ -77,10 +77,10 @@ export const generationPrepSchema = z.object({
 });
 export type GenerationPrep = z.infer<typeof generationPrepSchema>;
 
-/** Persisté sur `scripts.generationTrace` : la préparation, la relecture et le résultat des contrôles. */
+/** Persisted on `scripts.generationTrace`: the preparation, the review and the result of the checks. */
 export type GenerationTrace = GenerationPrep & {
   version: 3;
-  /** Fiches d'inspiration montrées à cette génération, pour appliquer les retours après enregistrement. */
+  /** Inspiration cards shown to this generation, to apply the feedback after saving. */
   inspirationsShown?: Array<{ ref: string; id: string }>;
   checks: { failures: string[]; retried: boolean };
 };
@@ -94,80 +94,80 @@ const pickField = (what: string, list: string, why: string) => ({
   type: "object",
   description: what,
   properties: {
-    index: { type: "integer", description: `Sa position dans ${list}, à partir de 0.` },
+    index: { type: "integer", description: `Its position in ${list}, starting at 0.` },
     why: { type: "string", description: why },
   },
   required: ["index", "why"],
   additionalProperties: false,
 });
 
-// Annexe A.4 — dans cet ordre, avant `title` : l'ordre des propriétés est l'ordre d'écriture.
+// Annex A.4 — in this order, before `title`: property order is writing order.
 const PREP_FIELDS = {
   reader: {
     type: "object",
-    description: "Le public visé par ce post.",
+    description: "The audience this post targets.",
     properties: {
-      label: { type: "string", description: "Le nom du public, repris du portrait s'il y en a un (ex. « Joueurs »)." },
-      knows: { type: "string", description: "Ce que ce lecteur sait déjà du sujet, en une phrase." },
-      wants: { type: "string", description: "Ce qu'il vient chercher en lisant ce post, en une phrase." },
+      label: { type: "string", description: "The name of the audience, taken from the portrait if there is one (e.g. \"Players\")." },
+      knows: { type: "string", description: "What this reader already knows about the subject, in one sentence." },
+      wants: { type: "string", description: "What they come looking for by reading this post, in one sentence." },
     },
     required: ["label", "knows", "wants"],
     additionalProperties: false,
   },
   candidateMoments: {
     type: "array",
-    description: "Jusqu'à 5 moments de la matière qui peuvent intéresser ce lecteur. N'en invente pas pour atteindre un nombre.",
+    description: "Up to 5 moments from the material that could interest this reader. Don't invent any to reach a number.",
     items: {
       type: "object",
       properties: {
-        moment: { type: "string", description: "Le moment en une phrase : ce qui s'est passé." },
+        moment: { type: "string", description: "The moment in one sentence: what happened." },
         excerpt: {
           type: "string",
           description:
-            "Le passage de la matière, copié mot pour mot, qui le prouve. Chaîne vide si le moment vient du contexte marque ou d'un épisode pédagogique.",
+            "The passage from the material, copied word for word, that proves it. Empty string if the moment comes from the brand context or an educational episode.",
         },
       },
       required: ["moment", "excerpt"],
       additionalProperties: false,
     },
   },
-  chosenMoment: pickField("Le moment retenu.", "candidateMoments", "Pourquoi lui, pour ce lecteur, en une phrase."),
+  chosenMoment: pickField("The moment you keep.", "candidateMoments", "Why this one, for this reader, in one sentence."),
 };
 
 const HOOK_PREP_FIELDS = {
   hookOptions: {
     type: "array",
-    description: "2 ou 3 accroches candidates, de types différents.",
+    description: "2 or 3 candidate hooks, of different types.",
     items: {
       type: "object",
       properties: {
-        kind: { type: "string", description: "chiffre | aveu | contre-intuitif | avant-après | scène | question-précise" },
-        text: { type: "string", description: "L'accroche complète." },
+        kind: { type: "string", description: "number | confession | counter-intuitive | before-after | scene | specific-question" },
+        text: { type: "string", description: "The complete hook." },
       },
       required: ["kind", "text"],
       additionalProperties: false,
     },
   },
   chosenHook: pickField(
-    "L'accroche retenue.",
+    "The hook you keep.",
     "hookOptions",
-    "Pourquoi elle arrêtera ce lecteur, en une phrase. Le champ hookText ou hookVisual la reprend ou l'affine."
+    "Why it will stop this reader, in one sentence. The hookText or hookVisual field reuses or refines it."
   ),
   // docs/SPEC_MEMOIRE_ET_VEILLE.md Annexe A.5.
   inspirationsUsed: {
     type: "array",
-    description: "Les références (i1, i2…) des fiches d'inspiration qui t'ont servi pour la forme. Tableau vide si aucune, ou s'il n'y a pas de bloc <inspiration>.",
+    description: "The references (i1, i2…) of the inspiration cards you used for form. Empty array if none, or if there is no <inspiration> block.",
     items: { type: "string" },
   },
   inspirationsToDrop: {
     type: "array",
     description:
-      "Les fiches qui ne serviront jamais à ce sujet (public étranger, conseil générique, hors sujet), à retirer. Pas celles qui ne servent simplement pas à ce post. Tableau vide si aucune.",
+      "The cards that will never serve this subject (foreign audience, generic advice, off-topic), to be removed. Not those that simply don't serve this post. Empty array if none.",
     items: {
       type: "object",
       properties: {
-        ref: { type: "string", description: "La référence (i1, i2…)." },
-        why: { type: "string", description: "Pourquoi elle ne sert pas, en une phrase." },
+        ref: { type: "string", description: "The reference (i1, i2…)." },
+        why: { type: "string", description: "Why it doesn't serve, in one sentence." },
       },
       required: ["ref", "why"],
       additionalProperties: false,
@@ -175,23 +175,23 @@ const HOOK_PREP_FIELDS = {
   },
 };
 
-// En dernier, après promisesMade.
+// Last, after promisesMade.
 const SELF_CHECK_FIELD = {
   selfCheck: {
     type: "object",
-    description: "Ta relecture du post, honnête. Un point raté signalé sera corrigé par une nouvelle rédaction.",
+    description: "Your honest review of the post. A flagged miss will be fixed by a new draft.",
     properties: {
-      factsFromMaterial: { type: "boolean", description: "Vrai si chaque fait propre à l'auteur vient du contexte fourni." },
+      factsFromMaterial: { type: "boolean", description: "True if every fact specific to the author comes from the supplied context." },
       bannedPhrasesFound: {
         type: "array",
-        description: "Les tournures interdites ou « à bannir » présentes dans le post, recopiées. Tableau vide s'il n'y en a aucune.",
+        description: "The banned or \"to avoid\" phrasings present in the post, copied out. Empty array if there are none.",
         items: { type: "string" },
       },
       readerTest: {
         type: "string",
-        description: "En une phrase, pourquoi le lecteur visé s'arrêterait sur ce post. Écris exactement « aucune » si tu n'en trouves pas.",
+        description: "In one sentence, why the target reader would stop on this post. Write exactly \"none\" if you can't find a reason.",
       },
-      authorTest: { type: "boolean", description: "Vrai si quelqu'un qui connaît l'auteur croirait qu'il a écrit ce post lui-même." },
+      authorTest: { type: "boolean", description: "True if someone who knows the author would believe they wrote this post themselves." },
     },
     required: ["factsFromMaterial", "bannedPhrasesFound", "readerTest", "authorTest"],
     additionalProperties: false,
@@ -203,43 +203,43 @@ const PREP_REQUIRED = ["reader", "candidateMoments", "chosenMoment", "concept", 
 export const generateVisualPostTool: LlmToolDefinition = {
   name: GENERATE_VISUAL_POST_TOOL_NAME,
   description:
-    "Renvoie un post visuel complet (image unique, carrousel ou animation courte), précédé de sa préparation et suivi de sa relecture.",
+    "Returns a complete visual post (single image, carousel or short animation), preceded by its preparation and followed by its review. All text is written in English.",
   input_schema: {
     type: "object",
     properties: {
       ...PREP_FIELDS,
       concept: { type: "string", description: CONCEPT_FIELD_DESCRIPTION },
       ...HOOK_PREP_FIELDS,
-      title: { type: "string", description: "Le nom de l'idée, pas du sujet : court, spécifique à ce post, impossible à réutiliser pour un autre." },
+      title: { type: "string", description: "The name of the idea, not of the subject: short, specific to this post, impossible to reuse for another." },
       hookVisual: {
         type: "string",
-        description: "Description de la composition visuelle qui capte l'attention (image unique, ou 1re slide d'un carrousel).",
+        description: "Description of the visual composition that grabs attention (single image, or 1st slide of a carousel).",
       },
       storyboard: {
         type: "array",
-        description: "Découpage en slides numérotées si carrousel (une seule entrée si image unique).",
+        description: "Breakdown into numbered slides if carousel (a single entry if single image).",
         items: {
           type: "object",
           properties: {
             planNumber: { type: "integer" },
             description: {
               type: "string",
-              description: "Le contenu d'une slide : ce qu'on voit et le texte affiché, au service de l'idée du concept.",
+              description: "The content of a slide: what is seen and the text displayed, in service of the concept's idea.",
             },
           },
           required: ["planNumber", "description"],
           additionalProperties: false,
         },
       },
-      caption: { type: "string", description: "Développe l'idée du concept avec les détails de la matière. Un seul appel à l'action, à la fin, s'il sert le lecteur. Respecte la longueur donnée par <plateforme>." },
+      caption: { type: "string", description: "Develops the concept's idea with details from the material. A single call to action, at the end, if it serves the reader. Respect the length given by <platform>." },
       hashtags: {
         type: "array",
-        description: "Chaque hashtag sert la découverte du post, dans le nombre donné par <plateforme>. Jamais décoratif.",
+        description: "Each hashtag serves the post's discoverability, in the number given by <platform>. Never decorative.",
         items: { type: "string" },
       },
       usedExcerpts: {
         type: "array",
-        description: "OBLIGATOIRE — ne jamais omettre ce champ. Passages copiés MOT POUR MOT depuis la matière factuelle fournie que tu as utilisés comme base de ce script, un par information factuelle reprise. Renvoie un tableau vide [] si aucune matière ne t'a été fournie ou si tu n'en as repris aucun passage mot pour mot.",
+        description: "REQUIRED — never omit this field. Passages copied WORD FOR WORD from the supplied factual material that you used as the basis of this script, one per factual item reused. Return an empty array [] if no material was supplied or if you reused no passage word for word.",
         items: { type: "string" },
       },
       promisesMade: {
@@ -256,24 +256,24 @@ export const generateVisualPostTool: LlmToolDefinition = {
 
 export const generateTextPostTool: LlmToolDefinition = {
   name: GENERATE_TEXT_POST_TOOL_NAME,
-  description: "Renvoie un post texte seul, précédé de sa préparation et suivi de sa relecture.",
+  description: "Returns a text-only post, preceded by its preparation and followed by its review. All text is written in English.",
   input_schema: {
     type: "object",
     properties: {
       ...PREP_FIELDS,
       concept: { type: "string", description: CONCEPT_FIELD_DESCRIPTION },
       ...HOOK_PREP_FIELDS,
-      title: { type: "string", description: "Le nom de l'idée, pas du sujet : court, spécifique à ce post, impossible à réutiliser pour un autre." },
-      hookText: { type: "string", description: "La première phrase du texte : elle crée un manque qui oblige à lire la deuxième." },
-      caption: { type: "string", description: "Développe l'idée du concept avec les détails de la matière. Un seul appel à l'action, à la fin, s'il sert le lecteur. Respecte la longueur donnée par <plateforme>." },
+      title: { type: "string", description: "The name of the idea, not of the subject: short, specific to this post, impossible to reuse for another." },
+      hookText: { type: "string", description: "The first sentence of the text: it creates a gap that forces the reader to read the second." },
+      caption: { type: "string", description: "Develops the concept's idea with details from the material. A single call to action, at the end, if it serves the reader. Respect the length given by <platform>." },
       hashtags: {
         type: "array",
-        description: "Chaque hashtag sert la découverte du post, dans le nombre donné par <plateforme>. Jamais décoratif. Vide si la plateforme n'en utilise pas.",
+        description: "Each hashtag serves the post's discoverability, in the number given by <platform>. Never decorative. Empty if the platform doesn't use any.",
         items: { type: "string" },
       },
       usedExcerpts: {
         type: "array",
-        description: "OBLIGATOIRE — ne jamais omettre ce champ. Passages copiés MOT POUR MOT depuis la matière factuelle fournie que tu as utilisés comme base de ce script, un par information factuelle reprise. Renvoie un tableau vide [] si aucune matière ne t'a été fournie ou si tu n'en as repris aucun passage mot pour mot.",
+        description: "REQUIRED — never omit this field. Passages copied WORD FOR WORD from the supplied factual material that you used as the basis of this script, one per factual item reused. Return an empty array [] if no material was supplied or if you reused no passage word for word.",
         items: { type: "string" },
       },
       promisesMade: {

@@ -3,16 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import { color } from "@/lib/design/tokens";
 
-// Bascule select-all (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A/§7) : une sélection couvrant ce ratio du
-// bloc édité + un commentaire soumis est un geste d'intention ("je veux autre chose"), pas une
-// retouche — le seuil se mesure par rapport au contenu de CE bloc, seul candidat cohérent avec une
-// sélection navigateur qui ne peut pas dépasser un unique <textarea>.
+// Select-all switch (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A/§7): a selection covering this ratio of the
+// edited block + a submitted comment is a gesture of intent ("I want something else"), not an
+// edit — the threshold is measured against the content of THIS block, the only candidate consistent with a
+// browser selection that cannot extend beyond a single <textarea>.
 const SELECT_ALL_RATIO_THRESHOLD = 0.8;
 
 /**
- * Bloc de texte directement éditable (docs/SPEC_MATIERE_EDITEUR.md §4.4) : `onBlur` persiste la
- * valeur, une sélection non vide fait apparaître un champ d'instruction libre qui remplace
- * uniquement le passage sélectionné (§4.3 — le geste principal validé par le test fondateur).
+ * Directly editable block of text (docs/SPEC_MATIERE_EDITEUR.md §4.4): `onBlur` persists the
+ * value, a non-empty selection shows a free instruction field that replaces
+ * only the selected passage (§4.3 — the main gesture validated by the founding test).
  */
 export default function EditableField({
   value,
@@ -24,8 +24,8 @@ export default function EditableField({
 }: {
   value: string;
   onSave: (next: string) => void;
-  /** `isMajoritySelection` : sélection ≥80% du bloc (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A) — au
-   *  parent de basculer vers "nouvelle idée" plutôt que d'appeler la retouche par sélection. */
+  /** `isMajoritySelection`: selection of ≥80% of the block (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A) — up to
+   *  the parent to switch to "new idea" rather than call the selection edit. */
   onApplyInstruction: (selectedText: string, instruction: string, isMajoritySelection: boolean) => Promise<void>;
   placeholder?: string;
   minRows?: number;
@@ -37,8 +37,8 @@ export default function EditableField({
   const [applying, setApplying] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Le composant est non-contrôlé pendant la frappe (draft local) mais se resynchronise si le
-  // script change ailleurs (undo, régénération de bloc) — évite d'écraser une saisie en cours.
+  // The component is uncontrolled while typing (local draft) but resyncs if the
+  // script changes elsewhere (undo, block regeneration) — avoids overwriting input in progress.
   useEffect(() => {
     if (document.activeElement !== textareaRef.current) {
       setDraft(value);
@@ -115,7 +115,7 @@ export default function EditableField({
               if (e.key === "Enter") handleApply();
               if (e.key === "Escape") setSelection(null);
             }}
-            placeholder={`Reformule « ${selection.text.slice(0, 30)}${selection.text.length > 30 ? "…" : ""} »...`}
+            placeholder={`Rephrase "${selection.text.slice(0, 30)}${selection.text.length > 30 ? "…" : ""}"...`}
             style={{
               flex: 1,
               border: `1px solid ${color.inputBorder}`,
@@ -142,7 +142,7 @@ export default function EditableField({
               opacity: applying || !instruction.trim() ? 0.6 : 1,
             }}
           >
-            {applying ? "..." : "Appliquer"}
+            {applying ? "..." : "Apply"}
           </button>
           <button
             onClick={() => setSelection(null)}

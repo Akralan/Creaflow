@@ -4,12 +4,12 @@ import { color } from "@/lib/design/tokens";
 import type { BrandAsset } from "@/lib/apiClient";
 
 const STATUS_LABEL: Record<BrandAsset["status"], string> = {
-  pending: "Analyse en cours…",
+  pending: "Analyzing…",
   ready: "",
-  unreachable: "Reconnexion nécessaire",
+  unreachable: "Reconnection needed",
 };
 
-/** Damier derrière un détouré, pour voir la transparence. */
+/** Checkerboard behind a cutout, to show the transparency. */
 const CHECKER = "repeating-conic-gradient(#e7e0d4 0% 25%, #f7f3ec 0% 50%) 0 0 / 16px 16px";
 
 export default function AssetGrid({
@@ -24,15 +24,15 @@ export default function AssetGrid({
   selectedIds: string[];
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
-  /** Détourage depuis la carte (docs/SPEC_COMPOSITION_VISUELLE.md §6 « Bibliothèque ») ; absent = pas d'action. */
+  /** Cutout from the card (docs/SPEC_COMPOSITION_VISUELLE.md §6 "Library"); absent = no action. */
   cutout?: { available: boolean; busyId: string | null; onCutout: (id: string) => void };
-  /** Au-delà, les cartes non sélectionnées deviennent inactives. */
+  /** Beyond that, unselected cards become inactive. */
   maxSelected?: number;
 }) {
   if (assets.length === 0) {
     return (
       <p style={{ fontSize: 13, color: color.textMuted, padding: "24px 0", textAlign: "center" }}>
-        Aucune photo pour l&apos;instant — importe des images de ta marque ci-dessus.
+        No photos yet — import images of your brand above.
       </p>
     );
   }
@@ -101,7 +101,7 @@ export default function AssetGrid({
                   if (cutout.available && !cutoutBusy) cutout.onCutout(asset.id);
                 }}
                 disabled={!cutout.available || cutoutBusy}
-                title={cutout.available ? "Détourer le sujet (fond transparent)" : "Détourage non configuré sur ce serveur"}
+                title={cutout.available ? "Cut out the subject (transparent background)" : "Cutout not configured on this server"}
                 style={{
                   position: "absolute",
                   inset: "auto 6px 6px auto",
@@ -116,12 +116,12 @@ export default function AssetGrid({
                   opacity: cutout.available ? 1 : 0.5,
                 }}
               >
-                {cutoutBusy ? "…" : "Détourer"}
+                {cutoutBusy ? "…" : "Cut out"}
               </button>
             )}
             {showCutout && (
               <div style={{ position: "absolute", inset: "6px auto auto 30px", fontSize: 10, fontWeight: 600, padding: "2px 6px", borderRadius: 999, background: "rgba(28,25,23,0.7)", color: "#fff" }}>
-                détourée
+                cut out
               </div>
             )}
 
@@ -150,7 +150,7 @@ export default function AssetGrid({
                 e.stopPropagation();
                 onDelete(asset.id);
               }}
-              title="Retirer de la bibliothèque"
+              title="Remove from library"
               style={{
                 position: "absolute",
                 top: 6,

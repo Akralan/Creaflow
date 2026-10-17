@@ -114,6 +114,6 @@ describe("buildCommitJournal", () => {
   });
 
   it("remplace un auteur manquant par une mention neutre", () => {
-    expect(buildCommitJournal([commit("feat: un truc", "2026-08-29T09:00:00Z", null)])).toContain("— auteur inconnu");
+    expect(buildCommitJournal([commit("feat: un truc", "2026-08-29T09:00:00Z", null)])).toContain("— unknown author");
   });
 });

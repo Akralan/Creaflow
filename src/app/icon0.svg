@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-  <!-- Icône de marque CreaFlow, version statique de src/components/BrandMark.tsx (couleurs oklch converties en hex). -->
+  <!-- Buildloud brand icon, static version of src/components/BrandMark.tsx (oklch colors converted to hex). -->
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#9776fb"/>

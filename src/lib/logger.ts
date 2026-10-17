@@ -1,12 +1,12 @@
 /**
- * Logger structuré (JSON, une ligne par entrée) — remplace les `console.error`/`console.log`
- * ad hoc dispersés dans le code. `logger.error` fait aussi remonter l'exception à Sentry si
- * `SENTRY_DSN`/`NEXT_PUBLIC_SENTRY_DSN` est configuré (no-op silencieux sinon, cf.
- * instrumentation.ts et instrumentation-client.ts).
+ * Structured logger (JSON, one line per entry) — replaces the ad hoc `console.error`/`console.log`
+ * scattered through the code. `logger.error` also forwards the exception to Sentry if
+ * `SENTRY_DSN`/`NEXT_PUBLIC_SENTRY_DSN` is configured (silent no-op otherwise, see
+ * instrumentation.ts and instrumentation-client.ts).
  *
- * Le `context` passé à chaque appel est sérialisé tel quel dans le log et dans les tags Sentry —
- * chaque site d'appel est responsable de ne jamais y mettre un secret (mot de passe, token OAuth,
- * clé API). Le logger ne filtre rien lui-même.
+ * The `context` passed to each call is serialized as-is into the log and the Sentry tags —
+ * each call site is responsible for never putting a secret in it (password, OAuth token,
+ * API key). The logger filters nothing itself.
  */
 
 type LogLevel = "debug" | "info" | "warn" | "error";
@@ -14,9 +14,9 @@ type LogContext = Record<string, unknown>;
 
 type SerializedError = { message: string; stack?: string; cause?: SerializedError };
 
-// drizzle-orm (et beaucoup d'autres libs) enveloppent l'erreur d'origine dans `.cause` — sans la
-// suivre, un échec de requête ne montre jamais que "Failed query: ..." et jamais la vraie erreur
-// Postgres (relation manquante, contrainte violée, connexion perdue...) qu'elle enveloppe.
+// drizzle-orm (and many other libs) wrap the original error in `.cause` — without
+// following it, a query failure only ever shows "Failed query: ..." and never the real Postgres
+// error (missing relation, violated constraint, lost connection...) that it wraps.
 function serializeError(error: unknown): SerializedError | undefined {
   if (error === undefined) return undefined;
   if (error instanceof Error) {
@@ -37,29 +37,29 @@ function emit(level: LogLevel, message: string, context?: LogContext): void {
   else console.log(line);
 }
 
-// Import dynamique : évite de tirer le SDK Sentry (et son initialisation) dans les tests Vitest
-// ou tout appelant qui ne s'en soucie pas, et une éventuelle erreur du SDK lui-même ne doit
-// jamais faire planter l'appelant — le monitoring ne doit jamais devenir un point de panne.
+// Dynamic import: avoids pulling the Sentry SDK (and its initialization) into Vitest tests
+// or any caller that does not care, and a possible error in the SDK itself must
+// never crash the caller — monitoring must never become a point of failure.
 async function reportToSentry(message: string, error: unknown, context?: LogContext): Promise<void> {
   try {
     const Sentry = await import("@sentry/nextjs");
-    // Avec une vraie exception JS : captureException (garde la stack). Sans (ex. une anomalie de
-    // données détectée sans throw — webhook malformé, metadata manquante) : captureMessage quand
-    // même, sinon ces cas ne remonteraient jamais à Sentry alors qu'ils méritent une alerte.
+    // With a real JS exception: captureException (keeps the stack). Without one (e.g. a data
+    // anomaly detected without a throw — malformed webhook, missing metadata): captureMessage anyway,
+    // otherwise these cases would never reach Sentry even though they deserve an alert.
     if (error !== undefined) {
       Sentry.captureException(error, { extra: { message, ...context } });
     } else {
       Sentry.captureMessage(message, { level: "error", extra: context });
     }
   } catch {
-    // Sentry non configuré/non disponible dans ce contexte d'exécution — ignoré volontairement.
+    // Sentry not configured/not available in this execution context — deliberately ignored.
   }
 }
 
 export const logger = {
-  // Opt-in explicite (=== "development"), pas opt-out (!== "production") : ce dernier laisserait
-  // passer le bruit de debug sous NODE_ENV=test aussi (Vitest le fixe à "test", pas "production"),
-  // polluant la sortie de `npm run test`. Même idiome que sentry.server.config.ts et consorts.
+  // Explicit opt-in (=== "development"), not opt-out (!== "production"): the latter would let
+  // debug noise through under NODE_ENV=test too (Vitest sets it to "test", not "production"),
+  // polluting the output of `npm run test`. Same idiom as sentry.server.config.ts and the like.
   debug(message: string, context?: LogContext): void {
     if (process.env.NODE_ENV === "development") emit("debug", message, context);
   },
@@ -69,7 +69,7 @@ export const logger = {
   warn(message: string, context?: LogContext): void {
     emit("warn", message, context);
   },
-  /** `error` est optionnel : certains appels loguent une anomalie sans exception JS associée. */
+  /** `error` is optional: some calls log an anomaly without an associated JS exception. */
   error(message: string, error?: unknown, context?: LogContext): void {
     emit("error", message, { ...context, error: serializeError(error) });
     void reportToSentry(message, error, context);

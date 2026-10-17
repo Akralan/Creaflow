@@ -32,12 +32,12 @@ function toHex(value: string | undefined): string {
   return "#000000";
 }
 
-/** Section photo de l'inspecteur (docs/SPEC_COMPOSITION_VISUELLE.md §2 « Inspecteur d'un calque image »). */
+/** Photo section of the inspector (docs/SPEC_COMPOSITION_VISUELLE.md §2 "Inspector of an image layer"). */
 export interface ImageInspectorProps {
-  /** Photos déclarées sur la maquette (pour remplacer la photo du calque). */
+  /** Photos declared on the mockup (to replace the layer's photo). */
   images: DesignImage[];
   cutoutAvailable: boolean;
-  /** Détourage en cours pour cette référence. */
+  /** Cutout in progress for this reference. */
   busyRef: string | null;
   onVariant: (ref: string, variant: DesignImageVariant) => void;
   onReplace: (ref: string) => void;
@@ -45,10 +45,10 @@ export interface ImageInspectorProps {
 }
 
 /**
- * Le minimum utile pour retoucher un calque à la main (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2
- * « Édition manuelle ») : police, taille, graisse, couleur, alignement, fond, opacité, ordre,
- * suppression ; pour une photo, variante, ajustement, forme, remplacement. Tout le reste passe par
- * l'instruction à l'agent.
+ * The minimum needed to touch up a layer by hand (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2
+ * "Manual editing"): font, size, weight, color, alignment, background, opacity, order,
+ * deletion; for a photo, variant, fit, shape, replacement. Everything else goes through
+ * the instruction to the agent.
  */
 export default function LayerInspector({
   layer,
@@ -62,10 +62,10 @@ export default function LayerInspector({
   onStyle: (styles: Record<string, string | null>) => void;
   onMove: (direction: "up" | "down") => void;
   onDelete: () => void;
-  /** Présent pour un calque image qui affiche une photo de la maquette. */
+  /** Present for an image layer that displays a photo of the mockup. */
   image?: ImageInspectorProps;
-  /** Maquette animée (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §6) : entrée de ce calque dans la
-   *  ligne de temps (null = visible tout du long) et durée totale. Absent pour une maquette statique. */
+  /** Animated mockup (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §6): this layer's entry in the
+   *  timeline (null = visible throughout) and total duration. Absent for a static mockup. */
   animation?: { entry: TimelineEntry | null; durationMs: number; onChange: (entry: TimelineEntry | null) => void };
 }) {
   const isText = layer.type === "text";
@@ -73,24 +73,24 @@ export default function LayerInspector({
     <div style={{ display: "grid", gap: 10, fontSize: 13 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={{ fontWeight: 600 }}>
-          {layer.type === "text" ? "Texte" : layer.type === "image" ? "Image" : "Forme"}
+          {layer.type === "text" ? "Text" : layer.type === "image" ? "Image" : "Shape"}
           <span style={{ color: color.textFaint, fontWeight: 400 }}> · {layer.id}</span>
         </span>
         <div style={{ display: "flex", gap: 4 }}>
-          <button title="Passer au-dessus" onClick={() => onMove("up")} style={iconBtn}>
+          <button title="Bring forward" onClick={() => onMove("up")} style={iconBtn}>
             <ArrowUp size={14} />
           </button>
-          <button title="Passer en dessous" onClick={() => onMove("down")} style={iconBtn}>
+          <button title="Send backward" onClick={() => onMove("down")} style={iconBtn}>
             <ArrowDown size={14} />
           </button>
-          <button title="Supprimer le calque" onClick={onDelete} style={{ ...iconBtn, color: color.danger }}>
+          <button title="Delete layer" onClick={onDelete} style={{ ...iconBtn, color: color.danger }}>
             <Trash2 size={14} />
           </button>
         </div>
       </div>
       {isText && layer.text && (
         <p style={{ margin: 0, fontSize: 12, color: color.textMuted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={layer.text}>
-          « {layer.text} »
+          &ldquo;{layer.text}&rdquo;
         </p>
       )}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -103,20 +103,20 @@ export default function LayerInspector({
           <input style={input} type="number" value={px(layer.style.top)} onChange={(e) => onStyle({ top: `${e.target.value}px`, bottom: null })} />
         </div>
         <div>
-          <div style={fieldLabel}>Largeur</div>
+          <div style={fieldLabel}>Width</div>
           <input style={input} type="number" value={px(layer.style.width)} onChange={(e) => onStyle({ width: `${e.target.value}px` })} />
         </div>
         <div>
-          <div style={fieldLabel}>Hauteur</div>
+          <div style={fieldLabel}>Height</div>
           <input style={input} type="number" value={px(layer.style.height)} onChange={(e) => onStyle({ height: e.target.value ? `${e.target.value}px` : null })} />
         </div>
       </div>
       {isText && (
         <>
           <div>
-            <div style={fieldLabel}>Police</div>
+            <div style={fieldLabel}>Font</div>
             <select style={input} value={layer.style["font-family"] ?? ""} onChange={(e) => onStyle({ "font-family": e.target.value || null })}>
-              <option value="">(héritée)</option>
+              <option value="">(inherited)</option>
               {DESIGN_FONTS.map((f) => (
                 <option key={f.name} value={f.name}>
                   {f.name}
@@ -126,13 +126,13 @@ export default function LayerInspector({
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <div>
-              <div style={fieldLabel}>Taille</div>
+              <div style={fieldLabel}>Size</div>
               <input style={input} type="number" min={8} max={400} value={px(layer.style["font-size"])} onChange={(e) => onStyle({ "font-size": e.target.value ? `${e.target.value}px` : null })} />
             </div>
             <div>
-              <div style={fieldLabel}>Graisse</div>
+              <div style={fieldLabel}>Weight</div>
               <select style={input} value={layer.style["font-weight"] ?? ""} onChange={(e) => onStyle({ "font-weight": e.target.value || null })}>
-                <option value="">(héritée)</option>
+                <option value="">(inherited)</option>
                 {["300", "400", "500", "600", "700", "800"].map((w) => (
                   <option key={w} value={w}>
                     {w}
@@ -143,18 +143,18 @@ export default function LayerInspector({
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <div>
-              <div style={fieldLabel}>Couleur du texte</div>
+              <div style={fieldLabel}>Text color</div>
               <input style={{ ...input, padding: 2, height: 32 }} type="color" value={toHex(layer.style.color)} onChange={(e) => onStyle({ color: e.target.value })} />
             </div>
             <div>
-              <div style={fieldLabel}>Alignement</div>
+              <div style={fieldLabel}>Alignment</div>
               <div style={{ display: "flex", gap: 4 }}>
                 {(["left", "center", "right"] as const).map((a) => (
                   <button
                     key={a}
                     onClick={() => onStyle({ "text-align": a })}
                     style={{ ...iconBtn, flex: 1, fontWeight: layer.style["text-align"] === a ? 700 : 400 }}
-                    title={a === "left" ? "Gauche" : a === "center" ? "Centré" : "Droite"}
+                    title={a === "left" ? "Left" : a === "center" ? "Center" : "Right"}
                   >
                     {a === "left" ? "⇤" : a === "center" ? "↔" : "⇥"}
                   </button>
@@ -166,7 +166,7 @@ export default function LayerInspector({
       )}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         <div>
-          <div style={fieldLabel}>Fond</div>
+          <div style={fieldLabel}>Background</div>
           <div style={{ display: "flex", gap: 4 }}>
             <input
               style={{ ...input, padding: 2, height: 32 }}
@@ -174,13 +174,13 @@ export default function LayerInspector({
               value={toHex(layer.style["background-color"] ?? layer.style.background)}
               onChange={(e) => onStyle({ background: null, "background-color": e.target.value })}
             />
-            <button title="Sans fond" onClick={() => onStyle({ background: null, "background-color": null })} style={iconBtn}>
+            <button title="No background" onClick={() => onStyle({ background: null, "background-color": null })} style={iconBtn}>
               ∅
             </button>
           </div>
         </div>
         <div>
-          <div style={fieldLabel}>Opacité</div>
+          <div style={fieldLabel}>Opacity</div>
           <input
             style={{ width: "100%" }}
             type="range"
@@ -197,7 +197,7 @@ export default function LayerInspector({
         <AnimationSection layerId={layer.id} entry={animation.entry} durationMs={animation.durationMs} onChange={animation.onChange} />
       )}
       <div>
-        <div style={fieldLabel}>Arrondi</div>
+        <div style={fieldLabel}>Corner radius</div>
         <input style={input} type="number" min={0} max={400} value={px(layer.style["border-radius"])} onChange={(e) => onStyle({ "border-radius": e.target.value ? `${e.target.value}px` : null })} />
       </div>
     </div>
@@ -233,43 +233,43 @@ function ImageSection({
             {images.map((i) => (
               <option key={i.ref} value={i.ref}>
                 {i.ref}
-                {i.variant === "cutout" ? " · détourée" : ""}
+                {i.variant === "cutout" ? " · cutout" : ""}
               </option>
             ))}
           </select>
         </div>
       </div>
       <div>
-        <div style={fieldLabel}>Variante</div>
+        <div style={fieldLabel}>Variant</div>
         <div style={{ display: "flex", gap: 4 }}>
           <button style={{ ...iconBtn, flex: 1, fontWeight: variant === "original" ? 700 : 400 }} disabled={busy} onClick={() => onVariant(imageRef, "original")}>
-            Entière
+            Original
           </button>
           <button
             style={{ ...iconBtn, flex: 1, fontWeight: variant === "cutout" ? 700 : 400 }}
             disabled={busy || (!cutoutAvailable && !current?.hasCutout)}
-            title={!cutoutAvailable && !current?.hasCutout ? "Détourage non configuré sur ce serveur" : "Sujet détouré, fond transparent"}
+            title={!cutoutAvailable && !current?.hasCutout ? "Cutout not configured on this server" : "Subject cut out, transparent background"}
             onClick={() => onVariant(imageRef, "cutout")}
           >
-            {busy ? "Détourage…" : "Détourée"}
+            {busy ? "Cutting out…" : "Cutout"}
           </button>
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         <div>
-          <div style={fieldLabel}>Ajustement</div>
+          <div style={fieldLabel}>Fit</div>
           <select style={input} value={fit} onChange={(e) => onImageStyle({ "object-fit": e.target.value })}>
-            <option value="cover">Remplir (recadre)</option>
-            <option value="contain">Entière (sans recadrer)</option>
+            <option value="cover">Fill (crops)</option>
+            <option value="contain">Contain (no crop)</option>
           </select>
         </div>
         <div>
-          <div style={fieldLabel}>Forme</div>
+          <div style={fieldLabel}>Shape</div>
           <div style={{ display: "flex", gap: 4 }}>
             <button style={{ ...iconBtn, flex: 1, fontWeight: isRound ? 400 : 700 }} onClick={() => onStyle({ "clip-path": null })}>
               ▭
             </button>
-            <button style={{ ...iconBtn, flex: 1, fontWeight: isRound ? 700 : 400 }} title="Médaillon rond" onClick={() => onStyle({ "clip-path": "circle(50% at 50% 50%)" })}>
+            <button style={{ ...iconBtn, flex: 1, fontWeight: isRound ? 700 : 400 }} title="Round medallion" onClick={() => onStyle({ "clip-path": "circle(50% at 50% 50%)" })}>
               ◯
             </button>
           </div>
@@ -280,17 +280,17 @@ function ImageSection({
 }
 
 const ENTER_LABELS: Record<TimelineEntry["enter"], string> = {
-  fade: "Fondu",
-  "slide-up": "Monte",
-  "slide-left": "Glisse depuis la droite",
+  fade: "Fade",
+  "slide-up": "Rise",
+  "slide-left": "Slide in from the right",
   "zoom-in": "Zoom",
-  typewriter: "Machine à écrire",
+  typewriter: "Typewriter",
 };
 const EXIT_LABELS: Record<NonNullable<TimelineEntry["exit"]>, string> = {
-  fade: "Fondu",
-  "slide-down": "Descend",
-  "slide-right": "Glisse vers la droite",
-  none: "Reste jusqu'à la fin",
+  fade: "Fade",
+  "slide-down": "Drop",
+  "slide-right": "Slide out to the right",
+  none: "Stays until the end",
 };
 
 function AnimationSection({
@@ -310,9 +310,9 @@ function AnimationSection({
       <div style={{ borderTop: `1px solid ${color.divider}`, paddingTop: 10 }}>
         <div style={fieldLabel}>Animation</div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: color.textMuted }}>
-          <span style={{ flex: 1 }}>Visible du début à la fin.</span>
+          <span style={{ flex: 1 }}>Visible from start to end.</span>
           <button style={iconBtn} onClick={() => onChange({ layerId, enter: "fade", startMs: 0, enterMs: DEFAULT_ENTER_MS, exit: null, exitAtMs: null })}>
-            Animer
+            Animate
           </button>
         </div>
       </div>
@@ -323,13 +323,13 @@ function AnimationSection({
     <div style={{ borderTop: `1px solid ${color.divider}`, paddingTop: 10, display: "grid", gap: 8 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ ...fieldLabel, marginBottom: 0 }}>Animation</div>
-        <button style={iconBtn} title="Ce calque reste visible du début à la fin" onClick={() => onChange(null)}>
-          Aucune
+        <button style={iconBtn} title="This layer stays visible from start to end" onClick={() => onChange(null)}>
+          None
         </button>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         <div>
-          <div style={fieldLabel}>Entrée</div>
+          <div style={fieldLabel}>Entrance</div>
           <select style={input} value={entry.enter} onChange={(e) => update({ enter: e.target.value as TimelineEntry["enter"] })}>
             {ENTER_EFFECTS.map((e) => (
               <option key={e} value={e}>
@@ -339,7 +339,7 @@ function AnimationSection({
           </select>
         </div>
         <div>
-          <div style={fieldLabel}>Apparaît à (s)</div>
+          <div style={fieldLabel}>Appears at (s)</div>
           <input
             style={input}
             type="number"
@@ -351,7 +351,7 @@ function AnimationSection({
           />
         </div>
         <div>
-          <div style={fieldLabel}>Durée d&apos;entrée (ms)</div>
+          <div style={fieldLabel}>Entrance duration (ms)</div>
           <input
             style={input}
             type="number"
@@ -363,7 +363,7 @@ function AnimationSection({
           />
         </div>
         <div>
-          <div style={fieldLabel}>Sortie</div>
+          <div style={fieldLabel}>Exit</div>
           <select
             style={input}
             value={entry.exit ?? "none"}
@@ -382,7 +382,7 @@ function AnimationSection({
         </div>
         {entry.exit && (
           <div>
-            <div style={fieldLabel}>Disparaît à (s)</div>
+            <div style={fieldLabel}>Disappears at (s)</div>
             <input
               style={input}
               type="number"

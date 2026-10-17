@@ -5,33 +5,33 @@ import { hasMetricsFetch, socialProviders } from "@/lib/social";
 import { getValidSocialAccessToken } from "@/lib/services/socialConnectionService";
 import { findBestMatchingScript, type MatchableScript } from "@/lib/services/postMatchingService";
 
-// Dédup configurable par plateforme : seule X est payante à l'appel (docs/SPEC_METRIQUES_AUTO.md
-// §2.5, $0.005/lecture) — les autres plateformes sont gratuites ou à quota généreux et n'ont pas
-// besoin de throttle. Générique plutôt qu'un cas particulier codé en dur pour X.
+// Configurable dedup per platform: only X is paid per call (docs/SPEC_METRIQUES_AUTO.md
+// §2.5, $0.005/read) — the other platforms are free or have a generous quota and need no
+// throttle. Generic rather than a special case hard-coded for X.
 const MIN_REFETCH_INTERVAL_HOURS: Partial<Record<string, number>> = {
   x: 24,
 };
 
 export interface FetchAndMatchResult {
-  /** Posts déjà rattachés dont les métriques ont été mises à jour. */
+  /** Already-linked posts whose metrics were updated. */
   updated: number;
-  /** Nouveaux candidats de rattachement créés, en attente de confirmation utilisateur. */
+  /** New link candidates created, awaiting user confirmation. */
   candidatesCreated: number;
-  /** true si le fetch a été sauté (dédup 24h) plutôt qu'exécuté. */
+  /** true if the fetch was skipped (24h dedup) rather than executed. */
   skipped: boolean;
 }
 
 const NOOP_RESULT: FetchAndMatchResult = { updated: 0, candidatesCreated: 0, skipped: false };
 
 /**
- * Récupère les métriques d'une plateforme pour un utilisateur, met à jour les posts déjà
- * rattachés (historique + vue courante), et propose des candidats de rattachement pour les
- * posts inconnus (docs/SPEC_METRIQUES_AUTO.md §4). Refresh de token lazy à l'usage, appelé
- * depuis POST /api/performance/refresh — aucun cron dans ce repo (§7.5).
+ * Retrieves a platform's metrics for a user, updates the posts already
+ * linked (history + current view), and proposes link candidates for
+ * unknown posts (docs/SPEC_METRIQUES_AUTO.md §4). Lazy token refresh on use, called
+ * from POST /api/performance/refresh — no cron in this repo (§7.5).
  *
- * Ne génère PAS la proposition de re-pondération elle-même : categoryReweightService agrège le
- * signal sur toutes les plateformes d'un utilisateur, donc maybeGenerateCategoryReweightProposal
- * est appelé une seule fois par l'appelant après avoir fetché toutes les plateformes connectées.
+ * Does NOT generate the reweighting proposal itself: categoryReweightService aggregates the
+ * signal across all of a user's platforms, so maybeGenerateCategoryReweightProposal
+ * is called only once by the caller after fetching all connected platforms.
  */
 export async function fetchAndMatchPostsForUser(userId: string, platform: string): Promise<FetchAndMatchResult> {
   if (!hasMetricsFetch(platform)) {
@@ -53,14 +53,14 @@ export async function fetchAndMatchPostsForUser(userId: string, platform: string
     }
   }
 
-  // Propage ApiError 409 ("needs_reconnect") si le refresh échoue — laissé à l'appelant, qui
-  // agrège les erreurs par plateforme via Promise.allSettled sans bloquer les autres.
+  // Propagates ApiError 409 ("needs_reconnect") if the refresh fails — left to the caller, which
+  // aggregates errors per platform via Promise.allSettled without blocking the others.
   const accessToken = await getValidSocialAccessToken(userId, platform);
   const provider = socialProviders[platform]!;
   const posts = await provider.fetchPostMetrics!({ accessToken, platformUserId: connection.platformUserId });
 
-  // Scripts candidats au rattachement, chargés une seule fois : même utilisateur, même
-  // plateforme, pas déjà rattachés à un post confirmé (platformPostId renseigné).
+  // Candidate scripts for linking, loaded only once: same user, same
+  // platform, not already linked to a confirmed post (platformPostId set).
   const scriptRows = await db.query.scripts.findMany({
     where: and(eq(scripts.userId, userId), eq(scripts.platform, platform)),
     columns: { id: true, caption: true },
@@ -110,7 +110,7 @@ export async function fetchAndMatchPostsForUser(userId: string, platform: string
       continue;
     }
 
-    // Déjà proposé (pending/confirmed/dismissed) : mémorisation définitive, jamais reproposé.
+    // Already proposed (pending/confirmed/dismissed): permanently remembered, never proposed again.
     const existingCandidate = await db.query.postMatchCandidates.findFirst({
       where: and(eq(postMatchCandidates.platform, platform), eq(postMatchCandidates.platformPostId, post.platformPostId)),
     });

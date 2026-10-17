@@ -11,7 +11,7 @@ function FileIcon() {
   );
 }
 
-/** Logo d'une source de matière : les marques dessinées pour /login, plus un fichier générique. */
+/** Logo of a material source: the brands drawn for /login, plus a generic file. */
 export default function SourceIcon({ kind, scale = 1, style }: { kind: SourceKind; scale?: number; style?: CSSProperties }) {
   return (
     <span

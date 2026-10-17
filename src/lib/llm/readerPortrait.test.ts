@@ -5,49 +5,49 @@ vi.mock("./provider", () => ({ callStructured: callStructuredMock }));
 
 import { buildReaderPortraitMessage, describeReaders, parseStoredReaderPortrait, portraitIsStale, type ReaderPortraitContext } from "./readerPortrait";
 
-const reader = { label: "Joueurs", who: "Fans de plateformes", knows: "", wants: "", stopsFor: "", turnsOff: "", words: ["wishlist"] };
+const reader = { label: "Players", who: "Platformer fans", knows: "", wants: "", stopsFor: "", turnsOff: "", words: ["wishlist"] };
 
 const ctx: ReaderPortraitContext = {
   subjectName: "Mira",
-  subjectDescription: "Jeu de plateforme",
+  subjectDescription: "Platformer game",
   valueProposition: null,
-  subjectAudience: "Les joueurs de plateformes",
+  subjectAudience: "Platformer players",
   brandAudience: null,
-  activityType: "Tu construis un jeu",
+  activityType: "You build a game",
   platforms: ["x", "instagram"],
-  materialSummaries: ["Le saut a été réglé."],
+  materialSummaries: ["The jump was tuned."],
 };
 
 beforeEach(() => callStructuredMock.mockReset());
 
 describe("buildReaderPortraitMessage", () => {
-  it("donne le sujet, le « Pour qui » de l'auteur et les résumés", () => {
+  it("gives the subject, the author's Who-for and the summaries", () => {
     const message = buildReaderPortraitMessage(ctx);
-    expect(message).toContain("Sujet : Mira — Jeu de plateforme");
-    expect(message).toContain("Pour qui, selon l'auteur : Les joueurs de plateformes");
-    expect(message).toContain("Audience générale de l'auteur : (non précisée)");
-    expect(message).toContain("Plateformes où il publie : x, instagram");
-    expect(message).toContain("- Le saut a été réglé.");
+    expect(message).toContain("Subject: Mira — Platformer game");
+    expect(message).toContain("Who for, according to the author: Platformer players");
+    expect(message).toContain("The author's general audience: (not specified)");
+    expect(message).toContain("Platforms where they publish: x, instagram");
+    expect(message).toContain("- The jump was tuned.");
   });
 });
 
 describe("describeReaders", () => {
-  it("garde 3 publics au plus et note la phrase d'audience sur laquelle il se fonde", async () => {
+  it("keeps 3 audiences at most and records the audience sentence it is based on", async () => {
     callStructuredMock.mockResolvedValue({ readers: [reader, reader, reader, reader] });
     const portrait = await describeReaders(ctx, new Date("2026-10-17T00:00:00Z"));
     expect(portrait.readers).toHaveLength(3);
-    expect(portrait).toMatchObject({ editedByUser: false, basedOnAudience: "Les joueurs de plateformes", generatedAt: "2026-10-17T00:00:00.000Z" });
+    expect(portrait).toMatchObject({ editedByUser: false, basedOnAudience: "Platformer players", generatedAt: "2026-10-17T00:00:00.000Z" });
   });
 });
 
 describe("parseStoredReaderPortrait / portraitIsStale", () => {
-  it("lit un portrait stocké et rejette l'illisible", () => {
-    expect(parseStoredReaderPortrait({ readers: [reader] })?.readers[0].label).toBe("Joueurs");
+  it("reads a stored portrait and rejects the unreadable", () => {
+    expect(parseStoredReaderPortrait({ readers: [reader] })?.readers[0].label).toBe("Players");
     expect(parseStoredReaderPortrait({ readers: [] })).toBeNull();
     expect(parseStoredReaderPortrait(null)).toBeNull();
   });
 
-  it("périme un portrait absent ou fondé sur un autre « Pour qui », jamais un portrait corrigé à la main", () => {
+  it("marks stale a missing portrait or one based on another Who-for, never a hand-corrected portrait", () => {
     expect(portraitIsStale({ readerPortrait: null, targetAudience: "A" })).toBe(true);
     expect(portraitIsStale({ readerPortrait: { readers: [reader], basedOnAudience: "A" }, targetAudience: "A" })).toBe(false);
     expect(portraitIsStale({ readerPortrait: { readers: [reader], basedOnAudience: "A" }, targetAudience: "B" })).toBe(true);

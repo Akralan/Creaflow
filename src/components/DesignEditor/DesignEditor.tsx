@@ -31,12 +31,12 @@ import { renderAnimationToMp4 } from "./exportAnimation";
 import TimelineBar from "./TimelineBar";
 
 type LocalSlide = { planNumber: number; html: string };
-/** Ce que l'undo/redo restaure : les slides et, pour une animation, la ligne de temps. */
+/** What undo/redo restores: the slides and, for an animation, the timeline. */
 type Snapshot = { slides: LocalSlide[]; timeline: TimelineEntry[] | null };
 
 const CANVAS_WIDTH = 520;
 const SAVE_DEBOUNCE_MS = 800;
-/** Composition automatique après génération (docs/SPEC_COMPOSITION_VISUELLE.md §6) : relecture et abandon. */
+/** Automatic composition after generation (docs/SPEC_COMPOSITION_VISUELLE.md §6): polling and giving up. */
 const AUTO_COMPOSE_POLL_MS = 3000;
 const AUTO_COMPOSE_WINDOW_MS = 2 * 60 * 1000;
 const AUTO_COMPOSE_GIVE_UP_MS = 60 * 1000;
@@ -47,10 +47,10 @@ function formatIdOf(design: VisualDesign): DesignFormatId {
 }
 
 /**
- * Section « Design » de l'éditeur d'un post visuel (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §3, §6 ;
- * docs/SPEC_COMPOSITION_VISUELLE.md §3, §6). Deux modes : sans maquette → composition automatique
- * en cours, ou choix des photos et création par l'agent ; avec maquette → canevas éditable à la
- * main, inspecteur, photos et éléments ajoutés à la main, instruction à l'agent, export.
+ * "Design" section of the visual post editor (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §3, §6;
+ * docs/SPEC_COMPOSITION_VISUELLE.md §3, §6). Two modes: without a mockup → automatic composition
+ * in progress, or photo selection and creation by the agent; with a mockup → canvas editable by
+ * hand, inspector, photos and elements added by hand, instruction to the agent, export.
  */
 export default function DesignEditor({
   script,
@@ -61,7 +61,7 @@ export default function DesignEditor({
   script: Script;
   hasLogo: boolean;
   onDesignChange: (design: VisualDesign | null) => void;
-  /** Recharge la fiche (composition automatique en arrière-plan juste après la génération). */
+  /** Reloads the page (automatic composition in the background right after generation). */
   onReload: () => Promise<void>;
 }) {
   const design = script.visualDesign ?? null;
@@ -84,32 +84,32 @@ export default function DesignEditor({
   const [error, setError] = useState<string | null>(null);
   const [rationale, setRationale] = useState<string | null>(null);
   const [format, setFormat] = useState<DesignFormatId>(defaultFormatForPlatform(script.platform));
-  // Sélecteur de photos : "create" (composition), "change" (recomposition), "add" (ajout sans recomposer).
+  // Photo picker: "create" (composition), "change" (recomposition), "add" (add without recomposing).
   const [picker, setPicker] = useState<"create" | "change" | "add" | null>(null);
   const [assets, setAssets] = useState<BrandAsset[]>([]);
   const [pickedIds, setPickedIds] = useState<string[]>([]);
   const [elementsOpen, setElementsOpen] = useState(false);
   const [confirmRefresh, setConfirmRefresh] = useState(false);
   const [autoWaitGaveUp, setAutoWaitGaveUp] = useState(false);
-  // Évalué une fois au montage (pas à chaque rendu) : le script vient-il d'être généré ?
+  // Evaluated once at mount (not on every render): was the script just generated?
   const [recentlyGenerated] = useState(() => script.origin === "generated" && Date.now() - new Date(script.createdAt).getTime() < AUTO_COMPOSE_WINDOW_MS);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = useRef(false);
-  // Sauvegarde différée déjà partie (PATCH en vol) : attendue par flushPendingSave avant toute
-  // autre écriture, sinon deux read-modify-write se croisent côté serveur.
+  // Deferred save already sent (PATCH in flight): awaited by flushPendingSave before any
+  // other write, otherwise two read-modify-writes cross on the server.
   const inFlightSaveRef = useRef<Promise<void> | null>(null);
-  // Jeton de version : incrémenté à chaque nouvelle version de la maquette venue du serveur. Une
-  // sauvegarde différée armée avant un tel changement ne doit ni partir ni s'appliquer — sinon elle
-  // repousserait un HTML antérieur à une révision de l'agent (course signalée en revue).
+  // Version token: incremented on every new version of the mockup coming from the server. A
+  // deferred save armed before such a change must neither fire nor apply — otherwise it
+  // would push back HTML older than an agent revision (race flagged in review).
   const generationRef = useRef(0);
 
-  // Resynchronise l'état local quand la maquette change de version (création, instruction,
-  // recomposition) — ajustement d'état pendant le rendu, pattern React « adjusting state when a
-  // prop changes », plutôt qu'un effet.
+  // Resyncs local state when the mockup changes version (creation, instruction,
+  // recomposition) — state adjustment during render, the React pattern "adjusting state when a
+  // prop changes", rather than an effect.
   const designVersion = design ? `${design.id}:${design.updatedAt}` : null;
   const [syncedVersion, setSyncedVersion] = useState<string | null | undefined>(undefined);
   useEffect(() => {
-    // Toute nouvelle version venue du serveur périme la sauvegarde différée en attente.
+    // Any new version coming from the server invalidates the pending deferred save.
     generationRef.current += 1;
     dirtyRef.current = false;
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -134,9 +134,9 @@ export default function DesignEditor({
     }
   }
 
-  // Composition automatique (docs/SPEC_COMPOSITION_VISUELLE.md §2) : un script généré il y a moins
-  // de deux minutes et sans maquette est probablement en cours de composition côté serveur — on
-  // relit la fiche toutes les 3 s, puis on rend la main aux boutons au bout d'une minute.
+  // Automatic composition (docs/SPEC_COMPOSITION_VISUELLE.md §2): a script generated less
+  // than two minutes ago and without a mockup is probably being composed on the server — we
+  // reload the page every 3 s, then hand control back to the buttons after a minute.
   const autoComposing = !design && !autoWaitGaveUp && recentlyGenerated;
   useEffect(() => {
     if (!autoComposing) return;
@@ -166,7 +166,7 @@ export default function DesignEditor({
   const layerInfo = current && selectedLayerId ? describeLayer(current.html, selectedLayerId) : null;
   const isAnimation = durationMs !== null && timeline !== null;
 
-  // --- Persistance (retouches manuelles) ---
+  // --- Persistence (manual edits) ---
   const scheduleSave = useCallback(
     (next: Snapshot, nextDurationMs?: number | null) => {
       dirtyRef.current = true;
@@ -182,12 +182,12 @@ export default function DesignEditor({
               ...(next.timeline ? { timeline: next.timeline } : {}),
               ...(nextDurationMs ? { durationMs: nextDurationMs } : {}),
             });
-            // Une version plus récente (instruction, recomposition) est arrivée entre-temps : la
-            // réponse de cette sauvegarde est périmée, on ne l'applique pas.
+            // A newer version (instruction, recomposition) arrived in the meantime: the
+            // response of this save is stale, we don't apply it.
             if (generation !== generationRef.current) return;
             onDesignChange(saved);
           } catch (err) {
-            setError(err instanceof ApiClientError ? err.message : "Enregistrement de la maquette impossible.");
+            setError(err instanceof ApiClientError ? err.message : "Couldn't save the mockup.");
           }
         })().finally(() => {
           if (inFlightSaveRef.current === job) inFlightSaveRef.current = null;
@@ -198,7 +198,7 @@ export default function DesignEditor({
     [script.id, onDesignChange]
   );
 
-  /** Envoie tout de suite les retouches en attente (avant une instruction, un export, une bascule de photo). */
+  /** Sends pending edits right away (before an instruction, an export, a photo switch). */
   async function flushPendingSave() {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     if (inFlightSaveRef.current) await inFlightSaveRef.current;
@@ -219,7 +219,7 @@ export default function DesignEditor({
   }
 
   function applySlides(next: LocalSlide[], options: { record?: boolean } = {}) {
-    // Un calque supprimé quitte aussi la ligne de temps.
+    // A deleted layer also leaves the timeline.
     const layerIds = new Set(next.flatMap((s) => Array.from(s.html.matchAll(/data-layer="([^"]+)"/g)).map((m) => m[1])));
     const nextTimeline = timeline ? timeline.filter((t) => layerIds.has(t.layerId)) : null;
     applySnapshot({ slides: next, timeline: nextTimeline }, options);
@@ -240,9 +240,9 @@ export default function DesignEditor({
     if (!timeline || busy !== null) return;
     setDurationMs(next);
     setPlayheadMs((p) => Math.min(p, next));
-    // Les instants au-delà de la nouvelle durée sont ramenés dedans (le serveur ferait pareil).
-    // Même invariant que normalizeTimeline côté serveur : la sortie reste strictement après la fin
-    // de l'entrée, sinon la sauvegarde partirait en 422.
+    // Times beyond the new duration are brought back inside (the server would do the same).
+    // Same invariant as normalizeTimeline on the server: the exit stays strictly after the end
+    // of the entrance, otherwise the save would fail with a 422.
     const clamped = timeline.map((t) => {
       const startMs = Math.min(t.startMs, Math.max(0, next - t.enterMs));
       const exitAtMs = t.exit && t.exitAtMs !== null ? Math.max(startMs + t.enterMs + 1, Math.min(t.exitAtMs, next)) : null;
@@ -291,7 +291,7 @@ export default function DesignEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [undoStack, redoStack, slides, selectedLayerId, current, busy]);
 
-  // --- Création / recomposition ---
+  // --- Creation / recomposition ---
   async function create(assetIds: string[]) {
     setBusy("create");
     setError(null);
@@ -302,7 +302,7 @@ export default function DesignEditor({
       setRedoStack([]);
       onDesignChange(created);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Composition impossible.");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't compose the mockup.");
     } finally {
       setBusy(null);
     }
@@ -310,7 +310,7 @@ export default function DesignEditor({
 
   async function openPicker(mode: "create" | "change" | "add") {
     setPicker(mode);
-    // Présélection : les photos de la maquette courante, ou la photo trouvée à la génération.
+    // Preselection: the photos of the current mockup, or the photo found at generation.
     setPickedIds(mode === "change" && design ? design.images.map((i) => i.assetId) : mode === "create" && script.brandAssetId ? [script.brandAssetId] : []);
     try {
       const { assets: list } = await api.getAssets();
@@ -335,7 +335,7 @@ export default function DesignEditor({
     } else if (mode === "add") await addPhoto(ids[0]);
   }
 
-  /** Ajoute une photo à la maquette et pose un calque image centré (§6 « Ajouter une photo »). */
+  /** Adds a photo to the mockup and places a centered image layer (§6 "Add a photo"). */
   async function addPhoto(assetId: string | undefined) {
     if (!assetId || !design || !current) return;
     setBusy("add");
@@ -357,13 +357,13 @@ export default function DesignEditor({
       setRedoStack([]);
       onDesignChange({ ...next, ...saved });
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Ajout de la photo impossible.");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't add the photo.");
     } finally {
       setBusy(null);
     }
   }
 
-  /** Insère un élément du catalogue sur la slide courante (§6 « Ajouter un élément »). */
+  /** Inserts a catalogue element on the current slide (§6 "Add an element"). */
   function addElement(id: string) {
     setElementsOpen(false);
     if (!design || !current || !theme) return;
@@ -374,14 +374,14 @@ export default function DesignEditor({
     setSelectedLayerId(layerId || null);
   }
 
-  /** Bascule original / détouré d'une photo (toutes les slides qui l'affichent). */
+  /** Toggles a photo between original / cutout (all the slides that display it). */
   async function setVariant(ref: string, variant: DesignImageVariant) {
     if (!design) return;
     const image = design.images.find((i) => i.ref === ref);
     if (!image || image.variant === variant) return;
     setCutoutBusyRef(ref);
-    // Le canevas est gelé pendant la bascule (un détourage peut prendre plusieurs secondes) : une
-    // retouche faite entre-temps entrerait en course avec la réponse.
+    // The canvas is frozen during the switch (a cutout can take several seconds): an
+    // edit made in the meantime would race with the response.
     setBusy("variant");
     setError(null);
     try {
@@ -389,17 +389,17 @@ export default function DesignEditor({
       const images = design.images.map((i) => ({ ref: i.ref, assetId: i.assetId, variant: i.ref === ref ? variant : i.variant }));
       const { design: saved } = await api.patchDesign(script.id, { images });
       const applied = saved.images.find((i) => i.ref === ref);
-      if (variant === "cutout" && applied?.variant !== "cutout") setError("Le détourage n'a pas abouti : la photo reste entière.");
+      if (variant === "cutout" && applied?.variant !== "cutout") setError("The cutout didn't work out: the photo stays as is.");
       onDesignChange(saved);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Changement de variante impossible.");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't switch the variant.");
     } finally {
       setCutoutBusyRef(null);
       setBusy(null);
     }
   }
 
-  // --- Instruction à l'agent ---
+  // --- Instruction to the agent ---
   async function sendInstruction() {
     const text = instruction.trim();
     if (!text || !design) return;
@@ -417,7 +417,7 @@ export default function DesignEditor({
       setInstruction("");
       onDesignChange(revised);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "L'agent n'a pas pu réviser la maquette.");
+      setError(err instanceof ApiClientError ? err.message : "The agent couldn't revise the mockup.");
     } finally {
       setBusy(null);
     }
@@ -438,13 +438,13 @@ export default function DesignEditor({
       setAutoWaitGaveUp(true);
       onDesignChange(null);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Suppression impossible.");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't delete.");
     } finally {
       setBusy(null);
     }
   }
 
-  // --- Export (PNG, ou MP4 pour une animation — uniquement sur le bouton) ---
+  // --- Export (PNG, or MP4 for an animation — on button press only) ---
   async function exportAll() {
     if (!design) return;
     setPlaying(false);
@@ -480,7 +480,7 @@ export default function DesignEditor({
       if (files.length === 1) downloadBlob(files[0].blob, `${base}.png`);
       else downloadBlob(await zipBlobs(files.map((f) => ({ name: `${base}-${f.planNumber}.png`, blob: f.blob }))), `${base}.zip`);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : `Export impossible : ${err instanceof Error ? err.message : "erreur inconnue"}.`);
+      setError(err instanceof ApiClientError ? err.message : `Couldn't export: ${err instanceof Error ? err.message : "unknown error"}.`);
     } finally {
       exportAbort.current = null;
       setExportProgress(null);
@@ -513,20 +513,20 @@ export default function DesignEditor({
   const pickerModal = (
     <Modal open={picker !== null} onClose={() => setPicker(null)} width={640}>
       <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 20, margin: "0 0 4px" }}>
-        {picker === "add" ? "Ajouter une photo" : "Choisir des photos"}
+        {picker === "add" ? "Add a photo" : "Choose photos"}
       </h2>
       <p style={{ margin: "0 0 14px", fontSize: 13, color: color.textMuted }}>
         {picker === "add"
-          ? "Elle sera posée sur la slide courante, à déplacer ensuite."
-          : `Jusqu'à ${MAX_DESIGN_IMAGES} photos de ta bibliothèque. L'agent décide lesquelles utiliser, entières ou détourées, et comment les monter.`}
+          ? "It will be placed on the current slide, then you can move it."
+          : `Up to ${MAX_DESIGN_IMAGES} photos from your library. The agent decides which to use, whole or cut out, and how to combine them.`}
       </p>
       <AssetGrid assets={assets} selectedIds={pickedIds} onToggle={picker === "add" ? (id) => setPickedIds([id]) : togglePicked} onDelete={() => {}} maxSelected={picker === "add" ? 1 : MAX_DESIGN_IMAGES} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, gap: 8 }}>
         <span style={{ fontSize: 12, color: color.textFaint }}>
-          {picker === "add" ? "" : `${pickedIds.length}/${MAX_DESIGN_IMAGES} sélectionnée${pickedIds.length > 1 ? "s" : ""}`}
+          {picker === "add" ? "" : `${pickedIds.length}/${MAX_DESIGN_IMAGES} selected`}
         </span>
         <Button disabled={busy !== null || (picker === "add" && pickedIds.length === 0)} onClick={confirmPicker}>
-          {picker === "add" ? "Ajouter" : picker === "change" ? "Recomposer" : pickedIds.length === 0 ? "Composer sans photo" : "Composer"}
+          {picker === "add" ? "Add" : picker === "change" ? "Recompose" : pickedIds.length === 0 ? "Compose without photos" : "Compose"}
         </Button>
       </div>
     </Modal>
@@ -549,25 +549,25 @@ export default function DesignEditor({
         </div>
         {autoComposing && busy === null ? (
           <p style={{ margin: 0, fontSize: 13, color: color.textMuted }}>
-            Composition en cours… L&apos;agent assemble le visuel à partir de tes photos. Il apparaîtra ici dans quelques secondes.
+            Composing… The agent is assembling the visual from your photos. It will appear here in a few seconds.
           </p>
         ) : (
           <>
             <p style={{ margin: "0 0 14px", fontSize: 13, color: color.textMuted }}>
-              L&apos;agent compose une slide par entrée du storyboard à partir de tes vraies photos (montage, produit détouré, éléments
-              d&apos;interface), que tu retouches ensuite à la main ou par instruction.
+              The agent composes one slide per storyboard entry from your real photos (montage, cut-out product, interface
+              elements), which you then touch up by hand or by instruction.
             </p>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <Button disabled={busy !== null} onClick={() => openPicker("create")}>
-                Choisir des photos
+                Choose photos
               </Button>
               <Button variant="secondary" disabled={busy !== null} onClick={() => create([])}>
-                Sans photo
+                No photos
               </Button>
             </div>
           </>
         )}
-        {busy === "create" && <p style={{ margin: "12px 0 0", fontSize: 13, color: color.textMuted }}>Composition en cours…</p>}
+        {busy === "create" && <p style={{ margin: "12px 0 0", fontSize: 13, color: color.textMuted }}>Composing…</p>}
         {error && <p style={{ margin: "12px 0 0", fontSize: 13, color: color.danger }}>{error}</p>}
         {pickerModal}
       </div>
@@ -584,31 +584,31 @@ export default function DesignEditor({
           </span>
           {design.status === "stale" && (
             <span style={{ fontSize: 11, fontWeight: 600, color: "oklch(0.5 0.13 60)", background: "oklch(0.62 0.13 60 / 0.16)", borderRadius: 20, padding: "3px 8px" }}>
-              Storyboard modifié · design à rafraîchir
+              Storyboard changed · design needs refreshing
             </span>
           )}
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <button style={iconBtn} title="Annuler (Ctrl+Z)" onClick={undo} disabled={undoStack.length === 0}>
+          <button style={iconBtn} title="Undo (Ctrl+Z)" onClick={undo} disabled={undoStack.length === 0}>
             <Undo2 size={15} />
           </button>
-          <button style={iconBtn} title="Rétablir (Ctrl+Maj+Z)" onClick={redo} disabled={redoStack.length === 0}>
+          <button style={iconBtn} title="Redo (Ctrl+Shift+Z)" onClick={redo} disabled={redoStack.length === 0}>
             <Redo2 size={15} />
           </button>
-          <button style={iconBtn} title="Recomposer avec l'agent (les retouches manuelles seront perdues)" onClick={() => setConfirmRefresh(true)} disabled={busy !== null}>
+          <button style={iconBtn} title="Recompose with the agent (manual edits will be lost)" onClick={() => setConfirmRefresh(true)} disabled={busy !== null}>
             <RefreshCw size={15} />
           </button>
-          <button style={{ ...iconBtn, color: color.danger }} title="Supprimer la maquette" onClick={remove} disabled={busy !== null}>
+          <button style={{ ...iconBtn, color: color.danger }} title="Delete the mockup" onClick={remove} disabled={busy !== null}>
             <Trash2 size={15} />
           </button>
           {busy === "export" && exportProgress && (
-            <button style={iconBtn} title="Annuler l'export" onClick={() => exportAbort.current?.abort()}>
-              {Math.round((exportProgress.done / exportProgress.total) * 100)} % · annuler
+            <button style={iconBtn} title="Cancel export" onClick={() => exportAbort.current?.abort()}>
+              {Math.round((exportProgress.done / exportProgress.total) * 100)} % · cancel
             </button>
           )}
           <Button onClick={exportAll} disabled={busy !== null} style={{ padding: "8px 14px", fontSize: 13, display: "inline-flex", alignItems: "center", gap: 6 }}>
             <Download size={14} />
-            {busy === "export" ? "Export…" : isAnimation ? "Exporter la vidéo" : slides.length > 1 ? "Exporter les slides" : "Exporter"}
+            {busy === "export" ? "Exporting…" : isAnimation ? "Export video" : slides.length > 1 ? "Export slides" : "Export"}
           </Button>
         </div>
       </div>
@@ -672,22 +672,22 @@ export default function DesignEditor({
                 />
               </button>
             ))}
-            <button style={iconBtn} title="Dupliquer la slide" onClick={duplicateCurrent} disabled={!current || slides.length >= 12 || isAnimation}>
+            <button style={iconBtn} title="Duplicate slide" onClick={duplicateCurrent} disabled={!current || slides.length >= 12 || isAnimation}>
               <Plus size={14} />
             </button>
             {slides.length > 1 && !isAnimation && (
-              <button style={{ ...iconBtn, color: color.danger }} title="Supprimer la slide" onClick={deleteCurrent}>
+              <button style={{ ...iconBtn, color: color.danger }} title="Delete slide" onClick={deleteCurrent}>
                 <Trash2 size={14} />
               </button>
             )}
           </div>
 
-          {/* Photos de la maquette et actions d'ajout (docs/SPEC_COMPOSITION_VISUELLE.md §6). */}
+          {/* Mockup photos and add actions (docs/SPEC_COMPOSITION_VISUELLE.md §6). */}
           <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center", flexWrap: "wrap" }}>
             {design.images.map((img) => (
               <div
                 key={img.ref}
-                title={`${img.ref} · ${img.variant === "cutout" ? "détourée" : "entière"}`}
+                title={`${img.ref} · ${img.variant === "cutout" ? "cutout" : "original"}`}
                 style={{ width: 34, height: 34, borderRadius: 6, overflow: "hidden", border: `1px solid ${color.border}`, position: "relative", background: color.trackBg }}
               >
                 {img.thumbnailUrl && (
@@ -700,12 +700,12 @@ export default function DesignEditor({
                 </span>
               </div>
             ))}
-            <button style={{ ...iconBtn, gap: 6, fontSize: 12 }} title="Ajouter une photo de la bibliothèque sur cette slide" onClick={() => openPicker("add")} disabled={busy !== null}>
-              <ImagePlus size={14} /> Ajouter une photo
+            <button style={{ ...iconBtn, gap: 6, fontSize: 12 }} title="Add a photo from the library to this slide" onClick={() => openPicker("add")} disabled={busy !== null}>
+              <ImagePlus size={14} /> Add a photo
             </button>
             <div style={{ position: "relative" }}>
-              <button style={{ ...iconBtn, gap: 6, fontSize: 12 }} title="Étiquette de prix, badge, bouton, cadre…" onClick={() => setElementsOpen((o) => !o)} disabled={busy !== null}>
-                <Shapes size={14} /> Ajouter un élément
+              <button style={{ ...iconBtn, gap: 6, fontSize: 12 }} title="Price tag, badge, button, frame…" onClick={() => setElementsOpen((o) => !o)} disabled={busy !== null}>
+                <Shapes size={14} /> Add an element
               </button>
               {elementsOpen && (
                 <div style={{ position: "absolute", top: "100%", left: 0, zIndex: 10, marginTop: 4, background: color.cardBg, border: `1px solid ${color.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", padding: 6, display: "grid", minWidth: 200 }}>
@@ -717,12 +717,12 @@ export default function DesignEditor({
                 </div>
               )}
             </div>
-            <button style={{ ...iconBtn, fontSize: 12 }} title="Choisir d'autres photos et recomposer" onClick={() => openPicker("change")} disabled={busy !== null}>
-              Changer les photos
+            <button style={{ ...iconBtn, fontSize: 12 }} title="Choose other photos and recompose" onClick={() => openPicker("change")} disabled={busy !== null}>
+              Change photos
             </button>
           </div>
           <p style={{ margin: "8px 0 0", fontSize: 11, color: color.textFaint }}>
-            Clique un calque pour le sélectionner, glisse pour le déplacer, double-clique un texte pour l&apos;éditer. Suppr retire le calque.
+            Click a layer to select it, drag to move it, double-click a text to edit it. Delete removes the layer.
           </p>
         </div>
 
@@ -730,7 +730,7 @@ export default function DesignEditor({
           <div style={{ border: `1px solid ${color.border}`, borderRadius: 12, padding: 14, background: color.listItemBg }}>
             {busy !== null ? (
               <p style={{ margin: 0, fontSize: 13, color: color.textMuted }}>
-                {busy === "instruct" ? "L'agent révise la maquette…" : busy === "export" ? "Export en cours…" : busy === "add" ? "Ajout de la photo…" : busy === "variant" ? "Changement de variante (détourage si besoin)…" : "Composition en cours…"} Les retouches manuelles reprendront ensuite.
+                {busy === "instruct" ? "The agent is revising the mockup…" : busy === "export" ? "Exporting…" : busy === "add" ? "Adding the photo…" : busy === "variant" ? "Switching variant (cutting out if needed)…" : "Composing…"} Les retouches manuelles reprendront ensuite.
               </p>
             ) : layerInfo ? (
               <LayerInspector
@@ -760,16 +760,16 @@ export default function DesignEditor({
                 }
               />
             ) : (
-              <p style={{ margin: 0, fontSize: 13, color: color.textMuted }}>Sélectionne un calque sur la slide pour le retoucher.</p>
+              <p style={{ margin: 0, fontSize: 13, color: color.textMuted }}>Select a layer on the slide to edit it.</p>
             )}
           </div>
 
           <div style={{ border: `1px solid ${accentAlpha(0.25)}`, background: accentAlpha(0.06), borderRadius: 12, padding: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: color.textMuted, marginBottom: 6 }}>Demander à l&apos;agent</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: color.textMuted, marginBottom: 6 }}>Ask the agent</div>
             <textarea
               value={instruction}
               onChange={(e) => setInstruction(e.target.value)}
-              placeholder="Titre plus gros, détoure le produit sur un fond uni, mets le prix en bas à droite, ajoute la deuxième photo en médaillon…"
+              placeholder="Bigger title, cut out the product on a plain background, put the price at the bottom right, add the second photo as a medallion…"
               rows={3}
               style={{ ...inputStyle, resize: "vertical" }}
               onKeyDown={(e) => {
@@ -778,13 +778,13 @@ export default function DesignEditor({
             />
             <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
               <select value={scope} onChange={(e) => setScope(e.target.value as "slide" | "all")} style={selectStyle}>
-                <option value="slide">Cette slide</option>
-                <option value="all">Toutes les slides</option>
+                <option value="slide">This slide</option>
+                <option value="all">All slides</option>
               </select>
               <Button onClick={sendInstruction} disabled={busy !== null || !instruction.trim()} style={{ padding: "8px 14px", fontSize: 13 }}>
-                {busy === "instruct" ? "L'agent travaille…" : "Envoyer"}
+                {busy === "instruct" ? "The agent is working…" : "Send"}
               </Button>
-              <span style={{ fontSize: 11, color: color.textFaint }}>Compte comme une micro-retouche.</span>
+              <span style={{ fontSize: 11, color: color.textFaint }}>Counts as a micro-edit.</span>
             </div>
             {rationale && <p style={{ margin: "10px 0 0", fontSize: 12, color: color.textMuted }}>{rationale}</p>}
           </div>
@@ -796,15 +796,15 @@ export default function DesignEditor({
       {pickerModal}
 
       <Modal open={confirmRefresh} onClose={() => setConfirmRefresh(false)} width={440}>
-        <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, margin: "0 0 8px" }}>Recomposer la maquette ?</h2>
+        <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, margin: "0 0 8px" }}>Recompose the mockup?</h2>
         <p style={{ margin: "0 0 16px", fontSize: 13, color: color.textMuted }}>
-          L&apos;agent repart du storyboard actuel avec les mêmes photos. Tes retouches manuelles sur cette maquette seront perdues.
+          The agent starts over from the current storyboard with the same photos. Your manual edits on this mockup will be lost.
         </p>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <Button variant="secondary" onClick={() => setConfirmRefresh(false)}>
-            Annuler
+            Cancel
           </Button>
-          <Button onClick={refresh}>Recomposer</Button>
+          <Button onClick={refresh}>Recompose</Button>
         </div>
       </Modal>
     </div>

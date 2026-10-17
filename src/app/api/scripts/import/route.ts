@@ -6,9 +6,9 @@ import { storyboardStepSchema } from "@/lib/llm/scriptSchema";
 import { platformSchema, contentCategorySchema, contentTypeSchema } from "@/lib/validation";
 import { handleApiError } from "@/lib/api/errors";
 
-// Import d'un script écrit ailleurs (docs/SPEC_MATIERE_EDITEUR.md §2) — aucun appel LLM, aucun quota.
-// Le rôle (contentCategoryId) reste obligatoire en post libre (décision §8.2 : colonne NOT NULL,
-// pondération calendrier, sélection d'angle) ; avec une série, il en est dérivé
+// Import of a script written elsewhere (docs/SPEC_MATIERE_EDITEUR.md §2) — no LLM call, no quota.
+// The role (contentCategoryId) remains mandatory for a free post (decision §8.2: NOT NULL column,
+// calendar weighting, angle selection); with a series, it is derived from it
 // (docs/SPEC_SERIES_ET_ROLES.md §4.2).
 const schema = z
   .object({
@@ -19,9 +19,9 @@ const schema = z
     seriesId: z.uuid().optional(),
     scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format attendu : YYYY-MM-DD").optional(),
     calendarEntryId: z.uuid().optional(),
-    // Optionnels ici : l'écriture ailleurs (§2) impose les deux côté formulaire (ImportScriptForm),
-    // la naissance paresseuse (§4.5) peut poser un seul bloc — importScriptForUser vérifie qu'au
-    // moins un champ de contenu est rempli.
+    // Optional here: writing elsewhere (§2) requires both on the form side (ImportScriptForm),
+    // lazy creation (§4.5) may set a single block — importScriptForUser checks that at least
+    // one content field is filled.
     title: z.string().min(1).optional(),
     caption: z.string().min(1).optional(),
     hashtags: z.array(z.string()).default([]),
@@ -30,7 +30,7 @@ const schema = z
     storyboard: z.array(storyboardStepSchema).optional(),
   })
   .refine((data) => !(data.scheduledDate && data.calendarEntryId), {
-    message: "scheduledDate et calendarEntryId sont mutuellement exclusifs.",
+    message: "scheduledDate and calendarEntryId are mutually exclusive.",
   });
 
 export async function POST(request: NextRequest) {

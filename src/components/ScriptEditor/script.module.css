@@ -1,5 +1,5 @@
-/* Fiche d'un post : le post à gauche, ce qui l'accompagne à droite (colonne fixe au défilement).
-   Une seule colonne sur les écrans étroits, le post d'abord. */
+/* Post page: the post on the left, what goes with it on the right (column fixed on scroll).
+   A single column on narrow screens, the post first. */
 
 .page {
   padding: clamp(18px, 3.5vw, 32px) clamp(16px, 3.5vw, 40px) 64px;

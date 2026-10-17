@@ -5,13 +5,13 @@ import LandingCtaFinal from "@/components/landing/LandingCtaFinal";
 import LandingPricing from "@/components/landing/LandingPricing";
 import styles from "@/components/landing/landing.module.css";
 
-/** Événement global émis par le lien « Tarifs » du header pour afficher la grille. */
+/** Global event fired by the header's "Pricing" link to show the pricing grid. */
 export const OPEN_PRICING_EVENT = "cf-open-pricing";
 
 /**
- * Tarifs masqués sur la landing pour l'instant (décision du 2026-10-15) : ils seront
- * présentés dans l'app. Passer à `true` réactive le bouton « Voir les tarifs », le lien
- * « Tarifs » du header, l'ancre #tarifs et le fondu vers la grille — rien d'autre à changer.
+ * Pricing hidden on the landing for now (decision of 2026-10-15): it will be
+ * presented in the app. Switching to `true` re-enables the "See pricing" button, the header's
+ * "Pricing" link, the #tarifs anchor and the fade to the grid — nothing else to change.
  */
 export const PRICING_ENABLED = false;
 
@@ -19,10 +19,10 @@ type View = "cta" | "pricing";
 const FADE_OUT_MS = 240;
 
 /**
- * Section finale à deux faces : le CTA « Ta première semaine t'attend » par
- * défaut, remplacé en fondu par la grille de tarifs à la demande (bouton « Voir les tarifs »,
- * lien « Tarifs » du header, ou arrivée directe sur #tarifs). Un bouton « Retour » ramène au
- * CTA. Les deux ne sont jamais affichés ensemble : la landing reste courte.
+ * Two-sided final section: the "Your first week is waiting" CTA by
+ * default, replaced with a fade by the pricing grid on demand ("See pricing" button,
+ * the header's "Pricing" link, or landing directly on #tarifs). A "Back" button returns to the
+ * CTA. The two are never shown together: the landing stays short.
  */
 export default function LandingOffer() {
   const [view, setView] = useState<View>("cta");
@@ -65,7 +65,7 @@ export default function LandingOffer() {
     <section
       id="tarifs"
       ref={sectionRef}
-      data-screen-label="Offre"
+      data-screen-label="Offer"
       style={{ borderTop: "1px solid rgba(34,29,25,0.07)", scrollMarginTop: 64, overflow: "hidden" }}
     >
       <div key={view} className={leaving ? styles.fadeOut : styles.fadeIn}>

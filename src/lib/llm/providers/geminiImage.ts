@@ -5,9 +5,9 @@ import type { LlmToolDefinition } from "../types";
 const CAPTION_MODEL = process.env.GEMINI_MODEL || "gemini-3.6-flash";
 
 /**
- * Chemin dédié au captioning vision — hors `callStructured` (texte uniquement, cf.
- * src/lib/llm/provider.ts) puisqu'il faut ici passer une image en entrée via `inlineData`. C'est le
- * seul usage image de Gemini qui subsiste : la génération d'image (Nano Banana) a été retirée
+ * Dedicated path for vision captioning — outside `callStructured` (text only, see
+ * src/lib/llm/provider.ts) since an image must be passed as input here via `inlineData`. It is the
+ * only remaining image use of Gemini: image generation (Nano Banana) was removed
  * (docs/SPEC_COMPOSITION_VISUELLE.md §1).
  */
 export async function captionImage(
@@ -40,7 +40,7 @@ export async function captionImage(
 
   const call = response.functionCalls?.[0];
   if (!call) {
-    throw new Error("Le modèle n'a pas renvoyé de caption structurée.");
+    throw new Error("The model did not return a structured caption.");
   }
   return call.args;
 }

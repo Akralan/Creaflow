@@ -21,9 +21,9 @@ const deleteSchema = z.object({
   emailConfirmation: z.string().optional(),
 });
 
-// Suppression de compte (docs/SPEC_LEGAL_EMAIL_RGPD.md §4.2) : confirmation par mot de passe, ou
-// par recopie de l'adresse pour un compte sans mot de passe. Le cookie est effacé ensuite — et de
-// toute façon getCurrentUserId ne reconnaîtrait plus un utilisateur qui n'existe plus.
+// Account deletion (docs/SPEC_LEGAL_EMAIL_RGPD.md §4.2): confirmation by password, or by
+// re-typing the address for an account without a password. The cookie is cleared afterwards — and
+// getCurrentUserId would no longer recognize a user who no longer exists anyway.
 export async function DELETE(request: NextRequest) {
   try {
     const userId = await requireUserId();

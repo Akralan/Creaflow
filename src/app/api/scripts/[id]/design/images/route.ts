@@ -6,7 +6,7 @@ import { addDesignImage, toApiDesignWithAssets } from "@/lib/services/visualDesi
 
 const schema = z.object({ assetId: z.uuid() });
 
-/** Ajoute une photo de la bibliothèque à la maquette sans recomposer (docs/SPEC_COMPOSITION_VISUELLE.md §6). */
+/** Adds a photo from the library to the mockup without recomposing (docs/SPEC_COMPOSITION_VISUELLE.md §6). */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userId = await requireUserId();

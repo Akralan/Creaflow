@@ -20,13 +20,13 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file");
 
     if (!(file instanceof File)) {
-      throw new ApiError(400, "Aucun fichier fourni.");
+      throw new ApiError(400, "No file provided.");
     }
     if (!ALLOWED_EXTENSIONS.some((ext) => file.name.toLowerCase().endsWith(ext))) {
-      throw new ApiError(400, "Seuls les fichiers .md et .txt sont acceptés.");
+      throw new ApiError(400, "Only .md and .txt files are accepted.");
     }
     if (file.size > MAX_MATERIAL_FILE_SIZE_BYTES) {
-      throw new ApiError(400, "Fichier trop volumineux (2 Mo maximum).");
+      throw new ApiError(400, "File too large (2 MB max).");
     }
 
     const rawText = await file.text();
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     });
     after(() =>
       summarizeMaterialDocument(material.id).catch((err) =>
-        logger.error("Résumé de matière échoué", err, { materialId: material.id })
+        logger.error("Material summary failed", err, { materialId: material.id })
       )
     );
     // Lecture des événements du sujet en arrière-plan (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3).

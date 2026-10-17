@@ -7,8 +7,8 @@ import { accent, accentAlpha, accentHover, accentText, bg, text, ink } from "@/c
 import { hoverHandlers } from "@/components/landing/hoverStyle";
 import styles from "@/components/landing/landing.module.css";
 
-// Grille de tarifs, rendue repliée sous le CTA final (cf. LandingOffer). Version « mensuel »
-// uniquement — cf. src/lib/billing/plans.ts pour les quotas de scripts de chaque plan.
+// Pricing grid, rendered collapsed under the final CTA (see LandingOffer). "Monthly" version
+// only — see src/lib/billing/plans.ts for each plan's script quotas.
 const cardBase: CSSProperties = {
   background: bg.card,
   border: `1px solid ${ink(0.08)}`,
@@ -121,10 +121,10 @@ export default function LandingPricing({ onBack }: Props) {
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 14, marginBottom: 14 }}>
             <button type="button" onClick={onBack} style={backStyle} {...hoverHandlers(backStyle, backHover)}>
               <span style={{ fontFamily: fontMono, fontSize: 13 }}>←</span>
-              Retour
+              Back
             </button>
             <p style={{ margin: 0, fontFamily: fontMono, fontSize: 12, letterSpacing: "0.14em", textTransform: "uppercase", color: text.faint }}>
-              Tarifs
+              Pricing
             </p>
           </div>
           <h3
@@ -139,28 +139,28 @@ export default function LandingPricing({ onBack }: Props) {
               textWrap: "balance",
             }}
           >
-            Commencez sans rien payer
+            Start without paying a thing
           </h3>
         </div>
         <p style={{ margin: 0, fontSize: "1rem", color: text.secondary, lineHeight: 1.55, maxWidth: "40ch" }}>
-          Sans engagement. Change de formule ou arrête quand tu veux.
+          No commitment. Switch plans or stop whenever you like.
         </p>
       </div>
 
       <div className={styles.pricingGrid}>
         <article className={styles.pricingCard} style={cardBase} {...hoverHandlers(cardBase, cardHover)}>
           <div>
-            <p style={planName}>Essai gratuit</p>
-            <p style={priceStyle}>0 €</p>
-            <p style={planDescription}>Pour voir ce que CreaFlow écrit avec ta marque.</p>
+            <p style={planName}>Free trial</p>
+            <p style={priceStyle}>$0</p>
+            <p style={planDescription}>See what Buildloud writes in your voice.</p>
           </div>
           <ul style={featureList}>
-            <li style={featureItem}><Check />5 scripts offerts, à vie</li>
-            <li style={featureItem}><Check />30 micro-retouches dans l&apos;éditeur</li>
-            <li style={featureItem}><Check />Sans carte bancaire</li>
+            <li style={featureItem}><Check />5 free scripts, for life</li>
+            <li style={featureItem}><Check />30 micro-edits in the editor</li>
+            <li style={featureItem}><Check />No credit card</li>
           </ul>
           <Link href="/onboarding" style={outlineCta} {...hoverHandlers(outlineCta, outlineCtaHover)}>
-            Créer mon compte
+            Create my account
           </Link>
         </article>
 
@@ -168,18 +168,18 @@ export default function LandingPricing({ onBack }: Props) {
           <div>
             <p style={planName}>Starter</p>
             <p style={{ margin: 0, display: "flex", alignItems: "baseline", gap: 7 }}>
-              <span style={priceStyle}>20 €</span>
-              <span style={{ fontSize: "0.95rem", color: text.muted }}>/mois</span>
+              <span style={priceStyle}>$20</span>
+              <span style={{ fontSize: "0.95rem", color: text.muted }}>/month</span>
             </p>
-            <p style={planDescription}>De quoi publier deux fois par semaine, toute l&apos;année.</p>
+            <p style={planDescription}>Enough to post twice a week, all year long.</p>
           </div>
           <ul style={featureList}>
-            <li style={featureItem}><Check />30 scripts générés par mois</li>
-            <li style={featureItem}><Check />150 micro-retouches par mois</li>
-            <li style={featureItem}><Check />Toutes les fonctionnalités</li>
+            <li style={featureItem}><Check />30 generated scripts per month</li>
+            <li style={featureItem}><Check />150 micro-edits per month</li>
+            <li style={featureItem}><Check />All features</li>
           </ul>
           <Link href="/onboarding" style={outlineCta} {...hoverHandlers(outlineCta, outlineCtaHover)}>
-            Choisir Starter
+            Choose Starter
           </Link>
         </article>
 
@@ -190,22 +190,22 @@ export default function LandingPricing({ onBack }: Props) {
                 Pro
               </p>
               <span style={{ fontSize: 12.5, fontWeight: 600, padding: "4px 11px", borderRadius: 999, background: accentAlpha(0.12), color: accentText }}>
-                Le plus choisi
+                Most popular
               </span>
             </div>
             <p style={{ margin: 0, display: "flex", alignItems: "baseline", gap: 7 }}>
-              <span style={priceStyle}>45 €</span>
-              <span style={{ fontSize: "0.95rem", color: text.muted }}>/mois</span>
+              <span style={priceStyle}>$45</span>
+              <span style={{ fontSize: "0.95rem", color: text.muted }}>/month</span>
             </p>
-            <p style={planDescription}>Pour être présent tous les jours, sur plusieurs plateformes.</p>
+            <p style={planDescription}>To show up every day, across several platforms.</p>
           </div>
           <ul style={featureList}>
-            <li style={featureItem}><Check />150 scripts générés par mois</li>
-            <li style={featureItem}><Check />600 micro-retouches par mois</li>
-            <li style={featureItem}><Check />Toutes les fonctionnalités</li>
+            <li style={featureItem}><Check />150 generated scripts per month</li>
+            <li style={featureItem}><Check />600 micro-edits per month</li>
+            <li style={featureItem}><Check />All features</li>
           </ul>
           <Link href="/onboarding" style={primaryCta} {...hoverHandlers(primaryCta, primaryCtaHover)}>
-            Choisir Pro
+            Choose Pro
           </Link>
         </article>
       </div>

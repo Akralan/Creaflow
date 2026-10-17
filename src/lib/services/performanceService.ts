@@ -2,18 +2,18 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { scripts } from "@/db/schema";
 
-/** Sous ce seuil de scripts avec métriques saisies sur la plateforme, le signal est trop
- *  bruité pour être exploitable — on n'injecte rien dans le prompt plutôt que de généraliser
- *  sur 1-2 posts. */
+/** Below this threshold of scripts with metrics entered on the platform, the signal is too
+ *  noisy to be usable — we inject nothing into the prompt rather than generalise
+ *  from 1-2 posts. */
 const MIN_SAMPLES_FOR_SIGNAL = 3;
 
 function engagementRate(m: { views: number; likes: number; comments: number; shares: number }): number {
   return (m.likes + m.comments + m.shares) / Math.max(m.views, 1);
 }
 
-/** Résume ce qui performe le mieux récemment sur cette plateforme, catégorie par catégorie,
- *  à partir des métriques saisies manuellement par l'utilisateur. Pas d'appel LLM ici :
- *  un calcul déterministe simple suffit et reste bon marché. */
+/** Summarises what performs best recently on this platform, category by category,
+ *  from the metrics entered manually by the user. No LLM call here:
+ *  a simple deterministic calculation is enough and stays cheap. */
 export async function buildPerformanceSummary(userId: string, platform: string): Promise<string | null> {
   const rows = await db.query.scripts.findMany({
     where: and(eq(scripts.userId, userId), eq(scripts.platform, platform)),
@@ -36,7 +36,7 @@ export async function buildPerformanceSummary(userId: string, platform: string):
     byCategory.set(label, entry);
   }
 
-  // Comparer les catégories n'a de sens que s'il y en a au moins 2 avec des données.
+  // Comparing categories only makes sense if there are at least 2 with data.
   if (byCategory.size < 2) return null;
 
   const ranked = Array.from(byCategory.entries())
@@ -44,5 +44,5 @@ export async function buildPerformanceSummary(userId: string, platform: string):
     .sort((a, b) => b.avg - a.avg);
 
   const best = ranked[0];
-  return `Sur ${platform}, les contenus de catégorie "${best.label}" ont le meilleur taux d'engagement récent (vues/likes/commentaires/partages saisis par l'utilisateur) — privilégie des angles similaires quand c'est pertinent, sans t'y limiter.`;
+  return `On ${platform}, content in the "${best.label}" category has the best recent engagement rate (views/likes/comments/shares entered by the user) — favour similar angles when relevant, without limiting yourself to them.`;
 }

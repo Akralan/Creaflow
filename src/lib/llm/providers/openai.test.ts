@@ -98,7 +98,7 @@ describe("callOpenAIAgentic", () => {
     const result = await callOpenAIAgentic(baseParams(onToolCall));
 
     expect(onToolCall).not.toHaveBeenCalled();
-    expect(result.toolCalls[0]).toMatchObject({ failed: true, output: { error: "Arguments JSON invalides." } });
+    expect(result.toolCalls[0]).toMatchObject({ failed: true, output: { error: "Invalid JSON arguments." } });
   });
 
   it("tronque un retour d'outil trop volumineux plutôt que de gonfler le contexte", async () => {
@@ -111,7 +111,7 @@ describe("callOpenAIAgentic", () => {
 
     const sent = createMock.mock.calls[1][0].input[2].output as string;
     expect(sent.length).toBeLessThan(21_000);
-    expect(sent).toContain("tronqué");
+    expect(sent).toContain("truncated");
   });
 
   it("au plafond de tours, conclut par un appel sans outils plutôt que de rendre la main sans réponse", async () => {

@@ -32,7 +32,7 @@ export default function UploadDropzone({ onFiles }: { onFiles: (files: File[]) =
         background: dragOver ? "oklch(0.55 0.2 292 / 0.05)" : "transparent",
       }}
     >
-      Glisse des photos ici, ou clique pour en choisir depuis ton ordinateur.
+      Drop photos here, or click to choose from your computer.
       <input
         ref={inputRef}
         type="file"

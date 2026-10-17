@@ -5,11 +5,11 @@ import { callGroq } from "./providers/groq";
 import { callOpenAI, callOpenAIAgentic, callOpenAIWebResearch } from "./providers/openai";
 import { logger } from "@/lib/logger";
 
-// Rappel ajouté au system prompt pour la nouvelle tentative — certains modèles (notamment via Groq)
-// répondent parfois en texte libre malgré un tool_choice forcé ; un rappel explicite au 2e essai
-// suffit généralement à corriger le tir.
+// Reminder added to the system prompt for the retry — some models (notably via Groq)
+// sometimes answer in free text despite a forced tool_choice; an explicit reminder on the 2nd try
+// is generally enough to set things right.
 const TOOL_CALL_RETRY_NOTE =
-  "\n\nRAPPEL IMPORTANT : ta réponse précédente n'a pas appelé l'outil requis. Tu DOIS appeler l'outil fourni, avec tous les champs requis remplis. N'écris rien en dehors de l'appel d'outil.";
+  "\n\nIMPORTANT REMINDER: your previous response did not call the required tool. You MUST call the provided tool, with all the required fields filled in. Write nothing outside the tool call.";
 
 function callProvider(provider: string, params: StructuredCallParams): Promise<unknown> {
   switch (provider) {
@@ -22,35 +22,35 @@ function callProvider(provider: string, params: StructuredCallParams): Promise<u
     case "openai":
       return callOpenAI(params);
     default:
-      throw new Error(`LLM_PROVIDER inconnu : "${provider}" (attendu "gemini", "anthropic", "groq" ou "openai").`);
+      throw new Error(`Unknown LLM_PROVIDER: "${provider}" (expected "gemini", "anthropic", "groq" or "openai").`);
   }
 }
 
 /**
- * Boucle agentique — N outils non imposés, plusieurs allers-retours (docs/SPEC_ASSISTANT_AGENTIQUE.md §2.2).
+ * Agentic loop — N tools not forced, several round trips (docs/SPEC_ASSISTANT_AGENTIQUE.md §2.2).
  *
- * Ne consulte volontairement PAS `LLM_PROVIDER` : la boucle n'est implémentée que pour OpenAI, et
- * `LLM_PROVIDER` pilote la génération de contenu, pas toutes les capacités du produit. Même parti
- * pris que les embeddings et la génération d'images, câblés en dur sur Gemini pour la même raison
+ * Deliberately does NOT consult `LLM_PROVIDER`: the loop is only implemented for OpenAI, and
+ * `LLM_PROVIDER` drives content generation, not all of the product's capabilities. Same stance
+ * as embeddings and image generation, hard-wired to Gemini for the same reason
  * (embeddings.ts, providers/geminiImage.ts).
  *
- * Pas de filet `TOOL_CALL_RETRY_NOTE` ici : répondre en texte libre est une issue légitime d'un tour
- * agentique, il n'y a rien à rattraper.
+ * No `TOOL_CALL_RETRY_NOTE` safety net here: answering in free text is a legitimate outcome of an
+ * agentic turn, there is nothing to catch.
  */
 export async function callAgentic(params: AgenticCallParams): Promise<AgenticResult> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error(
-      "OPENAI_API_KEY est requis pour l'assistant : la boucle agentique n'existe que chez OpenAI, indépendamment de LLM_PROVIDER."
+      "OPENAI_API_KEY is required for the assistant: the agentic loop only exists with OpenAI, regardless of LLM_PROVIDER."
     );
   }
   return callOpenAIAgentic(params);
 }
 
-/** Recherche web de la veille d'inspiration (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.2) — OpenAI en dur,
- *  même parti pris que callAgentic : elle ne dépend pas de LLM_PROVIDER. */
+/** Web search for the inspiration watch (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.2) — hard-wired to OpenAI,
+ *  same stance as callAgentic: it doesn't depend on LLM_PROVIDER. */
 export async function callWebResearch(params: WebResearchParams): Promise<WebResearchResult> {
   if (!process.env.OPENAI_API_KEY) {
-    throw new Error("OPENAI_API_KEY est requis pour la veille d'inspiration : la recherche web passe par OpenAI, indépendamment de LLM_PROVIDER.");
+    throw new Error("OPENAI_API_KEY is required for the inspiration watch: the web search goes through OpenAI, regardless of LLM_PROVIDER.");
   }
   return callOpenAIWebResearch(params);
 }
@@ -61,7 +61,7 @@ export async function callStructured(params: StructuredCallParams): Promise<unkn
   try {
     return await callProvider(provider, params);
   } catch (err) {
-    logger.warn("Premier appel structuré LLM échoué, nouvelle tentative avec rappel", { provider, err: String(err) });
+    logger.warn("First structured LLM call failed, retrying with reminder", { provider, err: String(err) });
     return await callProvider(provider, { ...params, system: params.system + TOOL_CALL_RETRY_NOTE });
   }
 }

@@ -16,11 +16,11 @@ import { visualSpecFromScript } from "@/lib/visualDesign/visualFormat";
 const schema = z.object({ directive: directiveSchema });
 
 /**
- * "Autre idée, même brief" (docs/SPEC_PROMPT_GENERATION_TECH.md §6) — remplace la régénération
- * complète désactivée (POST /api/scripts/:id/regenerate, encore présente en code mais désactivée
- * côté produit). Contrairement à ce regenerate, le geste est DIRIGÉ : le brief est intégralement
- * verrouillé (angle conservé, pas recalculé — §6.1 point 3) et le concept écarté est mémorisé pour
- * ne pas revenir dessus (rejectedConcepts, injecté au tour suivant).
+ * "Another idea, same brief" (docs/SPEC_PROMPT_GENERATION_TECH.md §6) — replaces the disabled
+ * full regeneration (POST /api/scripts/:id/regenerate, still present in code but disabled
+ * on the product side). Unlike that regenerate, the gesture is DIRECTED: the brief is fully
+ * locked (angle kept, not recomputed — §6.1 point 3) and the discarded concept is remembered so
+ * as not to come back to it (rejectedConcepts, injected on the next turn).
  */
 export async function POST(
   request: NextRequest,
@@ -28,11 +28,11 @@ export async function POST(
 ) {
   try {
     const userId = await requireUserId();
-    // Même appel LLM complet qu'une génération ou l'ancien regenerate — même limite partagée.
+    // Same full LLM call as a generation or the former regenerate — same shared limit.
     await enforceRateLimit("script-generate", userId, 20, 60);
     const { id } = await params;
-    // Body optionnel (champ "idée en tête" / bascule select-all, docs/SPEC_REDACTEUR_EN_CHEF.md Lot A)
-    // — l'absence de body reste valide, comme avant l'ajout de la directive.
+    // Optional body ("idea in mind" field / select-all toggle, docs/SPEC_REDACTEUR_EN_CHEF.md Lot A)
+    // — a missing body stays valid, as before the directive was added.
     const { directive } = schema.parse(await request.json().catch(() => ({})));
     await enforceScriptQuota(userId);
 
@@ -40,24 +40,24 @@ export async function POST(
       where: and(eq(scripts.id, id), eq(scripts.userId, userId)),
     });
     if (!existing) {
-      throw new ApiError(404, "Script introuvable.");
+      throw new ApiError(404, "Script not found.");
     }
-    // §6.1 point 1 : un script importé/manuel n'a pas d'intention IA à remplacer.
+    // §6.1 point 1: an imported/manual script has no AI intent to replace.
     if (existing.origin !== "generated" || !existing.concept) {
-      throw new ApiError(409, "Ce script n'a pas de concept généré à remplacer.");
+      throw new ApiError(409, "This script has no generated concept to replace.");
     }
 
-    // §6.1 point 2 : le concept qu'on s'apprête à remplacer rejoint la liste des refusés — calculé
-    // avant l'appel LLM (et avant le choix du jour du chef, à qui il est aussi transmis, §3.3) mais
-    // persisté seulement si la génération réussit (updateScriptRecord plus bas), pour ne rien écrire
-    // si l'appel échoue.
+    // §6.1 point 2: the concept about to be replaced joins the list of rejected ones — computed
+    // before the LLM call (and before the chief picks the day, to whom it is also passed, §3.3) but
+    // persisted only if the generation succeeds (updateScriptRecord below), so as to write nothing
+    // if the call fails.
     const rejectedConcepts = [...((existing.rejectedConcepts as string[] | null) ?? []), existing.concept];
 
-    // Brief intégralement verrouillé : angle conservé (lockedAngleId) comme fallback sans chef, rien
-    // d'autre ne change par rapport à une génération normale — plateforme/catégorie/série/produit
-    // relus depuis le script. Le chef, s'il est actif, peut proposer une nouvelle direction (et donc
-    // un nouvel angleHint) — "autre idée" n'est plus un simple changement de mots à brief identique
-    // dès que le chef décide (docs/SPEC_REDACTEUR_EN_CHEF.md §4.1, Lot B3).
+    // Fully locked brief: angle kept (lockedAngleId) as fallback without a chief, nothing
+    // else changes compared to a normal generation — platform/category/series/product
+    // reread from the script. The chief, if active, may propose a new direction (and thus
+    // a new angleHint) — "another idea" is no longer a simple rewording with an identical brief
+    // once the chief decides (docs/SPEC_REDACTEUR_EN_CHEF.md §4.1, Lot B3).
     const context = await buildGenerationContext(
       userId,
       existing.platform as Platform,
@@ -78,9 +78,9 @@ export async function POST(
       angleId: context.angle?.id ?? null,
       brandAssetId: context.brandAsset?.id ?? null,
       rejectedConcepts,
-      // Script.productId reste verrouillé (existing.productId, jamais réécrit) mais les citations
-      // doivent porter sur le même corpus que celui effectivement lu (hérité du sujet de la série
-      // quand ce script n'en a pas lui-même, docs/SPEC_REDACTEUR_EN_CHEF.md, sélecteur de sujet).
+      // Script.productId stays locked (existing.productId, never rewritten) but the citations
+      // must cover the same corpus as the one actually read (inherited from the series topic
+      // when this script has none itself, docs/SPEC_REDACTEUR_EN_CHEF.md, topic selector).
       citationsProductId: context.resolvedProductId ?? null,
     });
 

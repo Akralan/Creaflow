@@ -2,95 +2,95 @@ import { describe, expect, it } from "vitest";
 import { annotateUsedSpans, findBestMatchInText, mergeIntervals, splitIntoSentences } from "./citationMatching";
 
 describe("splitIntoSentences", () => {
-  it("découpe sur les limites de phrase en conservant la position d'origine", () => {
-    const text = "Premier point. Deuxième point ! Troisième ?";
+  it("splits on sentence boundaries, keeping the original position", () => {
+    const text = "First point. Second point! Third?";
     const sentences = splitIntoSentences(text);
-    expect(sentences.map((s) => s.text)).toEqual(["Premier point.", "Deuxième point !", "Troisième ?"]);
+    expect(sentences.map((s) => s.text)).toEqual(["First point.", "Second point!", "Third?"]);
     for (const s of sentences) {
       expect(text.slice(s.start, s.start + s.text.length)).toBe(s.text);
     }
   });
 
-  it("renvoie un tableau vide pour un texte vide", () => {
+  it("returns an empty array for an empty text", () => {
     expect(splitIntoSentences("")).toEqual([]);
   });
 });
 
 describe("findBestMatchInText", () => {
-  const source = "On a décidé de prioriser le combat avant la navigation. Le mouvement est moins naturel qu'attendu.";
+  const source = "We decided to prioritise combat before navigation. Movement is less natural than expected.";
 
-  it("trouve une citation exacte (chemin rapide)", () => {
-    const match = findBestMatchInText("prioriser le combat avant la navigation", source);
+  it("finds an exact quote (fast path)", () => {
+    const match = findBestMatchInText("prioritise combat before navigation", source);
     expect(match).not.toBeNull();
     expect(match!.score).toBe(1);
-    expect(source.slice(match!.start, match!.start + match!.length).toLowerCase()).toContain("prioriser le combat");
+    expect(source.slice(match!.start, match!.start + match!.length).toLowerCase()).toContain("prioritise combat");
   });
 
-  it("tolère une reformulation légère via le recouvrement de mots", () => {
-    const match = findBestMatchInText("mouvement moins naturel qu'attendu", source);
+  it("tolerates a light rewording through word overlap", () => {
+    const match = findBestMatchInText("movement less natural than expected", source);
     expect(match).not.toBeNull();
   });
 
-  it("renvoie null si rien ne correspond", () => {
-    expect(findBestMatchInText("recette de cuisine pour un gâteau au chocolat", source)).toBeNull();
+  it("returns null if nothing matches", () => {
+    expect(findBestMatchInText("cooking recipe for a chocolate cake", source)).toBeNull();
   });
 
-  it("renvoie null pour un extrait vide", () => {
+  it("returns null for an empty excerpt", () => {
     expect(findBestMatchInText("", source)).toBeNull();
     expect(findBestMatchInText("   ", source)).toBeNull();
   });
 });
 
 describe("mergeIntervals", () => {
-  it("fusionne les intervalles qui se chevauchent", () => {
+  it("merges overlapping intervals", () => {
     expect(mergeIntervals([{ start: 0, length: 10 }, { start: 5, length: 10 }])).toEqual([{ start: 0, length: 15 }]);
   });
 
-  it("fusionne les intervalles qui se touchent exactement", () => {
+  it("merges intervals that touch exactly", () => {
     expect(mergeIntervals([{ start: 0, length: 5 }, { start: 5, length: 5 }])).toEqual([{ start: 0, length: 10 }]);
   });
 
-  it("ne fusionne pas des intervalles disjoints", () => {
+  it("does not merge disjoint intervals", () => {
     expect(mergeIntervals([{ start: 0, length: 5 }, { start: 20, length: 5 }])).toEqual([
       { start: 0, length: 5 },
       { start: 20, length: 5 },
     ]);
   });
 
-  it("trie avant de fusionner, ordre d'entrée indifférent", () => {
+  it("sorts before merging, input order irrelevant", () => {
     expect(mergeIntervals([{ start: 20, length: 5 }, { start: 0, length: 5 }])).toEqual([
       { start: 0, length: 5 },
       { start: 20, length: 5 },
     ]);
   });
 
-  it("renvoie un tableau vide pour une entrée vide", () => {
+  it("returns an empty array for an empty input", () => {
     expect(mergeIntervals([])).toEqual([]);
   });
 });
 
 describe("annotateUsedSpans", () => {
-  const text = "Bonjour le monde, ceci est un texte de test.";
+  const text = "Hello world, this is a test text.";
 
-  it("renvoie le texte inchangé sans zones à annoter", () => {
+  it("returns the text unchanged with no zones to annotate", () => {
     expect(annotateUsedSpans(text, [])).toBe(text);
   });
 
-  it("entoure une zone citée de marqueurs sans supprimer de texte", () => {
-    const result = annotateUsedSpans(text, [{ start: 8, length: 9 }]); // "le monde,"
-    expect(result).toContain("[déjà utilisé dans un post précédent]le monde,[/déjà utilisé]");
+  it("wraps a quoted zone in markers without removing text", () => {
+    const result = annotateUsedSpans(text, [{ start: 6, length: 6 }]); // "world,"
+    expect(result).toContain("[already used in a previous post]world,[/already used]");
     expect(result.replace(/\[.*?\]/g, "")).toBe(text);
   });
 
-  it("fusionne les zones chevauchantes avant d'annoter (pas de marqueurs imbriqués)", () => {
+  it("merges overlapping zones before annotating (no nested markers)", () => {
     const result = annotateUsedSpans(text, [
       { start: 0, length: 10 },
       { start: 5, length: 10 },
     ]);
-    expect(result.match(/\[déjà utilisé dans un post précédent\]/g)?.length).toBe(1);
+    expect(result.match(/\[already used in a previous post\]/g)?.length).toBe(1);
   });
 
-  it("ignore les intervalles hors bornes sans planter", () => {
+  it("ignores out-of-bounds intervals without crashing", () => {
     expect(() => annotateUsedSpans(text, [{ start: -5, length: 3 }, { start: 1000, length: 3 }])).not.toThrow();
   });
 });

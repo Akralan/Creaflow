@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       // Ingestion de matière (§5, Lot B4) : marque isStale l'état du sujet + des séries liées.
       after(() =>
         summarizeMaterialDocument(createdMaterialId).catch((err) =>
-          logger.error("Résumé de matière échoué", err, { materialId: createdMaterialId })
+          logger.error("Material summary failed", err, { materialId: createdMaterialId })
         )
       );
     }

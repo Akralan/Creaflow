@@ -35,9 +35,9 @@ export async function POST(request: NextRequest) {
     const items = Array.isArray(parsed) ? parsed : [parsed];
 
     const created = await createProductsForUser(userId, items);
-    // Portrait des lecteurs produit hors requête (docs/SPEC_PROMPT_GENERATION_V3.md §2.2).
+    // Reader portrait produced outside the request (docs/SPEC_PROMPT_GENERATION_V3.md §2.2).
     after(() =>
-      refreshStaleReaderPortraits(userId, created.map((p) => p.id)).catch((err) => logger.error("Portraits des lecteurs échoués", err, { userId }))
+      refreshStaleReaderPortraits(userId, created.map((p) => p.id)).catch((err) => logger.error("Reader portraits failed", err, { userId }))
     );
 
     return NextResponse.json({ products: created }, { status: 201 });

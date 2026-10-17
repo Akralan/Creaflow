@@ -21,14 +21,14 @@ const OAUTH_AUTHORIZE_ENDPOINT = "https://api.notion.com/v1/oauth/authorize";
 
 export class NotionAuthError extends Error {
   constructor() {
-    super("L'accès Notion a été révoqué ou a expiré — reconnecte ton compte.");
+    super("Notion access was revoked or has expired — reconnect your account.");
     this.name = "NotionAuthError";
   }
 }
 
 export class NotionRateLimitError extends ConnectorRateLimitError {
   constructor(retryAfterMinutes: number) {
-    super(`Quota Notion atteint. Réessaie dans ${retryAfterMinutes} minute(s).`, retryAfterMinutes);
+    super(`Notion rate limit reached. Try again in ${retryAfterMinutes} minute(s).`, retryAfterMinutes);
     this.name = "NotionRateLimitError";
   }
 }
@@ -37,7 +37,7 @@ function credentials(): { clientId: string; clientSecret: string; redirectUri: s
   const clientId = process.env.NOTION_CLIENT_ID;
   const clientSecret = process.env.NOTION_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
-    throw new Error("NOTION_CLIENT_ID et NOTION_CLIENT_SECRET doivent être définis dans l'environnement.");
+    throw new Error("NOTION_CLIENT_ID and NOTION_CLIENT_SECRET must be set in the environment.");
   }
   return { clientId, clientSecret, redirectUri: getOAuthRedirectUri("notion") };
 }
@@ -90,7 +90,7 @@ async function postToken(body: Record<string, string>): Promise<NotionTokenRespo
   });
 
   if (!response.ok) {
-    throw new Error(`Échange du code Notion échoué (${response.status}) : ${await response.text()}`);
+    throw new Error(`Notion code exchange failed (${response.status}): ${await response.text()}`);
   }
 
   const data = (await response.json()) as {
@@ -104,7 +104,7 @@ async function postToken(body: Record<string, string>): Promise<NotionTokenRespo
   };
 
   if (!data.access_token) {
-    throw new Error("Échange du code Notion échoué : réponse sans access_token.");
+    throw new Error("Notion code exchange failed: response without access_token.");
   }
 
   const user = data.owner?.user;
@@ -152,7 +152,7 @@ async function apiCall<T>(token: string, path: string, init?: RequestInit): Prom
       const seconds = Number(response.headers.get("retry-after") ?? 60);
       throw new NotionRateLimitError(Math.max(1, Math.ceil(seconds / 60)));
     }
-    throw new Error(`Appel Notion ${path} échoué (${response.status}) : ${await response.text()}`);
+    throw new Error(`Notion call ${path} failed (${response.status}): ${await response.text()}`);
   }
 
   return response.json() as Promise<T>;
@@ -184,7 +184,7 @@ export function extractTitle(raw: RawSearchResult): string {
   const fromProperties = Object.values(raw.properties ?? {}).find((p) => p.type === "title");
   const parts = fromProperties?.title ?? raw.title ?? [];
   const text = parts.map((t) => t.plain_text ?? "").join("").trim();
-  return text || "Sans titre";
+  return text || "Untitled";
 }
 
 /**

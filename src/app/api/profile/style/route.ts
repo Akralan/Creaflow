@@ -11,7 +11,7 @@ const schema = z.object({
   prefer: z.array(z.string().trim().min(1)).max(MAX_STYLE_LIST_ITEMS).optional(),
 });
 
-/** Édition manuelle des règles de style (docs/SPEC_APPRENTISSAGE_STYLE.md §5.3). */
+/** Manual edit of the style rules (docs/SPEC_APPRENTISSAGE_STYLE.md §5.3). */
 export async function PATCH(request: NextRequest) {
   try {
     const userId = await requireUserId();

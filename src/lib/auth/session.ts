@@ -5,12 +5,12 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 
 const SESSION_COOKIE = "creaflow_session";
-const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 7; // 7 jours
+const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
 function getSecret(): string {
   const secret = process.env.AUTH_SECRET;
   if (!secret) {
-    throw new Error("AUTH_SECRET n'est pas défini dans l'environnement.");
+    throw new Error("AUTH_SECRET is not set in the environment.");
   }
   return secret;
 }
@@ -21,7 +21,7 @@ export function createSessionToken(userId: string): string {
 
 export interface SessionClaims {
   userId: string;
-  /** Instant d'émission, en secondes epoch (claim `iat` posé par jsonwebtoken). */
+  /** Issue time, in epoch seconds (`iat` claim set by jsonwebtoken). */
   issuedAt: number;
 }
 
@@ -38,9 +38,9 @@ export function verifySessionToken(token: string): SessionClaims | null {
 }
 
 /**
- * Un jeton émis avant `sessionsInvalidatedBefore` est refusé. Comparaison à la seconde, parce que
- * `iat` est en secondes : le jeton émis juste après un reset (même seconde) reste valide, celui
- * émis la seconde d'avant ne l'est plus. Fonction pure, testée à part.
+ * A token issued before `sessionsInvalidatedBefore` is rejected. Compared to the second, because
+ * `iat` is in seconds: a token issued right after a reset (same second) stays valid, one
+ * issued the second before no longer is. Pure function, tested separately.
  */
 export function isSessionInvalidated(issuedAtSeconds: number, invalidatedBefore: Date | null): boolean {
   if (!invalidatedBefore) return false;
@@ -64,9 +64,9 @@ export async function clearSessionCookie(): Promise<void> {
 }
 
 /**
- * Une lecture par clé primaire sur chaque requête authentifiée (docs/SPEC_LEGAL_EMAIL_RGPD.md §3.4) :
- * c'est le prix pour qu'un changement de mot de passe ferme vraiment les autres sessions, et pour
- * qu'un cookie survivant à la suppression du compte ne soit plus reconnu.
+ * One primary-key read on every authenticated request (docs/SPEC_LEGAL_EMAIL_RGPD.md §3.4):
+ * the price for a password change to really close the other sessions, and for
+ * a cookie surviving account deletion to no longer be recognized.
  */
 export async function getCurrentUserId(): Promise<string | null> {
   const cookieStore = await cookies();
@@ -86,7 +86,7 @@ export async function getCurrentUserId(): Promise<string | null> {
 
 export class UnauthorizedError extends Error {
   constructor() {
-    super("Non authentifié");
+    super("Not authenticated");
     this.name = "UnauthorizedError";
   }
 }

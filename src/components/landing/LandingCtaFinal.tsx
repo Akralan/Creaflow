@@ -43,18 +43,18 @@ const pricingToggleStyle: CSSProperties = {
 const pricingToggleHover: CSSProperties = { background: "rgba(255,253,250,1)", borderColor: ink(0.26), color: text.body };
 
 type Props = {
-  /** Absent quand les tarifs sont masqués (cf. PRICING_ENABLED dans LandingOffer). */
+  /** Absent when pricing is hidden (see PRICING_ENABLED in LandingOffer). */
   onShowPricing?: () => void;
 };
 
 /**
- * Mot de la fin, avec le CTA répété — la dernière chose qu'on voit avant le footer. Occupe un
- * écran entier (le panneau s'arrêtait à mi-hauteur, ce qui cassait l'empilement des sections),
- * l'éventail de posts grandit avec la fenêtre (cf. --card-w dans .fan).
+ * Closing word, with the repeated CTA — the last thing seen before the footer. Takes up a
+ * full screen (the panel used to stop halfway, which broke the section stacking),
+ * the post fan grows with the window (see --card-w in .fan).
  */
 export default function LandingCtaFinal({ onShowPricing }: Props) {
   return (
-    <div data-screen-label="CTA final" className={styles.ctaFinal} style={{ position: "relative", overflow: "hidden" }}>
+    <div data-screen-label="Final CTA" className={styles.ctaFinal} style={{ position: "relative", overflow: "hidden" }}>
       <div
         data-parallax=""
         data-speed="0.14"
@@ -97,15 +97,15 @@ export default function LandingCtaFinal({ onShowPricing }: Props) {
             textWrap: "balance",
           }}
         >
-          Ta première semaine t&apos;attend
+          Your first week is waiting
         </h2>
         <p
           data-reveal=""
           data-delay={80}
           style={{ margin: "20px auto 0", fontSize: "1.06rem", lineHeight: 1.55, color: text.secondary, maxWidth: "44ch", textWrap: "pretty" }}
         >
-          Branche une source, réponds à trois questions, et ta ligne éditoriale est prête. Gratuit, sans carte
-          bancaire.
+          Connect a source, answer three questions, and your editorial line is ready. Free, no credit
+          card.
         </p>
         <div
           data-reveal=""
@@ -113,19 +113,19 @@ export default function LandingCtaFinal({ onShowPricing }: Props) {
           style={{ marginTop: 32, display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: 14 }}
         >
           <Link href="/onboarding" style={ctaStyle} {...hoverHandlers(ctaStyle, ctaHover)}>
-            Démarrer gratuitement
+            Start for free
             <span style={{ fontFamily: fontMono, fontSize: 15 }}>→</span>
           </Link>
           {onShowPricing && (
             <button type="button" onClick={onShowPricing} style={pricingToggleStyle} {...hoverHandlers(pricingToggleStyle, pricingToggleHover)}>
-              Voir les tarifs
+              See pricing
               <span style={{ color: accentText, fontFamily: fontMono, fontSize: 14 }}>→</span>
             </button>
           )}
         </div>
         {onShowPricing && (
           <p data-reveal="" data-delay={220} style={{ margin: "18px auto 0", fontSize: 13.5, color: text.faint }}>
-            Puis à partir de 20 € par mois, sans engagement.
+            Then from $20 a month, cancel anytime.
           </p>
         )}
       </div>

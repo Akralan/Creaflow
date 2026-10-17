@@ -6,17 +6,17 @@ import { api, ApiClientError, type MaterialEvent, type MaterialEventKind } from 
 import { color } from "@/lib/design/tokens";
 
 /**
- * Ligne de temps d'un sujet (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3) : ce que le lecteur
- * d'événements a trouvé dans la matière, dans l'ordre des dates, corrigeable, plus ce que l'auteur
- * ajoute lui-même. Lot 0 : une liste, un bouton « Relire la matière », un ajout à la main.
+ * Timeline of a topic (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3): what the event reader
+ * found in the material, in date order, correctable, plus what the author adds
+ * themselves. Lot 0: a list, a "Re-read the material" button, a manual add.
  */
 
 const KIND_LABELS: Record<MaterialEventKind, string> = {
-  failure: "Échec",
-  decision: "Décision",
-  result: "Résultat",
-  feedback: "Retour",
-  milestone: "Étape",
+  failure: "Failure",
+  decision: "Decision",
+  result: "Result",
+  feedback: "Feedback",
+  milestone: "Milestone",
 };
 
 const KIND_COLORS: Record<MaterialEventKind, string> = {
@@ -28,10 +28,10 @@ const KIND_COLORS: Record<MaterialEventKind, string> = {
 };
 
 function formatEventDate(event: MaterialEvent): string {
-  if (!event.date || event.datePrecision === "unknown") return "sans date";
+  if (!event.date || event.datePrecision === "unknown") return "no date";
   const d = new Date(`${event.date}T00:00:00.000Z`);
-  if (event.datePrecision === "month") return d.toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
-  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  if (event.datePrecision === "month") return d.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
+  return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
 }
 
 export default function EventTimeline({ productId }: { productId: string }) {
@@ -76,11 +76,11 @@ export default function EventTimeline({ productId }: { productId: string }) {
       await reload();
       setNotice(
         report.documents === 0
-          ? "Tout est déjà lu."
-          : `${report.documentsRead} document${report.documentsRead > 1 ? "s" : ""} lu${report.documentsRead > 1 ? "s" : ""}, ${report.eventsSaved} événement${report.eventsSaved > 1 ? "s" : ""} trouvé${report.eventsSaved > 1 ? "s" : ""}${report.stoppedAtMaxTurns ? " — lecture interrompue, relance pour finir." : "."}`
+          ? "Everything has already been read."
+          : `${report.documentsRead} document${report.documentsRead > 1 ? "s" : ""} read, ${report.eventsSaved} event${report.eventsSaved > 1 ? "s" : ""} found${report.stoppedAtMaxTurns ? " — reading interrupted, run it again to finish." : "."}`
       );
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Lecture impossible, réessaie.");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't read the material, please try again.");
     } finally {
       setReading(false);
     }
@@ -104,7 +104,7 @@ export default function EventTimeline({ productId }: { productId: string }) {
       setAdding(false);
       await reload();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Enregistrement impossible.");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't save.");
     } finally {
       setSaving(false);
     }
@@ -116,7 +116,7 @@ export default function EventTimeline({ productId }: { productId: string }) {
       await api.deleteEvent(id);
       setEvents((prev) => prev.filter((e) => e.id !== id));
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Suppression impossible.");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't delete.");
     }
   }
 
@@ -137,17 +137,17 @@ export default function EventTimeline({ productId }: { productId: string }) {
     <div style={{ border: `1px solid ${color.border}`, borderRadius: 10, padding: 12, background: color.cardBg, display: "grid", gap: 10 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
         <div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: color.textSecondary }}>Ligne de temps · {events.length}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: color.textSecondary }}>Timeline · {events.length}</div>
           <div style={{ fontSize: 12, color: color.textFaint }}>
-            {unread > 0 ? `${unread} document${unread > 1 ? "s" : ""} pas encore lu${unread > 1 ? "s" : ""}.` : "Toute la matière a été lue."}
+            {unread > 0 ? `${unread} document${unread > 1 ? "s" : ""} not read yet.` : "All the material has been read."}
           </div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <Button variant="secondary" onClick={() => setAdding((v) => !v)}>
-            {adding ? "Annuler" : "+ Il s'est passé ça"}
+            {adding ? "Cancel" : "+ Something happened"}
           </Button>
           <Button variant="secondary" onClick={readNow} disabled={reading}>
-            {reading ? "Lecture en cours…" : "Relire la matière"}
+            {reading ? "Reading…" : "Re-read the material"}
           </Button>
         </div>
       </div>
@@ -167,18 +167,18 @@ export default function EventTimeline({ productId }: { productId: string }) {
               ))}
             </select>
           </div>
-          <input placeholder="Le moment, en une ligne" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} style={inputStyle} />
+          <input placeholder="The moment, in one line" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} style={inputStyle} />
           <textarea
-            placeholder="Ce qui s'est passé, avec les chiffres et les noms"
+            placeholder="What happened, with the numbers and names"
             value={draft.whatHappened}
             onChange={(e) => setDraft({ ...draft, whatHappened: e.target.value })}
             rows={3}
             style={{ ...inputStyle, resize: "vertical" }}
           />
-          <input placeholder="Ce que ça a changé (facultatif)" value={draft.whatChanged} onChange={(e) => setDraft({ ...draft, whatChanged: e.target.value })} style={inputStyle} />
+          <input placeholder="What it changed (optional)" value={draft.whatChanged} onChange={(e) => setDraft({ ...draft, whatChanged: e.target.value })} style={inputStyle} />
           <div>
             <Button onClick={addEvent} disabled={saving || !draft.title.trim() || !draft.whatHappened.trim()}>
-              {saving ? "Enregistrement…" : "Enregistrer"}
+              {saving ? "Saving…" : "Save"}
             </Button>
           </div>
         </div>
@@ -186,7 +186,7 @@ export default function EventTimeline({ productId }: { productId: string }) {
 
       {events.length === 0 ? (
         <p style={{ margin: 0, fontSize: 13, color: color.textMuted }}>
-          Rien pour l&apos;instant. La matière déposée est lue en arrière-plan ; « Relire la matière » force la lecture tout de suite.
+          Nothing yet. Uploaded material is read in the background; &ldquo;Re-read the material&rdquo; forces a read right away.
         </p>
       ) : (
         <div style={{ display: "grid", gap: 8 }}>
@@ -195,24 +195,24 @@ export default function EventTimeline({ productId }: { productId: string }) {
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: KIND_COLORS[event.kind] }}>{KIND_LABELS[event.kind]}</span>
                 <span style={{ fontSize: 11, color: color.textFaint }}>{formatEventDate(event)}</span>
-                {event.origin === "user" && <span style={{ fontSize: 11, color: color.textFaint }}>· écrit par toi</span>}
+                {event.origin === "user" && <span style={{ fontSize: 11, color: color.textFaint }}>· written by you</span>}
                 {event.sourceMaterial?.title && <span style={{ fontSize: 11, color: color.textFaint }}>· {event.sourceMaterial.title}</span>}
                 <button
                   onClick={() => remove(event.id)}
                   style={{ marginLeft: "auto", fontSize: 11, color: color.danger, border: "none", background: "none", cursor: "pointer" }}
                 >
-                  Supprimer
+                  Delete
                 </button>
               </div>
               <div style={{ fontSize: 13, fontWeight: 600, color: color.text }}>{event.title}</div>
               <div style={{ fontSize: 13, color: color.text2, lineHeight: 1.45 }}>{event.whatHappened}</div>
               {event.whatChanged && (
                 <div style={{ fontSize: 12, color: color.textMuted, lineHeight: 1.4 }}>
-                  <span style={{ fontWeight: 600 }}>Ensuite : </span>
+                  <span style={{ fontWeight: 600 }}>Afterwards: </span>
                   {event.whatChanged}
                 </div>
               )}
-              {event.audiences.length > 0 && <div style={{ fontSize: 11, color: color.textFaint }}>Pour : {event.audiences.join(", ")}</div>}
+              {event.audiences.length > 0 && <div style={{ fontSize: 11, color: color.textFaint }}>For: {event.audiences.join(", ")}</div>}
             </div>
           ))}
         </div>

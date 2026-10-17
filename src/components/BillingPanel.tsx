@@ -6,18 +6,18 @@ import Button from "@/components/ui/Button";
 import { color } from "@/lib/design/tokens";
 import { api, ApiClientError, type BillingInfo } from "@/lib/apiClient";
 
-// Miroir de NON_TERMINAL_SUBSCRIPTION_STATUSES (src/lib/services/billingService.ts) côté client —
-// pas d'import direct possible, ce module tire `db` (server-only) dans le bundle client.
+// Client-side mirror of NON_TERMINAL_SUBSCRIPTION_STATUSES (src/lib/services/billingService.ts) —
+// no direct import possible, that module pulls `db` (server-only) into the client bundle.
 const TERMINAL_STATUSES = new Set(["canceled", "incomplete_expired"]);
 
 const statusLabels: Record<string, string> = {
-  trialing: "Essai en cours",
-  active: "Actif",
-  past_due: "Paiement en retard",
-  canceled: "Résilié",
-  unpaid: "Impayé",
-  incomplete: "Paiement incomplet",
-  incomplete_expired: "Paiement expiré",
+  trialing: "Trial in progress",
+  active: "Active",
+  past_due: "Past due",
+  canceled: "Canceled",
+  unpaid: "Unpaid",
+  incomplete: "Payment incomplete",
+  incomplete_expired: "Payment expired",
 };
 
 export default function BillingPanel() {
@@ -26,7 +26,7 @@ export default function BillingPanel() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.getBillingInfo().then(setInfo).catch(() => setError("Impossible de charger les informations de facturation."));
+    api.getBillingInfo().then(setInfo).catch(() => setError("Unable to load billing information."));
   }, []);
 
   async function handleCheckout(plan: "starter" | "pro") {
@@ -36,7 +36,7 @@ export default function BillingPanel() {
       const { url } = await api.startCheckout(plan);
       window.location.assign(url);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de la création de la session de paiement.");
+      setError(err instanceof ApiClientError ? err.message : "Error while creating the checkout session.");
       setLoading(null);
     }
   }
@@ -48,7 +48,7 @@ export default function BillingPanel() {
       const { url } = await api.openBillingPortal();
       window.location.assign(url);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'ouverture du portail de facturation.");
+      setError(err instanceof ApiClientError ? err.message : "Error while opening the billing portal.");
       setLoading(null);
     }
   }
@@ -63,10 +63,10 @@ export default function BillingPanel() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
             <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: color.textMuted, textTransform: "uppercase" }}>
-              Abonnement actuel
+              Current subscription
             </p>
             <p style={{ margin: "4px 0 0", fontSize: 20, fontWeight: 700, color: color.text }}>
-              {subscription ? subscription.planName : "Essai gratuit"}
+              {subscription ? subscription.planName : "Free trial"}
             </p>
           </div>
           {subscription && (
@@ -86,7 +86,7 @@ export default function BillingPanel() {
         </div>
 
         <p style={{ margin: 0, fontSize: 14, color: color.textSecondary }}>
-          {quota.used} / {quota.limit} scripts générés {subscription ? "ce mois-ci" : "(essai gratuit, à vie)"}
+          {quota.used} / {quota.limit} scripts generated {subscription ? "this month" : "(free trial, lifetime)"}
         </p>
         <div style={{ height: 6, borderRadius: 3, background: color.trackBg, overflow: "hidden" }}>
           <div
@@ -100,9 +100,9 @@ export default function BillingPanel() {
 
         {subscription && subscription.cancelAtPeriodEnd && (
           <p style={{ margin: 0, fontSize: 13, color: color.danger }}>
-            Résiliation programmée
+            Cancellation scheduled
             {subscription.currentPeriodEnd
-              ? ` — actif jusqu'au ${new Date(subscription.currentPeriodEnd).toLocaleDateString("fr-FR")}`
+              ? ` — active until ${new Date(subscription.currentPeriodEnd).toLocaleDateString("en-US")}`
               : "."}
           </p>
         )}
@@ -110,7 +110,7 @@ export default function BillingPanel() {
         {subscription && (
           <div style={{ paddingTop: 8, borderTop: `1px solid ${color.dividerAlt}`, marginTop: 4 }}>
             <Button variant="secondary" onClick={handlePortal} disabled={loading === "portal"}>
-              {loading === "portal" ? "..." : "Gérer mon abonnement (moyen de paiement, factures, résiliation)"}
+              {loading === "portal" ? "..." : "Manage subscription (payment method, invoices, cancellation)"}
             </Button>
           </div>
         )}
@@ -119,24 +119,24 @@ export default function BillingPanel() {
 
       {subscription && !TERMINAL_STATUSES.has(subscription.status) && subscription.status !== "active" && subscription.status !== "trialing" && (
         <p style={{ margin: 0, fontSize: 13, color: color.textMuted }}>
-          Un abonnement est en cours mais nécessite ton attention (moyen de paiement à mettre à jour) — utilise
-          « Gérer mon abonnement » ci-dessus plutôt que d&apos;en souscrire un nouveau.
+          A subscription is in progress but needs your attention (payment method to update) — use
+          &quot;Manage subscription&quot; above rather than subscribing again.
         </p>
       )}
 
-      {/* Un nouveau Checkout n'est proposé que sans abonnement ou après un abonnement définitivement
-          clos (canceled/incomplete_expired) — cf. NON_TERMINAL_SUBSCRIPTION_STATUSES côté API,
-          POST /api/billing/checkout renverrait sinon une 409. */}
+      {/* A new Checkout is offered only with no subscription or after a subscription that is
+          definitively closed (canceled/incomplete_expired) — see NON_TERMINAL_SUBSCRIPTION_STATUSES
+          on the API side, POST /api/billing/checkout would otherwise return a 409. */}
       {(!subscription || TERMINAL_STATUSES.has(subscription.status)) && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           {plans.map((plan) => (
             <Card key={plan.id} style={{ padding: 24, display: "grid", gap: 12 }}>
               <p style={{ margin: 0, fontSize: 18, fontWeight: 700, color: color.text }}>{plan.name}</p>
               <p style={{ margin: 0, fontSize: 14, color: color.textSecondary }}>
-                {plan.scriptsPerMonth} scripts générés par mois
+                {plan.scriptsPerMonth} scripts generated per month
               </p>
               <Button onClick={() => handleCheckout(plan.id)} disabled={loading === plan.id} fullWidth>
-                {loading === plan.id ? "..." : "S'abonner"}
+                {loading === plan.id ? "..." : "Subscribe"}
               </Button>
             </Card>
           ))}

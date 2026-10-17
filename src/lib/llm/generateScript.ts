@@ -32,14 +32,14 @@ function evaluate(script: GeneratedScript, args: unknown, checkContext: CheckCon
 }
 
 /**
- * Génération complète (docs/SPEC_PROMPT_GENERATION_V3.md §3-§5) : le modèle prépare puis rédige en un
- * appel ; le code contrôle ; si un contrôle échoue, UNE seconde tentative reçoit le rapport d'erreurs.
- * On garde la tentative qui a le moins d'échecs — jamais d'erreur pour l'utilisateur à cause d'un
- * contrôle. Le storyboard reste ramené dans ses bornes comme avant.
+ * Full generation (docs/SPEC_PROMPT_GENERATION_V3.md §3-§5): the model prepares then writes in a
+ * single call; the code checks; if a check fails, ONE second attempt receives the error report.
+ * We keep the attempt with the fewest failures — never an error for the user because of a
+ * check. The storyboard is still brought back within its bounds as before.
  */
 export async function generateScript(context: ScriptGenerationContext): Promise<GeneratedScript> {
-  // Série avec lecteur, forme et événement à raconter : le rédacteur par événements
-  // (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5). Le reste de cette fonction est le chemin V3.
+  // Series with a reader, a form and an event to tell: the per-event writer
+  // (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5). The rest of this function is the V3 path.
   if (context.eventBrief) {
     return writeScriptFromEvent({
       brandName: context.creatorProfile.brandName,
@@ -61,8 +61,8 @@ export async function generateScript(context: ScriptGenerationContext): Promise<
       userMessage: message,
       tool: toolForContentType(context.contentType),
       maxTokens: 4096,
-      // Seul appel du repo à l'activer : son schéma (scriptSchema.ts) est le seul déclaré conforme au
-      // mode strict OpenAI (additionalProperties:false partout, cf. StructuredCallParams.strict).
+      // Only call in the repo to enable it: its schema (scriptSchema.ts) is the only one declared
+      // compliant with OpenAI strict mode (additionalProperties:false everywhere, see StructuredCallParams.strict).
       strict: true,
     });
 
@@ -76,8 +76,8 @@ export async function generateScript(context: ScriptGenerationContext): Promise<
   };
 
   const firstArgs = await call(userMessage);
-  // Une première réponse illisible (champ manquant, storyboard vide…) a droit à la même seconde
-  // tentative qu'un contrôle raté ; si la seconde l'est aussi, l'erreur d'origine remonte.
+  // An unreadable first response (missing field, empty storyboard…) gets the same second
+  // attempt as a failed check; if the second one is unreadable too, the original error bubbles up.
   let first: Attempt | null = null;
   let firstFailures: string[];
   let parseError: unknown = null;
@@ -88,7 +88,7 @@ export async function generateScript(context: ScriptGenerationContext): Promise<
     if (!(err instanceof ZodError)) throw err;
     parseError = err;
     firstFailures = [
-      `Ta réponse ne respectait pas le format de l'outil (${err.issues.map((i) => i.path.join(".") || "racine").join(", ")}) : renvoie tous les champs requis.`,
+      `Your response did not respect the tool's format (${err.issues.map((i) => i.path.join(".") || "root").join(", ")}): return all the required fields.`,
     ];
   }
   let best = first;
@@ -98,10 +98,10 @@ export async function generateScript(context: ScriptGenerationContext): Promise<
     try {
       const secondArgs = await call(`${userMessage}\n\n${buildRefusalBlock(firstFailures)}`);
       const second = evaluate(parsePost(context, secondArgs), secondArgs, checkContext);
-      // À égalité, la seconde : elle a lu le rapport d'erreurs.
+      // On a tie, the second: it read the error report.
       if (!best || second.failures.length <= best.failures.length) best = second;
     } catch (err) {
-      // Seconde tentative illisible ou en échec : la première reste valable, s'il y en a une.
+      // Second attempt unreadable or failed: the first remains valid, if there is one.
       if (!best) throw parseError ?? err;
     }
   }

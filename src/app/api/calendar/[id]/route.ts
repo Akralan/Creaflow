@@ -17,11 +17,11 @@ const patchSchema = z
   })
   .refine(
     (data) => data.status !== undefined || data.contentCategoryId !== undefined || data.seriesId !== undefined,
-    { message: "Aucune modification fournie." }
+    { message: "No changes provided." }
   );
 
-// Lecture unitaire — nécessaire pour charger le brief d'un créneau AVANT qu'un Script n'existe
-// (naissance paresseuse de l'éditeur, docs/SPEC_MATIERE_EDITEUR.md §4.5) ; seul GET /api/calendar?month=
+// Single read — needed to load a slot's brief BEFORE a Script exists
+// (lazy creation of the editor, docs/SPEC_MATIERE_EDITEUR.md §4.5); only GET /api/calendar?month=
 // existait jusqu'ici (liste).
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -38,7 +38,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     });
 
     if (!entry) {
-      throw new ApiError(404, "Créneau calendrier introuvable.");
+      throw new ApiError(404, "Calendar slot not found.");
     }
 
     return NextResponse.json({ entry });
@@ -56,10 +56,10 @@ export async function PATCH(
     const { id } = await params;
     const { status, contentCategoryId: requestedCategoryId, seriesId } = patchSchema.parse(await request.json());
 
-    // Cohérence série↔rôle (docs/SPEC_SERIES_ET_ROLES.md §3) : quand une série est posée, c'est
-    // elle qui impose le rôle ; en post libre (seriesId null ou inchangé sans série), le rôle
-    // demandé doit exister. Un changement de rôle seul sur un créneau déjà en série est refusé —
-    // il faut d'abord le passer en post libre.
+    // Series↔role consistency (docs/SPEC_SERIES_ET_ROLES.md §3): when a series is set, it
+    // imposes the role; for a free post (seriesId null or unchanged without a series), the requested
+    // role must exist. A role change alone on a slot already in a series is refused —
+    // it must first be turned into a free post.
     let contentCategoryId = requestedCategoryId;
     if (seriesId) {
       contentCategoryId = await resolveCategoryForGeneration(userId, { seriesId, contentCategoryId: requestedCategoryId });
@@ -68,7 +68,7 @@ export async function PATCH(
         where: and(eq(contentCategories.id, requestedCategoryId), eq(contentCategories.userId, userId)),
       });
       if (!category) {
-        throw new ApiError(404, "Rôle introuvable.");
+        throw new ApiError(404, "Role not found.");
       }
       if (seriesId === undefined) {
         const existing = await db.query.calendarEntries.findFirst({
@@ -76,7 +76,7 @@ export async function PATCH(
           columns: { seriesId: true },
         });
         if (existing?.seriesId) {
-          throw new ApiError(400, "Ce créneau appartient à une série : son rôle est celui de la série. Passe-le d'abord en post libre.");
+          throw new ApiError(400, "This slot belongs to a series: its role is the series' role. Switch it to a free post first.");
         }
       }
     }
@@ -92,7 +92,7 @@ export async function PATCH(
       .returning();
 
     if (!entry) {
-      throw new ApiError(404, "Créneau calendrier introuvable.");
+      throw new ApiError(404, "Calendar slot not found.");
     }
 
     return NextResponse.json({ entry });
@@ -113,13 +113,13 @@ export async function DELETE(
       where: and(eq(calendarEntries.id, id), eq(calendarEntries.userId, userId)),
     });
     if (!existing) {
-      throw new ApiError(404, "Créneau calendrier introuvable.");
+      throw new ApiError(404, "Calendar slot not found.");
     }
     if (existing.scriptId) {
-      throw new ApiError(409, "Ce créneau a déjà un script généré, impossible de le supprimer.");
+      throw new ApiError(409, "This slot already has a generated script and cannot be deleted.");
     }
 
-    // Créneau d'une série : noté comme sauté, sinon le rythme le recréerait au prochain recalcul
+    // Slot belonging to a series: recorded as skipped, otherwise the rhythm would recreate it on the next recompute
     // (docs/SPEC_RYTHME_DES_SERIES.md §3).
     if (existing.seriesId) {
       await skipSeriesSlot(userId, { id: existing.id, seriesId: existing.seriesId, platform: existing.platform, scheduledDate: existing.scheduledDate });

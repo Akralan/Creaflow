@@ -3,10 +3,10 @@ import { EXIT_MS } from "@/lib/visualDesign/timeline";
 import { layerElements } from "./designDom";
 
 /**
- * Aperçu d'une animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §2 « Aperçu ») avec la Web
- * Animations API : une animation par calque, construite depuis la ligne de temps, sur toute la
- * durée (fill both), pilotée par currentTime. Les animations ne touchent qu'à opacity, transform et
- * clip-path — jamais aux styles inline, donc le HTML commité par le canevas reste intact.
+ * Preview of an animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §2 "Preview") with the Web
+ * Animations API: one animation per layer, built from the timeline, over the whole
+ * duration (fill both), driven by currentTime. The animations only touch opacity, transform and
+ * clip-path — never inline styles, so the HTML committed by the canvas stays intact.
  */
 
 type Frame = Record<string, string | number>;
@@ -30,7 +30,7 @@ function frame(base: Frame, offset: number, easing?: string): Keyframe {
   return { ...base, offset: Math.min(1, Math.max(0, offset)), ...(easing ? { easing } : {}) } as Keyframe;
 }
 
-/** Keyframes d'un calque sur toute la durée de l'animation. */
+/** Keyframes of a layer over the whole duration of the animation. */
 export function keyframesFor(entry: TimelineEntry, durationMs: number, textLength = 20): Keyframe[] {
   const hidden = HIDDEN[entry.enter];
   const startOffset = entry.startMs / durationMs;
@@ -56,7 +56,7 @@ export interface SlideAnimations {
   cancel: () => void;
 }
 
-/** Construit (en pause, à 0) les animations des calques cités par la ligne de temps. */
+/** Builds (paused, at 0) the animations of the layers cited by the timeline. */
 export function buildSlideAnimations(root: HTMLElement, timeline: TimelineEntry[], durationMs: number): SlideAnimations {
   const layers = new Map(layerElements(root).map((l) => [l.getAttribute("data-layer") ?? "", l]));
   const animations: Animation[] = [];

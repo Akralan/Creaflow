@@ -7,10 +7,10 @@ import { layerElements, pastePlainText, scrubEditedTextLayer } from "./designDom
 import { buildSlideAnimations, type SlideAnimations } from "./slideAnimations";
 
 /**
- * Canevas d'une slide (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §6) : le HTML rendu est injecté tel quel
- * (déjà passé par la liste blanche côté serveur), mis à l'échelle, et manipulé à la main —
- * sélection d'un calque, déplacement, redimensionnement, édition du texte en place. Pendant un
- * geste, le DOM est la vérité (fluidité) ; à la fin, `onCommit` reçoit le HTML résultant.
+ * Canvas of a slide (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §6): the rendered HTML is injected as is
+ * (already passed through the server-side allowlist), scaled, and manipulated by hand —
+ * selecting a layer, moving, resizing, editing text in place. During a
+ * gesture, the DOM is the source of truth (smoothness); at the end, `onCommit` receives the resulting HTML.
  */
 export default function DesignCanvas({
   html,
@@ -27,7 +27,7 @@ export default function DesignCanvas({
   playing = false,
   onPlayheadChange,
 }: {
-  /** HTML affichable (placeholders résolus, polices traduites). */
+  /** Displayable HTML (placeholders resolved, fonts translated). */
   html: string;
   width: number;
   height: number;
@@ -35,11 +35,11 @@ export default function DesignCanvas({
   selectedLayerId: string | null;
   onSelectLayer: (id: string | null) => void;
   onCommit: (renderedHtml: string) => void;
-  /** Vrai pendant qu'une instruction ou un export est en vol : aucune retouche manuelle ne doit
-   *  entrer en course avec la version qui va arriver. */
+  /** True while an instruction or an export is in flight: no manual edit should
+   *  race with the version that is about to arrive. */
   readOnly?: boolean;
-  /** Animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §6) : ligne de temps rejouée par la Web
-   *  Animations API sur le DOM rendu ; null pour une maquette statique. */
+  /** Animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §6): timeline replayed by the Web
+   *  Animations API on the rendered DOM; null for a static mockup. */
   timeline?: TimelineEntry[] | null;
   durationMs?: number | null;
   playheadMs?: number;
@@ -75,15 +75,15 @@ export default function DesignCanvas({
     return el instanceof HTMLElement ? el : null;
   }, []);
 
-  // Injecte le HTML seulement quand il change vraiment : pendant un geste local, la prop est
-  // encore l'ancienne valeur et ne doit pas écraser le DOM manipulé.
+  // Inject the HTML only when it really changes: during a local gesture, the prop is
+  // still the old value and must not overwrite the manipulated DOM.
   useLayoutEffect(() => {
     if (!hostRef.current || appliedHtmlRef.current === html) return;
     hostRef.current.innerHTML = html;
     appliedHtmlRef.current = html;
   }, [html]);
 
-  // Reconstruit les animations quand le HTML injecté, la ligne de temps ou la durée changent.
+  // Rebuild the animations when the injected HTML, the timeline or the duration change.
   const timelineKey = timeline ? JSON.stringify(timeline) : "";
   useLayoutEffect(() => {
     animsRef.current?.cancel();
@@ -100,12 +100,12 @@ export default function DesignCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [html, timelineKey, durationMs, root]);
 
-  // Curseur : à l'arrêt, chaque changement de playhead positionne les animations.
+  // Playhead: when stopped, each playhead change positions the animations.
   useEffect(() => {
     if (!playing) animsRef.current?.seek(playheadMs);
   }, [playheadMs, playing]);
 
-  // Lecture : la Web Animations API avance seule, on remonte le temps courant et on boucle.
+  // Playback: the Web Animations API advances on its own, we report the current time and loop.
   useEffect(() => {
     const anims = animsRef.current;
     if (!anims || !durationMs) return;
@@ -153,8 +153,8 @@ export default function DesignCanvas({
   }, [root, selectedLayerId, scale]);
 
   useEffect(() => {
-    // Mesure du DOM (offsetTop/offsetLeft du calque) après injection du HTML : c'est une lecture
-    // d'un système externe, pas un état dérivable pendant le rendu.
+    // Measuring the DOM (the layer's offsetTop/offsetLeft) after injecting the HTML: this is a read
+    // from an external system, not a state derivable during render.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshSelBox();
   }, [refreshSelBox, html]);
@@ -261,7 +261,7 @@ export default function DesignCanvas({
     layer.style.outline = "none";
     layer.focus();
     setEditing(true);
-    // Un collage n'apporte que du texte : jamais de HTML riche dans un calque.
+    // A paste only brings text: never rich HTML in a layer.
     layer.addEventListener("paste", pastePlainText);
     const finish = () => {
       layer.removeEventListener("blur", finish);
@@ -312,7 +312,7 @@ export default function DesignCanvas({
         >
           <div
             onMouseDown={beginResize}
-            title="Redimensionner"
+            title="Resize"
             style={{
               position: "absolute",
               right: -6,

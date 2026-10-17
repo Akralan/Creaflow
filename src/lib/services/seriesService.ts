@@ -62,10 +62,10 @@ export async function resolveCategoryForGeneration(
   if (input.seriesId) {
     const seriesCategoryId = await findSeriesCategoryId(userId, input.seriesId);
     if (!seriesCategoryId) {
-      throw new ApiError(404, "Série introuvable ou sans rôle.");
+      throw new ApiError(404, "Series not found or without a role.");
     }
     if (input.contentCategoryId && input.contentCategoryId !== seriesCategoryId) {
-      logger.warn("Rôle contradictoire avec la série, rôle de la série retenu", {
+      logger.warn("Role conflicts with the series, the series role is kept", {
         seriesId: input.seriesId,
         requested: input.contentCategoryId,
         resolved: seriesCategoryId,
@@ -74,7 +74,7 @@ export async function resolveCategoryForGeneration(
     return seriesCategoryId;
   }
   if (!input.contentCategoryId) {
-    throw new ApiError(400, "Un post libre doit avoir un rôle (contentCategoryId).");
+    throw new ApiError(400, "A free post must have a role (contentCategoryId).");
   }
   return input.contentCategoryId;
 }
@@ -85,7 +85,7 @@ export async function updateSeriesFields(userId: string, seriesId: string, field
   if (fields.productId) {
     const product = await db.query.products.findFirst({ where: and(eq(products.id, fields.productId), eq(products.userId, userId)) });
     if (!product) {
-      throw new ApiError(404, "Sujet introuvable.");
+      throw new ApiError(404, "Subject not found.");
     }
   }
   const [updated] = await db
@@ -96,7 +96,7 @@ export async function updateSeriesFields(userId: string, seriesId: string, field
     .where(and(eq(contentSeries.id, seriesId), eq(contentSeries.userId, userId)))
     .returning();
   if (!updated) {
-    throw new ApiError(404, "Série introuvable.");
+    throw new ApiError(404, "Series not found.");
   }
   return updated;
 }
@@ -111,7 +111,7 @@ export async function archiveSeriesForUser(userId: string, seriesId: string) {
     .where(and(eq(contentSeries.id, seriesId), eq(contentSeries.userId, userId)))
     .returning();
   if (!archived) {
-    throw new ApiError(404, "Série introuvable.");
+    throw new ApiError(404, "Series not found.");
   }
   await syncSeriesSlots(userId);
   return archived;
@@ -124,7 +124,7 @@ export async function keepOnlySeries(userId: string, keptIds: string[]) {
   const active = await listActiveSeriesForUser(userId);
   const activeIds = new Set(active.map((s) => s.id));
   if (!keptIds.every((id) => activeIds.has(id))) {
-    throw new ApiError(404, "Série introuvable.");
+    throw new ApiError(404, "Series not found.");
   }
   const toArchive = active.filter((s) => !keptIds.includes(s.id)).map((s) => s.id);
   if (toArchive.length > 0) {
@@ -152,13 +152,13 @@ export async function keepOnlySeries(userId: string, keptIds: string[]) {
 export async function generateSeriesForUser(userId: string) {
   const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
   if (!profile) {
-    throw new ApiError(400, "Configure d'abord ton profil créateur avant de générer les séries.");
+    throw new ApiError(400, "Set up your creator profile first before generating series.");
   }
 
   const productList = await db.query.products.findMany({ where: eq(products.userId, userId) });
   const activeCategories = await listActiveCategoriesForUser(userId);
   if (activeCategories.length === 0) {
-    throw new ApiError(400, "Configure d'abord tes rôles éditoriaux avant de générer les séries.");
+    throw new ApiError(400, "Set up your editorial roles first before generating series.");
   }
 
   const suggested = await suggestContentSeries({
@@ -169,7 +169,7 @@ export async function generateSeriesForUser(userId: string) {
     categories: activeCategories.map((c) => ({ label: c.label, description: c.description })),
   });
 
-  logger.debug("Réponse brute LLM (suggestion de séries)", { suggested });
+  logger.debug("Raw LLM response (series suggestion)", { suggested });
 
   // Résout categoryLabel -> categoryId ; ignore une série suggérée dont le rôle ne matche pas.
   // Sujet de chaque série : celui choisi par le modèle, ou d'office l'unique sujet du compte — une

@@ -6,7 +6,7 @@ vi.mock("@/lib/auth/session", () => ({ getCurrentUserId: vi.fn() }));
 import { isAdminEmail, parseAdminEmails } from "./admin";
 
 describe("ADMIN_EMAILS (docs/SPEC_QUOTAS_ADMIN.md)", () => {
-  it("lit une liste séparée par des virgules, sans tenir compte des espaces ni de la casse", () => {
+  it("reads a comma-separated list, ignoring spaces and case", () => {
     const admins = parseAdminEmails(" Moi@Exemple.fr, test@exemple.fr ,,");
     expect([...admins]).toEqual(["moi@exemple.fr", "test@exemple.fr"]);
     expect(isAdminEmail("MOI@exemple.FR", admins)).toBe(true);

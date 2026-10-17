@@ -22,13 +22,13 @@ const schema = z
     productId: z.uuid().optional(),
     directive: directiveSchema,
   })
-  // Format du post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §2) — ignoré hors "visual".
+  // Visual post format (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §2) — ignored outside "visual".
   .extend(visualFormatFieldsSchema.shape);
 
 export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId();
-    // Chaque génération de script coûte un appel LLM — limite partagée avec les autres routes de génération.
+    // Each script generation costs an LLM call — limit shared with the other generation routes.
     await enforceRateLimit("script-generate", userId, 20, 60);
     const body = schema.parse(await request.json());
     const { calendarEntryId, contentType, productId, directive } = body;
@@ -38,10 +38,10 @@ export async function POST(request: NextRequest) {
       where: and(eq(calendarEntries.id, calendarEntryId), eq(calendarEntries.userId, userId)),
     });
     if (!entry) {
-      throw new ApiError(404, "Créneau calendrier introuvable.");
+      throw new ApiError(404, "Calendar slot not found.");
     }
     if (entry.scriptId) {
-      throw new ApiError(409, "Ce créneau a déjà un script associé.");
+      throw new ApiError(409, "This slot already has an associated script.");
     }
 
     const resolvedContentType = contentType ?? defaultContentTypeForPlatform(entry.platform);
@@ -59,8 +59,8 @@ export async function POST(request: NextRequest) {
       resolvedContentType === "visual" ? normalizeVisualSpec(body) : null
     );
     const generated = await generateScript(context);
-    // resolvedProductId (pas productId brut) : hérite du sujet lié à la série quand aucun sujet
-    // n'a été choisi pour ce créneau précis (docs/SPEC_REDACTEUR_EN_CHEF.md, sélecteur de sujet).
+    // resolvedProductId (not the raw productId): inherits the topic linked to the series when no topic
+    // was chosen for this specific slot (docs/SPEC_REDACTEUR_EN_CHEF.md, topic selector).
     const script = await createScriptRecord(userId, entry.platform, context.contentCategory, context.resolvedProductId ?? null, generated, {
       angleId: context.angle?.id ?? null,
       seriesId: context.series?.id ?? null,
@@ -70,11 +70,11 @@ export async function POST(request: NextRequest) {
     });
 
     await db.update(calendarEntries).set({ scriptId: script.id }).where(eq(calendarEntries.id, entry.id));
-    // Maquette composée automatiquement en arrière-plan pour un post visuel
-    // (docs/SPEC_COMPOSITION_VISUELLE.md §2) — jamais bloquant, jamais compté dans le quota.
+    // Mockup composed automatically in the background for a visual post
+    // (docs/SPEC_COMPOSITION_VISUELLE.md §2) — never blocking, never counted in the quota.
     if (script.contentType === "visual") after(() => autoComposeDesign(userId, script.id));
-    // Veille d'inspiration du sujet relancée en arrière-plan si elle a plus de 7 jours
-    // (docs/SPEC_MEMOIRE_ET_VEILLE.md §1) — jamais bloquant, sans effet sinon.
+    // Inspiration watch of the topic relaunched in the background if it is more than 7 days old
+    // (docs/SPEC_MEMOIRE_ET_VEILLE.md §1) — never blocking, no effect otherwise.
     after(() => refreshInspirationsIfStale(userId, context.resolvedProductId ?? null));
 
     return NextResponse.json({ script }, { status: 201 });

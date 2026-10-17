@@ -7,9 +7,9 @@ import SourceIcon from "@/components/landing/SourceIcon";
 import type { SourceKind } from "@/components/landing/personas";
 
 /**
- * Bandeau sous le hero : d'où vient la matière (GitHub, Notion, Linear, fichiers) et où
- * partent les posts. Remplace l'ancien défilé de métiers — la cible prioritaire se reconnaît
- * à ses outils, pas à son secteur (docs/PRODUCT.md §2.1).
+ * Strip under the hero: where the material comes from (GitHub, Notion, Linear, files) and
+ * where the posts go. Replaces the old parade of job titles — the priority target is recognized
+ * by its tools, not its industry (docs/PRODUCT.md §2.1).
  */
 const pill: CSSProperties = {
   display: "inline-flex",
@@ -64,7 +64,7 @@ export default function LandingSources() {
         }}
       >
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 10 }}>
-          <span style={label}>Branche</span>
+          <span style={label}>Connect</span>
           {sources.map((s) => (
             <span key={s.name} style={pill}>
               <SourceIcon kind={s.kind} style={{ color: text.secondary }} />
@@ -76,7 +76,7 @@ export default function LandingSources() {
           →
         </span>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "6px 10px" }}>
-          <span style={label}>Publie sur</span>
+          <span style={label}>Publish to</span>
           <span style={{ fontSize: 14.5, fontWeight: 600, color: text.secondary, whiteSpace: "nowrap" }}>
             LinkedIn · Instagram · X
           </span>

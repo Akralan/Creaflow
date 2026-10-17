@@ -11,8 +11,8 @@ import { useContentCategories } from "@/contexts/CategoryLabelsContext";
 import { KNOWN_PLATFORMS } from "@/lib/social/types";
 
 const CONTENT_TYPE_OPTIONS: Array<{ key: ContentType; label: string }> = [
-  { key: "visual", label: "Visuel (image, carrousel, animation)" },
-  { key: "text", label: "Texte seul" },
+  { key: "visual", label: "Visual (image, carousel, animation)" },
+  { key: "text", label: "Text only" },
 ];
 
 export interface ImportScriptFormProps {
@@ -21,7 +21,7 @@ export interface ImportScriptFormProps {
   onImported: (script: Script) => void;
 }
 
-/** Écriture ailleurs, suivi ici (docs/SPEC_MATIERE_EDITEUR.md §2) — aucun appel LLM, aucun quota. */
+/** Written elsewhere, tracked here (docs/SPEC_MATIERE_EDITEUR.md §2) — no LLM call, no quota. */
 export default function ImportScriptForm({ scheduledDate, calendarEntryId, onImported }: ImportScriptFormProps) {
   const categories = useContentCategories();
   const [platform, setPlatform] = useState<Platform>("linkedin");
@@ -66,7 +66,7 @@ export default function ImportScriptForm({ scheduledDate, calendarEntryId, onImp
       });
       onImported(script);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'import du script.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong while importing the script.");
       setLoading(false);
     }
   }
@@ -75,7 +75,7 @@ export default function ImportScriptForm({ scheduledDate, calendarEntryId, onImp
     <div>
       <div style={{ marginBottom: 22 }}>
         <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: color.text3, marginBottom: 12 }}>
-          Plateforme cible
+          Target platform
         </label>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {KNOWN_PLATFORMS.map(({ key: p }) => {
@@ -110,12 +110,12 @@ export default function ImportScriptForm({ scheduledDate, calendarEntryId, onImp
 
       <div style={{ marginBottom: 22 }}>
         <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: color.text3, marginBottom: 12 }}>
-          Rôle
+          Role
         </label>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {availableCategories.length === 0 && (
             <p style={{ fontSize: 13, color: color.textMuted, margin: 0 }}>
-              Aucun rôle configuré pour cette plateforme.
+              No role configured for this platform.
             </p>
           )}
           {availableCategories.map((c) => {
@@ -147,7 +147,7 @@ export default function ImportScriptForm({ scheduledDate, calendarEntryId, onImp
 
       <div style={{ marginBottom: 22 }}>
         <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: color.text3, marginBottom: 12 }}>
-          Type de contenu
+          Content type
         </label>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {CONTENT_TYPE_OPTIONS.map(({ key: ct, label }) => {
@@ -177,7 +177,7 @@ export default function ImportScriptForm({ scheduledDate, calendarEntryId, onImp
 
       <div style={{ marginBottom: 22 }}>
         <label style={{ display: "block", fontSize: 14, fontWeight: 600, color: color.text3, marginBottom: 6 }}>
-          Sujet associé <span style={{ color: color.textFaint, fontWeight: 400 }}>— optionnel</span>
+          Linked topic <span style={{ color: color.textFaint, fontWeight: 400 }}>— optional</span>
         </label>
         <select
           value={productId}
@@ -193,7 +193,7 @@ export default function ImportScriptForm({ scheduledDate, calendarEntryId, onImp
             color: color.text,
           }}
         >
-          <option value="">Aucun sujet</option>
+          <option value="">No topic</option>
           {products.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -203,14 +203,14 @@ export default function ImportScriptForm({ scheduledDate, calendarEntryId, onImp
       </div>
 
       <div style={{ marginBottom: 18 }}>
-        <TextField label="Titre" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titre du script" />
+        <TextField label="Title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Script title" />
       </div>
       <div style={{ marginBottom: 18 }}>
         <TextAreaField
-          label="Texte / légende"
+          label="Text / caption"
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
-          placeholder="Colle ici le texte déjà écrit"
+          placeholder="Paste the text you've already written"
           rows={6}
         />
       </div>
@@ -220,7 +220,7 @@ export default function ImportScriptForm({ scheduledDate, calendarEntryId, onImp
           optional
           value={hashtags}
           onChange={(e) => setHashtags(e.target.value)}
-          placeholder="#marque #niche (séparés par des espaces)"
+          placeholder="#brand #niche (separated by spaces)"
         />
       </div>
 
@@ -232,7 +232,7 @@ export default function ImportScriptForm({ scheduledDate, calendarEntryId, onImp
         disabled={loading || !selectedCategoryId || !title.trim() || !caption.trim()}
         style={{ padding: 15, fontSize: 16 }}
       >
-        {loading ? "Import en cours..." : "Importer ce script"}
+        {loading ? "Importing..." : "Import this script"}
       </Button>
     </div>
   );

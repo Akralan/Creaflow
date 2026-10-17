@@ -8,15 +8,15 @@ import { createSourcesFromCandidates, listConnectedExternalIds } from "@/lib/ser
 import { ApiError, handleApiError } from "@/lib/api/errors";
 
 /**
- * Surface HTTP commune des connecteurs de matière : lister ce qu'on peut brancher, puis le brancher.
+ * Common HTTP surface of the material connectors: list what can be connected, then connect it.
  *
- * Contrairement à `/api/github/repos`, qui porte la forme « dépôt » attendue par RepoPicker, cette
- * route ne connaît aucun fournisseur : elle résout le connecteur par le registre et n'expose que ce
- * que `ConnectorCandidate` garantit, plus une ligne de contexte que le connecteur compose lui-même.
+ * Unlike `/api/github/repos`, which carries the "repository" shape expected by RepoPicker, this
+ * route knows no provider: it resolves the connector through the registry and only exposes what
+ * `ConnectorCandidate` guarantees, plus a context line that the connector composes itself.
  */
 
-/** Le segment d'URL n'est pas le type de source : "notion" est plus lisible que "notion_page" dans
- *  une URL, et c'est ce que porte déjà `oauthAccounts.provider`. */
+/** The URL segment is not the source type: "notion" reads better than "notion_page" in
+ *  a URL, and that is what `oauthAccounts.provider` already carries. */
 const TYPE_BY_PROVIDER: Record<string, MaterialSourceType> = {
   github: "github_repo",
   notion: "notion_page",
@@ -26,7 +26,7 @@ const TYPE_BY_PROVIDER: Record<string, MaterialSourceType> = {
 function resolve(provider: string) {
   const type = TYPE_BY_PROVIDER[provider];
   if (!type) {
-    throw new ApiError(404, "Ce fournisseur ne propose pas de source de matière.");
+    throw new ApiError(404, "This provider does not offer a material source.");
   }
   return { type, connector: getConnector(type) };
 }
@@ -46,7 +46,7 @@ const connectSchema = z.object({
 });
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ provider: string }> }) {
-  // Hors du try : le catch doit savoir reconnaître l'erreur d'accès propre au fournisseur.
+  // Outside the try: the catch must recognise the provider's own access error.
   let resolvedConnector: ReturnType<typeof getConnector> | undefined;
   try {
     const userId = await requireUserId();
@@ -54,9 +54,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const { type, connector } = resolve(provider);
     resolvedConnector = connector;
 
-    // `alreadyConnected` : rebrancher une source déjà branchée créerait un sujet doublon et
-    // violerait l'unicité de material_sources — l'écran les grise plutôt que de laisser l'erreur
-    // arriver après coup.
+    // `alreadyConnected`: reconnecting an already connected source would create a duplicate topic and
+    // violate the uniqueness of material_sources — the screen greys them out rather than letting the error
+    // arrive after the fact.
     const [candidates, connectedIds] = await Promise.all([
       connector.listCandidates(userId),
       listConnectedExternalIds(userId, type),
@@ -64,7 +64,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
     return NextResponse.json({
       displayName: connector.displayName,
-      emptyMessage: connector.picker?.emptyMessage ?? "Rien à brancher sur ce compte.",
+      emptyMessage: connector.picker?.emptyMessage ?? "Nothing to connect on this account.",
       footnote: connector.picker?.footnote ?? "",
       candidates: candidates.map((candidate) => ({
         externalId: candidate.externalId,
@@ -77,11 +77,11 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       })),
     });
   } catch (error) {
-    // Le quota atteint n'est pas une panne : 429 et message daté, pas un 500 « Erreur serveur ».
+    // Hitting the quota is not an outage: 429 and a dated message, not a 500 "Server error".
     if (error instanceof ConnectorRateLimitError) {
       return handleApiError(new ApiError(429, error.message));
     }
-    // Accès révoqué ou expiré : à reconnecter, pas une panne.
+    // Access revoked or expired: needs reconnecting, not an outage.
     if (resolvedConnector?.isAuthError(error)) {
       return handleApiError(new ApiError(409, (error as Error).message));
     }
@@ -95,13 +95,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { provider } = await params;
     const { type, connector } = resolve(provider);
 
-    // Avant toute écriture : sans compte connecté, on répond en erreur plutôt que de créer des
-    // sujets dont chaque source porterait aussitôt un défaut d'accès.
+    // Before any write: without a connected account, respond with an error rather than creating
+    // topics whose every source would immediately carry an access fault.
     await connector.assertReady(userId);
 
     const { candidates } = connectSchema.parse(await request.json());
-    // Synchrone : l'ingestion est du fetch et de l'écriture, aucun appel LLM (le résumé est laissé
-    // au backfill paresseux). L'écran restitue le détail source par source.
+    // Synchronous: ingestion is fetch and write, no LLM call (the summary is left
+    // to the lazy backfill). The screen reports the detail source by source.
     const results = await createSourcesFromCandidates(
       userId,
       type,

@@ -7,7 +7,7 @@ import { accent, color } from "@/lib/design/tokens";
 
 const GREETING: OnboardingMessage = {
   role: "assistant",
-  content: "Raconte-moi quelque chose de concret sur ce sujet — une anecdote, une décision récente, un chiffre, un problème rencontré...",
+  content: "Tell me something concrete about this subject — an anecdote, a recent decision, a number, a problem you ran into...",
 };
 
 /**
@@ -47,7 +47,7 @@ export default function MaterialInterviewChat({ productId }: { productId?: strin
       setMessages((m) => [...m, { role: "assistant", content: reply }]);
       if (extractedMaterial) setCaptured((c) => c + 1);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur, réessaie.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong. Please try again.");
     } finally {
       setSending(false);
     }
@@ -59,7 +59,7 @@ export default function MaterialInterviewChat({ productId }: { productId?: strin
     <div>
       {captured > 0 && (
         <p style={{ margin: "0 0 10px", fontSize: 12, color: "oklch(0.5 0.2 292)" }}>
-          {captured} information{captured > 1 ? "s" : ""} capturée{captured > 1 ? "s" : ""} dans le corpus.
+          {captured} {captured > 1 ? "pieces" : "piece"} of information captured in the corpus.
         </p>
       )}
       <div style={{ display: "flex", flexDirection: "column", height: 380, border: `1px solid ${color.border}`, borderRadius: 14, background: color.inputBg }}>
@@ -94,7 +94,7 @@ export default function MaterialInterviewChat({ productId }: { productId?: strin
             onKeyDown={(e) => {
               if (e.key === "Enter") handleSend();
             }}
-            placeholder="Écris ta réponse..."
+            placeholder="Type your answer..."
             style={{
               flex: 1,
               border: `1px solid ${color.inputBorder}`,
@@ -106,7 +106,7 @@ export default function MaterialInterviewChat({ productId }: { productId?: strin
             }}
           />
           <Button onClick={handleSend} disabled={sending || !input.trim()} style={{ padding: "10px 18px" }}>
-            {sending ? "..." : "Envoyer"}
+            {sending ? "..." : "Send"}
           </Button>
         </div>
       </div>
