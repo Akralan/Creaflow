@@ -1,6 +1,14 @@
 import type { Platform, ScriptStatus, CalendarStatus } from "@/lib/design/tokens";
 
-export class ApiClientError extends Error {}
+export class ApiClientError extends Error {
+  constructor(
+    message: string,
+    /** Statut HTTP de la réponse, pour distinguer un accès tiers expiré (409) d'une vraie panne. */
+    readonly status?: number
+  ) {
+    super(message);
+  }
+}
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -9,7 +17,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   });
   const body = await res.json().catch(() => null);
   if (!res.ok) {
-    throw new ApiClientError(body?.error || `Erreur ${res.status}`);
+    throw new ApiClientError(body?.error || `Erreur ${res.status}`, res.status);
   }
   return body as T;
 }
@@ -1052,7 +1060,7 @@ export const api = {
     const res = await fetch("/api/assistant/attachments", { method: "POST", body: formData });
     const body = await res.json().catch(() => null);
     if (!res.ok) {
-      throw new ApiClientError(body?.error || `Erreur ${res.status}`);
+      throw new ApiClientError(body?.error || `Erreur ${res.status}`, res.status);
     }
     return body as { attachment: AssistantAttachment };
   },
@@ -1070,7 +1078,7 @@ export const api = {
     const res = await fetch("/api/assets", { method: "POST", body: formData });
     const body = await res.json().catch(() => null);
     if (!res.ok) {
-      throw new ApiClientError(body?.error || `Erreur ${res.status}`);
+      throw new ApiClientError(body?.error || `Erreur ${res.status}`, res.status);
     }
     return body as { assets: BrandAsset[] };
   },

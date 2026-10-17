@@ -33,6 +33,11 @@ export async function GET() {
     if (error instanceof ConnectorRateLimitError) {
       return handleApiError(new ApiError(429, error.message));
     }
+    // Jeton révoqué ou expiré : à reconnecter, pas une panne (c'était un 500 « Erreur serveur »
+    // affiché comme « aucun dépôt trouvé », constaté le 2026-10-17).
+    if (githubConnector.isAuthError(error)) {
+      return handleApiError(new ApiError(409, (error as Error).message));
+    }
     return handleApiError(error);
   }
 }
