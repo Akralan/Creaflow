@@ -5,7 +5,7 @@ import { addOnboardingNotes } from "@/lib/services/onboardingService";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
 import { handleApiError } from "@/lib/api/errors";
 
-const schema = z.object({ text: z.string().trim().min(1, "Colle d'abord tes notes.").max(100_000) });
+const schema = z.object({ text: z.string().trim().min(1, "Paste your notes first.").max(100_000) });
 
 export async function POST(request: NextRequest) {
   try {

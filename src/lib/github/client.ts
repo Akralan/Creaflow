@@ -15,14 +15,14 @@ export const GITHUB_OAUTH_SCOPE = "read:user user:email read:org";
 
 export class GithubRateLimitError extends ConnectorRateLimitError {
   constructor(retryAfterMinutes: number) {
-    super(`Quota GitHub atteint. Réessaie dans ${retryAfterMinutes} minute(s).`, retryAfterMinutes);
+    super(`GitHub rate limit reached. Try again in ${retryAfterMinutes} minute(s).`, retryAfterMinutes);
     this.name = "GithubRateLimitError";
   }
 }
 
 export class GithubAuthError extends Error {
   constructor() {
-    super("L'accès GitHub a été révoqué ou a expiré — reconnecte ton compte.");
+    super("GitHub access was revoked or has expired — reconnect your account.");
     this.name = "GithubAuthError";
   }
 }
@@ -33,7 +33,7 @@ export function getOAuthCredentials(): { clientId: string; clientSecret: string;
   const redirectUri = process.env.GITHUB_OAUTH_REDIRECT_URI;
   if (!clientId || !clientSecret || !redirectUri) {
     throw new Error(
-      "GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET et GITHUB_OAUTH_REDIRECT_URI doivent être définis dans l'environnement."
+      "GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET and GITHUB_OAUTH_REDIRECT_URI must be set in the environment."
     );
   }
   return { clientId, clientSecret, redirectUri };
@@ -65,13 +65,13 @@ export async function exchangeCode(code: string): Promise<{ accessToken: string;
     body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, code, redirect_uri: redirectUri }),
   });
   if (!response.ok) {
-    throw new Error(`Échange du code GitHub échoué (${response.status}) : ${await response.text()}`);
+    throw new Error(`GitHub code exchange failed (${response.status}): ${await response.text()}`);
   }
   const data = (await response.json()) as { access_token?: string; scope?: string; error?: string };
   // GitHub répond 200 même sur un code invalide, avec un champ `error` dans le corps plutôt qu'un
   // statut d'erreur — sans ce garde on stockerait `undefined` comme token.
   if (data.error || !data.access_token) {
-    throw new Error(`Échange du code GitHub échoué : ${data.error ?? "réponse sans access_token"}`);
+    throw new Error(`GitHub code exchange failed: ${data.error ?? "response without access_token"}`);
   }
   return { accessToken: data.access_token, scope: data.scope ?? "" };
 }
@@ -96,7 +96,7 @@ async function apiGet<T>(token: string, path: string): Promise<T> {
       const minutes = Math.max(1, Math.ceil((resetEpoch * 1000 - Date.now()) / 60000));
       throw new GithubRateLimitError(minutes);
     }
-    throw new Error(`Appel GitHub ${path} échoué (${response.status}) : ${await response.text()}`);
+    throw new Error(`GitHub call ${path} failed (${response.status}): ${await response.text()}`);
   }
 
   return response.json() as Promise<T>;
@@ -205,7 +205,7 @@ export async function fetchBlobText(token: string, fullName: string, sha: string
     },
   });
   if (!response.ok) {
-    throw new Error(`Lecture du blob ${sha} de ${fullName} échouée (${response.status}).`);
+    throw new Error(`Reading blob ${sha} of ${fullName} failed (${response.status}).`);
   }
   return response.text();
 }

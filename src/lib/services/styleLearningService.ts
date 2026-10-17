@@ -148,7 +148,7 @@ export async function runStyleLearningPass(
 ): Promise<StyleLearningPassResult> {
   const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
   if (!profile) {
-    throw new ApiError(400, "Profil créateur introuvable.");
+    throw new ApiError(400, "Creator profile not found.");
   }
   const currentProfile = parseStoredStyleProfile(profile.styleProfile);
   const corpus = await selectLearningCorpus(userId, { includeLearned: options.includeLearned ?? false });
@@ -163,7 +163,7 @@ export async function runStyleLearningPass(
   if (corpus.corrections.length === 0 && samples.length === 0) {
     throw new ApiError(
       400,
-      "Rien à analyser pour l'instant : finalise (tourné ou publié) au moins un script corrigé ou écrit par toi, ou connecte un compte social."
+      "Nothing to analyze yet: finalize (shot or published) at least one script that you corrected or wrote yourself, or connect a social account."
     );
   }
 
@@ -219,11 +219,11 @@ export async function updateStyleLists(
 ): Promise<StyleProfile> {
   const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
   if (!profile) {
-    throw new ApiError(400, "Profil créateur introuvable.");
+    throw new ApiError(400, "Creator profile not found.");
   }
   const current = parseStoredStyleProfile(profile.styleProfile);
   if (!current) {
-    throw new ApiError(400, "Aucun profil de style : lance d'abord une analyse.");
+    throw new ApiError(400, "No style profile: run an analysis first.");
   }
   const next = styleProfileSchema.parse({ ...current, ...patch });
   await applyStyleProfile(userId, next);

@@ -26,7 +26,7 @@ export async function PUT(
       where: and(eq(scripts.id, id), eq(scripts.userId, userId)),
     });
     if (!script) {
-      throw new ApiError(404, "Script introuvable.");
+      throw new ApiError(404, "Script not found.");
     }
 
     const existing = await db.query.postMetrics.findFirst({ where: eq(postMetrics.scriptId, id) });

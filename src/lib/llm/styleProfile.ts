@@ -1,16 +1,16 @@
 import { z } from "zod";
 
 /**
- * Profil de style d'un auteur (docs/SPEC_APPRENTISSAGE_STYLE.md §2). Deux couches :
- * - la VOIX : les quatre descripteurs historiques + `summary`, hérités de l'analyse des légendes ;
- * - les CORRECTIONS : `rules` / `avoid` / `prefer`, apprises de l'écart premier jet / version finale.
+ * An author's style profile (docs/SPEC_APPRENTISSAGE_STYLE.md §2). Two layers:
+ * - the VOICE: the four historical descriptors + `summary`, inherited from the caption analysis;
+ * - the CORRECTIONS: `rules` / `avoid` / `prefer`, learned from the gap between first draft and final version.
  *
- * Rétrocompatible : un profil stocké avant ce chantier n'a ni rules ni avoid ni prefer — les
- * `.default(...)` les font valoir vides à la lecture, aucune migration de données.
+ * Backward compatible: a profile stored before this feature has no rules, avoid or prefer — the
+ * `.default(...)` make them empty on read, no data migration.
  */
 export const styleRuleSchema = z.object({
   text: z.string().trim().min(1).max(140),
-  // Non null seulement si la règle ne vaut que pour cette plateforme (clé de KNOWN_PLATFORMS).
+  // Non-null only if the rule applies to that platform alone (key of KNOWN_PLATFORMS).
   platform: z.string().nullable().default(null),
 });
 export type StyleRule = z.infer<typeof styleRuleSchema>;
@@ -37,7 +37,7 @@ export const styleProfileSchema = z.object({
 
 export type StyleProfile = z.infer<typeof styleProfileSchema>;
 
-/** Lecture tolérante d'un jsonb `creatorProfiles.styleProfile` : null si absent ou illisible. */
+/** Tolerant read of a `creatorProfiles.styleProfile` jsonb: null if absent or unreadable. */
 export function parseStoredStyleProfile(raw: unknown): StyleProfile | null {
   if (!raw || typeof raw !== "object") return null;
   const result = styleProfileSchema.safeParse(raw);
@@ -45,22 +45,22 @@ export function parseStoredStyleProfile(raw: unknown): StyleProfile | null {
 }
 
 /**
- * Bloc `=== STYLE ===` injecté partout où la machine rédige à la place de l'auteur
- * (docs/SPEC_APPRENTISSAGE_STYLE.md §5.4) : génération complète, autre idée, régénération de bloc,
- * sélection→instruction. Chaîne vide si rien à dire. Une règle rattachée à une plateforme n'est
- * injectée que sur cette plateforme.
+ * `=== STYLE ===` block injected wherever the machine writes in the author's place
+ * (docs/SPEC_APPRENTISSAGE_STYLE.md §5.4): full generation, another idea, block regeneration,
+ * selection→instruction. Empty string if nothing to say. A rule attached to a platform is only
+ * injected on that platform.
  */
 export function buildStyleBlock(profile: StyleProfile | null | undefined, platform: string | null | undefined): string {
   if (!profile) return "";
   const lines: string[] = [];
-  if (profile.summary) lines.push(`Voix : ${profile.summary}`);
+  if (profile.summary) lines.push(`Voice: ${profile.summary}`);
   const rules = profile.rules.filter((r) => !r.platform || r.platform === platform);
   if (rules.length > 0) {
-    lines.push("Règles à respecter (apprises des corrections de l'auteur, non négociables) :");
+    lines.push("Rules to follow (learned from the author's corrections, non-negotiable):");
     for (const rule of rules) lines.push(`- ${rule.text}`);
   }
-  if (profile.avoid.length > 0) lines.push(`À bannir : ${profile.avoid.join(", ")}`);
-  if (profile.prefer.length > 0) lines.push(`À privilégier : ${profile.prefer.join(", ")}`);
+  if (profile.avoid.length > 0) lines.push(`Avoid: ${profile.avoid.join(", ")}`);
+  if (profile.prefer.length > 0) lines.push(`Prefer: ${profile.prefer.join(", ")}`);
   if (lines.length === 0) return "";
   return `=== STYLE ===\n${lines.join("\n")}`;
 }

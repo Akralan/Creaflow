@@ -21,7 +21,7 @@ export function getConnector(type: MaterialSourceType): SourceConnector {
   const connector = connectors[type];
   if (!connector) {
     // Atteignable si une valeur est ajoutée à materialSourceTypeEnum sans son implémentation.
-    throw new Error(`Aucun connecteur enregistré pour le type de source "${type}".`);
+    throw new Error(`No connector registered for source type "${type}".`);
   }
   return connector;
 }

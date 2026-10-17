@@ -7,18 +7,18 @@ import { createSourcesFromCandidates, listConnectedExternalIds } from "@/lib/ser
 import { ApiError, handleApiError } from "@/lib/api/errors";
 
 /**
- * Surface HTTP du connecteur GitHub : c'est ici que vit la forme "dépôt" que consomme RepoPicker.
- * Un connecteur a le droit d'avoir sa route et son UI de sélection — la synchronisation, elle, est
- * générique (docs/ARCHITECTURE_VERTICALES.md §4, chantier 1). D'où l'import direct de
- * `githubConnector` plutôt que du registre : seule cette route lit ses métadonnées typées.
+ * HTTP surface of the GitHub connector: this is where the "repository" shape consumed by RepoPicker lives.
+ * A connector is allowed to have its own route and selection UI — synchronisation itself is
+ * generic (docs/ARCHITECTURE_VERTICALES.md §4, chantier 1). Hence the direct import of
+ * `githubConnector` rather than the registry: only this route reads its typed metadata.
  */
 
 export async function GET() {
   try {
     const userId = await requireUserId();
-    // `alreadyConnected` : le picker est aussi proposé dans les paramètres, après l'onboarding —
-    // reconnecter un dépôt déjà source créerait un sujet doublon (et violerait l'unicité de
-    // material_sources), donc l'UI grise ces dépôts au lieu de laisser l'erreur arriver.
+    // `alreadyConnected`: the picker is also offered in settings, after onboarding —
+    // reconnecting a repository that is already a source would create a duplicate topic (and violate the uniqueness of
+    // material_sources), so the UI greys out these repositories instead of letting the error arrive.
     const [candidates, connectedIds] = await Promise.all([
       githubConnector.listCandidates(userId),
       listConnectedExternalIds(userId, githubConnector.type),
@@ -29,12 +29,12 @@ export async function GET() {
     }));
     return NextResponse.json({ repos });
   } catch (error) {
-    // Le quota atteint n'est pas une panne : 429 et message daté, pas un 500 "Erreur serveur".
+    // Hitting the quota is not an outage: 429 and a dated message, not a 500 "Server error".
     if (error instanceof ConnectorRateLimitError) {
       return handleApiError(new ApiError(429, error.message));
     }
-    // Jeton révoqué ou expiré : à reconnecter, pas une panne (c'était un 500 « Erreur serveur »
-    // affiché comme « aucun dépôt trouvé », constaté le 2026-10-17).
+    // Token revoked or expired: needs reconnecting, not an outage (it used to be a 500 "Server error"
+    // displayed as "no repository found", observed on 2026-10-17).
     if (githubConnector.isAuthError(error)) {
       return handleApiError(new ApiError(409, (error as Error).message));
     }
@@ -45,12 +45,12 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId();
-    // Avant toute écriture : sans compte GitHub, on répond 400 plutôt que de créer des sujets dont
-    // chaque source porterait une erreur d'accès.
+    // Before any write: without a GitHub account, respond 400 rather than creating topics whose
+    // every source would carry an access error.
     await githubConnector.assertReady(userId);
     const { repos } = connectReposSchema.parse(await request.json());
-    // Synchrone : l'ingestion est du fetch et de l'écriture, aucun appel LLM (le résumé est laissé
-    // au backfill paresseux). L'UI restitue le détail dépôt par dépôt à partir du tableau renvoyé.
+    // Synchronous: ingestion is fetch and write, no LLM call (the summary is left
+    // to the lazy backfill). The UI reports the per-repository detail from the returned array.
     const results = await createSourcesFromCandidates(userId, githubConnector.type, repos.map(toCandidate));
     return NextResponse.json({ results }, { status: 201 });
   } catch (error) {

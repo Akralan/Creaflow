@@ -4,32 +4,32 @@ import { callStructured } from "./provider";
 import type { Reader } from "./readerPortrait";
 
 /**
- * La forme d'une série pour son lecteur (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4) : réfléchie une
- * fois, avec la ligne de temps sous les yeux, écrite noir sur blanc, corrigeable par l'auteur. Le
- * rédacteur la reçoit telle quelle à chaque post, à la place des rôles, angles et cadrages.
+ * A series' form for its reader (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4): thought out once,
+ * with the timeline in view, written in black and white, correctable by the author. The writer
+ * receives it as is for each post, in place of roles, angles and framings.
  */
 
 export const seriesFormSchema = z.object({
-  /** Ce que ce lecteur vient chercher dans cette série, en deux phrases. */
+  /** What this reader comes looking for in this series, in two sentences. */
   wants: z.string().trim().min(1),
-  /** De quoi est fait un bon épisode pour lui : une structure concrète, pas des adjectifs. */
+  /** What a good episode is made of for them: a concrete structure, not adjectives. */
   episodeShape: z.string().trim().min(1),
-  /** Ce qui le fait partir. */
+  /** What makes them leave. */
   avoid: z.string().trim().min(1),
-  /** Les mots qu'il emploie. */
+  /** The words they use. */
   words: z.array(z.string().trim().min(1)).max(12).default([]),
-  /** Les mots qu'il ne comprend pas, à bannir ou à expliquer. */
+  /** The words they don't understand, to ban or to explain. */
   jargon: z.array(z.string().trim().min(1)).max(12).default([]),
-  /** Longueur et registre qui lui conviennent sur la plateforme de la série. */
+  /** Length and register that suit them on the series' platform. */
   register: z.string().trim().min(1),
-  /** Ce qui revient à chaque épisode (une phrase, un geste de fin, une ouverture) — vide si rien. */
+  /** What comes back in every episode (a sentence, a closing gesture, an opening) — empty if nothing. */
   signature: z.string().trim().default(""),
   generatedAt: z.string().nullable().default(null),
   editedByUser: z.boolean().default(false),
 });
 export type SeriesForm = z.infer<typeof seriesFormSchema>;
 
-/** Lecture tolérante d'un jsonb `content_series.form` : null si absent ou illisible. */
+/** Tolerant read of a `content_series.form` jsonb: null if absent or unreadable. */
 export function parseStoredSeriesForm(raw: unknown): SeriesForm | null {
   if (!raw || typeof raw !== "object") return null;
   const result = seriesFormSchema.safeParse(raw);
@@ -40,21 +40,21 @@ const TOOL_NAME = "describe_series_form";
 
 const describeSeriesFormTool: LlmToolDefinition = {
   name: TOOL_NAME,
-  description: "Écrit la forme d'une série pour son lecteur.",
+  description: "Writes the form of a series for its reader. All text in English.",
   input_schema: {
     type: "object",
     properties: {
-      wants: { type: "string", description: "Ce que ce lecteur vient chercher dans cette série, en deux phrases, concrètes." },
+      wants: { type: "string", description: "What this reader comes looking for in this series, in two concrete sentences." },
       episodeShape: {
         type: "string",
         description:
-          "De quoi est fait un bon épisode pour lui : les ingrédients qu'on doit y trouver (ce qu'il veut savoir, ce qui lui sert, ce qui le fait rester), avec un exemple pris dans les événements fournis. Pas une recette numérotée : deux épisodes de la même série ne doivent pas avoir le même squelette, ni la même fin. Pas d'adjectifs, des éléments qu'on peut vérifier dans le post.",
+          "What a good episode is made of for them: the ingredients to find in it (what they want to know, what is useful to them, what makes them stay), with an example taken from the supplied events. Not a numbered recipe: two episodes of the same series must not have the same skeleton, nor the same ending. No adjectives, elements that can be verified in the post.",
       },
-      avoid: { type: "string", description: "Ce qui le fait partir, en une ou deux phrases précises." },
-      words: { type: "array", items: { type: "string" }, description: "6 à 12 mots ou expressions qu'il emploie vraiment." },
-      jargon: { type: "array", items: { type: "string" }, description: "Les mots du projet qu'il ne comprend pas (à éviter ou à expliquer). Vide s'il est du métier." },
-      register: { type: "string", description: "Longueur et registre pour lui sur la plateforme : nombre de lignes, tutoiement ou non, première personne, ce qu'on ne fait pas." },
-      signature: { type: "string", description: "Ce qui peut revenir à chaque épisode pour que le lecteur reconnaisse la série : une phrase, une façon d'ouvrir ou de finir. Chaîne vide si rien ne s'impose : une signature forcée fait fuir." },
+      avoid: { type: "string", description: "What makes them leave, in one or two precise sentences." },
+      words: { type: "array", items: { type: "string" }, description: "6 to 12 words or expressions they really use." },
+      jargon: { type: "array", items: { type: "string" }, description: "The project's words they don't understand (to avoid or to explain). Empty if they are from the trade." },
+      register: { type: "string", description: "Length and register for them on the platform: number of lines, formal or informal address, first person, what not to do." },
+      signature: { type: "string", description: "What can come back in each episode so the reader recognizes the series: a sentence, a way of opening or closing. Empty string if nothing stands out: a forced signature makes people leave." },
     },
     required: ["wants", "episodeShape", "avoid", "words", "jargon", "register", "signature"],
   },
@@ -69,38 +69,38 @@ export interface SeriesFormContext {
   seriesLabel: string;
   seriesDescription: string;
   platforms: string[];
-  /** Titres d'événements réels de la ligne de temps, pour ancrer les exemples. */
+  /** Titles of real events from the timeline, to anchor the examples. */
   sampleEvents: string[];
 }
 
 function buildSystemPrompt(context: SeriesFormContext): string {
-  return `Tu prépares le travail d'un ghostwriter. ${context.brandName} (${context.activityType}) raconte ${context.subjectName} dans une série de posts, « ${context.seriesLabel} », écrite pour UN SEUL lecteur. Tu écris la forme de cette série pour ce lecteur : ce qu'il vient y chercher, de quoi est fait un bon épisode pour lui, ce qui le fait partir, ses mots, la longueur et le registre.
+  return `You prepare a ghostwriter's work. ${context.brandName} (${context.activityType}) tells the story of ${context.subjectName} in a series of posts, "${context.seriesLabel}", written for ONE SINGLE reader. You write the form of this series for that reader: what they come looking for, what a good episode is made of for them, what makes them leave, their words, the length and the register.
 
-Un bon épisode, c'est un événement raconté : ce qui s'est passé, ce que ça a changé, pour cette personne-là. La forme dit comment on le raconte à CE lecteur. Deux exemples fictifs de ce qu'on attend, pour deux lecteurs différents d'un même projet (ne les recopie pas, ils servent à montrer le niveau de précision) :
-- celui qui utilise ce que l'auteur construit (un client, un joueur, un patient…) : « une situation précise vécue par quelqu'un comme lui, ce qui n'allait pas, ce que le produit a montré ou permis, ce que cette personne a fait ensuite, en six à dix lignes, sans un mot de technique » ;
-- un pair de l'auteur (un autre développeur, un autre artisan…) : « ce qu'on croyait, ce qui a cassé, ce qu'on a changé, le chiffre avant et après, en dix à quinze lignes, avec le nom des outils ».
-L'auteur écrit seul et dit « je » ; ne présume jamais d'une équipe, sauf si sa description en parle. Écris pour le lecteur fourni, à partir de qui il est vraiment, et appuie l'exemple sur un des événements réels listés. Ne décris jamais le projet lui-même : décris comment on le raconte. La forme dit ce qu'un épisode doit contenir et ce qu'il doit éviter, jamais dans quel ordre : un rédacteur qui suivrait une recette numérotée écrirait dix fois le même post.`;
+A good episode is an event told: what happened, what it changed, for that particular person. The form says how it is told to THIS reader. Two fictional examples of what is expected, for two different readers of the same project (don't copy them, they show the level of precision):
+- someone who uses what the author builds (a customer, a player, a patient…): "a precise situation lived by someone like them, what wasn't working, what the product showed or allowed, what that person did next, in six to ten lines, without a word of tech";
+- a peer of the author (another developer, another craftsperson…): "what we believed, what broke, what we changed, the number before and after, in ten to fifteen lines, with the names of the tools".
+The author writes alone and says "I"; never assume a team, unless their description mentions one. Write for the supplied reader, based on who they really are, and ground the example in one of the real events listed. Never describe the project itself: describe how it is told. The form says what an episode must contain and what it must avoid, never in what order: a writer following a numbered recipe would write the same post ten times. Write everything in English.`;
 }
 
 function buildUserMessage(context: SeriesFormContext): string {
   const r = context.reader;
   const lines = [
-    `Série : ${context.seriesLabel} — ${context.seriesDescription}`,
-    `Sujet : ${context.subjectName}${context.subjectDescription ? ` — ${context.subjectDescription}` : ""}`,
-    `Plateformes : ${context.platforms.join(", ") || "non précisées"}`,
+    `Series: ${context.seriesLabel} — ${context.seriesDescription}`,
+    `Subject: ${context.subjectName}${context.subjectDescription ? ` — ${context.subjectDescription}` : ""}`,
+    `Platforms: ${context.platforms.join(", ") || "not specified"}`,
     "",
-    `Lecteur : ${r.label} — ${r.who}`,
-    r.knows ? `Sait déjà : ${r.knows}` : null,
-    r.wants ? `Vient chercher : ${r.wants}` : null,
-    r.stopsFor ? `S'arrête pour : ${r.stopsFor}` : null,
-    r.turnsOff ? `Fuit : ${r.turnsOff}` : null,
-    r.words.length ? `Ses mots : ${r.words.join(", ")}` : null,
+    `Reader: ${r.label} — ${r.who}`,
+    r.knows ? `Already knows: ${r.knows}` : null,
+    r.wants ? `Comes looking for: ${r.wants}` : null,
+    r.stopsFor ? `Stops for: ${r.stopsFor}` : null,
+    r.turnsOff ? `Turned off by: ${r.turnsOff}` : null,
+    r.words.length ? `Their words: ${r.words.join(", ")}` : null,
     "",
     context.sampleEvents.length
-      ? `Événements réels de la ligne de temps du sujet (pour ancrer l'exemple de structure) :\n${context.sampleEvents.map((t) => `- ${t}`).join("\n")}`
-      : "Aucun événement enregistré pour l'instant : décris la structure sans exemple tiré de la matière.",
+      ? `Real events from the subject's timeline (to anchor the structure example):\n${context.sampleEvents.map((t) => `- ${t}`).join("\n")}`
+      : "No event recorded for now: describe the structure without an example drawn from the material.",
     "",
-    `Écris la forme de la série via ${TOOL_NAME}.`,
+    `Write the series form via ${TOOL_NAME}.`,
   ].filter((l): l is string => l !== null);
   return lines.join("\n");
 }

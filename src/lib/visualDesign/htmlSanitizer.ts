@@ -3,9 +3,9 @@ import { parseImagePlaceholder } from "./designImages";
 
 /**
  * Liste blanche et normalisation du HTML d'une slide (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §5.1).
- * Appliquée à TOUTE écriture — sortie du modèle comme retouche manuelle. Parseur maison,
- * volontairement strict : ce qu'il ne comprend pas est refusé, et la sortie est resérialisée sous
- * forme canonique (jamais le texte d'entrée). Aucune dépendance, aucun accès au DOM.
+ * Applied to EVERY write — model output as well as manual edits. Home-made parser,
+ * deliberately strict: what it doesn't understand is refused, and the output is reserialized in
+ * canonical form (never the input text). No dependency, no DOM access.
  */
 
 export const MAX_LAYERS_PER_SLIDE = 12;
@@ -72,7 +72,7 @@ const ALLOWED_CSS_PROPS = new Set([
   "white-space",
   "word-break",
   "color",
-  // Décoration
+  // Decoration
   "background",
   "background-color",
   "background-image",
@@ -95,7 +95,7 @@ const ALLOWED_CSS_PROPS = new Set([
   "transform-origin",
   "filter",
   // Montages (docs/SPEC_COMPOSITION_VISUELLE.md §2 « Liste blanche ») : photo en rond ou en
-  // médaillon, cadres. `backdrop-filter` écarté (mal rendu par html-to-image).
+  // medallion, frames. `backdrop-filter` excluded (poorly rendered by html-to-image).
   "clip-path",
   "outline",
   "outline-color",
@@ -111,7 +111,7 @@ const GRADIENT_RE = /^(linear|radial|conic)-gradient\(/i;
 export class DesignValidationError extends Error {
   readonly issues: string[];
   constructor(issues: string[]) {
-    super(`HTML de slide refusé : ${issues.join(" · ")}`);
+    super(`Slide HTML rejected: ${issues.join(" · ")}`);
     this.name = "DesignValidationError";
     this.issues = issues;
   }
@@ -187,8 +187,8 @@ class Parser {
     const nodes = this.parseChildren(null);
     const elements = nodes.filter((n): n is DesignElement => "tag" in n);
     const stray = nodes.filter((n) => "text" in n && n.text.trim().length > 0);
-    if (stray.length > 0) this.issues.push("du texte hors de l'élément racine");
-    if (elements.length !== 1) this.issues.push(`un seul élément racine attendu, ${elements.length} trouvé(s)`);
+    if (stray.length > 0) this.issues.push("text outside the root element");
+    if (elements.length !== 1) this.issues.push(`a single root element expected, ${elements.length} found`);
     return { root: elements[0] ?? null, issues: this.issues };
   }
 
@@ -198,13 +198,13 @@ class Parser {
       if (this.input.startsWith("</", this.pos)) {
         const end = this.input.indexOf(">", this.pos);
         if (end === -1) {
-          this.issues.push("balise fermante non terminée");
+          this.issues.push("unterminated closing tag");
           this.pos = this.input.length;
           return children;
         }
         const name = this.input.slice(this.pos + 2, end).trim().toLowerCase();
         this.pos = end + 1;
-        if (name !== parentTag) this.issues.push(`fermeture </${name}> inattendue`);
+        if (name !== parentTag) this.issues.push(`unexpected closing </${name}>`);
         return children;
       }
       if (this.input.startsWith("<!--", this.pos)) {
@@ -222,14 +222,14 @@ class Parser {
       this.pos = next === -1 ? this.input.length : next;
       children.push({ text: decodeEntities(raw) });
     }
-    if (parentTag !== null) this.issues.push(`<${parentTag}> jamais fermé`);
+    if (parentTag !== null) this.issues.push(`<${parentTag}> never closed`);
     return children;
   }
 
   private parseElement(): DesignElement | null {
     const tagMatch = /^<([a-zA-Z][a-zA-Z0-9]*)/.exec(this.input.slice(this.pos));
     if (!tagMatch) {
-      this.issues.push(`caractère « < » isolé à la position ${this.pos}`);
+      this.issues.push(`stray "<" character at position ${this.pos}`);
       this.pos += 1;
       return null;
     }
@@ -240,7 +240,7 @@ class Parser {
     for (;;) {
       this.skipWhitespace();
       if (this.pos >= this.input.length) {
-        this.issues.push(`<${tag}> non terminé`);
+        this.issues.push(`<${tag}> unterminated`);
         return null;
       }
       if (this.input.startsWith("/>", this.pos)) {
@@ -254,7 +254,7 @@ class Parser {
       }
       const attrMatch = /^([a-zA-Z_:][-a-zA-Z0-9_:.]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/.exec(this.input.slice(this.pos));
       if (!attrMatch) {
-        this.issues.push(`attribut illisible dans <${tag}>`);
+        this.issues.push(`unreadable attribute in <${tag}>`);
         return null;
       }
       this.pos += attrMatch[0].length;
@@ -263,8 +263,8 @@ class Parser {
       attrs[name] = decodeEntities(value);
     }
     if (!ALLOWED_TAGS.has(tag)) {
-      this.issues.push(`balise <${tag}> interdite`);
-      // On consomme quand même son contenu pour continuer l'analyse.
+      this.issues.push(`tag <${tag}> is forbidden`);
+      // We still consume its content to continue the analysis.
       if (!selfClosing && !VOID_TAGS.has(tag)) this.parseChildren(tag);
       return null;
     }
@@ -279,7 +279,7 @@ class Parser {
 
 // --- Styles ---
 
-/** Découpe une déclaration `a: b; c: d(e; f)` en respectant les parenthèses. */
+/** Splits a declaration `a: b; c: d(e; f)` while respecting parentheses. */
 function splitDeclarations(style: string): string[] {
   const parts: string[] = [];
   let depth = 0;
@@ -307,40 +307,40 @@ export function parseStyle(style: string, issues: string[], where: string): Styl
   for (const declaration of splitDeclarations(style)) {
     const colon = declaration.indexOf(":");
     if (colon === -1) {
-      issues.push(`${where} : déclaration sans « : » (${declaration.slice(0, 30)})`);
+      issues.push(`${where}: declaration without ":" (${declaration.slice(0, 30)})`);
       continue;
     }
     const prop = declaration.slice(0, colon).trim().toLowerCase();
     const value = declaration.slice(colon + 1).trim().replace(/\s*!important$/i, "");
     if (!ALLOWED_CSS_PROPS.has(prop)) {
-      issues.push(`${where} : propriété « ${prop} » interdite`);
+      issues.push(`${where}: property "${prop}" is forbidden`);
       continue;
     }
     if (FORBIDDEN_VALUE_RE.test(value)) {
-      issues.push(`${where} : valeur interdite pour « ${prop} »`);
+      issues.push(`${where}: forbidden value for "${prop}"`);
       continue;
     }
     if (value.length > 300) {
-      issues.push(`${where} : valeur trop longue pour « ${prop} »`);
+      issues.push(`${where}: value too long for "${prop}"`);
       continue;
     }
-    // Une photo passe par <img src="{{IMG:p1}}"> (url() est banni plus haut, placeholder compris) :
-    // ici seuls une couleur ou un gradient sont acceptés.
+    // A photo goes through <img src="{{IMG:p1}}"> (url() is banned above, placeholder included):
+    // here only a color or a gradient is accepted.
     if ((prop === "background-image" || prop === "background") && /gradient|image/i.test(value) && !GRADIENT_RE.test(value)) {
-      issues.push(`${where} : « ${prop} » n'accepte qu'une couleur ou un gradient`);
+      issues.push(`${where}: "${prop}" only accepts a color or a gradient`);
       continue;
     }
     if (prop === "font-family") {
       const font = resolveDesignFont(value);
       if (!font) {
-        issues.push(`${where} : police « ${value.slice(0, 40)} » hors liste`);
+        issues.push(`${where}: font "${value.slice(0, 40)}" is not in the list`);
         continue;
       }
       out[prop] = font.name;
       continue;
     }
     if (prop === "position" && !["absolute", "relative", "static"].includes(value.toLowerCase())) {
-      issues.push(`${where} : position « ${value} » interdite`);
+      issues.push(`${where}: position "${value}" is forbidden`);
       continue;
     }
     out[prop] = value;
@@ -354,13 +354,13 @@ export function serializeStyle(style: StyleMap): string {
     .join(";");
 }
 
-// --- Validation structurelle & sérialisation ---
+// --- Structural validation & serialization ---
 
 export interface SanitizeOptions {
   width: number;
   height: number;
   hasLogo: boolean;
-  /** Références de photo déclarées sur la maquette (`p1`…) : seules celles-ci sont acceptées en `src`. */
+  /** Photo references declared on the mockup (`p1`…): only these are accepted as `src`. */
   imageRefs: string[];
 }
 
@@ -369,7 +369,7 @@ export interface SanitizedSlide {
   layerCount: number;
   /** Identifiants data-layer des enfants directs, dans l'ordre — la ligne de temps s'y rattache. */
   layerIds: string[];
-  /** Références de photo effectivement utilisées par la slide. */
+  /** Photo references actually used by the slide. */
   imageRefs: string[];
 }
 
@@ -390,27 +390,27 @@ function walk(el: DesignElement, visit: (node: DesignElement, path: string) => v
 }
 
 /**
- * Valide et normalise le HTML d'une slide. Lève DesignValidationError avec la liste des problèmes
- * (renvoyée au modèle pour une seconde tentative, ou en 422 à une écriture manuelle).
+ * Validates and normalizes a slide's HTML. Throws DesignValidationError with the list of problems
+ * (returned to the model for a second attempt, or as a 422 to a manual write).
  */
 export function sanitizeSlideHtml(html: string, options: SanitizeOptions): SanitizedSlide {
   const issues: string[] = [];
   if (Buffer.byteLength(html, "utf8") > MAX_SLIDE_HTML_BYTES * 2) {
-    throw new DesignValidationError([`HTML trop volumineux (${Math.round(Buffer.byteLength(html, "utf8") / 1024)} Ko)`]);
+    throw new DesignValidationError([`HTML too large (${Math.round(Buffer.byteLength(html, "utf8") / 1024)} KB)`]);
   }
   const { root, issues: parseIssues } = new Parser(html.trim()).parseDocument();
   issues.push(...parseIssues);
-  if (!root) throw new DesignValidationError(issues.length ? issues : ["aucun élément racine"]);
-  if (root.tag !== "div") issues.push(`la racine doit être un <div>, pas <${root.tag}>`);
+  if (!root) throw new DesignValidationError(issues.length ? issues : ["no root element"]);
+  if (root.tag !== "div") issues.push(`the root must be a <div>, not <${root.tag}>`);
 
   const usedImageRefs = new Set<string>();
   const layerIds = new Set<string>();
 
-  // Attributs & styles de chaque élément.
+  // Attributes & styles of each element.
   walk(root, (node, path) => {
     for (const name of Object.keys(node.attrs)) {
       if (!ALLOWED_ATTRS.has(name)) {
-        issues.push(`${path} : attribut « ${name} » interdit`);
+        issues.push(`${path}: attribute "${name}" is forbidden`);
         delete node.attrs[name];
       }
     }
@@ -419,13 +419,13 @@ export function sanitizeSlideHtml(html: string, options: SanitizeOptions): Sanit
       const ref = parseImagePlaceholder(src);
       if (ref) {
         if (options.imageRefs.includes(ref)) usedImageRefs.add(ref);
-        else issues.push(`${path} : photo « ${ref} » non déclarée sur cette maquette`);
+        else issues.push(`${path}: photo "${ref}" not declared on this mockup`);
       } else if (src === LOGO_PLACEHOLDER) {
-        if (!options.hasLogo) issues.push(`${path} : {{LOGO}} utilisé sans logo défini`);
-      } else issues.push(`${path} : src d'image interdit (seuls {{IMG:p1}}… et {{LOGO}} sont acceptés)`);
+        if (!options.hasLogo) issues.push(`${path}: {{LOGO}} used without a defined logo`);
+      } else issues.push(`${path}: image src forbidden (only {{IMG:p1}}… and {{LOGO}} are accepted)`);
       if (!node.attrs.alt) node.attrs.alt = "";
     } else if ("src" in node.attrs) {
-      issues.push(`${path} : src sur une balise <${node.tag}>`);
+      issues.push(`${path}: src on a <${node.tag}> tag`);
       delete node.attrs.src;
     }
     if (node.attrs.style !== undefined) {
@@ -433,8 +433,8 @@ export function sanitizeSlideHtml(html: string, options: SanitizeOptions): Sanit
     }
   });
 
-  // Racine : taille du canevas imposée.
-  const rootRest = parseStyle(root.attrs.style ?? "", [], "racine");
+  // Root: canvas size imposed.
+  const rootRest = parseStyle(root.attrs.style ?? "", [], "root");
   for (const forced of ["position", "width", "height", "overflow", "transform"]) delete rootRest[forced];
   const rootStyle: StyleMap = {
     position: "relative",
@@ -447,21 +447,21 @@ export function sanitizeSlideHtml(html: string, options: SanitizeOptions): Sanit
   delete root.attrs["data-layer"];
   delete root.attrs["data-type"];
 
-  // Calques : enfants directs, absolus, identifiés, typés.
+  // Layers: direct children, absolute, identified, typed.
   const layers: DesignElement[] = [];
   const keptChildren: DesignChild[] = [];
   root.children.forEach((child, i) => {
     if ("text" in child) {
-      if (child.text.trim()) issues.push(`texte nu sous la racine (enfant ${i}) : place-le dans un calque`);
+      if (child.text.trim()) issues.push(`bare text under the root (child ${i}): put it in a layer`);
       return;
     }
     layers.push(child);
     keptChildren.push(child);
   });
   root.children = keptChildren;
-  if (layers.length > MAX_LAYERS_PER_SLIDE) issues.push(`${layers.length} calques, ${MAX_LAYERS_PER_SLIDE} maximum`);
+  if (layers.length > MAX_LAYERS_PER_SLIDE) issues.push(`${layers.length} layers, ${MAX_LAYERS_PER_SLIDE} maximum`);
   layers.forEach((layer, i) => {
-    const layerRest = parseStyle(layer.attrs.style ?? "", [], `calque ${i + 1}`);
+    const layerRest = parseStyle(layer.attrs.style ?? "", [], `layer ${i + 1}`);
     delete layerRest.position;
     layer.attrs.style = serializeStyle({ position: "absolute", ...layerRest });
     let id = (layer.attrs["data-layer"] ?? "").trim();
@@ -474,9 +474,9 @@ export function sanitizeSlideHtml(html: string, options: SanitizeOptions): Sanit
     if (!LAYER_TYPES.has(type)) {
       type = containsImage(layer) ? "image" : containsText(layer) ? "text" : "shape";
     }
-    // Ordre canonique des attributs, pour une sérialisation stable.
+    // Canonical attribute order, for stable serialization.
     layer.attrs = { "data-layer": id, "data-type": type, ...(layer.attrs.style ? { style: layer.attrs.style } : {}) };
-    // Les identifiants de calque n'ont de sens qu'au premier niveau : nettoyés en profondeur.
+    // Layer identifiers only make sense at the first level: cleaned at depth.
     layer.children.forEach((c) => {
       if ("tag" in c)
         walk(c, (nested) => {
@@ -490,7 +490,7 @@ export function sanitizeSlideHtml(html: string, options: SanitizeOptions): Sanit
 
   const serialized = serializeElement(root);
   if (Buffer.byteLength(serialized, "utf8") > MAX_SLIDE_HTML_BYTES) {
-    throw new DesignValidationError([`HTML trop volumineux après normalisation (${Math.round(Buffer.byteLength(serialized, "utf8") / 1024)} Ko, max ${MAX_SLIDE_HTML_BYTES / 1024})`]);
+    throw new DesignValidationError([`HTML too large after normalization (${Math.round(Buffer.byteLength(serialized, "utf8") / 1024)} KB, max ${MAX_SLIDE_HTML_BYTES / 1024})`]);
   }
   return { html: serialized, layerCount: layers.length, layerIds: [...layerIds], imageRefs: [...usedImageRefs] };
 }

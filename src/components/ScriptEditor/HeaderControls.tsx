@@ -32,7 +32,7 @@ export const iconButton: React.CSSProperties = {
   cursor: "pointer",
 };
 
-/** Ouvert/fermé, avec fermeture au clic extérieur et à Échap. */
+/** Open/closed, closing on outside click and on Esc. */
 function useDisclosure() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -69,7 +69,7 @@ const menuItem: React.CSSProperties = {
   textDecoration: "none",
 };
 
-/** Le statut en un bouton : la valeur courante, la liste au clic. */
+/** The status as a button: the current value, the list on click. */
 export function StatusDropdown({ status, onChange }: { status: ScriptStatus; onChange: (s: ScriptStatus) => void }) {
   const { open, setOpen, ref } = useDisclosure();
   const meta = statusMeta[status];
@@ -110,39 +110,39 @@ export function StatusDropdown({ status, onChange }: { status: ScriptStatus; onC
 }
 
 function formatLabel(script: Script): string {
-  if (script.contentType === "text") return "Texte";
-  if (script.visualFormat === "animation") return `Animation · ${Math.round((script.durationMs ?? 8000) / 1000)} s`;
-  if (script.visualFormat === "carousel") return `Carrousel · ${script.slideCount ?? script.visualDesign?.slides.length ?? "?"} slides`;
+  if (script.contentType === "text") return "Text";
+  if (script.visualFormat === "animation") return `Animation · ${Math.round((script.durationMs ?? 8000) / 1000)}s`;
+  if (script.visualFormat === "carousel") return `Carousel · ${script.slideCount ?? script.visualDesign?.slides.length ?? "?"} slides`;
   return "Image";
 }
 
-/** Le brief du post, derrière ⓘ : ouvert au survol sur ordinateur, au toucher sur téléphone. */
+/** The post's brief, behind ⓘ: opens on hover on desktop, on tap on phones. */
 export function BriefInfo({ script }: { script: Script }) {
   const { open, setOpen, ref } = useDisclosure();
   const rows: Array<[string, React.ReactNode]> = [
     [
-      "Réseau",
+      "Network",
       <span key="p" style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
         <PlatformLogo platform={script.platform} size={16} />
         {platformMeta[script.platform]?.label ?? script.platform}
       </span>,
     ],
     ["Format", formatLabel(script)],
-    ["Série", script.series?.label ?? "Post libre"],
-    ["Rôle", script.contentCategory.label],
+    ["Series", script.series?.label ?? "Free post"],
+    ["Role", script.contentCategory.label],
   ];
   if (script.angle) rows.push(["Angle", script.angle.label]);
-  if (script.product) rows.push(["Sujet", script.product.name]);
-  if (script.eventTitle) rows.push(["Événement", script.eventTitle]);
+  if (script.product) rows.push(["Topic", script.product.name]);
+  if (script.eventTitle) rows.push(["Event", script.eventTitle]);
 
   return (
     <div ref={ref} style={{ position: "relative" }} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
-      <button type="button" aria-label="Brief du post" aria-expanded={open} onClick={() => setOpen((o) => !o)} style={iconButton}>
+      <button type="button" aria-label="Post brief" aria-expanded={open} onClick={() => setOpen((o) => !o)} style={iconButton}>
         <Info size={18} />
       </button>
       {open && (
         <div style={{ ...panel, width: 300, padding: 16 }}>
-          <div style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 15, marginBottom: 10 }}>Le brief</div>
+          <div style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 15, marginBottom: 10 }}>The brief</div>
           <dl style={{ margin: 0, display: "grid", gridTemplateColumns: "auto 1fr", gap: "8px 14px", fontSize: 13 }}>
             {rows.map(([label, value]) => (
               <div key={label} style={{ display: "contents" }}>
@@ -153,7 +153,7 @@ export function BriefInfo({ script }: { script: Script }) {
           </dl>
           {script.series && (
             <Link href="/direction" style={{ display: "inline-block", marginTop: 14, fontSize: 13, fontWeight: 600, color: accent, textDecoration: "none" }}>
-              Voir le plan de la série →
+              View the series plan →
             </Link>
           )}
         </div>
@@ -162,7 +162,7 @@ export function BriefInfo({ script }: { script: Script }) {
   );
 }
 
-/** Actions rares, rangées : autre idée, plan, suppression. */
+/** Rare actions, tucked away: another idea, plan, deletion. */
 export function ActionsMenu({
   canNewIdea,
   hasSeries,
@@ -179,7 +179,7 @@ export function ActionsMenu({
   const { open, setOpen, ref } = useDisclosure();
   return (
     <div ref={ref} style={{ position: "relative" }}>
-      <button type="button" aria-label="Plus d'actions" aria-expanded={open} onClick={() => setOpen((o) => !o)} style={iconButton}>
+      <button type="button" aria-label="More actions" aria-expanded={open} onClick={() => setOpen((o) => !o)} style={iconButton}>
         <MoreHorizontal size={18} />
       </button>
       {open && (
@@ -195,12 +195,12 @@ export function ActionsMenu({
               }}
               style={menuItem}
             >
-              ✦ Autre idée, même brief
+              ✦ Another idea, same brief
             </button>
           )}
           {hasSeries && (
             <Link href="/direction" role="menuitem" style={menuItem}>
-              ◈ Voir le plan de la série
+              ◈ View the series plan
             </Link>
           )}
           <button
@@ -212,7 +212,7 @@ export function ActionsMenu({
             }}
             style={{ ...menuItem, color: color.danger }}
           >
-            Supprimer ce post
+            Delete this post
           </button>
         </div>
       )}
@@ -222,7 +222,7 @@ export function ActionsMenu({
 
 export function UndoButton({ onClick }: { onClick: () => void }) {
   return (
-    <button type="button" title="Annuler la dernière modification" aria-label="Annuler la dernière modification" onClick={onClick} style={iconButton}>
+    <button type="button" title="Undo the last change" aria-label="Undo the last change" onClick={onClick} style={iconButton}>
       <RotateCcw size={17} />
     </button>
   );

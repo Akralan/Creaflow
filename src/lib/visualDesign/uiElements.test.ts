@@ -23,11 +23,11 @@ describe("catalogue d'éléments d'interface", () => {
 
   it("a des identifiants uniques et une description pour le prompt", () => {
     expect(new Set(UI_ELEMENTS.map((e) => e.id)).size).toBe(UI_ELEMENTS.length);
-    expect(findUiElement("price-tag")?.label).toBe("Étiquette de prix");
+    expect(findUiElement("price-tag")?.label).toBe("Price tag");
     expect(findUiElement("nope")).toBeNull();
     const prompt = describeUiElementsForPrompt();
-    expect(prompt).toContain("étiquette de prix");
-    expect(prompt).toContain("cadre de navigateur");
+    expect(prompt).toContain("price tag");
+    expect(prompt).toContain("browser frame");
   });
 
   it("reprend les couleurs et polices du thème, avec un repli quand la palette est courte", () => {

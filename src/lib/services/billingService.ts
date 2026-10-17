@@ -8,20 +8,21 @@ import { FREE_TRIAL_MICRO_EDIT_LIMIT, FREE_TRIAL_SCRIPT_LIMIT, getPlan, type Pla
 
 type DbSubscriptionStatus = (typeof subscriptionStatusEnum.enumValues)[number];
 
-// Stripe.Subscription.Status inclut aussi "paused" (pause collection) et un OtherString ouvert
-// (statuts futurs) que notre enum Postgres ne modélise pas — non proposé en v1 (pas de config
-// "pause" côté Customer Portal). On les fait tomber sur "past_due" : ça coupe le quota par
-// prudence (le statut n'est plus "actif") plutôt que de planter le webhook ou de stocker une
-// valeur hors enum.
+// Stripe.Subscription.Status also includes "paused" (pause collection) and an open OtherString
+// (future statuses) that our Postgres enum does not model — not offered in v1 (no "pause"
+// config on the Customer Portal side). We map them to "past_due": that cuts the quota as a
+// precaution (the status is no longer "active") rather than crashing the webhook or storing a
+// value outside the enum.
 export function toDbSubscriptionStatus(status: Stripe.Subscription.Status): DbSubscriptionStatus {
   const known = subscriptionStatusEnum.enumValues as readonly string[];
   return known.includes(status) ? (status as DbSubscriptionStatus) : "past_due";
 }
 
-// Statuts pour lesquels un abonnement Stripe existe déjà et n'est pas définitivement clos — un
-// nouveau Checkout ne doit pas être proposé (créerait un 2e customer/2e subscription Stripe, cf.
-// src/app/api/billing/checkout/route.ts). "canceled" et "incomplete_expired" sont volontairement
-// exclus : ce sont les seuls statuts terminaux d'où repartir sur un abonnement neuf a du sens.
+// Statuses for which a Stripe subscription already exists and is not definitively closed — a new
+// Checkout must not be offered (it would create a 2nd Stripe customer/subscription, see
+// src/app/api/billing/checkout/route.ts). "canceled" and "incomplete_expired" are deliberately
+// excluded: they are the only terminal statuses from which starting over with a new subscription
+// makes sense.
 export const NON_TERMINAL_SUBSCRIPTION_STATUSES = new Set<DbSubscriptionStatus>([
   "trialing",
   "active",
@@ -31,9 +32,9 @@ export const NON_TERMINAL_SUBSCRIPTION_STATUSES = new Set<DbSubscriptionStatus>(
 ]);
 
 /**
- * Quota de génération de scripts (docs Phase 1 facturation) : mécanique équivalente à
- * categoryReweightService.ts — logique de décision pure et testable (resolveQuotaStatus),
- * séparée du code DB-aware (getQuotaStatus, enforceScriptQuota) qui l'alimente.
+ * Script generation quota (billing Phase 1 docs): mechanism equivalent to
+ * categoryReweightService.ts — pure, testable decision logic (resolveQuotaStatus), separated
+ * from the DB-aware code (getQuotaStatus, enforceScriptQuota) that feeds it.
  */
 
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(["trialing", "active"]);
@@ -49,11 +50,11 @@ export function resolveQuotaStatus(used: number, limit: number, planName: string
   return { allowed: used < limit, used, limit, planName };
 }
 
-export const CUSTOM_QUOTA_NAME = "Quota personnalisé";
+export const CUSTOM_QUOTA_NAME = "Custom quota";
 
 /**
- * Limite appliquée (docs/SPEC_QUOTAS_ADMIN.md) : le quota propre au compte, réglé depuis
- * /admin/quotas, remplace celui de l'essai ou du plan ; null = limite normale.
+ * Applied limit (docs/SPEC_QUOTAS_ADMIN.md): the account's own quota, set from /admin/quotas,
+ * replaces the trial's or plan's; null = normal limit.
  */
 export function effectiveLimit(normal: { limit: number; planName: string }, custom: number | null | undefined) {
   return custom === null || custom === undefined ? normal : { limit: custom, planName: CUSTOM_QUOTA_NAME };
@@ -67,9 +68,9 @@ export async function getSubscriptionForUser(userId: string) {
   return db.query.subscriptions.findFirst({ where: eq(subscriptions.userId, userId) });
 }
 
-// Compte les événements de génération (scriptGenerationEvents), pas les lignes `scripts` : une
-// régénération réutilise la même ligne `scripts` (même `createdAt`) mais doit compter comme un
-// nouvel appel LLM facturé — voir le commentaire sur scriptGenerationEvents dans schema.ts.
+// Counts generation events (scriptGenerationEvents), not `scripts` rows: a regeneration reuses
+// the same `scripts` row (same `createdAt`) but must count as a new billed LLM call — see the
+// comment on scriptGenerationEvents in schema.ts.
 async function countGenerationEvents(userId: string, since?: Date): Promise<number> {
   const [{ value }] = await db
     .select({ value: count() })
@@ -91,35 +92,34 @@ export async function getQuotaStatus(userId: string): Promise<QuotaStatus> {
     const { limit, planName } = effectiveLimit({ limit: plan.scriptsPerMonth, planName: plan.name }, custom?.scriptLimit);
     return resolveQuotaStatus(used, limit, planName);
   }
-  // Pas d'abonnement actif : essai gratuit à vie (pas de reset périodique), cf. plans.ts.
+  // No active subscription: lifetime free trial (no periodic reset), see plans.ts.
   const used = await countGenerationEvents(userId);
-  const { limit, planName } = effectiveLimit({ limit: FREE_TRIAL_SCRIPT_LIMIT, planName: "Essai gratuit" }, custom?.scriptLimit);
+  const { limit, planName } = effectiveLimit({ limit: FREE_TRIAL_SCRIPT_LIMIT, planName: "Free trial" }, custom?.scriptLimit);
   return resolveQuotaStatus(used, limit, planName);
 }
 
 /**
- * À appeler avant toute génération/régénération de script (voir routes /api/scripts/*).
+ * To be called before any script generation/regeneration (see /api/scripts/* routes).
  *
- * Limite connue acceptée en v1 : le check (lecture du compteur) et l'écriture de l'événement
- * (dans createScriptRecord/updateScriptRecord, après l'appel LLM) ne sont pas atomiques — deux
- * requêtes concurrentes du même utilisateur, toutes deux juste sous la limite, peuvent passer
- * toutes les deux avant qu'aucune n'ait committé son événement, dépassant ponctuellement le
- * quota de quelques unités. Corriger proprement demanderait un verrou tenu pendant tout l'appel
- * LLM (plusieurs secondes) — jugé pire (connexions DB retenues inutilement) que ce dépassement
- * ponctuel et rare pour un quota mensuel de 30 à 150 scripts.
+ * Known limitation accepted in v1: the check (reading the counter) and the event write (in
+ * createScriptRecord/updateScriptRecord, after the LLM call) are not atomic — two concurrent
+ * requests from the same user, both just under the limit, can both pass before either has
+ * committed its event, occasionally exceeding the quota by a few units. Fixing it properly would
+ * require a lock held for the whole LLM call (several seconds) — judged worse (DB connections
+ * held needlessly) than this occasional, rare overshoot for a monthly quota of 30 to 150 scripts.
  */
 export async function enforceScriptQuota(userId: string): Promise<void> {
   const status = await getQuotaStatus(userId);
   if (!status.allowed) {
     throw new ApiError(
       402,
-      `Quota atteint (${status.used}/${status.limit} scripts — ${status.planName}). Passe à un plan supérieur pour continuer à générer des scripts.`
+      `Quota reached (${status.used}/${status.limit} scripts — ${status.planName}). Upgrade to a higher plan to keep generating scripts.`
     );
   }
 }
 
-// Compte les micro-retouches (scriptMicroEditEvents), pool distinct du quota de génération complète
-// ci-dessus — voir le commentaire sur scriptMicroEditEvents dans schema.ts.
+// Counts micro-edits (scriptMicroEditEvents), a pool separate from the full-generation quota
+// above — see the comment on scriptMicroEditEvents in schema.ts.
 async function countMicroEditEvents(userId: string, since?: Date): Promise<number> {
   const [{ value }] = await db
     .select({ value: count() })
@@ -132,7 +132,7 @@ async function countMicroEditEvents(userId: string, since?: Date): Promise<numbe
   return value;
 }
 
-/** Miroir exact de getQuotaStatus, sur le pool micro-retouches (docs/SPEC_MATIERE_EDITEUR.md §4.6). */
+/** Exact mirror of getQuotaStatus, on the micro-edit pool (docs/SPEC_MATIERE_EDITEUR.md §4.6). */
 export async function getMicroEditQuotaStatus(userId: string): Promise<QuotaStatus> {
   const [subscription, custom] = await Promise.all([getSubscriptionForUser(userId), customLimits(userId)]);
   if (subscription && ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status)) {
@@ -143,25 +143,25 @@ export async function getMicroEditQuotaStatus(userId: string): Promise<QuotaStat
     return resolveQuotaStatus(used, limit, planName);
   }
   const used = await countMicroEditEvents(userId);
-  const { limit, planName } = effectiveLimit({ limit: FREE_TRIAL_MICRO_EDIT_LIMIT, planName: "Essai gratuit" }, custom?.microEditLimit);
+  const { limit, planName } = effectiveLimit({ limit: FREE_TRIAL_MICRO_EDIT_LIMIT, planName: "Free trial" }, custom?.microEditLimit);
   return resolveQuotaStatus(used, limit, planName);
 }
 
-/** À appeler avant toute micro-retouche (POST /api/scripts/:id/micro-edit). */
+/** To be called before any micro-edit (POST /api/scripts/:id/micro-edit). */
 export async function enforceMicroEditQuota(userId: string): Promise<void> {
   const status = await getMicroEditQuotaStatus(userId);
   if (!status.allowed) {
     throw new ApiError(
       402,
-      `Quota de retouches atteint (${status.used}/${status.limit} — ${status.planName}). Passe à un plan supérieur pour continuer.`
+      `Edit quota reached (${status.used}/${status.limit} — ${status.planName}). Upgrade to a higher plan to continue.`
     );
   }
 }
 
 /**
- * upsert appelé uniquement depuis le webhook Stripe (checkout.session.completed et
- * customer.subscription.*) — jamais depuis une route utilisateur, la source de vérité du statut
- * d'abonnement est toujours Stripe, jamais une action locale.
+ * upsert called only from the Stripe webhook (checkout.session.completed and
+ * customer.subscription.*) — never from a user route, the source of truth for the subscription
+ * status is always Stripe, never a local action.
  */
 export async function upsertSubscriptionFromStripe(params: {
   userId: string;
@@ -171,12 +171,13 @@ export async function upsertSubscriptionFromStripe(params: {
 }): Promise<void> {
   const { userId, stripeCustomerId, stripeSubscription, plan } = params;
 
-  // Un compte supprimé (DELETE /api/account) peut encore recevoir un event en vol — abonnement
-  // résilié juste avant, checkout en cours. Sans ce garde, l'insert violerait la clé étrangère,
-  // le webhook répondrait 500 et Stripe le rejouerait pendant des jours. On l'ignore en 200.
+  // A deleted account (DELETE /api/account) can still receive an in-flight event — subscription
+  // canceled just before, checkout in progress. Without this guard, the insert would violate the
+  // foreign key, the webhook would respond 500 and Stripe would replay it for days. We ignore it
+  // with a 200.
   const owner = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { id: true } });
   if (!owner) {
-    logger.warn("Event Stripe reçu pour un compte supprimé, ignoré", { userId, stripeSubscriptionId: stripeSubscription.id });
+    logger.warn("Stripe event received for a deleted account, ignored", { userId, stripeSubscriptionId: stripeSubscription.id });
     return;
   }
 
@@ -199,7 +200,7 @@ export async function upsertSubscriptionFromStripe(params: {
     .onConflictDoUpdate({ target: subscriptions.userId, set: values });
 }
 
-/** Marque l'abonnement annulé sans dépendre du payload complet de l'event `customer.subscription.deleted`. */
+/** Marks the subscription as canceled without depending on the full payload of the `customer.subscription.deleted`. */
 export async function markSubscriptionCanceled(stripeSubscriptionId: string): Promise<void> {
   await db
     .update(subscriptions)

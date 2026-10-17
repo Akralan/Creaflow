@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     for (const asset of created) {
       after(() =>
         processAssetCaptioning(asset.id).catch((err) =>
-          logger.error("Captioning échoué pour un asset", err, { assetId: asset.id })
+          logger.error("Captioning failed for an asset", err, { assetId: asset.id })
         )
       );
     }

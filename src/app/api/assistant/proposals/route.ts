@@ -3,7 +3,7 @@ import { requireUserId } from "@/lib/auth/session";
 import { handleApiError } from "@/lib/api/errors";
 import { listPendingProposals } from "@/lib/services/assistantService";
 
-/** Propositions en attente, hors écran /assistant — Paramètres affiche celle du style
+/** Pending proposals, outside the /assistant screen — Settings shows the style one
  *  (docs/SPEC_APPRENTISSAGE_STYLE.md §6.1). */
 export async function GET() {
   try {

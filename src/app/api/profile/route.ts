@@ -24,19 +24,19 @@ export async function GET() {
     const profile = await db.query.creatorProfiles.findFirst({
       where: eq(creatorProfiles.userId, userId),
     });
-    // Le track décide quel onboarding s'affiche — exposé ici plutôt que via un endpoint dédié parce
-    // que /onboarding et /login appellent déjà getProfile au montage.
+    // The track decides which onboarding is shown — exposed here rather than via a dedicated endpoint because
+    // /onboarding and /login already call getProfile on mount.
     const user = await db.query.users.findFirst({
       where: eq(users.id, userId),
       columns: { vertical: true },
     });
-    // Exposé ici pour la même raison que la verticale : les écrans qui en ont besoin (paramètres >
-    // Sujets, l'onboarding) appellent déjà getProfile. C'est CETTE liste, et non la verticale, qui
-    // dit quel sélecteur afficher — "dev" couvre GitHub comme Linear
+    // Exposed here for the same reason as the vertical: the screens that need it (settings >
+    // Topics, onboarding) already call getProfile. It is THIS list, not the vertical, that
+    // says which selector to show — "dev" covers GitHub as well as Linear
     // (docs/SPEC_CONNECTEURS_ET_SUJETS.md §7.2).
     const connectedProviders = await listConnectedProviders(userId);
-    // Compteur « scripts corrigés depuis la dernière analyse de style » — exposé ici parce que les
-    // deux écrans qui l'affichent (Paramètres, éditeur) appellent déjà getProfile
+    // Counter "scripts corrected since the last style analysis" — exposed here because the
+    // two screens that display it (Settings, editor) already call getProfile
     // (docs/SPEC_APPRENTISSAGE_STYLE.md §5.3).
     const styleLearning = await getStyleLearningStatus(userId);
     return NextResponse.json({
@@ -44,7 +44,7 @@ export async function GET() {
       styleLearning,
       vertical: user?.vertical ?? "creator",
       connectedProviders,
-      // Conservé pour ne pas casser les appelants existants tant qu'ils n'ont pas basculé sur
+      // Kept so as not to break existing callers until they have switched to
       // connectedProviders.
       githubConnected: connectedProviders.some((provider) => provider.id === "github"),
     });

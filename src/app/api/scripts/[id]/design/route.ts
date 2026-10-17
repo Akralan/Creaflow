@@ -9,7 +9,7 @@ import { MAX_DESIGN_IMAGES } from "@/lib/visualDesign/designImages";
 import { MAX_SLIDE_HTML_BYTES } from "@/lib/visualDesign/htmlSanitizer";
 
 const createSchema = z.object({
-  // Photos de la bibliothèque, dans l'ordre (docs/SPEC_COMPOSITION_VISUELLE.md §2) ; vide = sans photo.
+  // Library photos, in order (docs/SPEC_COMPOSITION_VISUELLE.md §2); empty = no photo.
   assetIds: z.array(z.uuid()).max(MAX_DESIGN_IMAGES).default([]),
   format: z.enum(Object.keys(DESIGN_FORMATS) as [string, ...string[]]).optional(),
 });
@@ -21,17 +21,17 @@ const patchSchema = z.object({
     .optional(),
   theme: z.unknown().optional(),
   images: z.array(z.unknown()).max(MAX_DESIGN_IMAGES).optional(),
-  // Animation : ligne de temps et durée (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §5.2).
+  // Animation: timeline and duration (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §5.2).
   timeline: z.array(z.unknown()).max(24).optional(),
   durationMs: z.number().int().optional(),
 });
 
-/** Création (ou recomposition) de la maquette par l'agent (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §5.3). */
+/** Creation (or recomposition) of the mockup by the agent (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §5.3). */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userId = await requireUserId();
     const { id } = await params;
-    // Un appel LLM long (toutes les slides), plus d'éventuels détourages.
+    // A long LLM call (all the slides), plus possible background removals.
     await enforceRateLimit("design-compose", userId, 10, 60);
     const body = createSchema.parse(await request.json());
     const { design, rationale } = await createDesignForScript(userId, id, {
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 }
 
-/** Retouche manuelle : HTML des slides, thème, photos, repassés par la liste blanche côté serveur. */
+/** Manual edit: slide HTML, theme, photos, re-run through the server-side allow-list. */
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userId = await requireUserId();

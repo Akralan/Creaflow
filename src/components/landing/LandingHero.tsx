@@ -143,7 +143,7 @@ export default function LandingHero() {
           padding: "clamp(36px, 6.5vw, 88px) clamp(18px, 5vw, 44px) clamp(48px, 7vw, 96px)",
         }}
       >
-        {/* Colonne texte */}
+        {/* Text column */}
         <div style={{ minWidth: 0 }}>
           <div
             style={{
@@ -181,9 +181,9 @@ export default function LandingHero() {
               textWrap: "balance",
             }}
           >
-            <span className={styles.heroLine} style={{ animation: "cf-rise .9s cubic-bezier(.2,.75,.2,1) both" }}>Ton travail devient</span>{" "}
-            <span className={styles.heroLine} style={{ animation: "cf-rise .9s cubic-bezier(.2,.75,.2,1) .1s both" }}>ton meilleur</span>{" "}
-            <span className={styles.heroLine} style={{ animation: "cf-rise .9s cubic-bezier(.2,.75,.2,1) .2s both", color: accent, whiteSpace: "nowrap" }}>commercial.</span>
+            <span className={styles.heroLine} style={{ animation: "cf-rise .9s cubic-bezier(.2,.75,.2,1) both" }}>Your work becomes</span>{" "}
+            <span className={styles.heroLine} style={{ animation: "cf-rise .9s cubic-bezier(.2,.75,.2,1) .1s both" }}>your best</span>{" "}
+            <span className={styles.heroLine} style={{ animation: "cf-rise .9s cubic-bezier(.2,.75,.2,1) .2s both", color: accent, whiteSpace: "nowrap" }}>salesperson.</span>
           </h1>
           <p
             style={{
@@ -196,8 +196,8 @@ export default function LandingHero() {
               animation: "cf-rise 1s cubic-bezier(.2,.75,.2,1) .3s both",
             }}
           >
-            Branche GitHub, Notion ou Linear, ou colle tes notes. CreaFlow lit ce que tu as vraiment fait et t&apos;écrit
-            des posts prêts à publier. Jamais inventé, jamais répété.
+            Connect GitHub, Notion or Linear, or paste your notes. Buildloud reads what you actually did and writes
+            ready-to-publish posts for you. Never made up, never repeated.
           </p>
           <div
             style={{
@@ -210,11 +210,11 @@ export default function LandingHero() {
             }}
           >
             <Link href="/onboarding" style={ctaStyle} {...hoverHandlers(ctaStyle, ctaHover)}>
-              Démarrer gratuitement
+              Start for free
               <span style={{ fontFamily: mono, fontSize: 15 }}>→</span>
             </Link>
             <Link href="#comment-ca-marche" className={styles.hideOnPhone} style={secondaryStyle} {...hoverHandlers(secondaryStyle, secondaryHover)}>
-              Comment ça marche
+              How it works
             </Link>
           </div>
           <p
@@ -225,11 +225,11 @@ export default function LandingHero() {
               animation: "cf-rise 1s cubic-bezier(.2,.75,.2,1) .48s both",
             }}
           >
-            Dix minutes pour démarrer. Sans carte bancaire.
+            Ten minutes to get started. No credit card.
           </p>
         </div>
 
-        {/* Colonne démo : fenêtre de l'app, dont les exemples tournent entre trois profils */}
+        {/* Demo column: app window whose examples rotate between three profiles */}
         <div
           className={styles.heroDemoOuter}
           style={{ animation: "cf-rise 1.1s cubic-bezier(.2,.75,.2,1) .35s both" }}
@@ -267,7 +267,7 @@ export default function LandingHero() {
                 </span>
                 <span style={{ marginLeft: "auto", flexShrink: 0, display: "inline-flex", alignItems: "center", gap: 6, fontFamily: mono, fontSize: 10.5, color: accentText, letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
                   <span style={{ width: 6, height: 6, borderRadius: "50%", background: accent, animation: "cf-blink 2.6s ease-in-out infinite" }} />
-                  SYNCHRO
+                  SYNCED
                 </span>
               </div>
 
@@ -281,7 +281,7 @@ export default function LandingHero() {
                   overflow: "hidden",
                 }}
               >
-                {/* Rail de navigation */}
+                {/* Navigation rail */}
                 <div className={styles.hideOnPhone} style={{ borderRight: `1px solid ${ink(0.06)}`, padding: "12px 9px", display: "grid", gap: 9, alignContent: "start", justifyItems: "center" }}>
                   <span style={railIconActive} />
                   <span style={railIcon} />
@@ -290,7 +290,7 @@ export default function LandingHero() {
                 </div>
 
                 <div className={`${styles.demoContent} ${fadeClass}`} style={{ padding: "clamp(12px, 1.6vw, 16px)", display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 12, minWidth: 0 }}>
-                  {/* Sources branchées */}
+                  {/* Connected sources */}
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {persona.sources.map((source) => (
                       <span key={source.name} style={sourceChip}>
@@ -301,13 +301,13 @@ export default function LandingHero() {
                     ))}
                   </div>
 
-                  {/* Semaine */}
+                  {/* Week */}
                   <div>
                     <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 8 }}>
                       <span style={{ fontFamily: fontHeading, fontWeight: 600, fontSize: 14.5, color: text.heading, letterSpacing: "-0.015em" }}>
-                        Cette semaine
+                        This week
                       </span>
-                      <span style={{ fontFamily: mono, fontSize: 10.5, color: text.faint, letterSpacing: "0.06em" }}>3 PRÉVUS</span>
+                      <span style={{ fontFamily: mono, fontSize: 10.5, color: text.faint, letterSpacing: "0.06em" }}>3 SCHEDULED</span>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 6 }}>
                       {persona.schedule.map((item) => {
@@ -339,16 +339,16 @@ export default function LandingHero() {
                     </div>
                   </div>
 
-                  {/* Post rédigé */}
+                  {/* Drafted post */}
                   <div style={{ background: bg.card, border: `1px solid ${ink(0.07)}`, borderRadius: 13, padding: "clamp(13px, 1.6vw, 17px)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                       <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 999, background: accentAlpha(0.11), color: accentText }}>
-                        Angle inédit
+                        Fresh angle
                       </span>
                       <span style={{ fontFamily: mono, fontSize: 10.5, color: text.faint, letterSpacing: "0.06em" }}>{persona.post.format}</span>
                     </div>
                     <p style={{ margin: "0 0 3px", fontFamily: mono, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: text.faint }}>
-                      Accroche
+                      Hook
                     </p>
                     <p style={{ margin: "0 0 10px", fontFamily: fontHeading, fontWeight: 600, fontSize: "clamp(0.98rem, 1.3vw, 1.08rem)", lineHeight: 1.22, letterSpacing: "-0.018em", color: text.heading }}>
                       {persona.post.hook}
@@ -357,7 +357,7 @@ export default function LandingHero() {
                       {persona.post.body}
                     </p>
                     <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6, paddingTop: 10, borderTop: `1px solid ${ink(0.07)}` }}>
-                      <span style={{ fontFamily: mono, fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: text.faint, marginRight: 2 }}>Tiré de</span>
+                      <span style={{ fontFamily: mono, fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: text.faint, marginRight: 2 }}>Drawn from</span>
                       {persona.post.provenance.map((item) => (
                         <span key={item.label} style={provenanceTag}>
                           <SourceIcon kind={item.kind} scale={0.7} />
@@ -367,7 +367,7 @@ export default function LandingHero() {
                     </div>
                   </div>
 
-                  {/* Lecture en cours */}
+                  {/* Reading in progress */}
                   <div className={`${styles.shimmerTrack} ${styles.hideOnPhone}`} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 12px", borderRadius: 10, background: accentAlpha(0.08), border: `1px solid ${accentAlpha(0.14)}` }}>
                     <span style={{ display: "inline-flex", gap: 3 }} aria-hidden="true">
                       <span className={styles.typingDot} style={{ width: 5, height: 5, borderRadius: "50%", background: accent }} />

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { NO_INDEX } from "@/lib/seo";
 
-// L'onboarding est un composant client : le titre et l'interdiction d'indexation se posent ici.
+// Onboarding is a client component: the title and the no-index rule are set here.
 export const metadata: Metadata = { title: "Onboarding", robots: NO_INDEX };
 
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {

@@ -6,11 +6,11 @@ describe("isSessionInvalidated", () => {
     expect(isSessionInvalidated(1_000_000, null)).toBe(false);
   });
 
-  it("refuse un jeton émis avant le reset, accepte celui émis dans la même seconde ou après", () => {
+  it("rejects a token issued before the reset, accepts one issued in the same second or after", () => {
     const reset = new Date(1_000_000_500); // 1 000 000,5 s
     expect(isSessionInvalidated(999_999, reset)).toBe(true);
-    // Le jeton posé juste après le reset est émis à la seconde 1 000 000 (iat arrondi) : il doit
-    // rester valide, sinon l'utilisateur serait déconnecté dans la foulée de son propre reset.
+    // The token set right after the reset is issued at second 1,000,000 (rounded iat): it must
+    // stay valid, otherwise the user would be logged out right after their own reset.
     expect(isSessionInvalidated(1_000_000, reset)).toBe(false);
     expect(isSessionInvalidated(1_000_001, reset)).toBe(false);
   });

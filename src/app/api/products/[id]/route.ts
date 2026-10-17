@@ -15,9 +15,9 @@ const updateProductSchema = z.object({
   description: z.string().optional(),
   valueProposition: z.string().optional(),
   photoUrl: z.string().optional(),
-  // Override d'audience par sujet, nullable explicitement pour permettre de revenir au fallback
-  // marque (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — seul champ de ce schéma qui accepte null,
-  // les autres restent "omis = inchangé" par cohérence avec le reste du formulaire produit.
+  // Audience override per topic, explicitly nullable so it can revert to the fallback
+  // brand (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — the only field in this schema that accepts null,
+  // the others stay "omitted = unchanged" for consistency with the rest of the product form.
   targetAudience: z.string().nullable().optional(),
 });
 
@@ -31,10 +31,10 @@ export async function PUT(
     const body = updateProductSchema.parse(await request.json());
 
     const updated = await updateProductForUser(userId, id, body);
-    // Un « Pour qui » modifié périme le portrait (sauf s'il a été corrigé à la main).
+    // A modified "Who is it for" makes the portrait stale (unless it was corrected by hand).
     if (body.targetAudience !== undefined) {
       after(() =>
-        refreshStaleReaderPortraits(userId, [id]).catch((err) => logger.error("Portraits des lecteurs échoués", err, { userId }))
+        refreshStaleReaderPortraits(userId, [id]).catch((err) => logger.error("Reader portraits failed", err, { userId }))
       );
     }
 
@@ -57,12 +57,12 @@ export async function DELETE(
       .from(products)
       .where(eq(products.userId, userId));
 
-    // On ne bloque que la sortie du seuil (3 -> 2), pas la construction progressive
-    // du catalogue en dessous de 3 pendant l'onboarding.
+    // We only block going below the threshold (3 -> 2), not the progressive build-up
+    // of the catalogue below 3 during onboarding.
     if (existingCount === MIN_PRODUCTS) {
       throw new ApiError(
         400,
-        `Le catalogue doit contenir au moins ${MIN_PRODUCTS} produits.`
+        `The catalogue must contain at least ${MIN_PRODUCTS} topics.`
       );
     }
 
@@ -72,7 +72,7 @@ export async function DELETE(
       .returning({ id: products.id });
 
     if (!deleted) {
-      throw new ApiError(404, "Produit introuvable.");
+      throw new ApiError(404, "Topic not found.");
     }
 
     return NextResponse.json({ ok: true });

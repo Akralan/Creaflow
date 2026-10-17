@@ -15,7 +15,7 @@ import { runAssistantChatTurn, type AssistantChatContext } from "./assistantChat
 const readTools = [
   {
     name: "list_materials",
-    description: "Liste la matière.",
+    description: "Lists the material.",
     input_schema: { type: "object" as const, properties: {}, required: [] },
   },
 ];
@@ -26,25 +26,25 @@ function buildContext(overrides: Partial<AssistantChatContext> = {}): AssistantC
     products: [
       {
         id: "p1",
-        name: "Atelier céramique",
-        description: "Pièces uniques.",
-        valueProposition: "Fait main, série limitée.",
-        targetAudience: "Collectionneurs de déco artisanale.",
+        name: "Ceramics workshop",
+        description: "One-of-a-kind pieces.",
+        valueProposition: "Handmade, limited edition.",
+        targetAudience: "Collectors of handcrafted decor.",
       },
     ],
     series: [
       {
         id: "s1",
-        label: "Journal d'atelier",
-        description: "L'avancement de la semaine.",
+        label: "Workshop journal",
+        description: "This week's progress.",
         rhythm: { days: [3], every: 1, anchor: null },
-        category: { label: "Coulisses" },
+        category: { label: "Behind the scenes" },
         platforms: [],
-        product: { id: "p1", name: "Atelier céramique" },
+        product: { id: "p1", name: "Ceramics workshop" },
       },
     ],
     categories: [
-      { id: "c1", label: "Coulisses", description: "Montrer l'envers du décor.", weight: 40, platforms: [], materialHungry: true },
+      { id: "c1", label: "Behind the scenes", description: "Show the other side of the scenes.", weight: 40, platforms: [], materialHungry: true },
       { id: "c2", label: "Expertise", description: "Transmettre un savoir-faire.", weight: 60, platforms: [], materialHungry: false },
     ],
     angles: [],
@@ -75,13 +75,13 @@ describe("runAssistantChatTurn", () => {
 
     const { system } = callAgenticMock.mock.calls[0][0];
     // Produit : proposition de valeur et audience du sujet (proposables, donc écrasables).
-    expect(system).toContain("Fait main, série limitée.");
-    expect(system).toContain("Collectionneurs de déco artisanale.");
+    expect(system).toContain("Handmade, limited edition.");
+    expect(system).toContain("Collectors of handcrafted decor.");
     // Série : mode et sujet dont elle tire sa matière.
-    expect(system).toContain("Atelier céramique (id:p1)");
+    expect(system).toContain("Ceramics workshop (id:p1)");
     // Rôle : la consigne éditoriale et l'aiguillage matière.
-    expect(system).toContain("Montrer l'envers du décor.");
-    expect(system).toContain("[exige de la matière documentée]");
+    expect(system).toContain("Show the other side of the scenes.");
+    expect(system).toContain("[requires documented material]");
   });
 
   it("expose les outils de lecture ET l'outil de proposition, sans en imposer aucun", async () => {
@@ -137,7 +137,7 @@ describe("runAssistantChatTurn", () => {
     const series = (label: string) => ({
       action: "create",
       label,
-      description: "Une idée reçue démontée.",
+      description: "A debunked misconception.",
       rhythmDays: [2],
       everyOtherWeek: false,
       categoryLabel: "Expertise",
@@ -159,16 +159,16 @@ describe("runAssistantChatTurn", () => {
     callAgenticMock.mockImplementation(async ({ onToolCall }: { onToolCall: (c: unknown) => Promise<unknown> }) => {
       await onToolCall({
         name: "propose_material",
-        input: { action: "create", productId: "p1", title: "Commande du mardi", text: "Le four a cuit 40 pièces." },
+        input: { action: "create", productId: "p1", title: "Tuesday order", text: "The kiln fired 40 pieces." },
       });
       await onToolCall({ name: "propose_archive", input: { kind: "series", targetId: "s1", reason: "Plus le temps." } });
-      return { reply: "C'est noté.", toolCalls: [], turns: 3, stoppedAtMaxTurns: false };
+      return { reply: "Noted.", toolCalls: [], turns: 3, stoppedAtMaxTurns: false };
     });
 
     const result = await runAssistantChatTurn(buildContext());
 
     expect(result.materialProposals).toEqual([
-      { action: "create", productId: "p1", title: "Commande du mardi", text: "Le four a cuit 40 pièces." },
+      { action: "create", productId: "p1", title: "Tuesday order", text: "The kiln fired 40 pieces." },
     ]);
     expect(result.archiveProposals).toEqual([{ kind: "series", targetId: "s1", reason: "Plus le temps." }]);
   });
@@ -179,7 +179,7 @@ describe("runAssistantChatTurn", () => {
     await runAssistantChatTurn(
       buildContext({
         publishingDays: [6, 3],
-        expectations: "Publier sans y passer mes soirées.",
+        expectations: "Publish without spending my evenings on it.",
         postingGoals: [
           { platform: "linkedin", targetCountPerWeek: 2 },
           { platform: "instagram", targetCountPerWeek: 0 },
@@ -188,12 +188,12 @@ describe("runAssistantChatTurn", () => {
     );
 
     const { system, tools } = callAgenticMock.mock.calls[0][0];
-    expect(system).toContain("Jours où l'auteur peut publier : mercredi, samedi");
-    expect(system).toContain("[id:s1] Journal d'atelier (Mer., jours 3)");
-    expect(system).toContain("LinkedIn : active");
-    expect(system).toContain("Instagram : coupée");
-    expect(system).not.toContain("/semaine");
-    expect(system).toContain("Publier sans y passer mes soirées.");
+    expect(system).toContain("Days the author can publish: Wednesday, Saturday");
+    expect(system).toContain("[id:s1] Workshop journal (Wed, days 3)");
+    expect(system).toContain("LinkedIn: active");
+    expect(system).toContain("Instagram: switched off");
+    expect(system).not.toContain("/week");
+    expect(system).toContain("Publish without spending my evenings on it.");
     const proposalTool = tools.find((t: { name: string }) => t.name === "propose_changes");
     const goal = proposalTool.input_schema.properties.postingGoalProposals.items;
     expect(goal.required).toEqual(["platform", "active"]);
@@ -203,7 +203,7 @@ describe("runAssistantChatTurn", () => {
   it("collecte une proposition de jours de publication, normalisée", async () => {
     callAgenticMock.mockImplementation(async ({ onToolCall }: { onToolCall: (c: unknown) => Promise<unknown> }) => {
       await onToolCall({ name: "propose_publishing_days", input: { publishingDays: [5, 1, 5] } });
-      return { reply: "Proposé.", toolCalls: [], turns: 2, stoppedAtMaxTurns: false };
+      return { reply: "Proposed.", toolCalls: [], turns: 2, stoppedAtMaxTurns: false };
     });
 
     const result = await runAssistantChatTurn(buildContext());

@@ -43,7 +43,7 @@ export function TextField({
       {label && (
         <label style={labelStyle}>
           {label} {required && <span style={{ color: accent }}>*</span>}
-          {optional && <span style={{ color: color.textFaint, fontWeight: 400 }}> — optionnel</span>}
+          {optional && <span style={{ color: color.textFaint, fontWeight: 400 }}> — optional</span>}
         </label>
       )}
       <input {...props} style={{ ...fieldStyle, ...style }} />
@@ -65,7 +65,7 @@ export function TextAreaField({
       {label && (
         <label style={labelStyle}>
           {label} {required && <span style={{ color: accent }}>*</span>}
-          {optional && <span style={{ color: color.textFaint, fontWeight: 400 }}> — optionnel</span>}
+          {optional && <span style={{ color: color.textFaint, fontWeight: 400 }}> — optional</span>}
         </label>
       )}
       <textarea

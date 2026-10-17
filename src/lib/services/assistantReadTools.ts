@@ -39,7 +39,7 @@ const readPerformanceSchema = z.object({ platform: z.string().optional() });
 function parseDay(value: string, field: string): Date {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
-    throw new ApiError(400, `Date invalide pour ${field} : "${value}" (format attendu AAAA-MM-JJ).`);
+    throw new ApiError(400, `Invalid date for ${field}: "${value}" (expected format YYYY-MM-DD).`);
   }
   return parsed;
 }
@@ -57,13 +57,13 @@ export const ASSISTANT_READ_TOOLS: LlmToolDefinition[] = [
   {
     name: "list_materials",
     description:
-      "Liste les documents de matière première d'un sujet (ou la matière de niveau marque si productId est omis) : titre, origine, date et résumé. Renvoie les résumés, jamais le texte intégral — utilise read_material pour lire un document précis.",
+      "Lists the raw material documents of a subject (or brand-level material if productId is omitted): title, origin, date and summary. Returns summaries, never the full text — use read_material to read a specific document.",
     input_schema: {
       type: "object",
       properties: {
         productId: {
           type: "string",
-          description: "Id du sujet. Omets-le pour la matière de niveau marque (non rattachée à un sujet).",
+          description: "Id of the subject. Omit it for brand-level material (not attached to a subject).",
         },
       },
       required: [],
@@ -72,29 +72,29 @@ export const ASSISTANT_READ_TOOLS: LlmToolDefinition[] = [
   {
     name: "read_material",
     description:
-      "Lit le texte intégral d'un document de matière (tronqué s'il est très long). À n'appeler que si le résumé ne suffit pas à répondre.",
+      "Reads the full text of a material document (truncated if very long). Only call it if the summary isn't enough to answer.",
     input_schema: {
       type: "object",
-      properties: { materialId: { type: "string", description: "Id du document, obtenu via list_materials." } },
+      properties: { materialId: { type: "string", description: "Id of the document, obtained via list_materials." } },
       required: ["materialId"],
     },
   },
   {
     name: "list_scripts",
     description:
-      "Liste les scripts du créateur, du plus récent au plus ancien : titre, plateforme, statut, rôle, série et intention de génération (concept). Ne renvoie pas le contenu rédigé — utilise read_script pour un script précis.",
+      "Lists the creator's scripts, from newest to oldest: title, platform, status, role, series and generation intent (concept). Does not return the written content — use read_script for a specific script.",
     input_schema: {
       type: "object",
       properties: {
-        productId: { type: "string", description: "Restreindre à un sujet précis." },
+        productId: { type: "string", description: "Restrict to a specific subject." },
         status: {
           type: "string",
           enum: ["draft", "planned", "shot", "published"],
-          description: "Restreindre à un statut.",
+          description: "Restrict to a status.",
         },
         limit: {
           type: "integer",
-          description: `Nombre maximum de scripts (défaut ${DEFAULT_LIST_LIMIT}, plafond ${MAX_LIST_LIMIT}).`,
+          description: `Maximum number of scripts (default ${DEFAULT_LIST_LIMIT}, cap ${MAX_LIST_LIMIT}).`,
         },
       },
       required: [],
@@ -103,22 +103,22 @@ export const ASSISTANT_READ_TOOLS: LlmToolDefinition[] = [
   {
     name: "read_script",
     description:
-      "Lit le contenu d'un script (accroche, storyboard, légende, hashtags) et les passages de matière qu'il cite. Lecture seule : tu ne peux jamais modifier un script.",
+      "Reads the content of a script (hook, storyboard, caption, hashtags) and the material passages it cites. Read-only: you can never modify a script.",
     input_schema: {
       type: "object",
-      properties: { scriptId: { type: "string", description: "Id du script, obtenu via list_scripts." } },
+      properties: { scriptId: { type: "string", description: "Id of the script, obtained via list_scripts." } },
       required: ["scriptId"],
     },
   },
   {
     name: "read_calendar",
     description:
-      "Lit les créneaux de publication planifiés sur une période : date, plateforme, rôle, série, et script associé le cas échéant. Sert à voir la cadence réelle et les trous. Lecture seule : tu ne touches jamais au calendrier.",
+      "Reads the publishing slots planned over a period: date, platform, role, series, and associated script if any. Used to see the real cadence and the gaps. Read-only: you never touch the calendar.",
     input_schema: {
       type: "object",
       properties: {
-        from: { type: "string", description: "Début de période, format AAAA-MM-JJ." },
-        to: { type: "string", description: "Fin de période, format AAAA-MM-JJ." },
+        from: { type: "string", description: "Start of period, format YYYY-MM-DD." },
+        to: { type: "string", description: "End of period, format YYYY-MM-DD." },
       },
       required: ["from", "to"],
     },
@@ -126,17 +126,17 @@ export const ASSISTANT_READ_TOOLS: LlmToolDefinition[] = [
   {
     name: "read_performance",
     description:
-      "Métriques réelles des publications (vues, likes, commentaires, partages), agrégées par rôle éditorial et par plateforme, avec le nombre de posts mesurés. Un rôle mesuré sur peu de posts n'est pas un signal fiable.",
+      "Real metrics of the publications (views, likes, comments, shares), aggregated by editorial role and by platform, with the number of posts measured. A role measured on few posts is not a reliable signal.",
     input_schema: {
       type: "object",
-      properties: { platform: { type: "string", description: "Restreindre à une plateforme." } },
+      properties: { platform: { type: "string", description: "Restrict to a platform." } },
       required: [],
     },
   },
   {
     name: "read_profile",
     description:
-      "Profil complet du créateur : marque, activité, ce qu'il attend de CreaFlow, jours de publication, audience de marque, profil de style (voix + règles apprises) s'il a été calculé, et styleLearning.pendingScripts = nombre de scripts finalisés dont les corrections n'ont pas encore été analysées (à partir de 5, suggère à l'utilisateur de lancer l'analyse depuis Paramètres — tu ne peux pas la lancer toi-même).",
+      "Full profile of the creator: brand, activity, what they expect from Buildloud, publishing days, brand audience, style profile (voice + learned rules) if computed, and styleLearning.pendingScripts = number of finalized scripts whose corrections haven't been analyzed yet (from 5, suggest to the user to run the analysis from Settings — you cannot run it yourself).",
     input_schema: { type: "object", properties: {}, required: [] },
   },
 ];
@@ -157,7 +157,7 @@ export async function runAssistantReadTool(userId: string, name: string, rawInpu
           kind: m.kind,
           createdAt: m.createdAt,
           characters: m.rawText.length,
-          summary: m.summary ?? "(pas encore résumé)",
+          summary: m.summary ?? "(not summarized yet)",
         })),
       };
     }
@@ -199,7 +199,7 @@ export async function runAssistantReadTool(userId: string, name: string, rawInpu
         count: rows.length,
         scripts: rows.map((s) => ({
           id: s.id,
-          title: s.title ?? "(sans titre)",
+          title: s.title ?? "(untitled)",
           platform: s.platform,
           status: s.status,
           contentType: s.contentType,
@@ -224,7 +224,7 @@ export async function runAssistantReadTool(userId: string, name: string, rawInpu
         },
       });
       if (!script) {
-        throw new ApiError(404, "Script introuvable.");
+        throw new ApiError(404, "Script not found.");
       }
       return {
         id: script.id,
@@ -269,7 +269,7 @@ export async function runAssistantReadTool(userId: string, name: string, rawInpu
           role: e.contentCategory?.label ?? null,
           series: e.series?.label ?? null,
           // Un créneau sans script est un trou à combler : c'est l'information utile ici.
-          script: e.script ? { id: e.script.id, title: e.script.title ?? "(sans titre)", status: e.script.status } : null,
+          script: e.script ? { id: e.script.id, title: e.script.title ?? "(untitled)", status: e.script.status } : null,
         })),
       };
     }
@@ -285,7 +285,7 @@ export async function runAssistantReadTool(userId: string, name: string, rawInpu
 
       const byRole = new Map<string, { platform: string; role: string; posts: number; views: number; engagementTotal: number }>();
       for (const r of measured) {
-        const role = r.contentCategory?.label ?? "(sans rôle)";
+        const role = r.contentCategory?.label ?? "(no role)";
         const key = `${r.platform}::${role}`;
         const entry = byRole.get(key) ?? { platform: r.platform, role, posts: 0, views: 0, engagementTotal: 0 };
         entry.posts += 1;
@@ -334,6 +334,6 @@ export async function runAssistantReadTool(userId: string, name: string, rawInpu
     }
 
     default:
-      throw new ApiError(400, `Outil de lecture inconnu : ${name}.`);
+      throw new ApiError(400, `Unknown read tool: ${name}.`);
   }
 }

@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const material = await createPastedMaterial(userId, { productId: productId ?? null, title, rawText });
     after(() =>
       summarizeMaterialDocument(material.id).catch((err) =>
-        logger.error("Résumé de matière échoué", err, { materialId: material.id })
+        logger.error("Material summary failed", err, { materialId: material.id })
       )
     );
     // Lecture des événements du sujet en arrière-plan (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3).

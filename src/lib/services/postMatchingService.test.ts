@@ -4,22 +4,22 @@ import { findBestMatchingScript, MATCH_SCORE_THRESHOLD, scorePostMatch } from ".
 const DAY_MS = 1000 * 60 * 60 * 24;
 
 describe("scorePostMatch", () => {
-  it("renvoie un score élevé pour une date identique et une caption identique", () => {
+  it("returns a high score for an identical date and an identical caption", () => {
     const publishedAt = new Date("2026-08-01T12:00:00Z");
     const score = scorePostMatch(
-      { publishedAt, captionText: "Nouveau produit disponible dès aujourd'hui" },
-      { scheduledDate: publishedAt, caption: "Nouveau produit disponible dès aujourd'hui" }
+      { publishedAt, captionText: "New product available today" },
+      { scheduledDate: publishedAt, caption: "New product available today" }
     );
     expect(score).toBeCloseTo(1, 5);
   });
 
-  it("renvoie 0 pour un écart de date au-delà de la fenêtre de 7 jours, même caption identique en date seule", () => {
+  it("returns 0 for a date gap beyond the 7-day window, even with an identical caption on date alone", () => {
     const post = { publishedAt: new Date("2026-08-01T00:00:00Z") };
     const candidate = { scheduledDate: new Date("2026-08-20T00:00:00Z"), caption: null };
     expect(scorePostMatch(post, candidate)).toBe(0);
   });
 
-  it("dégrade linéairement le score de date avec l'écart en jours", () => {
+  it("degrades the date score linearly with the gap in days", () => {
     const post = { publishedAt: new Date("2026-08-01T00:00:00Z") };
     const threeDaysLater = new Date(post.publishedAt.getTime() + 3 * DAY_MS);
     const score = scorePostMatch(post, { scheduledDate: threeDaysLater, caption: null });
@@ -27,22 +27,22 @@ describe("scorePostMatch", () => {
     expect(score).toBeCloseTo(0.5 * (1 - 3 / 7), 5);
   });
 
-  it("renvoie 0 si aucune date n'est disponible d'un côté ou de l'autre", () => {
+  it("returns 0 if no date is available on one side or the other", () => {
     expect(scorePostMatch({ captionText: "test" }, { scheduledDate: null, caption: "test" })).toBeCloseTo(0.5, 5);
     expect(scorePostMatch({}, { scheduledDate: new Date(), caption: null })).toBe(0);
   });
 
-  it("ignore les hashtags et les URLs dans la similarité de caption", () => {
-    const post = { captionText: "Lancement du nouveau produit ! #promo #nouveaute https://exemple.com" };
-    const candidate = { scheduledDate: null, caption: "Lancement du nouveau produit !" };
+  it("ignores hashtags and URLs in caption similarity", () => {
+    const post = { captionText: "Launch of the new product! #promo #news https://example.com" };
+    const candidate = { scheduledDate: null, caption: "Launch of the new product!" };
     expect(scorePostMatch(post, candidate)).toBeCloseTo(0.5, 5);
   });
 
-  it("renvoie 0 pour deux captions vides", () => {
+  it("returns 0 for two empty captions", () => {
     expect(scorePostMatch({}, { scheduledDate: null, caption: null })).toBe(0);
   });
 
-  it("est insensible à la casse et à la ponctuation", () => {
+  it("is insensitive to case and punctuation", () => {
     const post = { captionText: "Belle Journee, non ?" };
     const candidate = { scheduledDate: null, caption: "belle journee non" };
     expect(scorePostMatch(post, candidate)).toBeCloseTo(0.5, 5);
@@ -52,26 +52,26 @@ describe("scorePostMatch", () => {
 describe("findBestMatchingScript", () => {
   const publishedAt = new Date("2026-08-01T00:00:00Z");
 
-  it("renvoie null si aucun candidat n'atteint le seuil", () => {
+  it("returns null if no candidate reaches the threshold", () => {
     const result = findBestMatchingScript(
-      { publishedAt, captionText: "Contenu totalement différent" },
-      [{ scheduledDate: new Date("2026-09-15T00:00:00Z"), caption: "Rien à voir" }]
+      { publishedAt, captionText: "Totally different content" },
+      [{ scheduledDate: new Date("2026-09-15T00:00:00Z"), caption: "Nothing to do with it" }]
     );
     expect(result).toBeNull();
   });
 
-  it("renvoie le candidat avec le meilleur score parmi plusieurs au-dessus du seuil", () => {
+  it("returns the candidate with the best score among several above the threshold", () => {
     const weakMatch = { id: "weak", scheduledDate: publishedAt, caption: "sujet vaguement proche" };
-    const strongMatch = { id: "strong", scheduledDate: publishedAt, caption: "lancement du nouveau produit" };
+    const strongMatch = { id: "strong", scheduledDate: publishedAt, caption: "launch of the new product" };
     const result = findBestMatchingScript(
-      { publishedAt, captionText: "lancement du nouveau produit" },
+      { publishedAt, captionText: "launch of the new product" },
       [weakMatch, strongMatch]
     );
     expect(result?.script.id).toBe("strong");
     expect(result?.score).toBeGreaterThanOrEqual(MATCH_SCORE_THRESHOLD);
   });
 
-  it("renvoie null pour une liste de candidats vide", () => {
+  it("returns null for an empty candidate list", () => {
     expect(findBestMatchingScript({ publishedAt }, [])).toBeNull();
   });
 });

@@ -62,7 +62,7 @@ function MaterialSummaryField({ summary, onSave }: { summary: string | null; onS
   if (summary === null) {
     return (
       <div style={{ marginTop: 6, fontSize: 12, fontStyle: "italic", color: color.textFaint }}>
-        Résumé en cours...
+        Summarizing...
       </div>
     );
   }
@@ -115,9 +115,9 @@ function depositedAgo(iso: string): string {
   const elapsed = Date.now() - new Date(iso).getTime();
   if (elapsed < RECENT_MS) {
     const hours = Math.floor(elapsed / (60 * 60 * 1000));
-    return hours < 1 ? "à l'instant" : `il y a ${hours} h`;
+    return hours < 1 ? "just now" : `${hours}h ago`;
   }
-  return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  return new Date(iso).toLocaleDateString("en-US", { day: "numeric", month: "short" });
 }
 
 export default function MaterialPanel({ productId }: { productId?: string }) {
@@ -148,7 +148,7 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
       setMaterials((prev) => [material, ...prev]);
       setRawText("");
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'ajout de la matière.");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't add the material.");
     } finally {
       setSaving(false);
     }
@@ -170,7 +170,7 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
         }
       }
       if (failed.length > 0) {
-        setError(`Échec de l'import pour : ${failed.join(", ")}`);
+        setError(`Import failed for: ${failed.join(", ")}`);
       }
     } finally {
       setUploading(false);
@@ -184,7 +184,7 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
       const { material } = await api.updateMaterialSummary(id, summary);
       setMaterials((prev) => prev.map((m) => (m.id === id ? material : m)));
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement du résumé.");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't save the summary.");
     }
   }
 
@@ -194,7 +194,7 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
       await api.deleteMaterial(id);
       setMaterials((prev) => prev.filter((m) => m.id !== id));
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de la suppression.");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't delete it.");
     }
   }
 
@@ -239,7 +239,7 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
               color: tab === t ? color.text : color.textFaint,
             }}
           >
-            {t === "paste" ? "Coller" : "Interviewer"}
+            {t === "paste" ? "Paste" : "Interview"}
           </button>
         ))}
       </div>
@@ -249,14 +249,14 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
       ) : (
         <>
           <p style={{ margin: 0, fontSize: 13, color: color.textMuted }}>
-            Colle ici tout ce qui peut nourrir les scripts sur ce sujet : anecdotes, chiffres, décisions, retours
-            clients... Le texte est injecté tel quel à la génération — plus il y a de matière, moins l&apos;IA invente.
+            Paste anything that can feed the posts on this subject: anecdotes, numbers, decisions, customer feedback...
+            The text is passed as-is to generation — the more material there is, the less the AI makes up.
           </p>
 
           <textarea
             value={rawText}
             onChange={(e) => setRawText(e.target.value)}
-            placeholder="Colle un texte (journal de bord, notes, anciens posts...)"
+            placeholder="Paste some text (devlog, notes, old posts...)"
             rows={4}
             style={{
               width: "100%",
@@ -273,7 +273,7 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
           {error && <p style={{ color: color.danger, fontSize: 13, margin: 0 }}>{error}</p>}
           <div style={{ display: "flex", gap: 8 }}>
             <Button variant="secondary" onClick={addMaterial} disabled={!rawText.trim() || saving}>
-              {saving ? "Ajout..." : "+ Ajouter cette matière"}
+              {saving ? "Adding..." : "+ Add this material"}
             </Button>
             <input
               ref={fileInputRef}
@@ -286,14 +286,14 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
               }}
             />
             <Button variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-              {uploading ? "Import..." : "Importer des fichiers .md/.txt"}
+              {uploading ? "Importing..." : "Import .md/.txt files"}
             </Button>
           </div>
 
           {materials.length > 0 && (
             <div style={{ marginTop: 6 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: color.textSecondary, marginBottom: 8 }}>
-                Documents déposés · {materials.length}
+                Uploaded documents · {materials.length}
               </div>
               <div style={{ display: "grid", gap: 8 }}>
                 {materials.map((m) => {
@@ -325,7 +325,7 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
                                   padding: "2px 8px",
                                 }}
                               >
-                                Nouveau
+                                New
                               </span>
                             )}
                             {matchedCount === 0 && (
@@ -339,12 +339,12 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
                                     padding: "2px 8px",
                                   }}
                                 >
-                                  Pas encore exploité
+                                  Not used yet
                                 </span>
                             )}
                             {matchedCount > 0 && (
                               <span style={{ fontSize: 11, color: color.textFaint }}>
-                                {matchedCount} passage{matchedCount > 1 ? "s" : ""} cité{matchedCount > 1 ? "s" : ""}
+                                {matchedCount} {matchedCount > 1 ? "passages" : "passage"} cited
                               </span>
                             )}
                             <span style={{ fontSize: 11, color: color.textFaint }}>{depositedAgo(m.createdAt)}</span>
@@ -355,14 +355,14 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
                             </div>
                           )}
                           {matchedCount > 0 && !expanded && (
-                            <div style={{ fontSize: 11, color: color.textFaint, marginTop: 4 }}>Voir le détail</div>
+                            <div style={{ fontSize: 11, color: color.textFaint, marginTop: 4 }}>See details</div>
                           )}
                         </button>
                         <button
                           onClick={() => removeMaterial(m.id)}
                           style={{ fontSize: 12, color: color.danger, border: "none", background: "none", cursor: "pointer", flexShrink: 0 }}
                         >
-                          Supprimer
+                          Delete
                         </button>
                       </div>
                       <MaterialSummaryField summary={m.summary} onSave={(next) => saveSummary(m.id, next)} />
@@ -373,12 +373,12 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
                           </div>
                           {citations.some((c) => c.matchStart == null) && (
                             <div style={{ marginTop: 10, fontSize: 12, color: color.textFaint }}>
-                              Citations rapportées non localisées dans le texte :
+                              Reported quotes not found in the text:
                               <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
                                 {citations
                                   .filter((c) => c.matchStart == null)
                                   .map((c) => (
-                                    <li key={c.id}>&laquo;&nbsp;{c.excerpt}&nbsp;&raquo;</li>
+                                    <li key={c.id}>&ldquo;{c.excerpt}&rdquo;</li>
                                   ))}
                               </ul>
                             </div>

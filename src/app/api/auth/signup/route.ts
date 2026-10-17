@@ -10,7 +10,7 @@ import { enforceRateLimit, getClientIp } from "@/lib/services/rateLimitService";
 
 const signupSchema = z.object({
   email: z.email(),
-  password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères."),
+  password: z.string().min(8, "Password must be at least 8 characters."),
 });
 
 export async function POST(request: NextRequest) {
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     const existing = await db.query.users.findFirst({ where: eq(users.email, email) });
     if (existing) {
-      throw new ApiError(409, "Un compte existe déjà avec cet email.");
+      throw new ApiError(409, "An account already exists with this email.");
     }
 
     const passwordHash = await hashPassword(body.password);

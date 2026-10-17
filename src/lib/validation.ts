@@ -1,54 +1,54 @@
 import { z } from "zod";
 import { isKnownPlatform } from "@/lib/social/types";
 
-export const platformSchema = z.string().refine(isKnownPlatform, { message: "Plateforme inconnue." });
+export const platformSchema = z.string().refine(isKnownPlatform, { message: "Unknown platform." });
 export const contentCategorySchema = z.uuid();
 export const contentTypeSchema = z.enum(["visual", "text"]);
-// Idée soufflée par le créateur sur une porte de génération (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A).
+// Idea suggested by the creator at a generation gate (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A).
 export const directiveSchema = z.string().trim().max(500).optional();
-// Mode d'une série (docs/SPEC_REDACTEUR_EN_CHEF.md §1/§2, Lot B2).
+// Series mode (docs/SPEC_REDACTEUR_EN_CHEF.md §1/§2, Lot B2).
 
-// Catalogue de sujets (UI : "sujet" ; schéma/routes/types restent "Product", docs/SPEC_MATIERE_EDITEUR.md
-// §3.3 — renommage côté UI uniquement). MIN_PRODUCTS abaissé à 1 : un profil personal branding peut
-// n'avoir qu'un seul sujet, sans proposition de valeur (valueProposition optionnelle).
+// Topic catalogue (UI: "topic"; schema/routes/types remain "Product", docs/SPEC_MATIERE_EDITEUR.md
+// §3.3 — rename on the UI side only). MIN_PRODUCTS lowered to 1: a personal branding profile may
+// have a single topic, with no value proposition (valueProposition optional).
 export const MIN_PRODUCTS = 1;
 export const MAX_PRODUCTS = 5;
-// Sources branchées pendant l'onboarding, avant regroupement en au plus MAX_PRODUCTS sujets.
+// Sources connected during onboarding, before being grouped into at most MAX_PRODUCTS topics.
 export const MAX_ONBOARDING_SOURCES = 15;
 
-// Jours de publication (docs/SPEC_ONBOARDING_MVP.md §2 écran 6, §5) — ISO, 1 = lundi … 7 = dimanche.
-// Au moins un jour : un rythme vide n'a pas de sens, l'écran empêche de décocher le dernier.
+// Publishing days (docs/SPEC_ONBOARDING_MVP.md §2 screen 6, §5) — ISO, 1 = Monday … 7 = Sunday.
+// At least one day: an empty rhythm makes no sense, the screen prevents unchecking the last one.
 export const DEFAULT_PUBLISHING_DAYS = [3, 6];
 export const publishingDaysSchema = z
   .array(z.number().int().min(1).max(7))
-  .min(1, "Choisis au moins un jour de publication.")
+  .min(1, "Choose at least one publishing day.")
   .max(7)
   .transform((days) => [...new Set(days)].sort((a, b) => a - b));
-// « Qu'est-ce que tu attends de nous ? » — texte libre, borné pour rester injectable dans les prompts.
+// "What do you expect from us?" — free text, bounded so it stays injectable into prompts.
 export const expectationsSchema = z.string().trim().max(2000);
 
-// Bibliothèque de ressources visuelles (docs/SPEC_RESSOURCES_VISUELLES.md §7.2 : "une sélection de
-// 40 images" comme ordre de grandeur de référence).
+// Visual resource library (docs/SPEC_RESSOURCES_VISUELLES.md §7.2: "a selection of
+// 40 images" as the reference order of magnitude).
 export const MAX_ASSETS_PER_INGESTION = 40;
 export const MAX_ASSET_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
-// Ingestion d'un dépôt GitHub (docs/superpowers/specs/2026-08-31-onboarding-dev-github-design.md §6.1).
+// Ingestion of a GitHub repository (docs/superpowers/specs/2026-08-31-onboarding-dev-github-design.md §6.1).
 export const MAX_GITHUB_MD_FILES = 50;
-// Un fichier au-delà est IGNORÉ, jamais tronqué : un .md coupé au milieu produirait de la matière
-// trompeuse, ce que tout le produit s'interdit.
+// A file beyond this is IGNORED, never truncated: a .md cut in the middle would produce misleading
+// material, which the whole product forbids itself.
 export const MAX_GITHUB_FILE_BYTES = 100 * 1024;
 export const MAX_GITHUB_COMMITS = 100;
 
-// Ingestion Notion (docs/SPEC_CONNECTEURS_ET_SUJETS.md §4). Une page Notion vivante n'a pas de
-// fond : le plafond porte sur les blocs lus en tout, sous-pages comprises. Au-delà, l'ingestion est
-// marquée tronquée — signalée à l'utilisateur, sans passer la source en erreur.
+// Notion ingestion (docs/SPEC_CONNECTEURS_ET_SUJETS.md §4). A living Notion page has no
+// bottom: the cap applies to the blocks read overall, sub-pages included. Beyond it, ingestion is
+// marked truncated — reported to the user, without putting the source in error.
 export const MAX_NOTION_BLOCKS = 2000;
-// Profondeur de descente dans les sous-pages. 3 couvre le rangement usuel (espace > projet > note)
-// sans risquer de remonter un workspace entier par un sujet unique.
+// Depth of descent into sub-pages. 3 covers the usual filing (space > project > note)
+// without risking pulling up an entire workspace through a single topic.
 export const MAX_NOTION_DEPTH = 3;
 
-// Ingestion Linear (docs/SPEC_CONNECTEURS_ET_SUJETS.md §5). Les project updates sont la meilleure
-// matière du connecteur — déjà écrites pour être lues — d'où un plafond plus généreux que sur les
-// issues, dont on ne garde que les terminées.
+// Linear ingestion (docs/SPEC_CONNECTEURS_ET_SUJETS.md §5). Project updates are the connector's best
+// material — already written to be read — hence a more generous cap than for
+// issues, of which only the completed ones are kept.
 export const MAX_LINEAR_UPDATES = 50;
 export const MAX_LINEAR_ISSUES = 100;

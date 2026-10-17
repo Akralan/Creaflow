@@ -2,17 +2,17 @@ import { logger } from "@/lib/logger";
 import type { EmailMessage, EmailSender } from "./types";
 
 /**
- * Mode dev : l'email n'est pas envoyé, il est écrit dans les logs en entier (version texte). C'est
- * comme ça qu'on récupère un lien de réinitialisation en local sans compte Brevo.
+ * Dev mode: the email is not sent, it is written to the logs in full (text version). This is how
+ * you get a reset link locally without a Brevo account.
  *
- * En production, le corps n'est jamais logué : un lien de réinitialisation dans les logs (et dans
- * Sentry) donnerait n'importe quel compte à qui les lit. getEmailSender refuse de toute façon de
- * retomber sur ce mode en production sans `EMAIL_PROVIDER=console` explicite.
+ * In production, the body is never logged: a reset link in the logs (and in Sentry) would hand
+ * any account to whoever reads them. getEmailSender refuses anyway to fall back to this mode in
+ * production without an explicit `EMAIL_PROVIDER=console`.
  */
 export const consoleSender: EmailSender = {
   async send(message: EmailMessage): Promise<void> {
     const production = process.env.NODE_ENV === "production";
-    logger.info("Email (mode console, non envoyé)", {
+    logger.info("Email (console mode, not sent)", {
       to: message.to,
       subject: message.subject,
       ...(production ? {} : { text: message.text }),

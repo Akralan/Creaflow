@@ -5,10 +5,10 @@ import { callStructured } from "./provider";
 export const seriesEntrySchema = z.object({
   label: z.string().min(1),
   description: z.string().min(1),
-  // Un rôle unique par série (docs/SPEC_SERIES_ET_ROLES.md §1) — libellé exact d'un rôle actif.
+  // A single role per series (docs/SPEC_SERIES_ET_ROLES.md §1) — exact label of an active role.
   categoryLabel: z.string().min(1),
-  // Sujet dont la série tire sa matière — chaîne vide = niveau marque. Avant le 2026-10-17 les
-  // séries générées naissaient sans sujet, donc sans matière ni portrait des lecteurs.
+  // Subject the series draws its material from — empty string = brand level. Before 2026-10-17
+  // generated series were born without a subject, hence without material or reader portrait.
   subjectName: z.string().default(""),
 });
 
@@ -20,40 +20,40 @@ export const suggestedSeriesSchema = z.object({
 
 const SUGGEST_CONTENT_SERIES_TOOL_NAME = "suggest_content_series";
 
-/** L'enum sur categoryLabel force le modèle à choisir parmi les libellés existants tels
- *  quels, au lieu de recopier le bloc "Label — Description" fourni en contexte. */
+/** The enum on categoryLabel forces the model to pick among the existing labels as
+ *  they are, instead of copying the "Label — Description" block supplied in context. */
 function buildSuggestContentSeriesTool(categoryLabels: string[], subjectNames: string[]): LlmToolDefinition {
   return {
     name: SUGGEST_CONTENT_SERIES_TOOL_NAME,
     description:
-      "Propose entre 0 et 5 séries de contenu récurrentes (formats nommés, reconnaissables) adaptées au métier du créateur, chacune servant UN rôle éditorial actif.",
+      "Proposes between 0 and 5 recurring content series (named, recognizable formats) suited to the creator's trade, each serving ONE active editorial role. All text in English.",
     input_schema: {
       type: "object",
       properties: {
         series: {
           type: "array",
           description:
-            "Liste de 0 à 5 séries récurrentes (ex: \"Le mythe du mercredi\", \"Behind the scenes du vendredi\", \"Témoignage client\"), de la plus importante à la moins importante pour ce créateur. Si le métier ne s'y prête vraiment pas, renvoie une liste vide plutôt que d'inventer une série artificielle.",
+            "List of 0 to 5 recurring series (e.g. \"Myth-busting Wednesday\", \"Behind the scenes Friday\", \"Customer story\"), from most to least important for this creator. If the trade really doesn't lend itself to it, return an empty list rather than invent an artificial series.",
           minItems: 0,
           maxItems: 5,
           items: {
             type: "object",
             properties: {
-              label: { type: "string", description: "Nom court et mémorable de la série (3-5 mots max)." },
+              label: { type: "string", description: "Short, memorable name of the series (3-5 words max)." },
               description: {
                 type: "string",
-                description: "Identité de la série en une ou deux phrases : angle, ton, structure à respecter à chaque script de cette série.",
+                description: "Identity of the series in one or two sentences: angle, tone, structure to respect in every script of this series.",
               },
               categoryLabel: {
                 type: "string",
-                description: "Le rôle éditorial (unique) que sert cette série. Si tu hésites entre deux rôles, ce sont deux séries.",
+                description: "The (single) editorial role this series serves. If in doubt between two roles, they are two series.",
                 enum: categoryLabels,
               },
               subjectName: {
                 type: "string",
                 enum: [...subjectNames, ""],
                 description:
-                  "Le projet dont la série raconte l'avancement ou tire sa matière, recopié parmi ceux fournis. Chaîne vide seulement si la série porte sur l'activité en général et sur aucun projet précis.",
+                  "The project whose progress the series tells or from which it draws its material, copied from those supplied. Empty string only if the series is about the activity in general and no specific project.",
               },
             },
             required: ["label", "description", "categoryLabel", "subjectName"],
@@ -65,9 +65,9 @@ function buildSuggestContentSeriesTool(categoryLabels: string[], subjectNames: s
   };
 }
 
-const SYSTEM_PROMPT = `Tu conçois la direction éditoriale d'un créateur ou d'une entreprise, adaptée précisément à son activité.
+const SYSTEM_PROMPT = `You design the editorial direction of a creator or a company, tailored precisely to their activity.
 
-Propose entre 0 et 5 "séries" : des formats de contenu récurrents et nommés (ex: pour un coach sportif : "Le mythe du mercredi" en éducatif, "Transformation du mois" en témoignage ; pour un freelance produit web : "Build in public hebdo" en coulisses). Une série donne une identité reconnaissable (même angle, même structure, même ton à chaque publication) et sert UN SEUL rôle éditorial parmi ceux déjà définis pour l'utilisateur — utilise leur libellé EXACT tel que fourni. Si une idée de série hésite entre deux rôles, c'est qu'il y a deux séries : découpe-la. N'invente pas de série artificielle si le métier ne s'y prête pas : une liste vide est un résultat parfaitement valide. Range les séries de la plus importante à la moins importante : les jours de publication de l'auteur leur sont répartis dans cet ordre.`;
+Propose between 0 and 5 "series": recurring, named content formats (e.g. for a fitness coach: "Myth-busting Wednesday" as educational, "Transformation of the month" as testimonial; for a freelance web product maker: "Weekly build in public" as behind the scenes). A series gives a recognizable identity (same angle, same structure, same tone at every publication) and serves ONE SINGLE editorial role among those already defined for the user — use their EXACT label as supplied. If a series idea hesitates between two roles, it means there are two series: split it. Don't invent an artificial series if the trade doesn't lend itself to it: an empty list is a perfectly valid result. Rank the series from most to least important: the author's publishing days are distributed to them in that order. Write everything in English.`;
 
 export interface SeriesLabelsContext {
   brandName: string;
@@ -79,12 +79,12 @@ export interface SeriesLabelsContext {
 
 export async function suggestContentSeries(context: SeriesLabelsContext): Promise<SeriesEntry[]> {
   const lines = [
-    `Marque : ${context.brandName} (${context.activityType})`,
-    context.expectations ? `Ce que l'auteur attend de CreaFlow : ${context.expectations}` : null,
+    `Brand: ${context.brandName} (${context.activityType})`,
+    context.expectations ? `What the author expects from Buildloud: ${context.expectations}` : null,
     context.products.length > 0
-      ? `Produits/projets : ${context.products.map((p) => p.name + (p.description ? ` — ${p.description}` : "")).join(" ; ")}`
-      : "Aucun produit renseigné.",
-    `Rôles éditoriaux actifs : ${context.categories.map((c) => `${c.label} — ${c.description}`).join(" ; ")}`,
+      ? `Products/projects: ${context.products.map((p) => p.name + (p.description ? ` — ${p.description}` : "")).join("; ")}`
+      : "No product registered.",
+    `Active editorial roles: ${context.categories.map((c) => `${c.label} — ${c.description}`).join("; ")}`,
   ].filter(Boolean);
 
   const args = await callStructured({

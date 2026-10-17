@@ -30,7 +30,7 @@ const PROVIDER_BY_SOURCE_TYPE: Record<string, string> = {
   linear_project: "linear",
 };
 
-const NOTES_TITLE = "Mes notes";
+const NOTES_TITLE = "My notes";
 const MAX_ONBOARDING_NOTES = 10;
 /** Extrait par source envoyé au modèle : assez pour comprendre le projet, pas pour le résumer. */
 const EXCERPT_CHARS_PER_DOC = 700;
@@ -98,7 +98,7 @@ export async function addOnboardingNotes(userId: string, rawText: string) {
     columns: { id: true },
   });
   if (existing.length >= MAX_ONBOARDING_NOTES) {
-    throw new ApiError(400, `Au plus ${MAX_ONBOARDING_NOTES} blocs de notes : regroupe-les en un seul.`);
+    throw new ApiError(400, `At most ${MAX_ONBOARDING_NOTES} note blocks: merge them into one.`);
   }
   const row = await createPastedMaterial(userId, { title: NOTES_TITLE, rawText });
   return { id: row.id, excerpt: row.rawText.slice(0, 160) };
@@ -144,12 +144,12 @@ export async function draftOnboardingProfile(userId: string, name: string): Prom
     ...(await Promise.all(
       state.notes.map(async (note) => {
         const row = await db.query.sourceMaterials.findFirst({ where: eq(sourceMaterials.id, note.id), columns: { rawText: true } });
-        return { key: `note:${note.id}`, kind: "Notes collées", label: NOTES_TITLE, excerpt: (row?.rawText ?? "").slice(0, 2000) };
+        return { key: `note:${note.id}`, kind: "Pasted notes", label: NOTES_TITLE, excerpt: (row?.rawText ?? "").slice(0, 2000) };
       })
     )),
   ];
   if (items.length === 0) {
-    throw new ApiError(400, "Branche au moins une source ou colle tes notes avant de continuer.");
+    throw new ApiError(400, "Connect at least one source or paste your notes before continuing.");
   }
 
   try {
@@ -162,7 +162,7 @@ export async function draftOnboardingProfile(userId: string, name: string): Prom
   } catch (error) {
     // Jamais bloquant : l'écran affiche la raison et relance ; à défaut, la personne remplit
     // elle-même à partir de ces sujets de repli, chaque source devenant le sien (spec §4).
-    logger.warn("Extraction du profil d'onboarding impossible", {
+    logger.warn("Onboarding profile extraction failed", {
       error: error instanceof Error ? error.message : String(error),
     });
     return {
@@ -176,23 +176,23 @@ export async function draftOnboardingProfile(userId: string, name: string): Prom
 }
 
 export const completeOnboardingSchema = z.object({
-  name: z.string().trim().min(1, "Dis-nous comment tu t'appelles."),
-  activityType: z.string().trim().min(1, "Décris en une phrase ce que tu fais."),
+  name: z.string().trim().min(1, "Tell us your name."),
+  activityType: z.string().trim().min(1, "Describe what you do in one sentence."),
   targetAudience: z.string().trim().max(1000).optional(),
   expectations: expectationsSchema.optional(),
   publishingDays: publishingDaysSchema,
-  platforms: z.array(platformSchema).min(1, "Choisis au moins un réseau où publier."),
+  platforms: z.array(platformSchema).min(1, "Pick at least one network to publish on."),
   subjects: z
     .array(
       z.object({
-        name: z.string().trim().min(1, "Chaque sujet a besoin d'un nom."),
+        name: z.string().trim().min(1, "Every subject needs a name."),
         description: z.string().trim().max(500).optional(),
         targetAudience: z.string().trim().max(1000).optional(),
         keys: z.array(z.string()).min(1),
       })
     )
-    .min(1, "Il faut au moins un sujet.")
-    .max(MAX_PRODUCTS, `Au plus ${MAX_PRODUCTS} sujets : regroupe ceux qui parlent du même projet.`),
+    .min(1, "At least one subject is required.")
+    .max(MAX_PRODUCTS, `At most ${MAX_PRODUCTS} subjects: group the ones about the same project.`),
 });
 
 export type CompleteOnboardingInput = z.infer<typeof completeOnboardingSchema>;
@@ -216,12 +216,12 @@ export function planSubjectGrouping(
     const sourceIds: string[] = [];
     const notes: string[] = [];
     for (const key of group.keys) {
-      if (seen.has(key)) throw new ApiError(400, "Une source apparaît dans deux sujets.");
+      if (seen.has(key)) throw new ApiError(400, "A source appears in two subjects.");
       seen.add(key);
       const [kind, id] = key.split(":");
       if (kind === "source" && sourceById.has(id)) sourceIds.push(id);
       else if (kind === "note" && knownNotes.has(id)) notes.push(id);
-      else throw new ApiError(400, "Source inconnue dans un sujet.");
+      else throw new ApiError(400, "Unknown source in a subject.");
     }
     // Réutilise le sujet d'une des sources du groupe, une seule fois par sujet : deux groupes ne
     // peuvent pas viser le même.
@@ -233,7 +233,7 @@ export function planSubjectGrouping(
   // Une source oubliée resterait sur son ancien sujet, peut-être renommé pour un autre groupe :
   // fusion silencieuse. Tout doit être rangé quelque part.
   if (seen.size !== sources.length + noteIds.length) {
-    throw new ApiError(400, "Chaque source et chaque note doit appartenir à un sujet.");
+    throw new ApiError(400, "Every source and every note must belong to a subject.");
   }
 
   const orphanedProductIds = [...new Set(sources.map((s) => s.productId))].filter((pid) => !usedTargets.has(pid));
@@ -332,8 +332,8 @@ export async function completeOnboarding(userId: string, input: CompleteOnboardi
     for (const subject of subjects) scheduleEventReading(userId, subject.id);
   } catch (error) {
     if (error instanceof ApiError) throw error;
-    logger.error("Génération de fin d'onboarding échouée (profil enregistré)", error);
+    logger.error("End-of-onboarding generation failed (profile saved)", error);
     // Le profil et les sujets sont écrits : relancer ne refait que ce qui manque.
-    throw new ApiError(503, `${llmFailureMessage(error)} Tes réponses sont enregistrées, réessaie dans un instant.`);
+    throw new ApiError(503, `${llmFailureMessage(error)} Your answers are saved, please try again in a moment.`);
   }
 }

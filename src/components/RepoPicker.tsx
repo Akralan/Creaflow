@@ -41,7 +41,7 @@ export default function RepoPicker({
         setSelected(recent.map((r) => r.externalId));
       })
       .catch((err) => {
-        setError(err instanceof ApiClientError ? err.message : "Impossible de lire tes dépôts GitHub.");
+        setError(err instanceof ApiClientError ? err.message : "Couldn't read your GitHub repositories.");
         setNeedsReconnect(err instanceof ApiClientError && err.status === 409);
       })
       .finally(() => setLoading(false));
@@ -67,13 +67,13 @@ export default function RepoPicker({
       setResults(results);
       onConnected();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "La récupération de la matière a échoué.");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't pull the material.");
     } finally {
       setConnecting(false);
     }
   }
 
-  if (loading) return <p style={{ color: color.textMuted, fontSize: 14 }}>Lecture de tes dépôts…</p>;
+  if (loading) return <p style={{ color: color.textMuted, fontSize: 14 }}>Reading your repositories…</p>;
 
   // Lecture impossible : l'erreur seule, jamais « aucun dépôt public » qui ferait croire le compte vide.
   if (error && repos.length === 0) {
@@ -86,7 +86,7 @@ export default function RepoPicker({
               window.location.href = oauthStartUrl("github", window.location.pathname + window.location.search);
             }}
           >
-            Reconnecter GitHub
+            Reconnect GitHub
           </Button>
         )}
       </div>
@@ -100,13 +100,13 @@ export default function RepoPicker({
   if (selectable.length === 0) {
     const message =
       repos.length > 0
-        ? "Tous tes dépôts publics sont déjà connectés comme sujets."
-        : "Aucun dépôt public trouvé sur ton compte GitHub.";
+        ? "All your public repositories are already connected as subjects."
+        : "No public repository found on your GitHub account.";
     return (
       <div>
         <p style={{ color: color.textMuted, fontSize: 15, margin: "0 0 16px" }}>
           {message}
-          {variant === "onboarding" && " Tu peux brancher une autre source ou coller tes notes."}
+          {variant === "onboarding" && " You can connect another source or paste your notes."}
         </p>
         {error && <p style={{ color: color.danger, fontSize: 13, marginBottom: 12 }}>{error}</p>}
       </div>
@@ -120,10 +120,8 @@ export default function RepoPicker({
           <div key={result.sourceId} style={{ fontSize: 14, color: result.error ? color.danger : color.textSecondary }}>
             <strong>{result.label}</strong>{" "}
             {result.error
-              ? `— échec : ${result.error}`
-              : `— ${result.report!.added} document${result.report!.added > 1 ? "s" : ""} récupéré${
-                  result.report!.added > 1 ? "s" : ""
-                }`}
+              ? `— failed: ${result.error}`
+              : `— ${result.report!.added} ${result.report!.added > 1 ? "documents" : "document"} pulled`}
           </div>
         ))}
       </div>
@@ -166,7 +164,7 @@ export default function RepoPicker({
                       whiteSpace: "nowrap",
                     }}
                   >
-                    Déjà un sujet
+                    Already a subject
                   </span>
                 )}
               </div>
@@ -174,7 +172,7 @@ export default function RepoPicker({
                 <div style={{ fontSize: 13, color: color.textMuted, marginTop: 4 }}>{repo.description}</div>
               )}
               <div style={{ fontSize: 12, color: color.textFaint, marginTop: 6 }}>
-                {[repo.language, `mis à jour le ${repo.pushedAt.slice(0, 10)}`].filter(Boolean).join(" · ")}
+                {[repo.language, `updated on ${repo.pushedAt.slice(0, 10)}`].filter(Boolean).join(" · ")}
               </div>
             </button>
           );
@@ -185,11 +183,11 @@ export default function RepoPicker({
 
       <Button onClick={connect} disabled={selected.length === 0 || connecting}>
         {connecting
-          ? "Récupération de la matière…"
-          : `Utiliser ${selected.length} projet${selected.length > 1 ? "s" : ""} comme sujets`}
+          ? "Pulling your material…"
+          : `Use ${selected.length} ${selected.length > 1 ? "projects" : "project"} as subjects`}
       </Button>
       <p style={{ fontSize: 12, color: color.textFaint, marginTop: 10 }}>
-        {selected.length} sur {MAX_PRODUCTS} maximum. On récupère les fichiers .md et l&apos;historique des commits.
+        {selected.length} of {MAX_PRODUCTS} max. We pull the .md files and the commit history.
       </p>
     </div>
   );

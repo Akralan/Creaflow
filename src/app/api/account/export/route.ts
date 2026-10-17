@@ -6,15 +6,15 @@ import { exportAccountData } from "@/lib/services/accountService";
 
 export const runtime = "nodejs";
 
-// Portabilité (docs/SPEC_LEGAL_EMAIL_RGPD.md §4.3) : un JSON, téléchargé tel quel par le client.
-// La réponse est un fichier, pas une API lue par l'app : d'où Content-Disposition.
+// Portability (docs/SPEC_LEGAL_EMAIL_RGPD.md §4.3): a JSON, downloaded as is by the client.
+// The response is a file, not an API read by the app: hence Content-Disposition.
 export async function GET() {
   try {
     const userId = await requireUserId();
     await enforceRateLimit("account-export", userId, 3, 60 * 60);
 
     const data = await exportAccountData(userId);
-    const filename = `creaflow-export-${new Date().toISOString().slice(0, 10)}.json`;
+    const filename = `buildloud-export-${new Date().toISOString().slice(0, 10)}.json`;
     return new NextResponse(JSON.stringify(data, null, 2), {
       headers: {
         "content-type": "application/json; charset=utf-8",

@@ -15,9 +15,9 @@ export const KNOWN_PLATFORMS: PlatformDefinition[] = [
   // l'activation réelle reste bloquée tant qu'aucun compte de facturation X n'est ouvert (§2.5).
   { key: "x", label: "X (Twitter)", hasOAuth: true },
   { key: "newsletter", label: "Newsletter", hasOAuth: false },
-  { key: "blog", label: "Blog / site perso", hasOAuth: false },
+  { key: "blog", label: "Blog / personal site", hasOAuth: false },
   { key: "slack", label: "Slack", hasOAuth: false },
-  { key: "other", label: "Autre", hasOAuth: false },
+  { key: "other", label: "Other", hasOAuth: false },
 ];
 
 export function isKnownPlatform(value: string): boolean {

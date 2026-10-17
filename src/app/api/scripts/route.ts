@@ -14,8 +14,8 @@ import { autoComposeDesign } from "@/lib/services/visualDesignService";
 import { refreshInspirationsIfStale } from "@/lib/services/inspirationService";
 import { normalizeVisualSpec, visualFormatFieldsSchema } from "@/lib/visualDesign/visualFormat";
 
-// contentCategoryId optionnel dès qu'une série est fournie — la série impose son rôle
-// (docs/SPEC_SERIES_ET_ROLES.md §4.2) ; obligatoire en post libre (vérifié côté service).
+// contentCategoryId optional as soon as a series is provided — the series imposes its role
+// (docs/SPEC_SERIES_ET_ROLES.md §4.2); mandatory for a free post (checked service-side).
 const schema = z.object({
   platform: platformSchema,
   contentCategoryId: contentCategorySchema.optional(),
@@ -24,7 +24,7 @@ const schema = z.object({
   scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format attendu : YYYY-MM-DD").optional(),
   seriesId: z.uuid().optional(),
   directive: directiveSchema,
-  // Format du post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §2) — ignoré hors "visual".
+  // Visual post format (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §2) — ignored outside "visual".
   ...visualFormatFieldsSchema.shape,
 });
 
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId();
-    // Chaque génération de script coûte un appel LLM — limite partagée avec les autres routes de génération.
+    // Each script generation costs an LLM call — limit shared with the other generation routes.
     await enforceRateLimit("script-generate", userId, 20, 60);
     const body = schema.parse(await request.json());
     const { platform, contentCategoryId, contentType, productId, scheduledDate, seriesId, directive } = body;
@@ -74,19 +74,19 @@ export async function POST(request: NextRequest) {
       contentType === "visual" ? normalizeVisualSpec(body) : null
     );
     const generated = await generateScript(context);
-    // resolvedProductId (pas productId brut) : hérite du sujet lié à la série quand aucun sujet
-    // n'a été choisi pour cette génération précise (docs/SPEC_REDACTEUR_EN_CHEF.md, sélecteur de sujet).
+    // resolvedProductId (not the raw productId): inherits the topic linked to the series when no topic
+    // was chosen for this specific generation (docs/SPEC_REDACTEUR_EN_CHEF.md, topic selector).
     const script = await createScriptRecord(userId, platform, context.contentCategory, context.resolvedProductId ?? null, generated, {
       angleId: context.angle?.id ?? null,
       seriesId: context.series?.id ?? null,
       brandAssetId: context.brandAsset?.id ?? null,
       visual: context.visual,
     });
-    // Maquette composée automatiquement en arrière-plan pour un post visuel
-    // (docs/SPEC_COMPOSITION_VISUELLE.md §2) — jamais bloquant, jamais compté dans le quota.
+    // Mockup composed automatically in the background for a visual post
+    // (docs/SPEC_COMPOSITION_VISUELLE.md §2) — never blocking, never counted in the quota.
     if (script.contentType === "visual") after(() => autoComposeDesign(userId, script.id));
-    // Veille d'inspiration du sujet relancée en arrière-plan si elle a plus de 7 jours
-    // (docs/SPEC_MEMOIRE_ET_VEILLE.md §1) — jamais bloquant, sans effet sinon.
+    // Inspiration watch of the topic relaunched in the background if it is more than 7 days old
+    // (docs/SPEC_MEMOIRE_ET_VEILLE.md §1) — never blocking, no effect otherwise.
     after(() => refreshInspirationsIfStale(userId, context.resolvedProductId ?? null));
 
     if (scheduledDate) {

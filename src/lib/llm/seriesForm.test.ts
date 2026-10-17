@@ -5,9 +5,9 @@ describe("parseStoredSeriesForm", () => {
   it("lit une forme complète et comble les champs facultatifs", () => {
     const form = parseStoredSeriesForm({
       wants: "Savoir si un patient fait ses exercices.",
-      episodeShape: "Un patient, ce qui n'allait pas, ce que l'app a montré, ce que le kiné a fait.",
+      episodeShape: "A patient, what wasn't working, what the app showed, what the physio did.",
       avoid: "La technique.",
-      register: "Six à dix lignes, tutoiement.",
+      register: "Six to ten lines, informal tone.",
     });
     expect(form).not.toBeNull();
     expect(form?.words).toEqual([]);

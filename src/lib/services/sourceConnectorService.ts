@@ -65,7 +65,7 @@ export async function syncSource(userId: string, sourceId: string): Promise<Sync
     where: and(eq(materialSources.id, sourceId), eq(materialSources.userId, userId)),
   });
   if (!source) {
-    throw new ApiError(404, "Source introuvable.");
+    throw new ApiError(404, "Source not found.");
   }
 
   const connector = getConnector(source.type);
@@ -76,7 +76,7 @@ export async function syncSource(userId: string, sourceId: string): Promise<Sync
   } catch (error) {
     // Source devenue inaccessible (dépôt passé en privé, supprimé, ou accès révoqué) : elle devient
     // inutilisable, mais les documents déjà ingérés restent.
-    const message = error instanceof Error ? error.message : "Erreur inconnue";
+    const message = error instanceof Error ? error.message : "Unknown error";
     await db
       .update(materialSources)
       .set({ status: connector.isAuthError(error) ? "needs_reconnect" : "error", lastError: message })
@@ -178,7 +178,7 @@ export async function createSourcesFromCandidates(
   ]);
   const limit = profile ? MAX_PRODUCTS : MAX_ONBOARDING_SOURCES;
   if (existing.length + candidates.length > limit) {
-    throw new ApiError(400, `Maximum ${limit} ${profile ? "sujets" : "sources"} (${existing.length} déjà enregistrés).`);
+    throw new ApiError(400, `Maximum ${limit} ${profile ? "subjects" : "sources"} (${existing.length} already saved).`);
   }
 
   const results: CreatedSourceResult[] = [];
@@ -205,8 +205,8 @@ export async function createSourcesFromCandidates(
       const report = await syncSource(userId, source.id);
       results.push({ productId: product.id, sourceId: source.id, label: candidate.label, report, error: null });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Erreur inconnue";
-      logger.error("Ingestion d'une source échouée (sujet et source conservés)", error, {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      logger.error("Source ingestion failed (subject and source kept)", error, {
         type,
         label: candidate.label,
       });
@@ -244,7 +244,7 @@ export async function deleteSource(userId: string, sourceId: string) {
     .where(and(eq(materialSources.id, sourceId), eq(materialSources.userId, userId)))
     .returning({ id: materialSources.id });
   if (!deleted) {
-    throw new ApiError(404, "Source introuvable.");
+    throw new ApiError(404, "Source not found.");
   }
   return deleted;
 }

@@ -11,14 +11,14 @@ const userEventSchema = z.object({
   productId: z.uuid(),
   date: z.string().trim().default(""),
   datePrecision: z.enum(DATE_PRECISIONS).default("unknown"),
-  title: z.string().trim().min(1, "Donne un titre à l'événement.").max(160),
-  whatHappened: z.string().trim().min(1, "Dis ce qui s'est passé.").max(1500),
+  title: z.string().trim().min(1, "Give the event a title.").max(160),
+  whatHappened: z.string().trim().min(1, "Say what happened.").max(1500),
   whatChanged: z.string().trim().max(1000).optional(),
   kind: z.enum(EVENT_KINDS),
   audiences: z.array(z.string().trim().min(1)).max(5).optional(),
 });
 
-/** Ligne de temps d'un sujet (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3). */
+/** Timeline of a topic (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3). */
 export async function GET(request: NextRequest) {
   try {
     const userId = await requireUserId();
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/** « Il s'est passé ça » : un événement écrit à la main par l'auteur. */
+/** "This happened": an event written by hand by the author. */
 export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId();

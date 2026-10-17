@@ -2,10 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import * as Sentry from "@sentry/nextjs";
 import { logger } from "./logger";
 
-// logger.error() déclenche un import dynamique de @sentry/nextjs (fire-and-forget) — sans ce mock,
-// le SDK réel s'initialise pendant les tests (transports, timers internes) et empêche le worker
-// Vitest de se terminer proprement. Sert aussi à espionner captureException/captureMessage plus
-// bas : logger.error() est censé choisir entre les deux selon la présence d'une exception JS.
+// logger.error() triggers a dynamic import of @sentry/nextjs (fire-and-forget) — without this mock,
+// the real SDK initializes during the tests (transports, internal timers) and prevents the Vitest
+// worker from exiting cleanly. Also used to spy on captureException/captureMessage further
+// down: logger.error() is supposed to choose between the two depending on whether a JS exception is present.
 vi.mock("@sentry/nextjs", () => ({
   captureException: vi.fn(),
   captureMessage: vi.fn(),
@@ -19,13 +19,13 @@ function lastLoggedEntry(spy: ReturnType<typeof vi.spyOn>): Record<string, unkno
 describe("logger", () => {
   afterEach(() => {
     vi.restoreAllMocks();
-    // restoreAllMocks ne réinitialise l'historique des appels que pour les spies créés via
-    // vi.spyOn ; les vi.fn() du mock de module (captureException/captureMessage) ont besoin de
-    // clearAllMocks en plus pour ne pas fuiter d'un test à l'autre.
+    // restoreAllMocks only resets the call history for spies created via
+    // vi.spyOn; the vi.fn() of the module mock (captureException/captureMessage) need
+    // clearAllMocks as well so they do not leak from one test to the next.
     vi.clearAllMocks();
   });
 
-  it("émet une ligne JSON avec level/message/timestamp et le contexte fourni", () => {
+  it("emits a JSON line with level/message/timestamp and the supplied context", () => {
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
     logger.info("Test info", { userId: "u1" });
 
@@ -34,7 +34,7 @@ describe("logger", () => {
     expect(typeof entry.timestamp).toBe("string");
   });
 
-  it("route warn/error vers console.warn/console.error, pas console.log", () => {
+  it("routes warn/error to console.warn/console.error, not console.log", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
@@ -47,7 +47,7 @@ describe("logger", () => {
     expect(logSpy).not.toHaveBeenCalled();
   });
 
-  it("sérialise une Error en {message, stack} sous la clé error", () => {
+  it("serializes an Error as {message, stack} under the error key", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     logger.error("Échec", new Error("boom"));
 
@@ -56,7 +56,7 @@ describe("logger", () => {
     expect((entry.error as { stack?: string }).stack).toContain("Error: boom");
   });
 
-  it("logger.error() avec une exception JS appelle Sentry.captureException (garde la stack)", async () => {
+  it("logger.error() with a JS exception calls Sentry.captureException (keeps the stack)", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const err = new Error("boom");
 
@@ -68,13 +68,13 @@ describe("logger", () => {
     expect(Sentry.captureMessage).not.toHaveBeenCalled();
   });
 
-  it("logger.error() sans exception JS appelle Sentry.captureMessage en level error", async () => {
+  it("logger.error() without a JS exception calls Sentry.captureMessage at error level", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
 
-    logger.error("Anomalie détectée sans exception", undefined, { sessionId: "s1" });
+    logger.error("Anomaly detected without exception", undefined, { sessionId: "s1" });
 
     await vi.waitFor(() => {
-      expect(Sentry.captureMessage).toHaveBeenCalledWith("Anomalie détectée sans exception", {
+      expect(Sentry.captureMessage).toHaveBeenCalledWith("Anomaly detected without exception", {
         level: "error",
         extra: { sessionId: "s1" },
       });
@@ -82,23 +82,23 @@ describe("logger", () => {
     expect(Sentry.captureException).not.toHaveBeenCalled();
   });
 
-  it("debug() n'émet que sous NODE_ENV=development (opt-in, pas opt-out)", () => {
+  it("debug() only emits under NODE_ENV=development (opt-in, not opt-out)", () => {
     const original = process.env.NODE_ENV;
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    // "test" (valeur fixée par Vitest lui-même pendant `npm run test`) et "production" doivent
-    // tous les deux rester silencieux — c'est justement l'inconsistance corrigée (l'ancien garde
-    // `!== "production"` laissait passer le bruit sous NODE_ENV=test).
+    // "test" (value set by Vitest itself during `npm run test`) and "production" must
+    // both stay silent — this is precisely the inconsistency that was fixed (the old guard
+    // `!== "production"` let noise through under NODE_ENV=test).
     for (const value of ["test", "production", undefined]) {
-      // @ts-expect-error -- NODE_ENV est en lecture seule dans les types Node, réassigné en test
+      // @ts-expect-error -- NODE_ENV is read-only in the Node types, reassigned in the test
       process.env.NODE_ENV = value;
-      logger.debug("Ne doit pas apparaître");
+      logger.debug("Must not appear");
     }
     expect(spy).not.toHaveBeenCalled();
 
     // @ts-expect-error -- idem
     process.env.NODE_ENV = "development";
-    logger.debug("Doit apparaître");
+    logger.debug("Must appear");
     expect(spy).toHaveBeenCalledTimes(1);
 
     // @ts-expect-error -- idem

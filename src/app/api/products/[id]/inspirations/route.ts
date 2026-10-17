@@ -4,7 +4,7 @@ import { handleApiError } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
 import { listInspirations, runInspirationResearch } from "@/lib/services/inspirationService";
 
-/** Fiches d'inspiration du sujet, actives puis écartées (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.4). */
+/** Inspiration cards of the topic, active then dismissed (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.4). */
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userId = await requireUserId();
@@ -15,7 +15,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   }
 }
 
-/** « Lancer une veille » : recherche web puis mise en fiches, en direct (l'auteur attend le résultat). */
+/** "Start a watch": web search then turned into cards, live (the author waits for the result). */
 export async function POST(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userId = await requireUserId();

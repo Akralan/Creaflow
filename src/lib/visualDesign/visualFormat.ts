@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 /**
- * Format d'un post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §1-§2) : image unique, carrousel
- * de N slides, ou animation de D secondes sur une seule slide. Propriété du script, décidée à la
- * génération — elle contraint le nombre d'entrées du storyboard.
+ * Format of a visual post (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §1-§2): single image, carousel
+ * of N slides, or D-second animation on a single slide. A property of the script, decided at
+ * generation — it constrains the number of storyboard entries.
  */
 export const VISUAL_FORMATS = ["single", "carousel", "animation"] as const;
 export type VisualFormat = (typeof VISUAL_FORMATS)[number];
@@ -14,23 +14,23 @@ export const DEFAULT_SLIDES = 5;
 export const MIN_DURATION_MS = 5_000;
 export const MAX_DURATION_MS = 15_000;
 export const DEFAULT_DURATION_MS = 8_000;
-/** Une animation a entre 3 et 6 moments de texte (§2). */
+/** An animation has between 3 and 6 text moments (§2). */
 export const ANIMATION_MOMENTS = { min: 3, max: 6 } as const;
 
 export interface VisualFormatSpec {
   format: VisualFormat;
-  /** Carrousel uniquement. */
+  /** Carousel only. */
   slideCount: number | null;
-  /** Animation uniquement. */
+  /** Animation only. */
   durationMs: number | null;
-  /** Le visuel est accompagné d'un vrai texte de post (un seul post : texte + visuel) ; faux = le
-   *  visuel porte tout, la légende reste courte. Absent = vrai, le comportement d'avant. */
+  /** The visual comes with a real post text (a single post: text + visual); false = the visual
+   *  carries everything, the caption stays short. Absent = true, the earlier behavior. */
   withText?: boolean;
 }
 
 export const visualFormatSchema = z.enum(VISUAL_FORMATS);
 
-/** Champs acceptés par les routes de génération ; `normalizeVisualSpec` complète les défauts. */
+/** Fields accepted by the generation routes; `normalizeVisualSpec` fills in the defaults. */
 export const visualFormatFieldsSchema = z.object({
   visualFormat: visualFormatSchema.optional(),
   slideCount: z.number().int().min(MIN_SLIDES).max(MAX_SLIDES).optional(),
@@ -53,15 +53,15 @@ export function normalizeVisualSpec(input: {
   };
 }
 
-/** Ligne du bloc FORMAT sur la légende : un post « visuel + texte » est un seul post dont la légende
- *  est le texte complet ; un visuel seul n'a qu'une légende courte. */
+/** Caption line of the FORMAT block: a "visual + text" post is a single post whose caption
+ *  is the full text; a visual on its own has only a short caption. */
 function captionLine(spec: VisualFormatSpec): string {
   return spec.withText === false
-    ? "\nLégende courte : une ou deux phrases au plus, c'est le visuel qui porte le message."
-    : "\nTexte du post : la légende est un vrai post rédigé, complet, que le visuel accompagne et illustre.";
+    ? "\nShort caption: one or two sentences at most, the visual carries the message."
+    : "\nPost text: the caption is a real, complete, written post that the visual accompanies and illustrates.";
 }
 
-/** Lecture depuis une ligne `scripts` (colonnes nullables des scripts antérieurs au chantier). */
+/** Read from a `scripts` row (nullable columns on scripts predating this feature). */
 export function visualSpecFromScript(script: { contentType: string; visualFormat?: string | null; slideCount?: number | null; durationMs?: number | null }): VisualFormatSpec | null {
   if (script.contentType !== "visual") return null;
   const format = VISUAL_FORMATS.includes(script.visualFormat as VisualFormat) ? (script.visualFormat as VisualFormat) : "single";
@@ -74,18 +74,18 @@ export function expectedStoryboardRange(spec: VisualFormatSpec): { min: number; 
   return { min: 1, max: 1 };
 }
 
-/** Bloc <format> du message de génération (Annexe A.1 ; balisé depuis docs/SPEC_PROMPT_GENERATION_V3.md). */
+/** <format> block of the generation message (Annex A.1; tagged since docs/SPEC_PROMPT_GENERATION_V3.md). */
 export function buildFormatBlock(spec: VisualFormatSpec | null | undefined): string {
   if (!spec) return "";
   if (spec.format === "carousel") {
     const n = spec.slideCount ?? DEFAULT_SLIDES;
-    return `<format>\nCarrousel de ${n} slides : le storyboard a exactement ${n} entrées, une par slide, dans l'ordre de lecture ; la première accroche, la dernière porte l'appel à l'action.${captionLine(spec)}\n</format>`;
+    return `<format>\nCarousel of ${n} slides: the storyboard has exactly ${n} entries, one per slide, in reading order; the first slide is the hook, the last carries the call to action.${captionLine(spec)}\n</format>`;
   }
   if (spec.format === "animation") {
     const seconds = Math.round((spec.durationMs ?? DEFAULT_DURATION_MS) / 1000);
-    return `<format>\nAnimation de ${seconds} secondes : le storyboard a entre ${ANIMATION_MOMENTS.min} et ${ANIMATION_MOMENTS.max} entrées ; chaque entrée est un MOMENT du texte à l'écran, dans l'ordre d'apparition, sur une seule image de fond. Le texte de tous les moments réunis doit se lire en ${seconds} secondes (environ 3 mots par seconde) : phrases très courtes.${captionLine(spec)}\n</format>`;
+    return `<format>\nAnimation of ${seconds} seconds: the storyboard has between ${ANIMATION_MOMENTS.min} and ${ANIMATION_MOMENTS.max} entries; each entry is a MOMENT of on-screen text, in order of appearance, over a single background image. The text of all the moments together must be readable in ${seconds} seconds (about 3 words per second): very short sentences.${captionLine(spec)}\n</format>`;
   }
-  return `<format>\nImage unique : le storyboard a exactement 1 entrée — ce qu'on voit et le texte affiché.${captionLine(spec)}\n</format>`;
+  return `<format>\nSingle image: the storyboard has exactly 1 entry — what is seen and the text displayed.${captionLine(spec)}\n</format>`;
 }
 
 export interface StoryboardCheck<T> {
@@ -95,14 +95,14 @@ export interface StoryboardCheck<T> {
 }
 
 /**
- * Vérifie le nombre d'entrées du storyboard et le ramène dans les bornes (§5.1) : trop → tronqué,
- * pas assez → gardé tel quel (jamais d'échec pour ça). `reminder` sert au second appel.
+ * Checks the number of storyboard entries and brings it within bounds (§5.1): too many → truncated,
+ * too few → kept as is (never a failure for that). `reminder` is used for the second call.
  */
 export function enforceStoryboardCount<T>(storyboard: T[], spec: VisualFormatSpec | null | undefined): StoryboardCheck<T> {
   if (!spec) return { ok: true, storyboard, reminder: null };
   const { min, max } = expectedStoryboardRange(spec);
   if (storyboard.length >= min && storyboard.length <= max) return { ok: true, storyboard, reminder: null };
-  const expected = min === max ? `exactement ${min}` : `entre ${min} et ${max}`;
-  const reminder = `Rappel de format : le storyboard doit avoir ${expected} entrée(s), tu en as renvoyé ${storyboard.length}. Recommence en respectant ce nombre.`;
+  const expected = min === max ? `exactly ${min}` : `between ${min} and ${max}`;
+  const reminder = `Format reminder: the storyboard must have ${expected} entry(ies), you returned ${storyboard.length}. Start again respecting that number.`;
   return { ok: false, storyboard: storyboard.length > max ? storyboard.slice(0, max) : storyboard, reminder };
 }

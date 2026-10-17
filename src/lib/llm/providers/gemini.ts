@@ -34,7 +34,7 @@ export async function callGemini({ system, userMessage, tool, maxTokens }: Struc
   const call = response.functionCalls?.[0];
 
   if (!call) {
-    throw new Error("Le modèle n'a pas renvoyé de réponse structurée.");
+    throw new Error("The model did not return a structured response.");
   }
 
   return call.args;

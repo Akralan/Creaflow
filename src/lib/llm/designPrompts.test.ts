@@ -10,34 +10,34 @@ import { buildDesignSystemPrompt, composeDesign, reviseDesign, type DesignImageC
 import { DesignValidationError } from "@/lib/visualDesign/htmlSanitizer";
 
 const images: DesignImageContext[] = [
-  { ref: "p1", description: "Bougie blanche dans un pot en verre ambré, lumière chaude", orientation: "portrait", productName: "Bougie Ambre", cutoutAvailable: true },
-  { ref: "p2", description: "Mains versant de la cire dans des moules", orientation: "landscape", productName: null, cutoutAvailable: false },
+  { ref: "p1", description: "White candle in an amber glass jar, warm light", orientation: "portrait", productName: "Amber Candle", cutoutAvailable: true },
+  { ref: "p2", description: "Hands pouring wax into molds", orientation: "landscape", productName: null, cutoutAvailable: false },
 ];
 const prompt: DesignPromptContext = { width: 1080, height: 1350, hasLogo: false, brandKitDescription: "", vertical: "artisan", images };
 
 const post = {
   platform: "instagram",
-  title: "Trois soirs",
-  hookVisual: "Bougie allumée sur bois brut",
+  title: "Three evenings",
+  hookVisual: "Lit candle on raw wood",
   storyboard: [
-    { planNumber: 1, description: "Photo produit, titre « Une bougie, trois soirs »" },
-    { planNumber: 2, description: "Prix 24 € et appel à l'action « Commande sur le site »" },
+    { planNumber: 1, description: "Product photo, title \"One candle, three evenings\"" },
+    { planNumber: 2, description: "Price $24 and call to action \"Order on the website\"" },
   ],
   brandName: "Cire & Co",
-  tone: "chaleureux",
+  tone: "warm",
 };
 
 const goodSlide = (n: number) =>
   `<div style="position:relative;width:1080px;height:1350px"><div data-layer="t${n}" data-type="text" style="position:absolute;top:80px;left:60px;font-family:Inter;font-size:64px;color:#fff">Slide ${n}</div></div>`;
 
 const goodResult = {
-  theme: { palette: ["#1a1a1a", "#f4e9d8", "#c98a3a"], fontHeading: "Playfair Display", fontBody: "Inter", mood: "chaleureux" },
+  theme: { palette: ["#1a1a1a", "#f4e9d8", "#c98a3a"], fontHeading: "Playfair Display", fontBody: "Inter", mood: "warm" },
   slides: [
     { planNumber: 1, html: goodSlide(1) },
     { planNumber: 2, html: goodSlide(2) },
   ],
   images: [],
-  rationale: "Titre en haut, produit dégagé.",
+  rationale: "Title at the top, product clear.",
 };
 
 beforeEach(() => {
@@ -47,21 +47,21 @@ beforeEach(() => {
 describe("buildDesignSystemPrompt", () => {
   it("nomme le canevas, les polices et l'orientation de la verticale", () => {
     const system = buildDesignSystemPrompt(prompt);
-    expect(system).toContain("Canevas : 1080×1350 px");
+    expect(system).toContain("Canvas: 1080×1350 px");
     expect(system).toContain("Inter, Space Grotesk, Playfair Display");
-    expect(system).toContain("Artisan : la photo du produit est le sujet");
+    expect(system).toContain("Craftsperson: the product photo is the subject");
     expect(system).not.toContain("{{LOGO}}");
-    expect(buildDesignSystemPrompt({ ...prompt, hasLogo: true, brandKitDescription: "couleurs #111" })).toContain('et src="{{LOGO}}"');
+    expect(buildDesignSystemPrompt({ ...prompt, hasLogo: true, brandKitDescription: "colors #111" })).toContain('and src="{{LOGO}}"');
   });
 
   it("liste les photos déclarées, le détourage et les éléments d'interface", () => {
     const system = buildDesignSystemPrompt(prompt);
     expect(system).toContain('src="{{IMG:p1}}", "{{IMG:p2}}"');
     expect(system).toContain('"cutout"');
-    expect(system).toContain("étiquette de prix");
+    expect(system).toContain("price tag");
     expect(system).toContain("Montages");
     const noPhoto = buildDesignSystemPrompt({ ...prompt, images: [] });
-    expect(noPhoto).toContain("aucune (aucune photo fournie, pas de logo)");
+    expect(noPhoto).toContain("none (no photo supplied, no logo)");
     expect(noPhoto).not.toContain("cutout");
   });
 });
@@ -75,9 +75,9 @@ describe("composeDesign", () => {
     expect(result.slides[0].html).toContain("overflow:hidden");
     expect(callStructuredMock).toHaveBeenCalledTimes(1);
     const userMessage: string = callStructuredMock.mock.calls[0][0].userMessage;
-    expect(userMessage).toContain("1. Photo produit");
-    expect(userMessage).toContain("=== PHOTOS ===\np1 : Bougie blanche dans un pot en verre ambré, lumière chaude · portrait · produit : Bougie Ambre · détourage disponible");
-    expect(userMessage).toContain("p2 : Mains versant de la cire dans des moules · landscape · détourage non disponible");
+    expect(userMessage).toContain("1. Product photo");
+    expect(userMessage).toContain("=== PHOTOS ===\np1: White candle in an amber glass jar, warm light · portrait · product: Amber Candle · cutout available");
+    expect(userMessage).toContain("p2: Hands pouring wax into molds · landscape · cutout not available");
     expect(result.images).toEqual([]);
   });
 
@@ -103,7 +103,7 @@ describe("composeDesign", () => {
     callStructuredMock.mockResolvedValueOnce({ ...goodResult, slides: [{ planNumber: 1, html: ghost }] }).mockResolvedValueOnce(goodResult);
     await composeDesign({ prompt, post });
     expect(callStructuredMock).toHaveBeenCalledTimes(2);
-    expect(callStructuredMock.mock.calls[1][0].userMessage).toContain("photo « p5 » non déclarée");
+    expect(callStructuredMock.mock.calls[1][0].userMessage).toContain("photo \"p5\" not declared");
   });
 
   it("retente une fois avec le rapport d'erreurs quand une slide est refusée", async () => {
@@ -114,8 +114,8 @@ describe("composeDesign", () => {
     expect(result.slides).toHaveLength(2);
     expect(callStructuredMock).toHaveBeenCalledTimes(2);
     const retryMessage: string = callStructuredMock.mock.calls[1][0].userMessage;
-    expect(retryMessage).toContain("TA PRÉCÉDENTE RÉPONSE A ÉTÉ REFUSÉE");
-    expect(retryMessage).toContain("slide 1 : balise <script> interdite");
+    expect(retryMessage).toContain("YOUR PREVIOUS RESPONSE WAS REJECTED");
+    expect(retryMessage).toContain("slide 1: tag <script> is forbidden");
   });
 
   it("échoue si la seconde tentative est encore refusée", async () => {
@@ -130,18 +130,18 @@ describe("reviseDesign", () => {
     callStructuredMock.mockResolvedValue(goodResult);
     await reviseDesign({
       prompt,
-      instruction: "Titre plus gros",
+      instruction: "Bigger title",
       planNumber: 2,
       theme: goodResult.theme,
       slides: goodResult.slides,
       currentVariants: [{ ref: "p1", variant: "cutout" }],
     });
     const userMessage: string = callStructuredMock.mock.calls[0][0].userMessage;
-    expect(userMessage).toContain("Titre plus gros");
-    expect(userMessage).toContain("Variantes actuelles : p1 = cutout");
-    expect(userMessage).toContain("Portée : slide 2 uniquement");
+    expect(userMessage).toContain("Bigger title");
+    expect(userMessage).toContain("Current variants: p1 = cutout");
+    expect(userMessage).toContain("Scope: slide 2 only");
     expect(userMessage).toContain("--- slide 1 ---");
-    expect(userMessage).toContain("Conserve les data-layer existants");
+    expect(userMessage).toContain("Keep the existing data-layer values");
   });
 });
 
@@ -162,9 +162,9 @@ describe("animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md)", () => {
     const result = await composeDesign({ prompt: animPrompt, post });
     const system: string = callStructuredMock.mock.calls[0][0].system;
     const userMessage: string = callStructuredMock.mock.calls[0][0].userMessage;
-    expect(system).toContain("ANIMATION : cette maquette est une animation de 8000 ms");
-    expect(userMessage).toContain("ANIMATION de 8000 ms sur une seule slide");
-    expect(userMessage).toContain("Moment 1 : Photo produit");
+    expect(system).toContain("ANIMATION: this mockup is a 8000 ms animation");
+    expect(userMessage).toContain("8000 ms ANIMATION on a single slide");
+    expect(userMessage).toContain("Moment 1: Product photo");
     expect(result.timeline?.map((t) => t.layerId)).toEqual(["title", "cta"]);
   });
 
@@ -174,7 +174,7 @@ describe("animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md)", () => {
       .mockResolvedValueOnce(animResult);
     const result = await composeDesign({ prompt: animPrompt, post });
     expect(callStructuredMock).toHaveBeenCalledTimes(2);
-    expect(callStructuredMock.mock.calls[1][0].userMessage).toContain("ligne de temps : calque « ghost » inconnu");
+    expect(callStructuredMock.mock.calls[1][0].userMessage).toContain("timeline: layer \"ghost\" unknown");
     expect(result.timeline).toHaveLength(2);
   });
 

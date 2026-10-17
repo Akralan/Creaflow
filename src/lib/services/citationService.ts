@@ -7,11 +7,11 @@ type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type DbOrTx = typeof db | Tx;
 
 /**
- * Enregistre les citations rapportées par le LLM à la génération (docs/SPEC_MATIERE_EDITEUR.md §3) :
- * pour chaque extrait, cherche la meilleure correspondance tous documents du sujet confondus
- * (`findBestMatchInText`), insère une ligne par extrait — matchée ou non (une citation non localisée
- * reste un signal de debug utile, cf. schema.ts). Accepte `tx` pour committer dans la même
- * transaction que l'écriture du script (createScriptRecord/updateScriptRecord).
+ * Records the citations reported by the LLM at generation (docs/SPEC_MATIERE_EDITEUR.md §3):
+ * for each excerpt, looks for the best match across all of the topic's documents
+ * (`findBestMatchInText`), inserts one row per excerpt — matched or not (an unlocated citation
+ * remains a useful debug signal, see schema.ts). Accepts `tx` to commit within the same
+ * transaction as the script write (createScriptRecord/updateScriptRecord).
  */
 export async function recordCitations(
   dbOrTx: DbOrTx,
@@ -51,18 +51,18 @@ export async function recordCitations(
   await dbOrTx.insert(sourceMaterialCitations).values(rows);
 }
 
-/** Une régénération rend les citations précédentes obsolètes — même logique que l'ancien
+/** A regeneration makes the previous citations obsolete — same logic as the former
  *  scriptMaterialUsages (delete-then-insert). */
 export async function deleteCitationsForScript(dbOrTx: DbOrTx, scriptId: string): Promise<void> {
   await dbOrTx.delete(sourceMaterialCitations).where(eq(sourceMaterialCitations.scriptId, scriptId));
 }
 
 /**
- * Réconciliation après une édition partielle (sélection→instruction) — contrairement à une
- * régénération complète, une édition ne touche qu'un passage : retire seulement les citations dont
- * l'extrait n'apparaît plus dans le texte actuel du script (passage supprimé/reformulé), et enregistre
- * les nouveaux extraits rapportés par cette édition, sans toucher aux citations qui restent valides
- * ailleurs dans le texte.
+ * Reconciliation after a partial edit (selection→instruction) — unlike a full
+ * regeneration, an edit only touches one passage: removes only the citations whose
+ * excerpt no longer appears in the script's current text (passage deleted/reworded), and records
+ * the new excerpts reported by this edit, without touching the citations that remain valid
+ * elsewhere in the text.
  */
 export async function reconcileCitationsAfterEdit(
   dbOrTx: DbOrTx,
@@ -86,13 +86,13 @@ export async function reconcileCitationsAfterEdit(
 }
 
 /**
- * Citations d'un script, dans la forme exacte attendue par le front (`apiClient.ts::Citation`,
- * même mapping que `GET /api/scripts/:id`). Utilisé par les gestes de micro-retouche
- * (`microEditService.ts`) pour renvoyer un état à jour : `patchScriptContent` (scriptService.ts) ne
- * renvoie que les colonnes de `scripts`, jamais les relations jointes — sans cet appel explicite, le
- * panneau "Matière utilisée" de l'éditeur affiche les citations d'avant l'édition jusqu'au prochain
- * rechargement complet de la page (le merge `{...prev, ...updated}` côté front ne touche pas
- * `citations` si la réponse ne porte pas cette clé).
+ * Citations of a script, in the exact shape expected by the front end (`apiClient.ts::Citation`,
+ * same mapping as `GET /api/scripts/:id`). Used by the micro-edit gestures
+ * (`microEditService.ts`) to return an up-to-date state: `patchScriptContent` (scriptService.ts) only
+ * returns the `scripts` columns, never the joined relations — without this explicit call, the
+ * "Material used" panel of the editor shows the pre-edit citations until the next
+ * full page reload (the front-end `{...prev, ...updated}` merge does not touch
+ * `citations` if the response does not carry that key).
  */
 export async function getCitationsForScript(dbOrTx: DbOrTx, scriptId: string) {
   const citations = await dbOrTx.query.sourceMaterialCitations.findMany({

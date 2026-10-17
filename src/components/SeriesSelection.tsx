@@ -7,9 +7,9 @@ import type { ContentSeries } from "@/lib/apiClient";
 import { accent, accentAlpha, color, fontHeading } from "@/lib/design/tokens";
 
 /**
- * Arrivée sur Direction après l'onboarding : les séries proposées côte à côte, toutes cochées. On
- * décoche celles qu'on ne veut pas, on valide — les jours de publication sont alors répartis entre
- * les séries gardées (docs/SPEC_RYTHME_DES_SERIES.md §5), ajustables ensuite dans Direction.
+ * Landing on Direction after onboarding: the suggested series side by side, all ticked. Untick
+ * the ones you don't want, then confirm — publishing days are then spread across
+ * the kept series (docs/SPEC_RYTHME_DES_SERIES.md §5), adjustable afterwards in Direction.
  */
 export default function SeriesSelection({
   series,
@@ -93,12 +93,12 @@ export default function SeriesSelection({
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
         <Button onClick={() => onConfirm(kept)} disabled={busy || kept.length === 0}>
-          {busy ? "On planifie tes premiers posts…" : `Valider ${kept.length} série${kept.length > 1 ? "s" : ""}`}
+          {busy ? "Scheduling your first posts…" : `Confirm ${kept.length} series`}
         </Button>
         <span style={{ fontSize: 13, color: color.textMuted }}>
           {kept.length === 0
-            ? "Garde au moins une série."
-            : "On planifie la série principale et on remplit ton calendrier dans la foulée."}
+            ? "Keep at least one series."
+            : "We schedule the main series and fill your calendar right after."}
         </span>
       </div>
     </div>

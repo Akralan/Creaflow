@@ -37,7 +37,7 @@ export default function ConnectedSources({ productId }: { productId: string }) {
       const { sources } = await api.getMaterialSources(productId);
       setSources(sources);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "La synchronisation a échoué.");
+      setError(err instanceof ApiClientError ? err.message : "Sync failed.");
     } finally {
       setSyncingId(null);
     }
@@ -47,7 +47,7 @@ export default function ConnectedSources({ productId }: { productId: string }) {
     // Confirmation explicite : débrancher supprime les documents miroir de cette source.
     if (
       !window.confirm(
-        `Débrancher ${source.label} supprimera les documents récupérés depuis cette source. Continuer ?`
+        `Disconnecting ${source.label} will delete the documents pulled from this source. Continue?`
       )
     ) {
       return;
@@ -57,7 +57,7 @@ export default function ConnectedSources({ productId }: { productId: string }) {
       await api.deleteMaterialSource(source.id);
       setSources((prev) => prev.filter((s) => s.id !== source.id));
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Le débranchement a échoué.");
+      setError(err instanceof ApiClientError ? err.message : "Disconnecting failed.");
     }
   }
 
@@ -66,7 +66,7 @@ export default function ConnectedSources({ productId }: { productId: string }) {
   return (
     <div style={{ marginBottom: 16 }}>
       <h3 style={{ fontSize: 13, fontWeight: 600, color: color.textSecondary, margin: "0 0 8px" }}>
-        Sources connectées
+        Connected sources
       </h3>
       <div style={{ display: "grid", gap: 8 }}>
         {sources.map((source) => {
@@ -88,14 +88,13 @@ export default function ConnectedSources({ productId }: { productId: string }) {
               <div>
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{source.label}</div>
                 <div style={{ fontSize: 12, color: color.textFaint, marginTop: 3 }}>
-                  {source.lastSyncedAt ? `Synchronisé le ${source.lastSyncedAt.slice(0, 10)}` : "Jamais synchronisé"}
-                  {source.status === "needs_reconnect" && ` · accès perdu, reconnecte ${source.connectorLabel}`}
+                  {source.lastSyncedAt ? `Synced on ${source.lastSyncedAt.slice(0, 10)}` : "Never synced"}
+                  {source.status === "needs_reconnect" && ` · access lost, reconnect ${source.connectorLabel}`}
                 </div>
                 {/* Dire ce qui a bougé : sans ça l'utilisateur reclique par doute. */}
                 {report && (
                   <div style={{ fontSize: 12, color: color.textMuted, marginTop: 4 }}>
-                    {report.added} ajouté{report.added > 1 ? "s" : ""}, {report.updated} mis à jour,{" "}
-                    {report.unchanged} inchangé{report.unchanged > 1 ? "s" : ""}
+                    {report.added} added, {report.updated} updated, {report.unchanged} unchanged
                   </div>
                 )}
                 {source.lastError && (
@@ -104,10 +103,10 @@ export default function ConnectedSources({ productId }: { productId: string }) {
               </div>
               <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                 <Button variant="secondary" onClick={() => sync(source.id)} disabled={syncingId === source.id}>
-                  {syncingId === source.id ? "…" : "Resynchroniser"}
+                  {syncingId === source.id ? "…" : "Resync"}
                 </Button>
                 <Button variant="ghost" onClick={() => unlink(source)}>
-                  Débrancher
+                  Disconnect
                 </Button>
               </div>
             </div>

@@ -20,10 +20,10 @@ export const productProposalSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   valueProposition: z.string().optional(),
-  // Override d'audience par sujet (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — distinct de l'audience
-  // de marque portée par profileProposals. Le prompt système y renvoyait déjà explicitement alors
-  // que le champ n'existait pas ici : l'assistant était dirigé vers une action qu'il ne pouvait pas
-  // émettre (docs/SPEC_ASSISTANT_AGENTIQUE.md §6.1).
+  // Per-subject audience override (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — distinct from the brand
+  // audience carried by profileProposals. The system prompt already referred to it explicitly while
+  // the field didn't exist here: the assistant was directed to an action it couldn't emit
+  // (docs/SPEC_ASSISTANT_AGENTIQUE.md §6.1).
   targetAudience: z.string().optional(),
 });
 export type ProductProposal = z.infer<typeof productProposalSchema>;
@@ -33,16 +33,16 @@ export const seriesProposalSchema = z.object({
   targetId: z.string().optional(),
   label: z.string().min(1),
   description: z.string().min(1),
-  // Rythme (docs/SPEC_RYTHME_DES_SERIES.md §6) : les jours où la série publie, et une semaine sur
-  // deux ou non. Optionnels ici comme mode : absent = rythme inchangé sur un update.
+  // Rhythm (docs/SPEC_RYTHME_DES_SERIES.md §6): the days the series publishes, and whether every
+  // other week. Optional here: absent = rhythm unchanged on an update.
   rhythmDays: z.array(z.number().int().min(1).max(7)).min(1).max(7).optional(),
   everyOtherWeek: z.boolean().optional(),
-  // Un rôle unique par série (docs/SPEC_SERIES_ET_ROLES.md §1).
+  // A single role per series (docs/SPEC_SERIES_ET_ROLES.md §1).
   categoryLabel: z.string().min(1),
   platforms: z.array(z.string()),
-  // docs/SPEC_REDACTEUR_EN_CHEF.md §4.5 — même typologie que seriesLabels.ts (inférence à la
-  // Sujet dont la série tire sa matière — `undefined` laisse le rattachement inchangé (jamais de
-  // détachement implicite : ça viderait la source de matière du rédacteur en chef sans le dire).
+  // docs/SPEC_REDACTEUR_EN_CHEF.md §4.5 — same typology as seriesLabels.ts.
+  // Subject the series draws its material from — `undefined` leaves the attachment unchanged (never
+  // an implicit detachment: it would empty the writer's material source without saying so).
   productId: z.string().optional(),
 });
 export type SeriesProposal = z.infer<typeof seriesProposalSchema>;
@@ -54,8 +54,8 @@ export const categoryProposalSchema = z.object({
   description: z.string().min(1),
   weight: z.number().int().min(5).max(90),
   platforms: z.array(z.string()),
-  // Aiguillage matière×catégorie (docs/SPEC_MATIERE_EDITEUR.md §5.3) — `undefined` conserve la
-  // valeur actuelle du rôle (cf. resolveProposal).
+  // Material × category routing (docs/SPEC_MATIERE_EDITEUR.md §5.3) — `undefined` keeps the
+  // role's current value (see resolveProposal).
   materialHungry: z.boolean().optional(),
 });
 export type CategoryProposal = z.infer<typeof categoryProposalSchema>;
@@ -68,29 +68,28 @@ export const angleProposalSchema = z.object({
 });
 export type AngleProposal = z.infer<typeof angleProposalSchema>;
 
-// Une plateforme est active (un post par jour de publication) ou coupée : le nombre de posts par
-// semaine ne se règle plus (docs/SPEC_ONBOARDING_MVP.md §1).
+// A platform is active (one post per publishing day) or switched off: the number of posts per
+// week is no longer set (docs/SPEC_ONBOARDING_MVP.md §1).
 export const postingGoalProposalSchema = z.object({
   platform: z.string().min(1),
   active: z.boolean(),
 });
 export type PostingGoalProposal = z.infer<typeof postingGoalProposalSchema>;
 
-// Audience de marque (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — une seule cible possible
-// (CreatorProfile de l'utilisateur), pas de action create/update ni de targetId comme les autres :
-// plafonné à 1 élément plutôt que 5 (cf. assistantChatResultSchema).
+// Brand audience (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — a single possible target (the user's
+// CreatorProfile), no create/update action nor targetId like the others: capped at 1 element
+// rather than 5 (see assistantChatResultSchema).
 export const profileProposalSchema = z.object({
   targetAudience: z.string().min(1),
 });
 export type ProfileProposal = z.infer<typeof profileProposalSchema>;
 
-/** Charge utile de l'outil de proposition. La réponse conversationnelle n'en fait plus partie :
- *  en boucle agentique, c'est le texte libre du modèle qui la porte
- *  (docs/SPEC_ASSISTANT_AGENTIQUE.md §3.2). */
-/** Matière première proposée depuis la conversation (docs/SPEC_ASSISTANT_AGENTIQUE.md §5).
- *  L'assistant ne crée jamais de matière lui-même : le SourceMaterial naît à l'acceptation.
- *  `text` porte l'extraction conversationnelle ; `attachmentId` désigne un fichier déposé dans le
- *  fil, dont l'assistant ne connaît que le nom — jamais le contenu. */
+/** Payload of the proposal tool. The conversational reply is no longer part of it: in the agentic
+ *  loop, the model's free text carries it (docs/SPEC_ASSISTANT_AGENTIQUE.md §3.2). */
+/** Raw material proposed from the conversation (docs/SPEC_ASSISTANT_AGENTIQUE.md §5).
+ *  The assistant never creates material itself: the SourceMaterial is born on acceptance.
+ *  `text` carries the conversational extraction; `attachmentId` designates a file dropped in the
+ *  thread, of which the assistant only knows the name — never the content. */
 export const materialProposalSchema = z
   .object({
     action: z.enum(["create", "update", "delete"]),
@@ -101,15 +100,15 @@ export const materialProposalSchema = z
     attachmentId: z.string().optional(),
   })
   .refine((p) => p.action === "create" || !!p.materialId, {
-    message: "materialId est requis pour modifier ou supprimer un document.",
+    message: "materialId is required to edit or delete a document.",
   })
   .refine((p) => p.action !== "create" || !!p.text || !!p.attachmentId, {
-    message: "Une création de matière doit porter soit du texte, soit un fichier déposé.",
+    message: "A material creation must carry either text or an uploaded file.",
   });
 export type MaterialProposal = z.infer<typeof materialProposalSchema>;
 
-/** Archivage — jamais de suppression (docs/SPEC_SERIES_ET_ROLES.md §7 : un objet archivé reste
- *  référencé par les scripts et créneaux déjà produits). */
+/** Archiving — never deletion (docs/SPEC_SERIES_ET_ROLES.md §7: an archived object remains
+ *  referenced by scripts and slots already produced). */
 export const archiveProposalSchema = z.object({
   kind: z.enum(["series", "category", "angle"]),
   targetId: z.string().min(1),
@@ -117,7 +116,7 @@ export const archiveProposalSchema = z.object({
 });
 export type ArchiveProposal = z.infer<typeof archiveProposalSchema>;
 
-/** Jours de publication (docs/SPEC_ONBOARDING_MVP.md §5) — liste complète à jour, pas un delta. */
+/** Publishing days (docs/SPEC_ONBOARDING_MVP.md §5) — the full up-to-date list, not a delta. */
 export const publishingDaysProposalSchema = z.object({
   publishingDays: publishingDaysSchema,
 });
@@ -138,38 +137,38 @@ const MATERIAL_TOOL_NAME = "propose_material";
 const ARCHIVE_TOOL_NAME = "propose_archive";
 const PUBLISHING_DAYS_TOOL_NAME = "propose_publishing_days";
 
-/** Outils séparés plutôt que des tableaux de plus dans propose_changes : en boucle agentique, un
- *  outil ciblé s'appelle sans avoir à remplir six tableaux vides. */
+/** Separate tools rather than more arrays in propose_changes: in the agentic loop, a targeted
+ *  tool can be called without having to fill in six empty arrays. */
 function buildMaterialTool(context: { productIds: string[]; attachmentIds: string[] }): LlmToolDefinition {
   return {
     name: MATERIAL_TOOL_NAME,
     description:
-      "Propose d'ajouter, de modifier ou de retirer un document de matière première. À utiliser quand l'utilisateur raconte une information exploitable (actualité, anecdote, chiffre, décision, retour d'expérience) qui mérite d'être conservée pour nourrir ses futurs contenus, ou quand il a déposé un fichier dans la conversation. Rien n'est enregistré avant sa validation.",
+      "Proposes adding, editing or removing a raw material document. Use when the user tells usable information (news, anecdote, number, decision, lesson learned) worth keeping to feed their future content, or when they dropped a file in the conversation. Nothing is saved before their validation.",
     input_schema: {
       type: "object",
       properties: {
         action: {
           type: "string",
           enum: ["create", "update", "delete"],
-          description: "'create' pour un nouveau document, 'update' pour corriger un document existant, 'delete' pour en retirer un.",
+          description: "'create' for a new document, 'update' to correct an existing document, 'delete' to remove one.",
         },
         materialId: {
           type: "string",
-          description: "Id EXACT d'un document existant, obtenu via list_materials — requis pour 'update' et 'delete'.",
+          description: "EXACT id of an existing document, obtained via list_materials — required for 'update' and 'delete'.",
         },
         productId: enumField(
           context.productIds,
-          "Id EXACT du sujet auquel rattacher cette matière. Omets-le SEULEMENT si la matière concerne la marque en général et aucun sujet précis — si tu hésites, demande à l'utilisateur plutôt que de deviner."
+          "EXACT id of the subject to attach this material to. Omit it ONLY if the material concerns the brand in general and no specific subject — if in doubt, ask the user rather than guess."
         ),
-        title: { type: "string", description: "Titre court et descriptif du document." },
+        title: { type: "string", description: "Short, descriptive title of the document." },
         text: {
           type: "string",
           description:
-            "Le contenu, rapporté fidèlement d'après ce que l'utilisateur a dit — n'ajoute aucun fait qu'il n'a pas donné, ne romance pas. Laisse vide si la matière vient d'un fichier déposé (attachmentId).",
+            "The content, reported faithfully from what the user said — add no fact they didn't give, don't embellish. Leave empty if the material comes from an uploaded file (attachmentId).",
         },
         attachmentId: enumField(
           context.attachmentIds,
-          "Id EXACT d'un fichier déposé par l'utilisateur dans la conversation. Tu n'en connais que le nom : ne prétends jamais savoir ce qu'il contient."
+          "EXACT id of a file dropped by the user in the conversation. You only know its name: never claim to know what it contains."
         ),
       },
       required: ["action"],
@@ -181,16 +180,16 @@ function buildArchiveTool(context: { seriesIds: string[]; categoryIds: string[];
   return {
     name: ARCHIVE_TOOL_NAME,
     description:
-      "Propose d'archiver une série, un rôle éditorial ou un angle devenu inutile. L'archivage n'efface rien : les scripts et créneaux déjà produits le conservent. Réservé à une demande claire de l'utilisateur.",
+      "Proposes archiving a series, an editorial role or an angle that has become useless. Archiving erases nothing: scripts and slots already produced keep it. Reserved for a clear user request.",
     input_schema: {
       type: "object",
       properties: {
-        kind: { type: "string", enum: ["series", "category", "angle"], description: "Nature de l'élément à archiver." },
+        kind: { type: "string", enum: ["series", "category", "angle"], description: "Kind of the item to archive." },
         targetId: enumField(
           [...context.seriesIds, ...context.categoryIds, ...context.angleIds],
-          "Id EXACT de l'élément à archiver, cohérent avec 'kind'."
+          "EXACT id of the item to archive, consistent with 'kind'."
         ),
-        reason: { type: "string", description: "En une phrase, pourquoi cet élément n'a plus lieu d'être." },
+        reason: { type: "string", description: "In one sentence, why this item no longer has a reason to exist." },
       },
       required: ["kind", "targetId"],
     },
@@ -201,14 +200,14 @@ function buildPublishingDaysTool(): LlmToolDefinition {
   return {
     name: PUBLISHING_DAYS_TOOL_NAME,
     description:
-      "Propose de changer les jours où le créateur peut publier. Ils ne placent pas les posts : ce sont les rythmes des séries qui le font. Ils servent à proposer les jours d'une nouvelle série. Réservé à une demande claire de l'utilisateur. Rien n'est appliqué avant sa validation.",
+      "Proposes changing the days the creator can publish. They don't place the posts: the series' rhythms do that. They serve to propose the days of a new series. Reserved for a clear user request. Nothing is applied before their validation.",
     input_schema: {
       type: "object",
       properties: {
         publishingDays: {
           type: "array",
           description:
-            "Liste COMPLÈTE des jours où le créateur peut publier après changement (pas seulement ceux à ajouter), au format ISO : 1 = lundi, 2 = mardi, 3 = mercredi, 4 = jeudi, 5 = vendredi, 6 = samedi, 7 = dimanche. Au moins un jour.",
+            "COMPLETE list of the days the creator can publish after the change (not only those to add), in ISO format: 1 = Monday, 2 = Tuesday, 3 = Wednesday, 4 = Thursday, 5 = Friday, 6 = Saturday, 7 = Sunday. At least one day.",
           items: { type: "integer", minimum: 1, maximum: 7 },
           minItems: 1,
           maxItems: 7,
@@ -219,8 +218,8 @@ function buildPublishingDaysTool(): LlmToolDefinition {
   };
 }
 
-/** `enum` sur une valeur censée matcher exactement une valeur existante — omis quand la liste est
- *  vide, un `enum: []` rejetterait toute valeur. */
+/** `enum` on a value supposed to match exactly an existing value — omitted when the list is
+ *  empty, an `enum: []` would reject any value. */
 function enumField(values: string[], description: string) {
   return values.length > 0 ? { type: "string", description, enum: values } : { type: "string", description };
 }
@@ -235,40 +234,40 @@ function buildAssistantTool(context: {
 }): LlmToolDefinition {
   const productIdField = enumField(
     context.productIds,
-    "Id EXACT du sujet dont la série tire sa matière. Omets ce champ si aucun sujet précis ne s'impose, ou pour laisser inchangé le rattachement d'une série existante."
+    "EXACT id of the subject the series draws its material from. Omit this field if no specific subject applies, or to leave an existing series' attachment unchanged."
   );
 
   const platformsField = {
     type: "array",
     description:
-      "Réseaux pertinents, à déduire du contexte de la conversation. Tableau VIDE si aucun signal clair (= tous les réseaux, comportement par défaut) — ne restreins qu'avec une bonne raison exprimée par l'utilisateur. Pour une mise à jour, reprends les plateformes actuelles sauf changement explicitement demandé.",
-    items: enumField(context.platformKeys, "Clé de plateforme connue (parmi le registre)."),
+      "Relevant networks, to deduce from the conversation context. EMPTY array if no clear signal (= all networks, default behavior) — only restrict with a good reason expressed by the user. For an update, restate the current platforms unless a change is explicitly requested.",
+    items: enumField(context.platformKeys, "Known platform key (from the registry)."),
   };
 
   return {
     name: ASSISTANT_CHAT_TOOL_NAME,
     description:
-      "Enregistre des propositions de création ou de modification (sujets, séries, rôles éditoriaux, angles, plateformes actives ou coupées, audience de marque) que l'utilisateur validera, éditera ou refusera. N'applique rien directement. N'appelle cet outil QUE si tu as vraiment quelque chose à proposer, et adresse-toi à l'utilisateur dans ta réponse en texte, pas ici.",
+      "Records creation or modification proposals (subjects, series, editorial roles, angles, active or switched-off platforms, brand audience) that the user will validate, edit or refuse. Applies nothing directly. ONLY call this tool if you really have something to propose, and address the user in your text reply, not here.",
     input_schema: {
       type: "object",
       properties: {
         productProposals: {
           type: "array",
           description:
-            "0 à 5 propositions de création/modification de produit. La plupart des tours n'en proposent aucune — seulement quand l'utilisateur a donné assez d'info sur un produit nouveau ou existant.",
+            "0 to 5 proposals to create/modify a product. Most turns propose none — only when the user gave enough info about a new or existing product.",
           maxItems: 5,
           items: {
             type: "object",
             properties: {
-              action: { type: "string", enum: ["create", "update"], description: "'create' pour un nouveau produit, 'update' pour modifier un produit existant." },
-              targetId: enumField(context.productIds, "Id EXACT du produit existant à modifier — uniquement si action='update'."),
-              name: { type: "string", description: "Nom du produit (valeur complète à jour, même pour une modification partielle)." },
-              description: { type: "string", description: "Description du produit." },
-              valueProposition: { type: "string", description: "Proposition de valeur du produit." },
+              action: { type: "string", enum: ["create", "update"], description: "'create' for a new product, 'update' to modify an existing product." },
+              targetId: enumField(context.productIds, "EXACT id of the existing product to modify — only if action='update'."),
+              name: { type: "string", description: "Product name (full up-to-date value, even for a partial change)." },
+              description: { type: "string", description: "Product description." },
+              valueProposition: { type: "string", description: "Product value proposition." },
               targetAudience: {
                 type: "string",
                 description:
-                  "Audience propre à CE sujet, quand elle diffère de l'audience de marque (ex. l'audience d'un projet technique ≠ celle d'une boutique). Omets ce champ si rien ne la distingue — le sujet retombe alors sur l'audience de marque.",
+                  "Audience specific to THIS subject, when it differs from the brand audience (e.g. the audience of a technical project ≠ that of a shop). Omit this field if nothing distinguishes it — the subject then falls back on the brand audience.",
               },
             },
             required: ["action", "name"],
@@ -277,25 +276,25 @@ function buildAssistantTool(context: {
         seriesProposals: {
           type: "array",
           description:
-            "0 à 5 propositions de création/modification de série récurrente ('direction'). La plupart des tours n'en proposent aucune.",
+            "0 to 5 proposals to create/modify a recurring series ('direction'). Most turns propose none.",
           maxItems: 5,
           items: {
             type: "object",
             properties: {
-              action: { type: "string", enum: ["create", "update"], description: "'create' pour une nouvelle série, 'update' pour modifier une série existante." },
-              targetId: enumField(context.seriesIds, "Id EXACT de la série existante à modifier — uniquement si action='update'."),
-              label: { type: "string", description: "Nom court et mémorable de la série." },
-              description: { type: "string", description: "Identité de la série : angle, ton, structure à respecter." },
+              action: { type: "string", enum: ["create", "update"], description: "'create' for a new series, 'update' to modify an existing series." },
+              targetId: enumField(context.seriesIds, "EXACT id of the existing series to modify — only if action='update'."),
+              label: { type: "string", description: "Short, memorable name of the series." },
+              description: { type: "string", description: "Identity of the series: angle, tone, structure to respect." },
               rhythmDays: {
                 type: "array",
                 items: { type: "integer", enum: [1, 2, 3, 4, 5, 6, 7] },
                 description:
-                  "Jours où la série publie (1 = lundi … 7 = dimanche). Deux séries peuvent partager un jour. Pour une mise à jour, reprends les jours actuels sauf changement demandé.",
+                  "Days the series publishes (1 = Monday … 7 = Sunday). Two series can share a day. For an update, restate the current days unless a change is requested.",
               },
-              everyOtherWeek: { type: "boolean", description: "Vrai si la série ne publie qu'une semaine sur deux." },
+              everyOtherWeek: { type: "boolean", description: "True if the series only publishes every other week." },
               categoryLabel: enumField(
                 context.categoryLabels,
-                "Libellé exact du rôle éditorial (unique) que sert cette série. Si tu hésites entre deux rôles, propose deux séries."
+                "Exact label of the (single) editorial role this series serves. If in doubt between two roles, propose two series."
               ),
               platforms: platformsField,
               productId: productIdField,
@@ -306,25 +305,25 @@ function buildAssistantTool(context: {
         categoryProposals: {
           type: "array",
           description:
-            "0 à 5 propositions de création/modification de rôle éditorial ('catégorie' côté données). RARE : uniquement sur demande explicite de l'utilisateur ou pour rééquilibrer un mix — la plupart des demandes se traduisent en série, pas en rôle.",
+            "0 to 5 proposals to create/modify an editorial role ('category' on the data side). RARE: only on explicit user request or to rebalance a mix — most requests translate into a series, not a role.",
           maxItems: 5,
           items: {
             type: "object",
             properties: {
-              action: { type: "string", enum: ["create", "update"], description: "'create' pour un nouveau rôle, 'update' pour modifier un rôle existant." },
-              targetId: enumField(context.categoryIds, "Id EXACT du rôle existant à modifier — uniquement si action='update'."),
-              label: { type: "string", description: "Libellé court du rôle." },
-              description: { type: "string", description: "Consigne éditoriale du rôle." },
+              action: { type: "string", enum: ["create", "update"], description: "'create' for a new role, 'update' to modify an existing role." },
+              targetId: enumField(context.categoryIds, "EXACT id of the existing role to modify — only if action='update'."),
+              label: { type: "string", description: "Short label of the role." },
+              description: { type: "string", description: "Editorial instruction of the role." },
               weight: {
                 type: "integer",
                 description:
-                  "Poids de CE rôle uniquement (5 à 90, % approximatif des créneaux). Ne propose JAMAIS le poids des autres rôles — ils seront réajustés automatiquement pour continuer à sommer à 100%.",
+                  "Weight of THIS role only (5 to 90, approximate % of slots). NEVER propose the weight of other roles — they will be readjusted automatically to keep summing to 100%.",
               },
               platforms: platformsField,
               materialHungry: {
                 type: "boolean",
                 description:
-                  "true si ce rôle ne tourne pas sans matière documentée (storytelling, coulisses, retour d'expérience) ; false s'il tourne sans journal de bord (expertise, pédagogie). Sert au calendrier à réserver ces rôles aux jours documentés. Omets ce champ pour laisser la valeur actuelle inchangée.",
+                  "true if this role doesn't run without documented material (storytelling, behind the scenes, lessons learned); false if it runs without a logbook (expertise, teaching). Used by the calendar to reserve these roles for documented days. Omit this field to leave the current value unchanged.",
               },
             },
             required: ["action", "label", "description", "weight", "platforms"],
@@ -333,15 +332,15 @@ function buildAssistantTool(context: {
         angleProposals: {
           type: "array",
           description:
-            "0 à 5 propositions de création/modification d'angle de contenu (variation de traitement au sein d'un rôle). La plupart des tours n'en proposent aucune.",
+            "0 to 5 proposals to create/modify a content angle (a variation of treatment within a role). Most turns propose none.",
           maxItems: 5,
           items: {
             type: "object",
             properties: {
-              action: { type: "string", enum: ["create", "update"], description: "'create' pour un nouvel angle, 'update' pour modifier un angle existant." },
-              targetId: enumField(context.angleIds, "Id EXACT de l'angle existant à modifier — uniquement si action='update'."),
-              label: { type: "string", description: "Nom court de l'angle." },
-              description: { type: "string", description: "Consigne de traitement associée à cet angle." },
+              action: { type: "string", enum: ["create", "update"], description: "'create' for a new angle, 'update' to modify an existing angle." },
+              targetId: enumField(context.angleIds, "EXACT id of the existing angle to modify — only if action='update'."),
+              label: { type: "string", description: "Short name of the angle." },
+              description: { type: "string", description: "Treatment instruction associated with this angle." },
             },
             required: ["action", "label", "description"],
           },
@@ -349,15 +348,15 @@ function buildAssistantTool(context: {
         postingGoalProposals: {
           type: "array",
           description:
-            "0 à 5 propositions d'activer ou de couper une plateforme. Une plateforme active reçoit un post par jour de publication ; une plateforme coupée n'en reçoit aucun. Pas de distinction create/update : la plateforme identifie la cible.",
+            "0 to 5 proposals to activate or switch off a platform. An active platform gets one post per publishing day; a switched-off platform gets none. No create/update distinction: the platform identifies the target.",
           maxItems: 5,
           items: {
             type: "object",
             properties: {
-              platform: enumField(context.platformKeys, "Clé de plateforme connue (parmi le registre)."),
+              platform: enumField(context.platformKeys, "Known platform key (from the registry)."),
               active: {
                 type: "boolean",
-                description: "true pour activer la plateforme, false pour la couper.",
+                description: "true to activate the platform, false to switch it off.",
               },
             },
             required: ["platform", "active"],
@@ -366,14 +365,14 @@ function buildAssistantTool(context: {
         profileProposals: {
           type: "array",
           description:
-            "0 ou 1 proposition de mise à jour de l'AUDIENCE DE MARQUE (pas l'audience d'un sujet précis — ça, c'est product_update). La plupart des tours n'en proposent aucune, seulement quand l'audience se précise clairement dans la conversation et diffère de ce qui est déjà connu.",
+            "0 or 1 proposal to update the BRAND AUDIENCE (not the audience of a specific subject — that is product_update). Most turns propose none, only when the audience clearly sharpens in the conversation and differs from what is already known.",
           maxItems: 1,
           items: {
             type: "object",
             properties: {
               targetAudience: {
                 type: "string",
-                description: "Qui achète ou lit, ce qui l'intéresse, ce qu'il doit retenir de la marque — valeur complète à jour, pas seulement le delta.",
+                description: "Who buys or reads, what interests them, what they should remember about the brand — full up-to-date value, not just the delta.",
               },
             },
             required: ["targetAudience"],
@@ -392,32 +391,34 @@ function buildAssistantTool(context: {
   };
 }
 
-const SYSTEM_PROMPT = `Tu es l'assistant éditorial de CreaFlow. Tu discutes avec l'utilisateur de sa direction éditoriale et des paramètres de son calendrier de publication, et tu proposes, quand c'est pertinent, des créations ou modifications de PRODUITS (sujets), SÉRIES récurrentes, RÔLES ÉDITORIAUX (appelés 'catégories' dans les données), ANGLES, PLATEFORMES actives ou coupées, JOURS DE PUBLICATION, et l'AUDIENCE DE MARQUE.
+const SYSTEM_PROMPT = `You are Buildloud's editorial assistant. You talk with the user about their editorial direction and the settings of their publishing calendar, and, when relevant, you propose creations or changes to PRODUCTS (subjects), recurring SERIES, EDITORIAL ROLES (called 'categories' in the data), ANGLES, active or switched-off PLATFORMS, PUBLISHING DAYS, and the BRAND AUDIENCE.
 
-Tu disposes d'OUTILS DE LECTURE sur tout l'espace de travail : la matière première du créateur (ses documents de travail), ses scripts, son calendrier de publication, ses performances réelles, l'état narratif de ses séries en cours, et son profil complet. Sers-t'en quand la réponse en dépend — un rédacteur en chef qui conseille sans avoir lu ce qui est publié ni ce qui est planifié ne sert à rien. Mais ne fouille pas pour le plaisir : sur une question qui n'en a pas besoin, réponds directement. Deux ou trois lectures ciblées valent mieux que dix.
+You have READ TOOLS over the whole workspace: the creator's raw material (their working documents), their scripts, their publishing calendar, their real performance, the narrative state of their ongoing series, and their full profile. Use them when the answer depends on it — an editor-in-chief who advises without having read what is published or what is planned is useless. But don't dig for the sake of it: on a question that doesn't need it, answer directly. Two or three targeted reads are better than ten.
 
-Ta réponse à l'utilisateur est ton texte, pas un appel d'outil. L'outil propose_changes sert uniquement à enregistrer des propositions ; après l'avoir appelé, tu dois toujours répondre en texte à l'utilisateur.
+Your reply to the user is your text, not a tool call. The propose_changes tool is only for recording proposals; after calling it, you must always reply to the user in text.
 
-Vocabulaire : face à l'utilisateur, parle toujours de "rôle" ou "rôle éditorial", jamais de "catégorie". Un rôle dit POURQUOI un post existe (expertise, coulisses, preuve sociale...) ; une série dit À QUOI il ressemble (format nommé, reconnaissable) et sert exactement UN rôle.
+Everything you write — your replies to the user and every field of every proposal (names, descriptions, labels, titles, material text) — is in English.
 
-Règles :
-- La SÉRIE est l'objet que l'utilisateur manipule. Quand il décrit un format, un rendez-vous, une idée récurrente, propose une SÉRIE (rattachée à un rôle existant) — pas un rôle. Ne propose la création ou la modification d'un rôle que si l'utilisateur le demande explicitement, ou si aucun rôle existant ne peut accueillir la série et qu'il en manque manifestement un. Le poids des rôles évolue surtout à partir des performances réelles : ne le retouche que sur demande claire.
-- Pose une seule question à la fois, de façon conversationnelle.
-- Ne propose une création/modification que quand tu as assez d'info — la plupart des tours ne doivent rien proposer (tableaux vides).
-- Le rythme ne se règle pas en nombre de posts : chaque SÉRIE a ses jours (rhythmDays, et everyOtherWeek pour une semaine sur deux), et publie ces jours-là sur ses plateformes actives. Pour faire publier une série un autre jour ou plus souvent, propose un update de la série avec ses nouveaux jours. Deux séries peuvent partager un jour (deux posts ce jour-là). Une plateforme est ACTIVE ou COUPÉE (postingGoalProposals). Il n'y a pas de posts libres automatiques. propose_publishing_days ne change que les jours où l'auteur peut publier, proposés à la création d'une série — seulement sur demande claire de l'utilisateur.
-- L'archivage (propose_archive) ne s'efface jamais : il retire un élément de la circulation sans toucher aux contenus déjà produits. Ne le propose que sur demande claire de l'utilisateur, jamais de ta propre initiative pour "faire le ménage".
-- MATIÈRE : quand l'utilisateur te raconte une information factuelle exploitable (une actualité sur un de ses sujets, une anecdote d'atelier, un chiffre, une décision, un retour d'expérience), propose de l'ajouter à sa matière avec propose_material — c'est ce qui nourrira ses prochains contenus. Rapporte fidèlement ce qu'il a dit, sans rien ajouter ni romancer. N'en propose pas à chaque phrase : seulement quand il y a une vraie information à conserver. Si tu ne sais pas à quel sujet la rattacher, demande-lui plutôt que de deviner.
-- FICHIERS : quand l'utilisateur dépose un fichier dans la conversation, tu en vois le nom, JAMAIS le contenu. Ne prétends jamais savoir ce qu'il contient et ne le résume pas. C'est son message qui te dit quoi en faire ; s'il n'est pas clair sur le sujet de rattachement, demande — tu pourras le ranger plus tard, le fichier reste disponible.
-- Pour 'update', utilise TOUJOURS l'id EXACT fourni dans le contexte (produits/séries/rôles/angles existants) — n'invente jamais d'id, et n'utilise 'update' que si l'utilisateur décrit clairement un élément déjà existant.
-- Pour une série, utilise le libellé de rôle EXACT fourni dans le contexte (un seul rôle par série ; si une idée hésite entre deux rôles, propose deux séries).
-- Pour un rôle, ne propose QUE le poids du rôle concerné (5 à 90) — jamais celui des autres, ils seront réajustés automatiquement pour continuer à sommer à 100%.
-- Une série peut tirer sa matière d'un SUJET précis (productId) : renseigne-le quand la série porte manifestement sur un sujet existant, sinon omets le champ — elle retombe alors sur la matière de niveau marque. N'omets jamais ce champ pour "détacher" une série : omettre = laisser inchangé.
-- Le champ materialHungry d'un rôle dit s'il a besoin de matière documentée pour tourner (storytelling, coulisses : oui ; expertise, pédagogie : non). Ne le renseigne que si tu le changes vraiment — omettre conserve la valeur actuelle.
-- Pour les plateformes (séries et rôles), utilise UNIQUEMENT les clés du registre fourni. Ne restreins à des plateformes précises que si le contexte de la conversation le justifie clairement (ex. l'utilisateur mentionne un réseau en particulier) — sinon laisse le tableau vide (= toutes les plateformes), ne sur-scope jamais sans raison. Pour une mise à jour, restitue les plateformes actuelles de l'élément sauf changement explicitement demandé.
-- Tu LIS le calendrier et les scripts, tu ne les MODIFIES jamais. Pas de génération de mois, pas de création/déplacement/suppression de créneau ; pas d'écriture, de réécriture ni de suppression de script. Ce sont les deux domaines de l'utilisateur : le planning et les mots. Si on te demande d'y toucher, dis-le simplement et oriente vers l'écran concerné (Calendrier, ou l'éditeur du script) — tu peux en revanche les lire pour argumenter, résumer, ou repérer un trou.
-- Rien n'est jamais enregistré directement : chaque proposition passée à propose_changes sera relue, éditée ou refusée par l'utilisateur avant d'être appliquée — tu peux donc proposer dès que c'est raisonnable, sans sur-demander de confirmation. Ne dis jamais qu'une modification est faite : dis qu'elle est proposée.
-- Tu ne dois JAMAIS inventer une information (nom, caractéristique, chiffre, date...) qui ne t'a pas été donnée explicitement par l'utilisateur ou par une source fournie. En cas de doute ou d'info manquante, pose une question de clarification plutôt que de deviner.
-- L'audience de marque (qui achète/lit, ce qui l'intéresse, ce qu'il doit retenir) est une donnée de PROFIL, distincte de l'audience éventuelle d'un sujet précis (ça, c'est une propriété du produit — utilise le champ targetAudience d'une proposition de produit, pas profileProposals, dans ce cas). Ne propose une mise à jour de l'audience de marque que si elle se précise clairement et diffère de la valeur déjà connue fournie dans le contexte.`;
+Vocabulary: when talking to the user, always say "role" or "editorial role", never "category". A role says WHY a post exists (expertise, behind the scenes, social proof...); a series says WHAT it looks like (a named, recognizable format) and serves exactly ONE role.
+
+Rules:
+- The SERIES is the object the user manipulates. When they describe a format, a recurring slot, a recurring idea, propose a SERIES (attached to an existing role) — not a role. Only propose creating or changing a role if the user explicitly asks, or if no existing role can host the series and one is manifestly missing. Role weights mostly evolve from real performance: only touch them on a clear request.
+- Ask a single question at a time, conversationally.
+- Only propose a creation/change when you have enough info — most turns should propose nothing (empty arrays).
+- Rhythm is not set as a number of posts: each SERIES has its days (rhythmDays, and everyOtherWeek for every other week), and publishes on those days on its active platforms. To make a series publish another day or more often, propose an update of the series with its new days. Two series can share a day (two posts that day). A platform is ACTIVE or SWITCHED OFF (postingGoalProposals). There are no automatic free posts. propose_publishing_days only changes the days the author can publish, offered when creating a series — only on a clear user request.
+- Archiving (propose_archive) never erases: it takes an item out of circulation without touching content already produced. Only propose it on a clear user request, never on your own initiative to "tidy up".
+- MATERIAL: when the user tells you factual, usable information (news about one of their subjects, a workshop anecdote, a number, a decision, a lesson learned), offer to add it to their material with propose_material — that's what will feed their future content. Report faithfully what they said, adding or embellishing nothing. Don't propose one for every sentence: only when there's real information to keep. If you don't know which subject to attach it to, ask them rather than guess.
+- FILES: when the user drops a file in the conversation, you see its name, NEVER its content. Never claim to know what it contains and don't summarize it. Their message tells you what to do with it; if they're unclear about the subject to attach it to, ask — you can file it later, the file remains available.
+- For 'update', ALWAYS use the EXACT id supplied in the context (existing products/series/roles/angles) — never invent an id, and only use 'update' if the user clearly describes an already existing item.
+- For a series, use the EXACT role label supplied in the context (one role per series; if an idea hesitates between two roles, propose two series).
+- For a role, ONLY propose the weight of the role concerned (5 to 90) — never the others', they will be readjusted automatically to keep summing to 100%.
+- A series can draw its material from a specific SUBJECT (productId): fill it in when the series is manifestly about an existing subject, otherwise omit the field — it then falls back on brand-level material. Never omit this field to "detach" a series: omitting = leaving unchanged.
+- A role's materialHungry field says whether it needs documented material to run (storytelling, behind the scenes: yes; expertise, teaching: no). Only fill it in if you really change it — omitting keeps the current value.
+- For platforms (series and roles), ONLY use the keys of the supplied registry. Only restrict to specific platforms if the conversation context clearly justifies it (e.g. the user mentions a particular network) — otherwise leave the array empty (= all platforms), never over-scope without reason. For an update, restate the item's current platforms unless a change is explicitly requested.
+- You READ the calendar and the scripts, you never MODIFY them. No month generation, no creating/moving/deleting a slot; no writing, rewriting or deleting a script. Those are the user's two domains: the schedule and the words. If asked to touch them, say so simply and point to the relevant screen (Calendar, or the script editor) — you can however read them to argue, summarize, or spot a gap.
+- Nothing is ever saved directly: each proposal passed to propose_changes will be reviewed, edited or refused by the user before being applied — so you can propose as soon as it's reasonable, without over-asking for confirmation. Never say a change is done: say it is proposed.
+- You must NEVER invent information (name, characteristic, number, date...) that wasn't explicitly given to you by the user or by a supplied source. When in doubt or when info is missing, ask a clarifying question rather than guess.
+- The brand audience (who buys/reads, what interests them, what they should remember) is a PROFILE datum, distinct from the possible audience of a specific subject (that is a property of the product — use the targetAudience field of a product proposal, not profileProposals, in that case). Only propose an update of the brand audience if it clearly sharpens and differs from the already-known value supplied in the context.`;
 
 export interface AssistantChatContext {
   history: AssistantMessage[];
@@ -447,25 +448,25 @@ export interface AssistantChatContext {
   }>;
   angles: Array<{ id: string; label: string; description: string }>;
   postingGoals: Array<{ platform: string; targetCountPerWeek: number }>;
-  /** Jours de publication du profil, ISO (1 = lundi … 7 = dimanche). */
+  /** Publishing days of the profile, ISO (1 = Monday … 7 = Sunday). */
   publishingDays: number[];
-  /** Réponse à « Qu'est-ce que tu attends de nous ? » — null si jamais renseignée. */
+  /** Answer to "What do you expect from us?" — null if never set. */
   expectations?: string | null;
-  /** Audience de marque actuelle (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — null si jamais renseignée. */
+  /** Current brand audience (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — null if never set. */
   currentTargetAudience?: string | null;
   sources?: Array<{ url: string; text: string }>;
-  /** Outils de lecture exposés au modèle, et leur exécution. Injectés par l'appelant plutôt
-   *  qu'importés ici : la couche llm/ ne connaît ni la base ni les services
+  /** Read tools exposed to the model, and their execution. Injected by the caller rather than
+   *  imported here: the llm/ layer knows neither the database nor the services
    *  (docs/SPEC_ASSISTANT_AGENTIQUE.md §3.1). */
   readTools: LlmToolDefinition[];
   onReadTool: (name: string, input: unknown) => Promise<unknown>;
-  /** Fichiers déposés dans la conversation et pas encore rangés (docs/SPEC_ASSISTANT_AGENTIQUE.md §5.1).
-   *  Seul le nom est transmis au modèle — jamais le contenu. */
+  /** Files dropped in the conversation and not yet filed (docs/SPEC_ASSISTANT_AGENTIQUE.md §5.1).
+   *  Only the name is passed to the model — never the content. */
   attachments?: Array<{ id: string; filename: string }>;
 }
 
 export interface AssistantTurnResult {
-  /** Réponse conversationnelle : le texte libre du modèle, plus un champ d'outil. */
+  /** Conversational reply: the model's free text, plus a tool field. */
   reply: string;
   proposals: AssistantChatResult;
   materialProposals: MaterialProposal[];
@@ -476,80 +477,80 @@ export interface AssistantTurnResult {
 }
 
 export async function runAssistantChatTurn(context: AssistantChatContext): Promise<AssistantTurnResult> {
-  // Chaque élément est restitué avec TOUS les champs que l'assistant peut proposer de modifier :
-  // proposer un `update` sur un champ qu'on ne lui a pas montré revient à l'écraser à l'aveugle
+  // Each item is rendered with ALL the fields the assistant can propose to modify: proposing an
+  // `update` on a field it wasn't shown amounts to overwriting it blindly
   // (docs/SPEC_ASSISTANT_AGENTIQUE.md §6).
   const contextLines = [
     context.products.length > 0
-      ? `Produits existants : ${context.products
+      ? `Existing products: ${context.products
           .map(
             (p) =>
               `[id:${p.id}] ${p.name}${p.description ? ` — ${p.description}` : ""}${
-                p.valueProposition ? ` [proposition de valeur : ${p.valueProposition}]` : ""
-              }${p.targetAudience ? ` [audience du sujet : ${p.targetAudience}]` : ""}`
+                p.valueProposition ? ` [value proposition: ${p.valueProposition}]` : ""
+              }${p.targetAudience ? ` [subject audience: ${p.targetAudience}]` : ""}`
           )
           .join(" ; ")}`
-      : "Aucun produit enregistré pour l'instant.",
+      : "No product registered for now.",
     context.series.length > 0
-      ? `Séries existantes : ${context.series
+      ? `Existing series: ${context.series
           .map(
             (s) =>
-              `[id:${s.id}] ${s.label} (${rhythmLabel(s.rhythm)}, jours ${s.rhythm?.days.join(",") ?? "aucun"}) — ${s.description} [rôle : ${s.category?.label ?? "aucun"}]${
-                s.platforms.length > 0 ? ` [plateformes : ${s.platforms.join(", ")}]` : " [tous réseaux]"
-              }${s.product ? ` [matière du sujet : ${s.product.name} (id:${s.product.id})]` : " [aucun sujet lié]"}`
+              `[id:${s.id}] ${s.label} (${rhythmLabel(s.rhythm)}, days ${s.rhythm?.days.join(",") ?? "none"}) — ${s.description} [role: ${s.category?.label ?? "none"}]${
+                s.platforms.length > 0 ? ` [platforms: ${s.platforms.join(", ")}]` : " [all networks]"
+              }${s.product ? ` [subject material: ${s.product.name} (id:${s.product.id})]` : " [no linked subject]"}`
           )
           .join(" ; ")}`
-      : "Aucune série active pour l'instant.",
+      : "No active series for now.",
     context.categories.length > 0
-      ? `Rôles éditoriaux actifs : ${context.categories
+      ? `Active editorial roles: ${context.categories
           .map(
             (c) =>
               `[id:${c.id}] ${c.label} (${c.weight}%) — ${c.description}${
-                c.platforms.length > 0 ? ` [plateformes : ${c.platforms.join(", ")}]` : " [tous réseaux]"
-              }${c.materialHungry ? " [exige de la matière documentée]" : ""}`
+                c.platforms.length > 0 ? ` [platforms: ${c.platforms.join(", ")}]` : " [all networks]"
+              }${c.materialHungry ? " [requires documented material]" : ""}`
           )
           .join(" ; ")}`
-      : "Aucun rôle éditorial actif pour l'instant.",
+      : "No active editorial role for now.",
     context.angles.length > 0
-      ? `Angles actifs : ${context.angles.map((a) => `[id:${a.id}] ${a.label} — ${a.description}`).join(" ; ")}`
-      : "Aucun angle actif pour l'instant.",
-    `Jours où l'auteur peut publier : ${publishingDaysLabel(context.publishingDays)} (proposés aux nouvelles séries ; ce sont les rythmes des séries qui placent les posts).`,
+      ? `Active angles: ${context.angles.map((a) => `[id:${a.id}] ${a.label} — ${a.description}`).join(" ; ")}`
+      : "No active angle for now.",
+    `Days the author can publish: ${publishingDaysLabel(context.publishingDays)} (offered to new series; the series' rhythms are what place the posts).`,
     context.postingGoals.length > 0
-      ? `Plateformes : ${context.postingGoals
-          .map((g) => `${platformLabel(g.platform)} : ${g.targetCountPerWeek > 0 ? "active" : "coupée"}`)
-          .join(" ; ")}`
-      : "Aucune plateforme active pour l'instant.",
+      ? `Platforms: ${context.postingGoals
+          .map((g) => `${platformLabel(g.platform)}: ${g.targetCountPerWeek > 0 ? "active" : "switched off"}`)
+          .join("; ")}`
+      : "No active platform for now.",
     context.expectations
-      ? `Ce que le créateur attend de CreaFlow : ${context.expectations}`
-      : "Le créateur n'a pas dit ce qu'il attend de CreaFlow.",
+      ? `What the creator expects from Buildloud: ${context.expectations}`
+      : "The creator hasn't said what they expect from Buildloud.",
     context.currentTargetAudience
-      ? `Audience de marque actuelle : ${context.currentTargetAudience}`
-      : "Aucune audience de marque renseignée pour l'instant.",
+      ? `Current brand audience: ${context.currentTargetAudience}`
+      : "No brand audience set for now.",
   ];
 
   const attachments = context.attachments ?? [];
   if (attachments.length > 0) {
     contextLines.push(
-      `Fichiers déposés dans la conversation, pas encore rangés en matière (tu n'en connais que le NOM, jamais le contenu) : ${attachments
+      `Files dropped in the conversation, not yet filed as material (you only know the NAME, never the content): ${attachments
         .map((a) => `[id:${a.id}] ${a.filename}`)
         .join(" ; ")}`
     );
   }
 
-  const sourceBlocks = (context.sources ?? []).map((s) => `--- Source : ${s.url} ---\n${s.text}`);
+  const sourceBlocks = (context.sources ?? []).map((s) => `--- Source: ${s.url} ---\n${s.text}`);
 
-  // L'état éditorial de base reste PRÉ-INJECTÉ plutôt qu'exposé en outil : l'assistant en a besoin à
-  // chaque message, aller le chercher coûterait un aller-retour par tour pour rien
-  // (docs/SPEC_ASSISTANT_AGENTIQUE.md §3.1). Seul ce qui est volumineux ou occasionnel est outillé.
+  // The base editorial state stays PRE-INJECTED rather than exposed as a tool: the assistant needs it
+  // at every message, fetching it would cost a round trip per turn for nothing
+  // (docs/SPEC_ASSISTANT_AGENTIQUE.md §3.1). Only what is voluminous or occasional is tooled.
   const system = [
     SYSTEM_PROMPT,
     "",
-    "--- État actuel de l'espace de travail ---",
+    "--- Current state of the workspace ---",
     ...contextLines,
     ...(sourceBlocks.length > 0
       ? [
           "",
-          "Informations extraites de pages web fournies par l'utilisateur pour ce tour (contexte factuel, ne rien inventer au-delà) :",
+          "Information extracted from web pages supplied by the user for this turn (factual context, invent nothing beyond it):",
           ...sourceBlocks,
         ]
       : []),
@@ -564,8 +565,8 @@ export async function runAssistantChatTurn(context: AssistantChatContext): Promi
     platformKeys: KNOWN_PLATFORM_KEYS,
   });
 
-  // Un modèle peut appeler propose_changes plusieurs fois dans un même tour : on accumule au lieu
-  // d'écraser. Les plafonds par type restent ceux du schéma, appliqués à chaque appel.
+  // A model may call propose_changes several times in a single turn: we accumulate instead of
+  // overwriting. The per-type caps remain the schema's, applied on each call.
   const materialProposals: MaterialProposal[] = [];
   const archiveProposals: ArchiveProposal[] = [];
   const publishingDaysProposals: PublishingDaysProposal[] = [];
@@ -597,17 +598,17 @@ export async function runAssistantChatTurn(context: AssistantChatContext): Promi
       if (name === MATERIAL_TOOL_NAME) {
         const parsed = materialProposalSchema.parse(input);
         materialProposals.push(parsed);
-        return { recorded: 1, note: "Proposition de matière enregistrée, en attente de validation. Réponds maintenant en texte." };
+        return { recorded: 1, note: "Material proposal recorded, awaiting validation. Reply now in text." };
       }
       if (name === ARCHIVE_TOOL_NAME) {
         const parsed = archiveProposalSchema.parse(input);
         archiveProposals.push(parsed);
-        return { recorded: 1, note: "Proposition d'archivage enregistrée, en attente de validation. Réponds maintenant en texte." };
+        return { recorded: 1, note: "Archive proposal recorded, awaiting validation. Reply now in text." };
       }
       if (name === PUBLISHING_DAYS_TOOL_NAME) {
         const parsed = publishingDaysProposalSchema.parse(input);
         publishingDaysProposals.push(parsed);
-        return { recorded: 1, note: "Proposition de jours de publication enregistrée, en attente de validation. Réponds maintenant en texte." };
+        return { recorded: 1, note: "Publishing days proposal recorded, awaiting validation. Reply now in text." };
       }
       if (name !== ASSISTANT_CHAT_TOOL_NAME) {
         return context.onReadTool(name, input);
@@ -622,7 +623,7 @@ export async function runAssistantChatTurn(context: AssistantChatContext): Promi
       const recorded = Object.values(parsed).reduce((n, list) => n + list.length, 0);
       return {
         recorded,
-        note: "Propositions enregistrées, en attente de validation par l'utilisateur. Réponds-lui maintenant en texte.",
+        note: "Proposals recorded, awaiting user validation. Reply to them now in text.",
       };
     },
   });

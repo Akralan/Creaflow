@@ -1,12 +1,12 @@
 /**
- * Règles et limites par plateforme (docs/SPEC_PROMPT_GENERATION_V3.md Annexe A.3) — une seule table,
- * lue par le bloc <plateforme> du prompt ET par les contrôles du code (scriptChecks.ts), pour que la
- * consigne et la vérification ne divergent jamais. Les chiffres sont des valeurs de départ, à ajuster
- * à l'usage.
+ * Rules and limits per platform (docs/SPEC_PROMPT_GENERATION_V3.md Annex A.3) — a single table,
+ * read by the prompt's <platform> block AND by the code checks (scriptChecks.ts), so the
+ * instruction and the verification never diverge. The numbers are starting values, to be tuned
+ * with use.
  */
 
 export interface PlatformLimits {
-  /** Caractères visibles avant « voir plus » ; porte sur le titre quand `hookIsTitle`. */
+  /** Characters visible before "see more"; applies to the title when `hookIsTitle`. */
   hookMax: number;
   hookIsTitle: boolean;
   captionMin: number;
@@ -23,7 +23,7 @@ export const PLATFORM_LIMITS: Record<string, PlatformLimits> = {
   blog: { hookMax: 60, hookIsTitle: true, captionMin: 4000, captionMax: 10000, hashtagsMin: 0, hashtagsMax: 0 },
 };
 
-/** Légende d'un post visuel sans texte (`withText: false`) : le visuel porte le message. */
+/** Caption of a visual post without text (`withText: false`): the visual carries the message. */
 export const VISUAL_ONLY_CAPTION_MAX = 300;
 
 export function platformLimits(platform: string): PlatformLimits | null {
@@ -32,26 +32,26 @@ export function platformLimits(platform: string): PlatformLimits | null {
 
 const PLATFORM_TEXTS: Record<string, (l: PlatformLimits) => string> = {
   linkedin: (l) =>
-    `LinkedIn. Seules les deux premières lignes (environ ${l.hookMax} caractères) s'affichent avant « voir plus » : elles doivent suffire à donner envie. Corps de ${l.captionMin} à ${l.captionMax} caractères, en paragraphes d'une ou deux phrases séparés par une ligne vide. ${l.hashtagsMin} à ${l.hashtagsMax} hashtags, à la fin. Le registre : quelqu'un qui partage ce qu'il a appris, pas une annonce.`,
+    `LinkedIn. Only the first two lines (about ${l.hookMax} characters) show before "see more": they must be enough to make people want to read on. Body of ${l.captionMin} to ${l.captionMax} characters, in paragraphs of one or two sentences separated by a blank line. ${l.hashtagsMin} to ${l.hashtagsMax} hashtags, at the end. The register: someone sharing what they learned, not an announcement.`,
   x: (l) =>
-    `X. Un post fait au plus ${l.captionMax} caractères, accroche comprise : si l'idée ne tient pas, resserre-la au lieu de la couper. ${l.hashtagsMin} ou ${l.hashtagsMax} hashtag. Ton direct, pas de formule d'introduction.`,
+    `X. A post is at most ${l.captionMax} characters, hook included: if the idea doesn't fit, tighten it instead of cutting it. ${l.hashtagsMin} or ${l.hashtagsMax} hashtag. Direct tone, no introductory formula.`,
   instagram: (l) =>
-    `Instagram. Les ${l.hookMax} premiers caractères de la légende s'affichent seuls : ils portent l'idée. Légende de ${l.captionMin} à ${l.captionMax} caractères. ${l.hashtagsMin} à ${l.hashtagsMax} hashtags précis au sujet, à la fin. Le visuel porte le message, la légende le prolonge.`,
+    `Instagram. The first ${l.hookMax} characters of the caption show on their own: they carry the idea. Caption of ${l.captionMin} to ${l.captionMax} characters. ${l.hashtagsMin} to ${l.hashtagsMax} hashtags specific to the topic, at the end. The visual carries the message, the caption extends it.`,
   newsletter: (l) =>
-    `Newsletter. Le titre sert d'objet : ${l.hookMax} caractères au plus. Corps de ${l.captionMin} à ${l.captionMax} caractères, sur le ton d'une lettre à quelqu'un qu'on connaît. Aucun hashtag. Un seul lien ou appel à l'action.`,
+    `Newsletter. The title works as the subject line: ${l.hookMax} characters at most. Body of ${l.captionMin} to ${l.captionMax} characters, in the tone of a letter to someone you know. No hashtags. A single link or call to action.`,
   blog: (l) =>
-    `Blog. Titre de ${l.hookMax} caractères au plus, avec le mot que le lecteur taperait dans un moteur de recherche. Corps de ${l.captionMin} à ${l.captionMax} caractères, avec des intertitres. Aucun hashtag.`,
+    `Blog. Title of ${l.hookMax} characters at most, with the word the reader would type into a search engine. Body of ${l.captionMin} to ${l.captionMax} characters, with subheadings. No hashtags.`,
 };
 
-const GENERIC_PLATFORM_TEXT = "Adapte le format et le ton aux codes de cette plateforme, sans reprendre ceux d'une autre.";
+const GENERIC_PLATFORM_TEXT = "Adapt the format and tone to the conventions of this platform, without borrowing those of another.";
 
-/** Texte du bloc <plateforme>. Un post visuel sans texte voit sa limite de légende remplacée. */
+/** Text of the <platform> block. A visual post without text has its caption limit replaced. */
 export function platformRuleText(platform: string, options?: { visualOnly?: boolean }): string {
   const limits = platformLimits(platform);
   const text = PLATFORM_TEXTS[platform];
   if (!limits || !text) return GENERIC_PLATFORM_TEXT;
   const base = text(limits);
   return options?.visualOnly
-    ? `${base} Ici le visuel porte tout : la légende tient en ${VISUAL_ONLY_CAPTION_MAX} caractères au plus, quelle que soit la plateforme.`
+    ? `${base} Here the visual carries everything: the caption is at most ${VISUAL_ONLY_CAPTION_MAX} characters, whatever the platform.`
     : base;
 }

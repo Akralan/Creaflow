@@ -10,7 +10,7 @@ function getClient(): S3Client {
     const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
     if (!endpoint || !accessKeyId || !secretAccessKey) {
       throw new Error(
-        "R2_ENDPOINT, R2_ACCESS_KEY_ID et R2_SECRET_ACCESS_KEY doivent être définis dans l'environnement."
+        "R2_ENDPOINT, R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY must be set in the environment."
       );
     }
     client = new S3Client({
@@ -25,13 +25,13 @@ function getClient(): S3Client {
 function getBucket(): string {
   const bucket = process.env.R2_BUCKET;
   if (!bucket) {
-    throw new Error("R2_BUCKET n'est pas défini dans l'environnement.");
+    throw new Error("R2_BUCKET is not set in the environment.");
   }
   return bucket;
 }
 
-// Aucune transformation des bytes ici : ce module stocke et relit, le redimensionnement (sharp)
-// n'a sa place que dans les services (ingestion, détourage).
+// No byte transformation here: this module stores and reads back, resizing (sharp)
+// belongs only in the services (ingestion, cutout).
 export const r2Storage: ObjectStorage = {
   async upload(key, body, contentType) {
     await getClient().send(
@@ -47,7 +47,7 @@ export const r2Storage: ObjectStorage = {
   async download(key) {
     const response = await getClient().send(new GetObjectCommand({ Bucket: getBucket(), Key: key }));
     if (!response.Body) {
-      throw new Error(`Objet introuvable sur R2 : "${key}".`);
+      throw new Error(`Object not found on R2: "${key}".`);
     }
     const bytes = await response.Body.transformToByteArray();
     return Buffer.from(bytes);
@@ -56,7 +56,7 @@ export const r2Storage: ObjectStorage = {
   getPublicUrl(key) {
     const base = process.env.R2_PUBLIC_BASE_URL;
     if (!base) {
-      throw new Error("R2_PUBLIC_BASE_URL n'est pas défini dans l'environnement.");
+      throw new Error("R2_PUBLIC_BASE_URL is not set in the environment.");
     }
     return `${base.replace(/\/$/, "")}/${key}`;
   },

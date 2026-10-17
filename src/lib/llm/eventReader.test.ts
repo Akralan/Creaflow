@@ -9,20 +9,20 @@ import {
 } from "./eventReader";
 
 describe("normalizeEventDate", () => {
-  it("garde le jour tel quel en précision day", () => {
+  it("keeps the day as is at day precision", () => {
     expect(normalizeEventDate("2026-03-07", "day")).toEqual({ date: "2026-03-07", datePrecision: "day" });
   });
 
-  it("ramène au 1er du mois en précision month", () => {
+  it("brings it back to the 1st of the month at month precision", () => {
     expect(normalizeEventDate("2026-03-14", "month")).toEqual({ date: "2026-03-01", datePrecision: "month" });
   });
 
-  it("efface la date en précision unknown, quoi que le modèle envoie", () => {
-    expect(normalizeEventDate("n'importe quoi", "unknown")).toEqual({ date: null, datePrecision: "unknown" });
+  it("clears the date at unknown precision, whatever the model sends", () => {
+    expect(normalizeEventDate("anything at all", "unknown")).toEqual({ date: null, datePrecision: "unknown" });
   });
 
-  it("refuse une date mal formée ou impossible, pour que le modèle corrige", () => {
-    expect(() => normalizeEventDate("mars 2026", "day")).toThrow(/AAAA-MM-JJ/);
+  it("rejects a malformed or impossible date, so the model corrects it", () => {
+    expect(() => normalizeEventDate("mars 2026", "day")).toThrow(/YYYY-MM-DD/);
     expect(() => normalizeEventDate("2026-02-30", "day")).toThrow(/impossible/);
   });
 });

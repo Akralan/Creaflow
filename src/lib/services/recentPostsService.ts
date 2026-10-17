@@ -3,10 +3,10 @@ import { db } from "@/db";
 import { scripts } from "@/db/schema";
 import { postCardFromScript, type RecentPostCard } from "@/lib/llm/recentPosts";
 
-/** Posts relus par la mémoire (docs/SPEC_MEMOIRE_ET_VEILLE.md §2). */
+/** Posts re-read by the memory (docs/SPEC_MEMOIRE_ET_VEILLE.md §2). */
 export const RECENT_POSTS_LIMIT = 5;
 
-/** Fiches des derniers posts d'un sujet, du plus récent au plus ancien — [] hors sujet. */
+/** Cards of a topic's last posts, from most recent to oldest — [] outside a topic. */
 export async function loadRecentPostCards(userId: string, productId: string | null, excludeScriptId: string | null): Promise<RecentPostCard[]> {
   if (!productId) return [];
   const rows = await db.query.scripts.findMany({

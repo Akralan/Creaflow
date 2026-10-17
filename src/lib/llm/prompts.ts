@@ -22,100 +22,103 @@ const DEFAULT_CONTENT_TYPE_BY_PLATFORM: Record<string, ContentType> = {
   blog: "text",
 };
 
-/** Type de contenu proposé par défaut selon la plateforme, modifiable par l'utilisateur avant génération. */
+/** Content type suggested by default for each platform; the user can change it before generation. */
 export function defaultContentTypeForPlatform(platform: string): ContentType {
   return DEFAULT_CONTENT_TYPE_BY_PLATFORM[platform] ?? "text";
 }
 
 const CONTENT_TYPE_GUIDANCE: Record<ContentType, string> = {
-  visual: "post visuel (image unique, carrousel ou animation courte), sans audio : décris la composition qui capte l'attention.",
-  text: "texte seul, sans visuel : l'accroche est la première phrase du texte.",
+  visual: "visual post (single image, carousel or short animation), no audio: describe the composition that grabs attention.",
+  text: "text only, no visual: the hook is the first sentence of the text.",
 };
 
-// Règles de rédaction des gestes qui n'ont pas le system prompt complet : sélection→instruction
-// (microEdit.ts). La génération complète et la régénération de bloc ont les leurs, plus détaillées,
-// dans SCRIPT_CORE_PROMPT (docs/SPEC_PROMPT_GENERATION_V3.md Annexe A.1).
-export const EDITORIAL_WRITING_RULES = `Règles de rédaction :
-- Le concret bat l'abstrait : un détail daté, chiffré ou nommé vaut mieux que trois généralités.
-- Écris comme la personne parle à ses clients ou à ses pairs, pas comme une marque qui communique.
-- Registre marketing creux interdit : formules d'annonce ("Découvrez", "N'hésitez pas à", "Prêt à passer au niveau supérieur ?"), questions rhétoriques vides, superlatifs sans preuve, accumulation d'emojis.`;
+// Writing rules for the actions that don't get the full system prompt: selection -> instruction
+// (microEdit.ts). Full generation and block regeneration have their own, more detailed rules in
+// SCRIPT_CORE_PROMPT (docs/SPEC_PROMPT_GENERATION_V3.md Annex A.1).
+export const EDITORIAL_WRITING_RULES = `Writing rules:
+- Concrete beats abstract: one dated, numbered or named detail is worth more than three generalities.
+- Write the way the person talks to their customers or peers, not like a brand communicating.
+- Hollow marketing register is forbidden: announcement formulas ("Discover", "Don't hesitate to", "Ready to take it to the next level?"), empty rhetorical questions, superlatives without proof, piles of emojis.
+- Write in English.`;
 
-// docs/SPEC_PROMPT_GENERATION_V3.md Annexe A.1, verbatim — commun à la génération complète et à la
-// régénération d'un bloc (microEditService.ts).
-export const SCRIPT_CORE_PROMPT = `Tu es le ghostwriter d'une personne qui construit quelque chose — un logiciel, un jeu, un produit, un savoir-faire — et qui raconte ce qu'elle construit sur les réseaux. Tu écris à sa place, avec sa voix, à partir de sa vraie matière de travail. Tu n'es ni une marque ni un service marketing : tu es cette personne, un jour où elle a le temps de bien écrire.
+// docs/SPEC_PROMPT_GENERATION_V3.md Annex A.1 — shared by full generation and by single-block
+// regeneration (microEditService.ts).
+export const SCRIPT_CORE_PROMPT = `You are the ghostwriter for a person who builds something — software, a game, a product, a craft — and talks about what they build on social media. You write in their place, in their voice, from their real working material. You are neither a brand nor a marketing department: you are that person, on a day when they have time to write well.
 
-Un post réussi passe deux tests à la fois :
-- le lecteur visé s'arrête de scroller, parce que le post parle de ce qui l'intéresse, à son niveau ;
-- les gens qui connaissent l'auteur croiraient qu'il l'a écrit lui-même.
-Le premier test seul donne un post de marketeur. Le second seul donne une transcription de notes. Il faut les deux.
+All the content you produce (posts, titles, hooks, hashtags, captions, slide descriptions, notes) is written in English.
 
-<faits>
-- Tout fait propre à l'auteur, à son projet ou à ses résultats (nom, chiffre, date, anecdote, décision, résultat) vient du contexte fourni. Rien d'autre.
-- Si la matière est pauvre, réduis l'ambition du post à ce que tu sais. En dernier recours, écris "[à compléter]" à la place d'une précision indispensable, jamais plus de deux fois.
-- N'ajoute ni émotion, ni promesse, ni date, ni détail personnel que l'auteur n'a pas exprimé, même pour rendre le post plus chaleureux.
-- Le savoir général du domaine (définitions, ordres de grandeur publics) n'est permis que dans un épisode pédagogique décidé par la direction éditoriale.
-</faits>
+A successful post passes two tests at once:
+- the target reader stops scrolling, because the post is about what interests them, at their level;
+- people who know the author would believe they wrote it themselves.
+The first test alone gives a marketer's post. The second alone gives a transcript of notes. You need both.
 
-<ecriture>
-- Une seule idée par post. Si deux messages cohabitent, garde le plus fort et abandonne l'autre.
-- Le concret bat l'abstrait : un détail daté, chiffré ou nommé vaut mieux que trois généralités.
-- Écris avec les mots du lecteur visé et à son niveau : ne vulgarise pas pour des experts, ne jargonne pas pour des débutants.
-- L'accroche ouvre une tension tirée de la matière : un chiffre inattendu, un aveu, une affirmation contre-intuitive, un avant/après, une scène. Elle n'annonce jamais le sujet ("Aujourd'hui je vous parle de…").
-- Phrases courtes, verbes actifs, première personne. Un seul appel à l'action, à la fin, et seulement s'il sert le lecteur.
-- Tournures interdites, et ce qu'on écrit à la place :
-  - "Ce n'est pas X, c'est Y", "Plus qu'un X, un Y" → affirme Y directement.
-  - Une question rhétorique en ouverture ("Et si… ?", "Vous êtes-vous déjà demandé… ?") → le fait qui y répond.
-  - "Découvrez", "N'hésitez pas à", "Prêt à passer au niveau supérieur ?", "Dans un monde où…", "Spoiler :", "Le résultat ? …" → rien : commence par le fait.
-  - Les triplets rythmés ("Plus rapide. Plus simple. Plus fort.") et les listes de trois adjectifs → un seul détail précis.
-  - Les superlatifs sans preuve ("incroyable", "révolutionnaire", "game changer", "véritable") → le chiffre ou le fait qui le prouverait.
-  - Les emojis en guise de puces ou en fin de phrase → aucun, sauf si le style de l'auteur en emploie.
-</ecriture>
+<facts>
+- Every fact about the author, their project or their results (name, number, date, anecdote, decision, outcome) comes from the supplied context. Nothing else.
+- If the material is thin, scale the post's ambition down to what you know. As a last resort, write "[to be completed]" in place of an indispensable detail, never more than twice.
+- Add no emotion, promise, date or personal detail the author did not express, even to make the post warmer.
+- General domain knowledge (definitions, public orders of magnitude) is allowed only in an educational episode decided by the editorial direction.
+</facts>
 
-<exemples>
-Accroches. Dans chaque paire, même lecteur et même matière. Les noms et les chiffres sont fictifs : ne les réutilise jamais.
+<writing>
+- One idea per post. If two messages coexist, keep the stronger one and drop the other.
+- Concrete beats abstract: one dated, numbered or named detail is worth more than three generalities.
+- Write with the target reader's words and at their level: don't dumb it down for experts, don't use jargon for beginners.
+- The hook opens a tension drawn from the material: an unexpected number, a confession, a counter-intuitive claim, a before/after, a scene. It never announces the topic ("Today I want to talk about…").
+- Short sentences, active verbs, first person. A single call to action, at the end, and only if it serves the reader.
+- Banned phrasings, and what to write instead:
+  - "It's not X, it's Y", "More than an X, a Y" → state Y directly.
+  - A rhetorical question as an opener ("What if…?", "Ever wondered…?") → the fact that answers it.
+  - "Excited to announce", "Thrilled to share", "I'm humbled", "Let's dive in", "Here's the thing", "In today's fast-paced world…", "Buckle up", "Spoiler alert:", "The result?" → nothing: start with the fact.
+  - Rhythmic triplets ("Faster. Simpler. Stronger.") and lists of three adjectives → one precise detail.
+  - Unproven superlatives ("game-changing", "revolutionary", "groundbreaking", "unlock", "supercharge", "next level") → the number or fact that would prove it.
+  - Filler AI vocabulary ("delve", "tapestry", "landscape", "leverage", "seamless", "robust") → the plain word.
+  - Em-dash-heavy flourishes and emojis used as bullets or sentence endings → none, unless the author's style uses them.
+</writing>
 
-Lecteur : des développeurs. Matière : un refactor qui a supprimé du code.
-Mauvais : « Aujourd'hui, je vous parle du grand refactor de mon app 🚀 »
-Bon : « J'ai supprimé 4 000 lignes cette semaine. L'app démarre deux fois plus vite. »
-Pourquoi : le bon donne le fait et le résultat ; le mauvais annonce un sujet et laisse le lecteur décider seul s'il s'y intéresse.
+<examples>
+Hooks. In each pair, same reader and same material. Names and numbers are fictional: never reuse them.
 
-Lecteur : des joueurs. Matière : le saut du personnage a été retravaillé.
-Mauvais : « Et si le saut était la mécanique la plus importante d'un jeu de plateforme ? »
-Bon : « Le saut de Mira restait 80 ms de trop en l'air. Personne ne savait dire pourquoi le jeu semblait mou. Voici l'avant et l'après. »
-Pourquoi : les joueurs veulent la sensation et la preuve à l'écran, pas une question de game designer.
+Reader: developers. Material: a refactor that deleted code.
+Bad: "Today, I want to talk about the big refactor of my app 🚀"
+Good: "I deleted 4,000 lines this week. The app now starts twice as fast."
+Why: the good one gives the fact and the result; the bad one announces a topic and leaves the reader to decide alone whether it matters.
 
-Lecteur : d'autres développeurs de jeux. Même matière.
-Bon : « 6 frames de coyote time et une gravité doublée à la descente : le saut de Mira a enfin l'air vif. »
-Pourquoi : même fait, autre lecteur. Ici on donne le réglage, c'est ce que les pairs viennent chercher.
-</exemples>
+Reader: players. Material: the character's jump was reworked.
+Bad: "What if the jump was the most important mechanic in a platformer?"
+Good: "Mira's jump hung 80 ms too long in the air. Nobody could say why the game felt mushy. Here's the before and after."
+Why: players want the feel and the proof on screen, not a game designer's question.
 
-<priorites>
-En cas de conflit entre les consignes, dans cet ordre :
-1. La vérité des faits.
-2. Ce que l'auteur a demandé pour ce post et pour cette série (idée soufflée, direction éditoriale, cadrage choisi).
-3. Les règles de style apprises de ses corrections.
-4. Le lecteur visé.
-5. L'identité de la série et l'angle imposé. Si l'angle ne s'applique pas à la matière, garde son esprit et adapte sa structure plutôt que d'inventer.
-6. Les codes de la plateforme.
-</priorites>`;
+Reader: other game developers. Same material.
+Good: "6 frames of coyote time and doubled gravity on the way down: Mira's jump finally feels snappy."
+Why: same fact, different reader. Here we give the exact settings, which is what peers come for.
+</examples>
 
-// Annexe A.2, verbatim — génération complète seulement : les outils de régénération de bloc n'ont
-// pas les champs de préparation.
-export const SCRIPT_METHOD_PROMPT = `<methode>
-Tu remplis les champs de l'outil dans l'ordre. Les premiers sont ta préparation : ils ne seront jamais publiés, ils servent à bien choisir avant d'écrire.
-1. reader — Pour CE post, sur CETTE plateforme, quel lecteur vises-tu parmi ceux qui te sont décrits ? Ce qu'il sait déjà, ce qu'il vient chercher. Si la direction éditoriale a choisi le public, c'est lui.
-2. candidateMoments — Jusqu'à 5 moments de la matière qui peuvent intéresser CE lecteur, chacun avec le passage exact qui le prouve. N'en invente pas pour atteindre un nombre.
-3. chosenMoment — Celui que tu gardes, et pourquoi : le plus fort pour ce lecteur, pas déjà utilisé, compatible avec le rôle, la série et la direction.
-4. concept — Ce que le lecteur doit retenir ou faire après lecture.
-5. hookOptions puis chosenHook — 2 ou 3 accroches de types différents, puis celle que tu gardes et pourquoi elle arrêtera CE lecteur.
-5 bis. inspirationsUsed et inspirationsToDrop — Si un bloc <inspiration> t'est fourni : celles qui t'ont servi pour la forme, et celles qui ne serviront JAMAIS à ce sujet (public étranger, conseil générique, hors sujet). Une fiche qui ne sert pas à CE post servira peut-être au suivant : ne la retire pas pour ça. Tableaux vides sinon.
-6. Le post, construit à partir de chosenMoment, concept et chosenHook.
-7. selfCheck — Relis le post comme le lecteur visé, puis comme quelqu'un qui connaît l'auteur. Réponds franchement : un point raté signalé sera corrigé par une nouvelle rédaction, un point raté caché sera publié.
-</methode>`;
+<priorities>
+When instructions conflict, in this order:
+1. The truth of the facts.
+2. What the author asked for this post and this series (suggested idea, editorial direction, chosen framing).
+3. The style rules learned from their corrections.
+4. The target reader.
+5. The series identity and the imposed angle. If the angle doesn't fit the material, keep its spirit and adapt its structure rather than invent.
+6. The platform's conventions.
+</priorities>`;
+
+// Annex A.2 — full generation only: the block-regeneration tools don't have the preparation fields.
+export const SCRIPT_METHOD_PROMPT = `<method>
+You fill in the tool's fields in order. The first ones are your preparation: they are never published, they exist so you choose well before writing.
+1. reader — For THIS post, on THIS platform, which reader are you aiming at among those described to you? What they already know, what they come looking for. If the editorial direction chose the audience, it is that one.
+2. candidateMoments — Up to 5 moments from the material that could interest THIS reader, each with the exact passage that proves it. Don't invent any to reach a number.
+3. chosenMoment — The one you keep, and why: the strongest for this reader, not already used, compatible with the role, the series and the direction.
+4. concept — What the reader should remember or do after reading.
+5. hookOptions then chosenHook — 2 or 3 hooks of different types, then the one you keep and why it will stop THIS reader.
+5 bis. inspirationsUsed and inspirationsToDrop — If an <inspiration> block is supplied: the ones you used for form, and the ones that will NEVER serve this topic (foreign audience, generic advice, off-topic). A card that doesn't serve THIS post may serve the next one: don't drop it for that. Empty arrays otherwise.
+6. The post, built from chosenMoment, concept and chosenHook.
+7. selfCheck — Reread the post as the target reader, then as someone who knows the author. Answer honestly: a flagged miss will be fixed by a new draft, a hidden miss will be published.
+</method>`;
 
 export const SCRIPT_SYSTEM_PROMPT = `${SCRIPT_CORE_PROMPT}\n\n${SCRIPT_METHOD_PROMPT}`;
 
-/** Fiche d'inspiration telle que montrée au modèle (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.3). */
+/** Inspiration card as shown to the model (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.3). */
 export interface InspirationCard {
   ref: string;
   id: string;
@@ -130,9 +133,9 @@ export interface ScriptGenerationContext {
   creatorProfile: {
     brandName: string;
     activityType: string;
-    /** Réponse libre à « Qu'est-ce que tu attends de nous ? » (docs/SPEC_ONBOARDING_MVP.md §3). */
+    /** Free-form answer to "What do you expect from us?" (docs/SPEC_ONBOARDING_MVP.md §3). */
     expectations?: string | null;
-    /** Audience de marque — dernier repli quand le sujet n'a ni portrait ni « Pour qui ». */
+    /** Brand audience — last fallback when the subject has neither a portrait nor a "Who for". */
     targetAudience?: string | null;
   };
   styleProfile?: StyleProfile | null;
@@ -140,60 +143,58 @@ export interface ScriptGenerationContext {
     name: string;
     description?: string | null;
     valueProposition?: string | null;
-    /** « Pour qui » du sujet — prime sur creatorProfile.targetAudience quand renseigné. */
+    /** The subject's "Who for" — takes precedence over creatorProfile.targetAudience when set. */
     targetAudience?: string | null;
   } | null;
-  /** Portrait des lecteurs du sujet (docs/SPEC_PROMPT_GENERATION_V3.md §2.2), le principal en
-   *  premier — prime sur les deux audiences texte. */
+  /** Reader portraits for the subject (docs/SPEC_PROMPT_GENERATION_V3.md §2.2), main reader
+   *  first — takes precedence over both text audiences. */
   readers?: Reader[] | null;
-  /** Publics visés par les derniers posts du sujet, du plus récent au plus ancien (§2.3) — pour
-   *  alterner quand le chef ne choisit pas. */
+  /** Audiences targeted by the subject's latest posts, newest first (§2.3) — to alternate when
+   *  nothing else chooses. */
   recentReaderLabels?: string[];
-  /** Fiches des derniers posts du sujet, du plus récent au plus ancien (docs/SPEC_MEMOIRE_ET_VEILLE.md §2). */
+  /** Cards of the subject's latest posts, newest first (docs/SPEC_MEMOIRE_ET_VEILLE.md §2). */
   recentPosts?: RecentPostCard[];
-  /** Fiches actives de la veille d'inspiration du sujet, numérotées i1…i10 (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.3). */
+  /** Active cards from the subject's inspiration watch, numbered i1…i10 (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.3). */
   inspirations?: InspirationCard[];
   platform: Platform;
   contentCategory: ContentCategoryContext;
   contentType: ContentType;
-  /** Titres des scripts récents de l'utilisateur (tous statuts), pour éviter de reproposer les mêmes angles. */
+  /** Titles of the user's recent scripts (any status), to avoid re-proposing the same angles. */
   recentTopics?: string[];
-  /** Résumé de ce qui performe le mieux récemment sur cette plateforme (métriques saisies manuellement). */
+  /** Summary of what performs best recently on this platform (manually entered metrics). */
   performanceSummary?: string | null;
-  /** Concepts déjà proposés et refusés pour CE script via "autre idée, même brief"
-   *  (docs/SPEC_PROMPT_GENERATION_TECH.md §6) — absent/vide en génération normale. Seuls les 5 plus
-   *  récents sont injectés dans le message. */
+  /** Concepts already proposed and rejected for THIS script via "another idea, same brief"
+   *  (docs/SPEC_PROMPT_GENERATION_TECH.md §6) — absent/empty in normal generation. Only the 5 most
+   *  recent are injected in the message. */
   rejectedConcepts?: string[];
-  /** Format du post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) — null hors contentType "visual". */
+  /** Visual post format (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) — null unless contentType is "visual". */
   visual?: VisualFormatSpec | null;
-  /** Angle imposé par le système (mécanisme anti-répétition, invisible pour l'utilisateur). */
+  /** Angle imposed by the system (anti-repetition mechanism, invisible to the user). */
   angle?: { id: string; label: string; description: string } | null;
-  /** Série récurrente à laquelle ce script appartient, le cas échéant. */
+  /** Recurring series this script belongs to, if any. */
   series?: { id: string; label: string; description: string } | null;
-  /** Photo de marque sélectionnée par recherche sémantique (contentType "visual" uniquement),
-   *  cf. docs/SPEC_RESSOURCES_VISUELLES.md §5.3/§7. */
+  /** Brand photo selected by semantic search (contentType "visual" only),
+   *  see docs/SPEC_RESSOURCES_VISUELLES.md §5.3/§7. */
   brandAsset?: { id: string; aiDescription: string; tags: string[] | null } | null;
-  /** Documents de matière brute du sujet, injectés tels quels (docs/SPEC_MATIERE_EDITEUR.md §3) — le
-   *  LLM décide lui-même quoi utiliser, aucune présélection côté serveur. `annotatedText` entoure les
-   *  passages déjà cités par des générations précédentes de marqueurs `[déjà utilisé]...[/déjà utilisé]`. */
+  /** Raw material documents for the subject, injected as is (docs/SPEC_MATIERE_EDITEUR.md §3) — the
+   *  LLM decides what to use, no server-side preselection. `annotatedText` wraps passages already
+   *  cited by earlier generations in used-passage markers (see citationMatching.ts). */
   materialDocuments?: Array<{ id: string; title: string | null; annotatedText: string }>;
-  /** Directive d'épisode pour une génération de série depuis la matière (§3.8) — le sous-thème que
-   *  ce script doit couvrir au sein de la série, le LLM pioche lui-même dans materialDocuments. */
+  /** Episode directive for a series generated from the material (§3.8) — the sub-theme this script
+   *  must cover within the series; the LLM picks from materialDocuments itself. */
   episodeDirective?: { episodeTitle: string; angleHint: string } | null;
-  /** Idée soufflée par le créateur sur une porte de génération (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A,
-   *  Annexe B.4) — une graine à interpréter, jamais à copier ni une source de faits. Rendue dans le
-   *  message uniquement quand `direction` est absente (§4.1 : le chef l'absorbe dans son concept
-   *  quand il est actif — "détour d'arc assumé"). */
+  /** Idea suggested by the creator at a generation entry point (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A,
+   *  Annex B.4) — a seed to interpret, never to copy nor a source of facts. */
   directive?: string | null;
-  /** Sujet effectivement utilisé pour lire la matière et scoper les citations (buildGenerationContext,
-   *  scriptService.ts) — le `productId` explicite de la requête, ou à défaut le sujet lié à la série
-   *  (`ContentSeries.productId`, sélecteur de sujet). À utiliser pour `Script.productId`/les citations
-   *  à la création, au lieu du `productId` brut de la requête, pour rester cohérent avec la matière
-   *  effectivement lue par cette génération. */
+  /** Subject actually used to read the material and scope citations (buildGenerationContext,
+   *  scriptService.ts) — the request's explicit `productId`, or else the subject linked to the series
+   *  (`ContentSeries.productId`, subject selector). Use it for `Script.productId`/citations at
+   *  creation, instead of the raw request `productId`, to stay consistent with the material this
+   *  generation actually read. */
   resolvedProductId?: string | null;
-  /** Le brief par événement (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5) : présent quand la série a un
-   *  lecteur, une forme et un prochain événement à raconter. La génération passe alors par le
-   *  rédacteur agentique (eventWriter.ts) et ignore chef, angle, rôle et inspirations. */
+  /** The per-event brief (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5): present when the series has a
+   *  reader, a form and a next event to tell. Generation then goes through the agentic writer
+   *  (eventWriter.ts) and ignores angle, role and inspirations. */
   eventBrief?: EventBrief | null;
 }
 
@@ -201,72 +202,72 @@ function tag(name: string, lines: string[]): string {
   return `<${name}>\n${lines.join("\n")}\n</${name}>`;
 }
 
-/** Bloc <lecteurs> (Annexe A.3) : toujours présent, il dit au modèle à qui il parle avant tout le reste. */
+/** <readers> block (Annex A.3): always present, tells the model who it is talking to before anything else. */
 export function buildReadersBlock(context: Pick<ScriptGenerationContext, "readers" | "recentReaderLabels" | "product" | "creatorProfile">): string {
   const lines: string[] = [];
   const readers = context.readers ?? [];
   if (readers.length > 0) {
-    lines.push("Les lecteurs de ce sujet (portrait validé ou corrigé par l'auteur, le premier est le principal) :");
+    lines.push("The readers of this subject (portrait validated or corrected by the author, the first is the main one):");
     for (const r of readers) {
-      const parts = [`- ${r.label} : ${r.who}.`];
-      if (r.knows) parts.push(`Sait déjà : ${r.knows}.`);
-      if (r.wants) parts.push(`Vient chercher : ${r.wants}.`);
-      if (r.stopsFor) parts.push(`S'arrête pour : ${r.stopsFor}.`);
-      if (r.turnsOff) parts.push(`Fuit : ${r.turnsOff}.`);
-      if (r.words.length > 0) parts.push(`Ses mots : ${r.words.join(", ")}.`);
+      const parts = [`- ${r.label}: ${r.who}.`];
+      if (r.knows) parts.push(`Already knows: ${r.knows}.`);
+      if (r.wants) parts.push(`Comes looking for: ${r.wants}.`);
+      if (r.stopsFor) parts.push(`Stops for: ${r.stopsFor}.`);
+      if (r.turnsOff) parts.push(`Turned off by: ${r.turnsOff}.`);
+      if (r.words.length > 0) parts.push(`Their words: ${r.words.join(", ")}.`);
       lines.push(parts.join(" "));
     }
     if (readers.length > 1 && context.recentReaderLabels?.length) {
       lines.push(
-        `Publics visés par les derniers posts de ce sujet, du plus récent au plus ancien : ${context.recentReaderLabels.join(", ")}. Varie si le sujet en a plusieurs et si ce post s'y prête.`
+        `Audiences targeted by this subject's latest posts, newest first: ${context.recentReaderLabels.join(", ")}. Vary if the subject has several and this post allows it.`
       );
     }
   } else {
     const audience = context.product?.targetAudience || context.creatorProfile.targetAudience;
     lines.push(
       audience
-        ? `Audience visée : ${audience}`
-        : "Aucune audience définie : déduis le lecteur le plus probable de la matière et du sujet, et nomme-le dans reader."
+        ? `Target audience: ${audience}`
+        : "No audience defined: infer the most likely reader from the material and the subject, and name them in reader."
     );
   }
-  return tag("lecteurs", lines);
+  return tag("readers", lines);
 }
 
-const SHORT_DATE = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" });
+const SHORT_DATE = new Intl.DateTimeFormat("en-US", { day: "numeric", month: "short", timeZone: "Europe/Paris" });
 
-/** Bloc <derniers_posts> (docs/SPEC_MEMOIRE_ET_VEILLE.md Annexe A.1) — vide sans post récent. */
+/** <recent_posts> block (docs/SPEC_MEMOIRE_ET_VEILLE.md Annex A.1) — empty without recent posts. */
 export function buildRecentPostsBlock(cards: RecentPostCard[] | undefined): string {
   if (!cards?.length) return "";
   const lines = [
-    "Les derniers posts de ce sujet, du plus récent au plus ancien. Ne reprends ni leurs accroches ni leurs fins. Si les deux derniers ouvrent sur le même type d'accroche, choisis-en un autre. Tu peux faire référence à l'un d'eux si ça sert l'histoire (« la semaine dernière… »), sans le répéter.",
+    "The latest posts on this subject, newest first. Don't reuse their hooks or their endings. If the last two open with the same type of hook, pick another. You may refer to one of them if it serves the story (\"last week…\"), without repeating it.",
   ];
   for (const c of cards) {
-    const head = [SHORT_DATE.format(new Date(c.createdAt)), c.platform, c.readerLabel ? `public : ${c.readerLabel}` : null].filter(Boolean).join(" · ");
+    const head = [SHORT_DATE.format(new Date(c.createdAt)), c.platform, c.readerLabel ? `audience: ${c.readerLabel}` : null].filter(Boolean).join(" · ");
     const parts = [
-      c.moment ? `moment « ${c.moment} »` : null,
-      c.hook ? `accroche${c.hookKind ? ` [${c.hookKind}]` : ""} « ${c.hook} »` : null,
-      c.ending ? `fin « ${c.ending} »` : null,
+      c.moment ? `moment "${c.moment}"` : null,
+      c.hook ? `hook${c.hookKind ? ` [${c.hookKind}]` : ""} "${c.hook}"` : null,
+      c.ending ? `ending "${c.ending}"` : null,
     ].filter(Boolean);
-    lines.push(`- ${head} : ${parts.join(" · ") || "(post sans texte)"}`);
+    lines.push(`- ${head}: ${parts.join(" · ") || "(post without text)"}`);
   }
-  return tag("derniers_posts", lines);
+  return tag("recent_posts", lines);
 }
 
-/** Bloc <inspiration> (docs/SPEC_MEMOIRE_ET_VEILLE.md Annexe A.1) — vide sans fiche active. */
+/** <inspiration> block (docs/SPEC_MEMOIRE_ET_VEILLE.md Annex A.1) — empty without an active card. */
 export function buildInspirationBlock(cards: InspirationCard[] | undefined): string {
   if (!cards?.length) return "";
   return tag("inspiration", [
-    "Ce qui marche déjà pour ces publics, trouvé en veille. Inspire-toi de la FORME (format, structure, type d'accroche, rythme), jamais du fond : n'en reprends ni chiffre, ni anecdote, ni formule. Tu n'es pas obligé d'en utiliser.",
+    "What already works for these audiences, found through monitoring. Take inspiration from the FORM (format, structure, hook type, rhythm), never the substance: reuse no number, anecdote or formula. You are not required to use any.",
     ...cards.map((c) => {
       const meta = [c.readerLabel, c.platform, c.kind].filter(Boolean).join(" · ");
       return `- [${c.ref}] (${meta}) ${c.insight} — ${c.url}`;
     }),
-    "Dans ta préparation, inspirationsUsed liste celles qui t'ont servi. inspirationsToDrop liste seulement celles qui ne serviront jamais à ce sujet (public étranger, conseil générique, hors sujet), avec la raison : elles seront retirées. Ne retire pas une fiche parce qu'elle ne sert pas à ce post-ci.",
+    "In your preparation, inspirationsUsed lists the ones you used. inspirationsToDrop lists only those that will never serve this subject (foreign audience, generic advice, off-topic), with the reason: they will be removed. Don't drop a card just because it doesn't serve this post.",
   ]);
 }
 
-// docs/SPEC_PROMPT_GENERATION_V3.md §4.2, texte Annexe A.3 : des balises séparent les données
-// (matière, profil) des consignes ; <lecteurs> en tête, <rappel> en fin, position de poids maximal.
+// docs/SPEC_PROMPT_GENERATION_V3.md §4.2, Annex A.3 text: tags separate the data (material, profile)
+// from the instructions; <readers> first, <reminder> last, the positions of maximum weight.
 export function buildScriptUserMessage(context: ScriptGenerationContext): string {
   const {
     creatorProfile,
@@ -288,12 +289,12 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
 
   const sections: string[] = [buildReadersBlock(context)];
 
-  const brandLines = [`Auteur : ${creatorProfile.brandName} — ${creatorProfile.activityType}`];
-  if (creatorProfile.expectations) brandLines.push(`Ce que l'auteur attend de CreaFlow : ${creatorProfile.expectations}`);
-  sections.push(tag("marque", brandLines));
+  const brandLines = [`Author: ${creatorProfile.brandName} — ${creatorProfile.activityType}`];
+  if (creatorProfile.expectations) brandLines.push(`What the author expects from Buildloud: ${creatorProfile.expectations}`);
+  sections.push(tag("brand", brandLines));
 
-  // Voix + règles apprises des corrections de l'auteur (docs/SPEC_APPRENTISSAGE_STYLE.md §5.4),
-  // filtrées sur la plateforme cible. Même contenu que dans les micro-retouches, autre enveloppe.
+  // Voice + rules learned from the author's corrections (docs/SPEC_APPRENTISSAGE_STYLE.md §5.4),
+  // filtered on the target platform. Same content as in micro-edits, different envelope.
   const styleLines = buildStyleBlock(styleProfile, platform).split("\n").slice(1).filter(Boolean);
   if (styleLines.length) sections.push(tag("style", styleLines));
 
@@ -304,8 +305,8 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
       .map((d) => (d.title ? `[${d.title}]\n${d.annotatedText}` : d.annotatedText))
       .join("\n---\n");
     sections.push(
-      tag("matiere", [
-        "Matière de ce sujet. C'est ta seule source de faits. Les passages entre [déjà utilisé dans un post précédent] et [/déjà utilisé] ont déjà servi : ne les reprends pas tels quels, un autre angle sur le même fait reste possible.",
+      tag("material", [
+        "Material for this subject. It is your only source of facts. Passages between [already used in a previous post] and [/already used] have already been used: don't reuse them as is, a different angle on the same fact remains possible.",
         combined,
       ])
     );
@@ -314,32 +315,32 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
   const briefLines: string[] = [];
   briefLines.push(
     product
-      ? `Sujet : ${product.name}${product.description ? ` — ${product.description}` : ""}${
-          product.valueProposition ? ` (proposition de valeur : ${product.valueProposition})` : ""
+      ? `Subject: ${product.name}${product.description ? ` — ${product.description}` : ""}${
+          product.valueProposition ? ` (value proposition: ${product.valueProposition})` : ""
         }`
-      : "Aucun sujet précis : post sur l'activité de l'auteur."
+      : "No specific subject: a post about the author's activity."
   );
-  briefLines.push(`Type de post : ${CONTENT_TYPE_GUIDANCE[contentType]}`);
-  briefLines.push(`Rôle de ce post : ${contentCategory.label} — ${contentCategory.description}`);
+  briefLines.push(`Post type: ${CONTENT_TYPE_GUIDANCE[contentType]}`);
+  briefLines.push(`Role of this post: ${contentCategory.label} — ${contentCategory.description}`);
   if (series) {
-    briefLines.push(`Série à respecter (identité et ton reconnaissables d'un épisode à l'autre) : ${series.label} — ${series.description}`);
+    briefLines.push(`Series to respect (identity and tone recognizable from one episode to the next): ${series.label} — ${series.description}`);
   }
-  const angleLabel = "Angle (forme de l'accroche et de la structure)";
+  const angleLabel = "Angle (shape of the hook and structure)";
   if (angle) {
     briefLines.push(`${angleLabel} : ${angle.label} — ${angle.description}`);
   }
   if (episodeDirective) {
-    briefLines.push(`Cet épisode de la série se concentre sur : ${episodeDirective.episodeTitle} — ${episodeDirective.angleHint}`);
+    briefLines.push(`This episode of the series focuses on: ${episodeDirective.episodeTitle} — ${episodeDirective.angleHint}`);
   }
   if (contentType === "visual" && brandAsset) {
     briefLines.push(
-      `Photo disponible (utilisée telle quelle ou détourée dans la maquette, jamais modifiée ; ne décris pas un autre produit que celui-ci) : ${brandAsset.aiDescription}${
-        brandAsset.tags?.length ? ` (mots-clés : ${brandAsset.tags.join(", ")})` : ""
+      `Available photo (used as is or cut out in the mockup, never altered; don't describe a product other than this one): ${brandAsset.aiDescription}${
+        brandAsset.tags?.length ? ` (keywords: ${brandAsset.tags.join(", ")})` : ""
       }`
     );
   }
   if (directive) {
-    briefLines.push(`Idée soufflée par l'auteur (une piste à interpréter, pas un texte à recopier ni une source de faits) : ${directive}`);
+    briefLines.push(`Idea suggested by the author (a lead to interpret, not text to copy nor a source of facts): ${directive}`);
   }
   sections.push(tag("brief", briefLines));
 
@@ -347,7 +348,7 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
   if (inspirationBlock) sections.push(inspirationBlock);
 
   const visualOnly = contentType === "visual" && context.visual?.withText === false;
-  sections.push(tag("plateforme", [platformRuleText(platform, { visualOnly })]));
+  sections.push(tag("platform", [platformRuleText(platform, { visualOnly })]));
 
   if (contentType === "visual") {
     const formatBlock = buildFormatBlock(context.visual);
@@ -358,19 +359,19 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
   if (recentPostsBlock) sections.push(recentPostsBlock);
 
   const varietyLines: string[] = [];
-  if (recentTopics?.length) varietyLines.push(`Posts récents de l'auteur (ne repropose pas le même angle) : ${recentTopics.join(" ; ")}`);
-  if (performanceSummary) varietyLines.push(`Performance récente : ${performanceSummary}`);
+  if (recentTopics?.length) varietyLines.push(`Author's recent posts (don't re-propose the same angle): ${recentTopics.join("; ")}`);
+  if (performanceSummary) varietyLines.push(`Recent performance: ${performanceSummary}`);
   if (rejectedConcepts?.length) {
-    // Plafond d'injection (docs/SPEC_PROMPT_GENERATION_TECH.md §6.3) : seuls les 5 plus récents.
+    // Injection cap (docs/SPEC_PROMPT_GENERATION_TECH.md §6.3): only the 5 most recent.
     varietyLines.push(
-      `Idées déjà refusées pour ce post — propose une idée réellement différente, pas une reformulation : ${rejectedConcepts.slice(-5).join(" ; ")}`
+      `Ideas already rejected for this post — propose a genuinely different idea, not a rewording: ${rejectedConcepts.slice(-5).join("; ")}`
     );
   }
-  if (varietyLines.length) sections.push(tag("variete", varietyLines));
+  if (varietyLines.length) sections.push(tag("variety", varietyLines));
 
   sections.push(
-    tag("rappel", [
-      "Avant de répondre : chaque fait vient du contexte ; aucune tournure interdite ; l'accroche tient dans ce que la plateforme affiche avant « voir plus » ; un lecteur pressé comprend dès la première phrase pourquoi ce post est pour lui.",
+    tag("reminder", [
+      "Before answering: every fact comes from the context; no banned phrasing; the hook fits within what the platform shows before \"see more\"; a hurried reader understands from the first sentence why this post is for them. Write everything in English.",
     ])
   );
 

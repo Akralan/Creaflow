@@ -1,17 +1,17 @@
 /**
- * Mémoire des derniers posts d'un sujet (docs/SPEC_MEMOIRE_ET_VEILLE.md §2) : une fiche courte par
- * post, jamais le texte complet — le modèle recopierait ce qu'il a sous les yeux. Module pur.
+ * Memory of a subject's latest posts (docs/SPEC_MEMOIRE_ET_VEILLE.md §2): a short card per
+ * post, never the full text — the model would copy what it has in front of it. Pure module.
  */
 
 export interface RecentPostCard {
-  /** ISO, date de création du script. */
+  /** ISO, creation date of the script. */
   createdAt: string;
   platform: string;
   readerLabel: string | null;
-  /** Le moment raconté, tiré de la préparation V3 ; null pour un script plus ancien ou manuel. */
+  /** The moment told, taken from the V3 preparation; null for an older or manual script. */
   moment: string | null;
   hook: string | null;
-  /** Type de l'accroche retenue (chiffre, aveu…), tiré de la préparation V3. */
+  /** Type of the chosen hook (number, confession…), taken from the V3 preparation. */
   hookKind: string | null;
   ending: string | null;
 }
@@ -43,7 +43,7 @@ function picked<T>(list: T[] | undefined, index: unknown): T | undefined {
   return Array.isArray(list) && typeof index === "number" ? list[index] : undefined;
 }
 
-/** Dernière phrase du texte, coupée à 160 caractères. */
+/** Last sentence of the text, cut at 160 characters. */
 export function lastSentence(caption: string | null): string | null {
   const body = text(caption);
   if (!body) return null;
@@ -66,7 +66,7 @@ export function postCardFromScript(script: RecentPostSource): RecentPostCard {
   };
 }
 
-/** Les 6 premiers mots, normalisés : deux accroches qui commencent pareil se répètent. */
+/** The first 6 words, normalized: two hooks that start the same way repeat each other. */
 export function hookOpening(hook: string): string {
   return hook
     .normalize("NFD")

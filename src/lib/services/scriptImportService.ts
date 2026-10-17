@@ -43,7 +43,7 @@ export async function importScriptForUser(
     params.hookText,
   ].some((v) => v?.trim());
   if (!hasContent) {
-    throw new ApiError(400, "Ajoute au moins un titre ou un texte avant d'enregistrer.");
+    throw new ApiError(400, "Add at least a title or some text before saving.");
   }
 
   const contentCategoryId = await resolveCategoryForGeneration(userId, {
@@ -54,7 +54,7 @@ export async function importScriptForUser(
     where: and(eq(contentCategories.id, contentCategoryId), eq(contentCategories.userId, userId)),
   });
   if (!category) {
-    throw new ApiError(404, "Rôle introuvable.");
+    throw new ApiError(404, "Role not found.");
   }
 
   if (params.productId) {
@@ -62,7 +62,7 @@ export async function importScriptForUser(
       where: and(eq(products.id, params.productId), eq(products.userId, userId)),
     });
     if (!product) {
-      throw new ApiError(404, "Sujet introuvable.");
+      throw new ApiError(404, "Subject not found.");
     }
   }
 
@@ -72,7 +72,7 @@ export async function importScriptForUser(
       where: and(eq(contentSeries.id, params.seriesId), eq(contentSeries.userId, userId)),
     });
     if (!series) {
-      throw new ApiError(404, "Série introuvable.");
+      throw new ApiError(404, "Series not found.");
     }
     seriesId = series.id;
   }
@@ -84,10 +84,10 @@ export async function importScriptForUser(
         where: and(eq(calendarEntries.id, params.calendarEntryId), eq(calendarEntries.userId, userId)),
       })) ?? null;
     if (!entry) {
-      throw new ApiError(404, "Créneau calendrier introuvable.");
+      throw new ApiError(404, "Calendar slot not found.");
     }
     if (entry.scriptId) {
-      throw new ApiError(409, "Ce créneau a déjà un script associé.");
+      throw new ApiError(409, "This slot already has a script attached.");
     }
   }
 
@@ -143,12 +143,12 @@ export async function importScriptForUser(
 export async function placeScriptOnCalendar(userId: string, scriptId: string, scheduledDate: string) {
   const script = await db.query.scripts.findFirst({ where: and(eq(scripts.id, scriptId), eq(scripts.userId, userId)) });
   if (!script) {
-    throw new ApiError(404, "Script introuvable.");
+    throw new ApiError(404, "Script not found.");
   }
 
   const existing = await db.query.calendarEntries.findFirst({ where: eq(calendarEntries.scriptId, scriptId) });
   if (existing) {
-    throw new ApiError(409, "Ce script est déjà placé au calendrier.");
+    throw new ApiError(409, "This script is already placed on the calendar.");
   }
 
   const [inserted] = await db

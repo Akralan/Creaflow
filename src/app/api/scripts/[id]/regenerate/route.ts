@@ -17,7 +17,7 @@ export async function POST(
 ) {
   try {
     const userId = await requireUserId();
-    // Chaque génération de script coûte un appel LLM — limite partagée avec les autres routes de génération.
+    // Each script generation costs an LLM call — limit shared with the other generation routes.
     await enforceRateLimit("script-generate", userId, 20, 60);
     const { id } = await params;
     await enforceScriptQuota(userId);
@@ -26,7 +26,7 @@ export async function POST(
       where: and(eq(scripts.id, id), eq(scripts.userId, userId)),
     });
     if (!existing) {
-      throw new ApiError(404, "Script introuvable.");
+      throw new ApiError(404, "Script not found.");
     }
 
     const context = await buildGenerationContext(

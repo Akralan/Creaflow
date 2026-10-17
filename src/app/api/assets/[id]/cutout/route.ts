@@ -5,14 +5,14 @@ import { enforceRateLimit } from "@/lib/services/rateLimitService";
 import { ensureCutoutForUser, toApiAsset } from "@/lib/services/brandAssetService";
 
 /**
- * Détourage d'une photo de la bibliothèque (docs/SPEC_COMPOSITION_VISUELLE.md §5.3) — calculé une
- * fois, mis en cache sur R2. 503 explicite si aucun provider n'est configuré.
+ * Background removal for a library photo (docs/SPEC_COMPOSITION_VISUELLE.md §5.3) — computed once,
+ * cached on R2. Explicit 503 if no provider is configured.
  */
 export async function POST(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userId = await requireUserId();
     const { id } = await params;
-    // Appel externe payant — même limite que la composition.
+    // Paid external call — same limit as composition.
     await enforceRateLimit("asset-cutout", userId, 10, 60);
     const asset = await ensureCutoutForUser(userId, id);
     return NextResponse.json({ asset: toApiAsset(asset) }, { status: 201 });

@@ -5,12 +5,12 @@ export interface AssetSearchContext {
   seriesLabel?: string | null;
 }
 
-/** Construit la requête textuelle éditoriale servant de base à l'embedding de recherche —
- *  pure, testable sans DB. Les requêtes sont éditoriales, pas visuelles (catégorie/produit/série),
+/** Builds the editorial text query used as the basis for the search embedding —
+ *  pure, testable without a DB. Queries are editorial, not visual (category/topic/series),
  *  cf. docs/SPEC_RESSOURCES_VISUELLES.md §5.2. */
 export function buildAssetSearchQuery(context: AssetSearchContext): string {
-  const parts = [`Catégorie de contenu : ${context.categoryLabel} — ${context.categoryDescription}.`];
-  if (context.productName) parts.push(`Produit : ${context.productName}.`);
-  if (context.seriesLabel) parts.push(`Série : ${context.seriesLabel}.`);
+  const parts = [`Content category: ${context.categoryLabel} — ${context.categoryDescription}.`];
+  if (context.productName) parts.push(`Topic: ${context.productName}.`);
+  if (context.seriesLabel) parts.push(`Series: ${context.seriesLabel}.`);
   return parts.join(" ");
 }

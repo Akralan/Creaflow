@@ -1,7 +1,7 @@
-/* Calendrier semaine : une bande de posts côte à côte sur grand écran, une liste de titres sur
-   téléphone. Même langage que les cartes de la landing (PostFan). */
+/* Week calendar: a strip of posts side by side on large screens, a list of titles on
+   phones. Same language as the landing page cards (PostFan). */
 
-/* Les posts passent à la ligne : rien ne doit se cacher à droite derrière un défilement. */
+/* Posts wrap onto new lines: nothing should hide to the right behind a scroll. */
 .strip {
   display: flex;
   flex-wrap: wrap;
@@ -46,7 +46,7 @@
   opacity: 0.55;
 }
 
-/* Post vide « holographique » : un post à venir, en verre irisé. Le reflet glisse lentement. */
+/* "Holographic" empty post: an upcoming post, in iridescent glass. The glare slides slowly. */
 .holo {
   box-shadow:
     0 24px 50px -32px rgba(77, 55, 120, 0.45),
@@ -156,8 +156,8 @@
   overflow: hidden;
 }
 
-/* Une ligne par série, l'une sous l'autre (docs/SPEC_RYTHME_DES_SERIES.md §4) ; avec une seule
-   série, une seule ligne sans en-tête. */
+/* One lane per series, one under the other (docs/SPEC_RYTHME_DES_SERIES.md §4); with a single
+   series, a single lane without a header. */
 .lanes {
   display: flex;
   flex-direction: column;

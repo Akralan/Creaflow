@@ -3,67 +3,67 @@ import { buildReadersBlock, buildScriptUserMessage, SCRIPT_CORE_PROMPT, SCRIPT_S
 import { generateTextPostTool, generateVisualPostTool } from "./scriptSchema";
 import type { LlmToolDefinition } from "./types";
 
-const players = { label: "Joueurs", who: "Fans de plateformes 2D", knows: "Les classiques", wants: "Voir le jeu", stopsFor: "Un GIF", turnsOff: "Le jargon", words: ["wishlist", "feeling"] };
-const devs = { label: "Devs indés", who: "Développeurs de jeux", knows: "Godot", wants: "Les réglages", stopsFor: "Un chiffre", turnsOff: "Le hype", words: ["coyote time"] };
+const players = { label: "Players", who: "2D platformer fans", knows: "The classics", wants: "See the game", stopsFor: "A GIF", turnsOff: "Jargon", words: ["wishlist", "feeling"] };
+const devs = { label: "Indie devs", who: "Game developers", knows: "Godot", wants: "The settings", stopsFor: "A number", turnsOff: "Hype", words: ["coyote time"] };
 
 const base: ScriptGenerationContext = {
-  creatorProfile: { brandName: "Alix", activityType: "Tu construis un jeu de plateforme", targetAudience: "Audience de marque" },
-  product: { name: "Mira", description: "Jeu de plateforme", targetAudience: "Les joueurs de plateformes" },
+  creatorProfile: { brandName: "Alix", activityType: "You build a platformer game", targetAudience: "Brand audience" },
+  product: { name: "Mira", description: "Platformer game", targetAudience: "Platformer players" },
   platform: "linkedin",
-  contentCategory: { id: "c1", label: "Coulisses", description: "Montrer le travail en cours." },
+  contentCategory: { id: "c1", label: "Behind the scenes", description: "Show the work in progress." },
   contentType: "text",
 };
 
 describe("system prompt V3", () => {
-  it("n'est plus un « Directeur Marketing » et ajoute la méthode à la génération complète seulement", () => {
-    expect(SCRIPT_CORE_PROMPT).toContain("Tu es le ghostwriter");
+  it("is no longer a Marketing Director and adds the method to full generation only", () => {
+    expect(SCRIPT_CORE_PROMPT).toContain("You are the ghostwriter");
     expect(SCRIPT_CORE_PROMPT).not.toContain("Directeur Marketing");
-    expect(SCRIPT_CORE_PROMPT).not.toContain("<methode>");
-    expect(SCRIPT_SYSTEM_PROMPT).toContain("<methode>");
-    expect(SCRIPT_SYSTEM_PROMPT).not.toMatch(/valeurs/);
+    expect(SCRIPT_CORE_PROMPT).not.toContain("<method>");
+    expect(SCRIPT_SYSTEM_PROMPT).toContain("<method>");
+    expect(SCRIPT_SYSTEM_PROMPT).not.toMatch(/values/);
   });
 });
 
 describe("buildReadersBlock", () => {
-  it("décrit chaque public du portrait, le principal en premier", () => {
+  it("describes each audience of the portrait, the main one first", () => {
     const block = buildReadersBlock({ ...base, readers: [players, devs] });
-    expect(block).toContain("- Joueurs : Fans de plateformes 2D. Sait déjà : Les classiques. Vient chercher : Voir le jeu.");
-    expect(block).toContain("Ses mots : wishlist, feeling.");
-    expect(block.indexOf("Joueurs")).toBeLessThan(block.indexOf("Devs indés"));
-    expect(block).not.toContain("Audience visée");
+    expect(block).toContain("- Players: 2D platformer fans. Already knows: The classics. Comes looking for: See the game.");
+    expect(block).toContain("Their words: wishlist, feeling.");
+    expect(block.indexOf("Players")).toBeLessThan(block.indexOf("Indie devs"));
+    expect(block).not.toContain("Target audience");
   });
 
-  it("rappelle les publics récents seulement s'il y en a plusieurs à alterner", () => {
-    expect(buildReadersBlock({ ...base, readers: [players, devs], recentReaderLabels: ["Joueurs", "Joueurs"] })).toContain(
-      "Publics visés par les derniers posts de ce sujet, du plus récent au plus ancien : Joueurs, Joueurs."
+  it("recalls the recent audiences only if there are several to alternate", () => {
+    expect(buildReadersBlock({ ...base, readers: [players, devs], recentReaderLabels: ["Players", "Players"] })).toContain(
+      "Audiences targeted by this subject's latest posts, newest first: Players, Players."
     );
-    expect(buildReadersBlock({ ...base, readers: [players], recentReaderLabels: ["Joueurs"] })).not.toContain("Publics visés");
+    expect(buildReadersBlock({ ...base, readers: [players], recentReaderLabels: ["Players"] })).not.toContain("Audiences targeted");
   });
 
-  it("retombe sur le « Pour qui » du sujet, puis sur l'audience de marque, puis sur une déduction", () => {
-    expect(buildReadersBlock(base)).toContain("Audience visée : Les joueurs de plateformes");
-    expect(buildReadersBlock({ ...base, product: { name: "Mira" } })).toContain("Audience visée : Audience de marque");
+  it("falls back on the subject Who-for, then the brand audience, then a deduction", () => {
+    expect(buildReadersBlock(base)).toContain("Target audience: Platformer players");
+    expect(buildReadersBlock({ ...base, product: { name: "Mira" } })).toContain("Target audience: Brand audience");
     expect(buildReadersBlock({ ...base, product: null, creatorProfile: { brandName: "A", activityType: "B" } })).toContain(
-      "Aucune audience définie : déduis le lecteur le plus probable"
+      "No audience defined: infer the most likely reader"
     );
   });
 });
 
 describe("buildScriptUserMessage V3", () => {
-  it("ouvre sur <lecteurs>, ferme sur <rappel>, et ne parle plus de « catégorie »", () => {
+  it("opens on <readers>, closes on <reminder>, and no longer talks about a category", () => {
     const message = buildScriptUserMessage({ ...base, readers: [players] });
-    expect(message.startsWith("<lecteurs>")).toBe(true);
-    expect(message.trim().endsWith("</rappel>")).toBe(true);
-    expect(message).toContain("Rôle de ce post : Coulisses — Montrer le travail en cours.");
-    expect(message).not.toMatch(/catégorie/i);
+    expect(message.startsWith("<readers>")).toBe(true);
+    expect(message.trim().endsWith("</reminder>")).toBe(true);
+    expect(message).toContain("Role of this post: Behind the scenes — Show the work in progress.");
+    expect(message).not.toMatch(/category/i);
     expect(message).not.toContain("===");
   });
 
-  it("met la matière dans <matiere> et les limites chiffrées dans <plateforme>", () => {
-    const message = buildScriptUserMessage({ ...base, materialDocuments: [{ id: "d1", title: "Journal", annotatedText: "Le saut a été réglé." }] });
-    expect(message).toContain("<matiere>\nMatière de ce sujet. C'est ta seule source de faits.");
-    expect(message).toContain("[Journal]\nLe saut a été réglé.");
-    expect(message).toMatch(/<plateforme>\nLinkedIn\. .*200 caractères.*600 à 1500 caractères/);
+  it("puts the material in <material> and the numeric limits in <platform>", () => {
+    const message = buildScriptUserMessage({ ...base, materialDocuments: [{ id: "d1", title: "Journal", annotatedText: "The jump was tuned." }] });
+    expect(message).toContain("<material>\nMaterial for this subject. It is your only source of facts.");
+    expect(message).toContain("[Journal]\nThe jump was tuned.");
+    expect(message).toMatch(/<platform>\nLinkedIn\. .*200 characters.*600 to 1500 characters/);
   });
 
   it("garde les blocs dans l'ordre de l'annexe A.3", () => {
@@ -71,18 +71,18 @@ describe("buildScriptUserMessage V3", () => {
       ...base,
       contentType: "visual",
       visual: { format: "single", slideCount: null, durationMs: null },
-      styleProfile: { tone: "t", sentenceLength: "s", emojiUsage: "e", vocabulary: "v", summary: "Voix sobre.", rules: [], avoid: [], prefer: [], evidence: { scriptCount: 0, learnedAt: null } },
+      styleProfile: { tone: "t", sentenceLength: "s", emojiUsage: "e", vocabulary: "v", summary: "Sober voice.", rules: [], avoid: [], prefer: [], evidence: { scriptCount: 0, learnedAt: null } },
       materialDocuments: [{ id: "d1", title: null, annotatedText: "Fait." }],
       recentTopics: ["Ancien post"],
     });
-    const order = ["<lecteurs>", "<marque>", "<style>", "<matiere>", "<brief>", "<plateforme>", "<format>", "<variete>", "<rappel>"].map((t) => message.indexOf(t));
+    const order = ["<readers>", "<brand>", "<style>", "<material>", "<brief>", "<platform>", "<format>", "<variety>", "<reminder>"].map((t) => message.indexOf(t));
     expect(order.every((i) => i >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 });
 
 /** Mode strict OpenAI : chaque objet déclare additionalProperties:false et rend requises toutes ses propriétés. */
-function assertStrict(schema: Record<string, unknown>, path = "racine") {
+function assertStrict(schema: Record<string, unknown>, path = "root") {
   if (schema.type === "object") {
     const props = Object.keys((schema.properties as Record<string, unknown>) ?? {});
     expect(schema.additionalProperties, path).toBe(false);
@@ -92,11 +92,11 @@ function assertStrict(schema: Record<string, unknown>, path = "racine") {
   if (schema.type === "array" && schema.items) assertStrict(schema.items as Record<string, unknown>, `${path}[]`);
 }
 
-describe("outils de génération V3", () => {
+describe("V3 generation tools", () => {
   it.each<[string, LlmToolDefinition]>([
-    ["visuel", generateVisualPostTool],
-    ["texte", generateTextPostTool],
-  ])("outil %s : conforme au mode strict, préparation avant le post, relecture en dernier", (_, tool) => {
+    ["visual", generateVisualPostTool],
+    ["text", generateTextPostTool],
+  ])("%s tool: strict-mode compliant, preparation before the post, review last", (_, tool) => {
     assertStrict(tool.input_schema as Record<string, unknown>);
     const keys = Object.keys((tool.input_schema as { properties: Record<string, unknown> }).properties);
     expect(keys.slice(0, 6)).toEqual(["reader", "candidateMoments", "chosenMoment", "concept", "hookOptions", "chosenHook"]);

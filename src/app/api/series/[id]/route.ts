@@ -4,9 +4,9 @@ import { requireUserId } from "@/lib/auth/session";
 import { updateSeriesFields } from "@/lib/services/seriesService";
 import { handleApiError } from "@/lib/api/errors";
 
-// Changement du sujet lié depuis une carte de la bibliothèque — POST /api/series traite tout le
-// tableau des séries actives comme un diff complet (archive ce qui est omis), inadapté à l'édition
-// d'un champ.
+// Change of the linked topic from a library card — POST /api/series treats the whole
+// array of active series as a full diff (archives what is omitted), unsuited to editing
+// a single field.
 const patchSchema = z.object({ productId: z.uuid().nullable() });
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

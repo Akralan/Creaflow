@@ -22,7 +22,7 @@ function RegenerateButton({ onClick, busy }: { onClick: () => void; busy: boolea
     <button
       onClick={onClick}
       disabled={busy}
-      title="Régénérer uniquement ce bloc"
+      title="Regenerate this block only"
       style={{
         fontSize: 12,
         fontWeight: 600,
@@ -35,14 +35,14 @@ function RegenerateButton({ onClick, busy }: { onClick: () => void; busy: boolea
         opacity: busy ? 0.6 : 1,
       }}
     >
-      {busy ? "..." : "↻ Régénérer"}
+      {busy ? "..." : "↻ Regenerate"}
     </button>
   );
 }
 
 const sectionLabel: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: color.textSecondary };
 
-/** Même seuil que STYLE_LEARNING_SUGGESTION_THRESHOLD (styleLearningService.ts). */
+/** Same threshold as STYLE_LEARNING_SUGGESTION_THRESHOLD (styleLearningService.ts). */
 const STYLE_SUGGESTION_THRESHOLD = 5;
 
 export default function ScriptPage() {
@@ -60,13 +60,13 @@ export default function ScriptPage() {
   const [applyingNewIdea, setApplyingNewIdea] = useState(false);
   const [metricsDraft, setMetricsDraft] = useState(EMPTY_METRICS_DRAFT);
   const [savingMetrics, setSavingMetrics] = useState(false);
-  // Suggestion d'analyse de style après finalisation (docs/SPEC_APPRENTISSAGE_STYLE.md §6.2) :
-  // nombre de scripts corrigés non analysés, affiché seulement à partir du seuil, jamais bloquant.
+  // Style analysis suggestion after finalisation (docs/SPEC_APPRENTISSAGE_STYLE.md §6.2):
+  // number of edited scripts not yet analysed, shown only past the threshold, never blocking.
   const [styleSuggestion, setStyleSuggestion] = useState<number | null>(null);
-  // Logo de l'identité de marque (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2) : dit à l'éditeur de
-  // maquette si {{LOGO}} peut être résolu.
+  // Brand identity logo (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2): tells the mockup editor
+  // whether {{LOGO}} can be resolved.
   const [hasLogo, setHasLogo] = useState(false);
-  // Nom affiché sur l'aperçu d'un post texte, comme sur le réseau.
+  // Name shown on the preview of a text post, as on the network.
   const [authorName, setAuthorName] = useState("");
 
   async function load() {
@@ -88,7 +88,7 @@ export default function ScriptPage() {
           : EMPTY_METRICS_DRAFT
       );
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Script introuvable.");
+      setError(err instanceof ApiClientError ? err.message : "Script not found.");
     } finally {
       setLoading(false);
     }
@@ -100,14 +100,14 @@ export default function ScriptPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
-  /** Relecture silencieuse (composition automatique de la maquette en arrière-plan) : ne touche
-   *  qu'à la maquette, pour ne pas écraser une saisie en cours ailleurs sur la fiche. */
+  /** Silent reload (automatic mockup composition in the background): only touches
+   *  the mockup, so as not to overwrite input in progress elsewhere on the page. */
   const reloadQuietly = useCallback(async () => {
     const { script: fresh } = await api.getScript(params.id);
     setScript((prev) => (prev ? { ...prev, visualDesign: fresh.visualDesign ?? null } : fresh));
   }, [params.id]);
 
-  /** Empile l'état courant avant toute écriture — chaque patch/micro-retouche est undo-able. */
+  /** Pushes the current state before any write — every patch/micro-edit is undoable. */
   function pushHistory() {
     if (!script) return;
     setHistory((h) => [...h.slice(-(HISTORY_LIMIT - 1)), script]);
@@ -119,7 +119,7 @@ export default function ScriptPage() {
     setHistory((h) => h.slice(0, -1));
     setError(null);
     try {
-      // Persiste le retour arrière (§4.4) — l'undo n'est pas seulement visuel.
+      // Persists the rollback (§4.4) — undo is not only visual.
       const { script: reverted } = await api.patchScriptContent(script.id, {
         title: previous.title ?? undefined,
         hookVisual: previous.hookVisual ?? undefined,
@@ -128,12 +128,12 @@ export default function ScriptPage() {
         caption: previous.caption,
         hashtags: previous.hashtags,
       });
-      // patchScriptContent ne renvoie que les colonnes patchées, pas les relations jointes
-      // (product/contentCategory/angle/série/citations...) — fusion, jamais un remplacement complet,
-      // sous peine d'effacer ces sections de l'affichage (ex. « Matière utilisée pour ce script »).
+      // patchScriptContent only returns the patched columns, not the joined relations
+      // (product/contentCategory/angle/series/citations...) — merge, never a full replacement,
+      // or those sections vanish from the display (e.g. "Material used for this script").
       setScript((prev) => (prev ? { ...prev, ...reverted } : reverted));
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'annulation.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong while undoing.");
     }
   }
 
@@ -143,8 +143,8 @@ export default function ScriptPage() {
     setError(null);
     try {
       const { script: updated } = await api.patchScriptContent(script.id, patch);
-      // Les mots de la maquette viennent du storyboard : le serveur la passe en "stale", on
-      // reflète ce statut sans recharger (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2).
+      // The mockup's words come from the storyboard: the server marks it "stale", we
+      // reflect that status without reloading (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2).
       const touchesDesign = patch.title !== undefined || patch.hookVisual !== undefined || patch.storyboard !== undefined;
       setScript((prev) =>
         prev
@@ -152,15 +152,15 @@ export default function ScriptPage() {
           : updated
       );
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong while saving.");
     }
   }
 
   async function applyInstruction(blockField: string, selectedText: string, instruction: string, isMajoritySelection: boolean) {
     if (!script) return;
-    // Bascule select-all (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A/§7) : une sélection ≥80% du bloc +
-    // un commentaire soumis est un geste d'intention, pas une retouche — on ouvre la confirmation
-    // nouvelle-idée avec le commentaire pré-rempli en directive, sans appeler rewrite_selection.
+    // Select-all switch (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A/§7): a selection of ≥80% of the block +
+    // a submitted comment is a gesture of intent, not an edit — we open the new-idea confirmation
+    // with the comment pre-filled as the directive, without calling rewrite_selection.
     if (isMajoritySelection) {
       setNewIdeaDirective(instruction);
       setConfirmNewIdea(true);
@@ -172,7 +172,7 @@ export default function ScriptPage() {
       const { script: updated } = await api.applySelectionInstruction(script.id, { blockField, selectedText, instruction });
       setScript((prev) => (prev ? { ...prev, ...updated } : updated));
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de la retouche.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong while editing.");
     }
   }
 
@@ -185,15 +185,15 @@ export default function ScriptPage() {
       const { script: updated } = await api.regenerateScriptBlock(script.id, block);
       setScript((prev) => (prev ? { ...prev, ...updated } : updated));
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de la régénération du bloc.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong while regenerating the block.");
     } finally {
       setRegeneratingBlock(null);
     }
   }
 
-  /** "Autre idée, même brief" (docs/SPEC_PROMPT_GENERATION_TECH.md §6) — remplace tout le contenu en
-   *  place, brief verrouillé (plateforme/catégorie/angle/série inchangés). Geste distinct des
-   *  régénérations de bloc : intention, pas mots — confirmation systématique avant exécution (§6.3). */
+  /** "Another idea, same brief" (docs/SPEC_PROMPT_GENERATION_TECH.md §6) — replaces all the content in
+   *  place, brief locked (platform/category/angle/series unchanged). A gesture distinct from
+   *  block regenerations: intent, not words — always confirmed before running (§6.3). */
   async function handleNewIdea() {
     if (!script) return;
     pushHistory();
@@ -206,7 +206,7 @@ export default function ScriptPage() {
       setScript((prev) => (prev ? { ...prev, ...updated } : updated));
       setNewIdeaDirective("");
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de la génération d'une autre idée.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong while generating another idea.");
     } finally {
       setApplyingNewIdea(false);
     }
@@ -220,7 +220,7 @@ export default function ScriptPage() {
       await api.deleteScript(script.id);
       router.push("/calendar");
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de la suppression.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong while deleting.");
       setDeleting(false);
     }
   }
@@ -233,7 +233,7 @@ export default function ScriptPage() {
       const { metrics } = await api.saveScriptMetrics(script.id, metricsDraft);
       setScript((prev) => (prev ? { ...prev, metrics } : prev));
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement des statistiques.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong while saving the stats.");
     } finally {
       setSavingMetrics(false);
     }
@@ -257,7 +257,7 @@ export default function ScriptPage() {
       }
     } catch (err) {
       setScript({ ...script, status: previous });
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors du changement de statut.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong while changing the status.");
     }
   }
 
@@ -266,16 +266,16 @@ export default function ScriptPage() {
   if (!script) {
     return (
       <div style={{ padding: "32px 36px" }}>
-        <p style={{ color: color.danger }}>{error || "Script introuvable."}</p>
+        <p style={{ color: color.danger }}>{error || "Script not found."}</p>
         <Button variant="secondary" onClick={() => router.push("/calendar")}>
-          ← Retour au calendrier
+          ← Back to calendar
         </Button>
       </div>
     );
   }
 
   const isText = script.contentType === "text";
-  const textLabel = isText ? "Texte" : "Texte du post";
+  const textLabel = isText ? "Text" : "Post text";
 
   return (
     <div className={layout.page}>
@@ -284,7 +284,7 @@ export default function ScriptPage() {
           onClick={() => router.push("/calendar")}
           style={{ background: "none", border: "none", color: color.textMuted, fontFamily: "inherit", fontSize: 14, cursor: "pointer", padding: 0 }}
         >
-          ← Calendrier
+          ← Calendar
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {history.length > 0 && <UndoButton onClick={handleUndo} />}
@@ -309,7 +309,7 @@ export default function ScriptPage() {
         <StatusDropdown status={script.status} onChange={handleStatusChange} />
       </div>
 
-      {applyingNewIdea && <p style={{ color: color.textMuted, fontSize: 13, margin: "0 0 14px" }}>On rédige une autre idée…</p>}
+      {applyingNewIdea && <p style={{ color: color.textMuted, fontSize: 13, margin: "0 0 14px" }}>Writing another idea…</p>}
       {error && <p style={{ color: color.danger, fontSize: 13, margin: "0 0 14px" }}>{error}</p>}
 
       {styleSuggestion !== null && (
@@ -327,18 +327,18 @@ export default function ScriptPage() {
           }}
         >
           <span style={{ flex: 1 }}>
-            Tu as corrigé {styleSuggestion} scripts depuis la dernière analyse de style. L&apos;analyser pour que les prochains
-            demandent moins de retouches ?
+            You&apos;ve edited {styleSuggestion} scripts since the last style analysis. Analyze them so the next ones
+            need fewer edits?
           </span>
           <button
             onClick={() => router.push("/settings")}
             style={{ fontFamily: "inherit", fontSize: 12, fontWeight: 600, color: "oklch(0.48 0.2 292)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
           >
-            Analyser →
+            Analyze →
           </button>
           <button
             onClick={() => setStyleSuggestion(null)}
-            title="Plus tard"
+            title="Later"
             style={{ fontFamily: "inherit", fontSize: 12, color: color.textFaint, background: "none", border: "none", cursor: "pointer", padding: 0 }}
           >
             ✕
@@ -347,34 +347,34 @@ export default function ScriptPage() {
       )}
 
       <div className={layout.layout}>
-        {/* Le post lui-même : la maquette pour un visuel, le post rendu pour un texte. */}
+        {/* The post itself: the mockup for a visual, the rendered post for a text. */}
         <div style={{ minWidth: 0 }}>
           {isText ? (
             <Card style={{ padding: "22px 24px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
                 <span style={{ width: 40, height: 40, borderRadius: "50%", background: `linear-gradient(135deg, ${accentAlpha(0.6)}, oklch(0.55 0.2 292))`, flexShrink: 0 }} />
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontWeight: 700, fontSize: 15, color: color.text }}>{authorName || "Toi"}</span>
+                  <span style={{ display: "block", fontWeight: 700, fontSize: 15, color: color.text }}>{authorName || "You"}</span>
                   <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: color.textFaint, fontFamily: fontMono }}>
                     <PlatformLogo platform={script.platform} size={13} />
-                    {platformMeta[script.platform]?.label ?? script.platform} · texte
+                    {platformMeta[script.platform]?.label ?? script.platform} · text
                   </span>
                 </span>
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                <div style={sectionLabel}>Accroche</div>
+                <div style={sectionLabel}>Hook</div>
                 <RegenerateButton onClick={() => regenerateBlock("hook")} busy={regeneratingBlock === "hook"} />
               </div>
-              {/* Aligne l'accroche (et le titre si besoin) sur le texte actuel, sans jamais réécrire le
-                  texte lui-même — le vrai geste d'édition du corps reste sélection→instruction. */}
+              {/* Aligns the hook (and the title if needed) with the current text, without ever rewriting
+                  the text itself — the real way to edit the body stays selection→instruction. */}
               <EditableField
                 value={script.hookText ?? ""}
                 onSave={(v) => saveField({ hookText: v })}
                 onApplyInstruction={(text, instr, isMajority) => applyInstruction("hookText", text, instr, isMajority)}
               />
               <div style={{ ...sectionLabel, margin: "18px 0 6px" }}>{textLabel}</div>
-              {/* Pas de régénération en bloc pour le texte : l'édition se fait petit bout par petit
-                  bout via la sélection (EditableField), qui a accès à la matière du sujet. */}
+              {/* No block regeneration for the text: editing happens bit by bit
+                  through selection (EditableField), which has access to the topic's material. */}
               <EditableField
                 value={script.caption}
                 minRows={12}
@@ -394,7 +394,7 @@ export default function ScriptPage() {
           )}
         </div>
 
-        {/* Ce qui accompagne le post, toujours sous les yeux. */}
+        {/* What goes with the post, always in view. */}
         <aside className={layout.aside}>
           {!isText && (
             <Card style={{ padding: 20 }}>
@@ -419,7 +419,7 @@ export default function ScriptPage() {
             <input
               key={script.hashtags.join(" ")}
               defaultValue={script.hashtags.join(" ")}
-              placeholder="#marque #niche"
+              placeholder="#brand #niche"
               onBlur={(e) => {
                 const hashtags = e.target.value.split(/\s+/).map((h) => h.trim()).filter(Boolean);
                 if (JSON.stringify(hashtags) !== JSON.stringify(script.hashtags)) saveField({ hashtags });
@@ -443,7 +443,7 @@ export default function ScriptPage() {
                 <summary style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px" }}>
                   <span style={sectionLabel}>Sources</span>
                   <span style={{ fontSize: 12, color: color.textMuted }}>
-                    {script.citations.length} passage{script.citations.length > 1 ? "s" : ""} de ta matière ▾
+                    {script.citations.length} passage{script.citations.length > 1 ? "s" : ""} from your material ▾
                   </span>
                 </summary>
                 <div style={{ padding: "0 20px 18px" }}>
@@ -451,7 +451,7 @@ export default function ScriptPage() {
                     {script.citations.map((c) => (
                       <div key={c.id} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                         <span
-                          title={c.matched ? "Localisé dans le document source" : "Non localisé — le texte source a pu changer"}
+                          title={c.matched ? "Found in the source document" : "Not found — the source text may have changed"}
                           style={{
                             flexShrink: 0,
                             marginTop: 2,
@@ -485,7 +485,7 @@ export default function ScriptPage() {
                               </span>
                             </div>
                           )}
-                          <div style={{ fontSize: 13, lineHeight: 1.4, color: color.text2 }}>&laquo;&nbsp;{c.excerpt}&nbsp;&raquo;</div>
+                          <div style={{ fontSize: 13, lineHeight: 1.4, color: color.text2 }}>&ldquo;{c.excerpt}&rdquo;</div>
                         </div>
                       </div>
                     ))}
@@ -499,13 +499,13 @@ export default function ScriptPage() {
             <Card style={{ padding: 20 }}>
               <div style={{ ...sectionLabel, marginBottom: 4 }}>Performance</div>
               <p style={{ margin: "0 0 14px", fontSize: 12, color: color.textMuted }}>
-                Les statistiques du post publié orientent les prochains vers ce qui marche.
+                The published post&apos;s stats steer the next ones toward what works.
               </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 10, marginBottom: 14 }}>
             {(["views", "likes", "comments", "shares"] as const).map((field) => (
               <div key={field}>
                 <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: color.textFaint, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>
-                  {{ views: "Vues", likes: "Likes", comments: "Commentaires", shares: "Partages" }[field]}
+                  {{ views: "Views", likes: "Likes", comments: "Comments", shares: "Shares" }[field]}
                 </label>
                 <input
                   type="number"
@@ -526,7 +526,7 @@ export default function ScriptPage() {
             ))}
           </div>
           <Button onClick={handleSaveMetrics} disabled={savingMetrics} style={{ padding: "8px 16px", fontSize: 13 }}>
-            {savingMetrics ? "..." : "Enregistrer"}
+            {savingMetrics ? "..." : "Save"}
           </Button>
             </Card>
           )}
@@ -534,32 +534,32 @@ export default function ScriptPage() {
       </div>
 
       <Modal open={confirmDelete} onClose={() => setConfirmDelete(false)} width={420}>
-        <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, margin: "0 0 8px" }}>Supprimer ce brouillon ?</h2>
+        <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, margin: "0 0 8px" }}>Delete this draft?</h2>
         <p style={{ margin: "0 0 18px", fontSize: 13, color: color.textMuted }}>
-          Le créneau du calendrier redevient vide et pourra être régénéré. Cette action est irréversible.
+          The calendar slot becomes empty again and can be regenerated. This cannot be undone.
         </p>
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <Button variant="secondary" onClick={() => setConfirmDelete(false)}>
-            Annuler
+            Cancel
           </Button>
           <Button onClick={handleDelete} disabled={deleting} style={{ background: color.danger }}>
-            {deleting ? "..." : "Supprimer"}
+            {deleting ? "..." : "Delete"}
           </Button>
         </div>
       </Modal>
 
       <Modal open={confirmNewIdea} onClose={() => setConfirmNewIdea(false)} width={420}>
-        <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, margin: "0 0 8px" }}>Partir sur une autre idée ?</h2>
+        <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, margin: "0 0 8px" }}>Go with another idea?</h2>
         <p style={{ margin: "0 0 18px", fontSize: 13, color: color.textMuted }}>
-          Tout le contenu de ce script sera remplacé par une nouvelle génération — plateforme, catégorie, angle et série restent inchangés. Si tu as modifié le texte à la main, ces modifications seront perdues. Cette action est irréversible.
+          All the content of this script will be replaced by a new generation — platform, category, angle and series stay unchanged. If you edited the text by hand, those edits will be lost. This cannot be undone.
         </p>
         <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: color.textFaint, marginBottom: 6 }}>
-          Une idée en tête ? <span style={{ fontWeight: 400 }}>(optionnel)</span>
+          An idea in mind? <span style={{ fontWeight: 400 }}>(optional)</span>
         </label>
         <textarea
           value={newIdeaDirective}
           onChange={(e) => setNewIdeaDirective(e.target.value)}
-          placeholder="Une piste à interpréter, pas un texte à recopier..."
+          placeholder="A direction to interpret, not a text to copy..."
           rows={3}
           maxLength={500}
           style={{
@@ -578,10 +578,10 @@ export default function ScriptPage() {
         />
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <Button variant="secondary" onClick={() => setConfirmNewIdea(false)}>
-            Annuler
+            Cancel
           </Button>
           <Button onClick={handleNewIdea} disabled={applyingNewIdea}>
-            {applyingNewIdea ? "..." : "Générer une autre idée"}
+            {applyingNewIdea ? "..." : "Generate another idea"}
           </Button>
         </div>
       </Modal>

@@ -17,13 +17,13 @@ export async function GET(
     const userId = await requireUserId();
     const { platform } = await params;
     if (!hasOAuthProvider(platform)) {
-      throw new ApiError(404, "Cette plateforme ne propose pas de connexion OAuth.");
+      throw new ApiError(404, "This platform does not offer OAuth sign-in.");
     }
 
     const code = request.nextUrl.searchParams.get("code");
     const state = request.nextUrl.searchParams.get("state");
     if (!code) {
-      throw new ApiError(400, "Code OAuth manquant.");
+      throw new ApiError(400, "Missing OAuth code.");
     }
 
     const cookieStore = await cookies();
@@ -32,7 +32,7 @@ export async function GET(
     cookieStore.delete(`oauth_state_${platform}`);
     cookieStore.delete(`oauth_return_${platform}`);
     if (!state || state !== expectedState) {
-      throw new ApiError(400, "State OAuth invalide, réessaie la connexion.");
+      throw new ApiError(400, "Invalid OAuth state, please try connecting again.");
     }
 
     const provider = socialProviders[platform]!;
@@ -90,7 +90,7 @@ export async function GET(
         if (!pendingProposalId) await runStyleLearningPass(userId);
       }
     } catch (err) {
-      logger.error("Récupération des posts échouée (connexion tout de même enregistrée)", err, { platform });
+      logger.error("Fetching posts failed (connection saved anyway)", err, { platform });
     }
 
     const redirectUrl = new URL(returnTo, request.url);

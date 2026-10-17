@@ -3,9 +3,9 @@ import type { LlmToolDefinition } from "./types";
 import { callStructured } from "./provider";
 
 /**
- * Résumé d'un document de matière en une ou deux phrases. Né avec le rédacteur en chef
- * (docs/SPEC_REDACTEUR_EN_CHEF.md §3.1, retiré par docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md Lot 4), il
- * sert encore au portrait des lecteurs, au cadrage de série et à l'affichage sous chaque document.
+ * Summary of a material document in one or two sentences. Born with the editor-in-chief
+ * (docs/SPEC_REDACTEUR_EN_CHEF.md §3.1, removed by docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md Lot 4), it
+ * still serves the reader portrait, the series framing and the display under each document.
  */
 
 const MAX_SUMMARY_LENGTH = 300;
@@ -14,24 +14,24 @@ const SUMMARIZE_MATERIAL_TOOL_NAME = "summarize_material";
 
 const summarizeMaterialTool: LlmToolDefinition = {
   name: SUMMARIZE_MATERIAL_TOOL_NAME,
-  description: "Résume le potentiel narratif d'un document de matière première.",
+  description: "Summarizes the narrative potential of a raw material document.",
   input_schema: {
     type: "object",
     properties: {
       summary: {
         type: "string",
-        description: "Le résumé narratif du document en 1-2 phrases, 40 mots maximum.",
+        description: "The narrative summary of the document in 1-2 sentences, 40 words maximum, in English.",
       },
     },
     required: ["summary"],
   },
 };
 
-const SUMMARIZE_MATERIAL_SYSTEM_PROMPT = `Tu résumes un document de matière première pour la direction éditoriale d'un créateur de contenu. En 1 à 2 phrases (40 mots maximum), dis ce qui s'est PASSÉ dans ce document et où est son potentiel narratif : l'événement, le changement, le chiffre marquant, l'échec, la décision ou la surprise. Ne décris pas le document ("ce document contient...") : raconte ce qu'il apprend. S'il ne contient que des données sans événement, dis-le en une phrase factuelle. Réponds via l'outil fourni.`;
+const SUMMARIZE_MATERIAL_SYSTEM_PROMPT = `You summarize a raw material document for a content creator's editorial direction. In 1 to 2 sentences (40 words maximum), say what HAPPENED in this document and where its narrative potential lies: the event, the change, the striking number, the failure, the decision or the surprise. Don't describe the document ("this document contains..."): tell what it teaches. If it only contains data without an event, say so in one factual sentence. Write in English, even if the document is in another language. Answer via the provided tool.`;
 
 const materialSummarySchema = z.object({ summary: z.string() });
 
-/** Un seul document par appel, envoyé en entier. */
+/** A single document per call, sent in full. */
 export async function summarizeMaterial(rawText: string, title?: string | null): Promise<string> {
   const userMessage = title ? `[${title}]\n${rawText}` : rawText;
   const args = await callStructured({

@@ -34,7 +34,7 @@ async function collectDocs(token: string, fullName: string, branch: string): Pro
     docs.push({
       externalRef: COMMITS_EXTERNAL_REF,
       externalChecksum: headSha,
-      title: `Journal de commits — ${fullName}`,
+      title: `Commit log — ${fullName}`,
       rawText: journal,
     });
   }
@@ -46,8 +46,8 @@ export const githubConnector: SourceConnector<GithubCandidateMeta> = {
   type: "github_repo",
   displayName: "GitHub",
 
-  emptyMessage: "Ce dépôt ne contient ni fichier .md ni commit exploitable.",
-  truncatedMessage: "Dépôt volumineux : l'arbre GitHub a été tronqué, ingestion partielle.",
+  emptyMessage: "This repository has no .md file or usable commit.",
+  truncatedMessage: "Large repository: the GitHub tree was truncated, so only part of it was ingested.",
 
   // Dépôt passé en privé ou supprimé → "error" ; token révoqué → "needs_reconnect".
   isAuthError: (error) => error instanceof GithubAuthError,

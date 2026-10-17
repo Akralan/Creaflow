@@ -25,8 +25,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     const userId = await requireUserId();
     const { id } = await params;
-    // Micro-retouche = appel LLM texte court, mais reste un appel LLM — limite dédiée, plus généreuse
-    // que "script-generate" puisque l'itération est tout le but de l'éditeur (§4.4).
+    // Micro-edit = short-text LLM call, but still an LLM call — dedicated limit, more generous
+    // than "script-generate" since iteration is the whole point of the editor (§4.4).
     await enforceRateLimit("script-micro-edit", userId, 40, 60);
     const body = schema.parse(await request.json());
     await enforceMicroEditQuota(userId);

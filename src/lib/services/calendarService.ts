@@ -5,13 +5,13 @@ import {
 } from "@/lib/seriesRhythm";
 
 /**
- * Logique pure du calendrier. Depuis docs/SPEC_RYTHME_DES_SERIES.md, les créneaux ne sont plus
- * tirés au sort chaque mois selon des poids : chaque série les pose sur son rythme (planSeriesSlots),
- * et le service seriesSlotSync tient l'horizon à jour.
+ * Pure calendar logic. Since docs/SPEC_RYTHME_DES_SERIES.md, slots are no longer drawn at random
+ * each month according to weights: each series places them on its rhythm (planSeriesSlots),
+ * and the seriesSlotSync service keeps the horizon up to date.
  */
 
-/** Filtre une liste de catégories/séries selon la plateforme ciblée. Un élément dont `platforms`
- *  est vide est visible sur tous les réseaux (comportement historique, rétrocompatible). */
+/** Filters a list of categories/series by the targeted platform. An item whose `platforms`
+ *  is empty is visible on all networks (historical, backward-compatible behavior). */
 export function filterByPlatform<T extends { platforms: string[] }>(
   items: T[],
   platform: string,
@@ -22,16 +22,16 @@ export function filterByPlatform<T extends { platforms: string[] }>(
 }
 
 const WEEKDAY_NAMES = [
-  "lundi",
-  "mardi",
-  "mercredi",
-  "jeudi",
-  "vendredi",
-  "samedi",
-  "dimanche",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
 ];
 
-/** Jours de publication en clair, dans l'ordre de la semaine : [6, 3] → « mercredi, samedi ». */
+/** Publishing days in plain words, in week order: [6, 3] → "Wednesday, Saturday". */
 export function publishingDaysLabel(weekdays: number[]): string {
   return [...new Set(weekdays)]
     .filter((d) => d >= 1 && d <= 7)
@@ -47,7 +47,7 @@ export function parseMonth(month: string): {
 } {
   const [yearStr, monthStr] = month.split("-");
   const year = Number(yearStr);
-  const monthIndex = Number(monthStr) - 1; // 0-based pour Date
+  const monthIndex = Number(monthStr) - 1; // 0-based for Date
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
   return { year, monthIndex, daysInMonth };
 }
@@ -55,13 +55,13 @@ export function parseMonth(month: string): {
 export interface RhythmSeries {
   id: string;
   rhythm: SeriesRhythm | null;
-  /** Vide = tous les réseaux actifs. */
+  /** Empty = all active networks. */
   platforms: string[];
-  /** Créneaux retirés à la main (`slotKey`) : jamais recréés. */
+  /** Slots removed by hand (`slotKey`): never recreated. */
   skippedSlots?: string[];
 }
 
-/** Clé d'un créneau dans la liste des retirés d'une série : `YYYY-MM-DD|plateforme`. */
+/** Key of a slot in a series' removed list: `YYYY-MM-DD|platform`. */
 export function slotKey(date: Date, platform: string): string {
   return `${toIsoDate(date)}|${platform}`;
 }
@@ -71,16 +71,16 @@ export interface ExistingSlot {
   seriesId: string;
   platform: string;
   scheduledDate: Date;
-  /** Un créneau rédigé ou publié ne bouge jamais. */
+  /** A written or published slot never moves. */
   locked: boolean;
 }
 
 /**
- * Créneaux d'une série (§3) : à créer, entre `from` et `to`, les couples (date, réseau) de son
- * rythme qu'elle n'a pas encore et que l'auteur n'a pas retirés ; à supprimer, ses créneaux vides à
- * partir de `from` — y compris au-delà de `to`, posés par l'ancien calendrier mensuel — qui ne
- * tombent plus sur son rythme ou sur un réseau actif. Un créneau verrouillé (rédigé, publié) compte
- * comme présent et n'est jamais supprimé.
+ * Slots of a series (§3): to create, between `from` and `to`, the (date, network) pairs of its
+ * rhythm that it doesn't have yet and that the author hasn't removed; to delete, its empty slots
+ * from `from` on — including beyond `to`, placed by the old monthly calendar — that no longer
+ * fall on its rhythm or on an active network. A locked slot (written, published) counts as
+ * present and is never deleted.
  */
 export function planSeriesSlots(input: {
   series: RhythmSeries;

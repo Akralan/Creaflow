@@ -9,9 +9,9 @@ import { color, fontHeading, platformMeta } from "@/lib/design/tokens";
 import { KNOWN_PLATFORMS } from "@/lib/social/types";
 
 /**
- * L'objectif de la semaine, derrière une icône : les réseaux actifs (un post par jour de
- * publication sur chacun) et l'avancement de la semaine affichée. On active ou coupe un réseau ;
- * le rythme se règle par les jours, dans les paramètres.
+ * The weekly goal, behind an icon: the active networks (one post per publishing day on
+ * each) and the progress of the week shown. A network is turned on or off;
+ * the rhythm is set by days, in settings.
  */
 export default function PlatformGoalsModal({
   goals,
@@ -37,16 +37,16 @@ export default function PlatformGoalsModal({
       await Promise.all(KNOWN_PLATFORMS.map((p) => api.savePostingGoal(p.key, drafts[p.key])));
       onSaved();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Enregistrement impossible.");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't save.");
       setSaving(false);
     }
   }
 
   return (
     <Modal open onClose={() => !saving && onClose()} width={440}>
-      <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 20, margin: "0 0 4px" }}>Objectif de la semaine</h2>
+      <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 20, margin: "0 0 4px" }}>Weekly goal</h2>
       <p style={{ margin: "0 0 20px", fontSize: 13, color: color.textMuted }}>
-        Un post par jour de publication, sur chaque réseau actif. Les jours se changent dans les paramètres.
+        One post per publishing day, on each active network. Days are changed in settings.
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {KNOWN_PLATFORMS.map(({ key, label }) => {
@@ -60,14 +60,14 @@ export default function PlatformGoalsModal({
               <span style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{label}</span>
               {active && target > 0 && (
                 <span style={{ fontSize: 12, fontWeight: 600, color: color.textSecondary }}>
-                  {done}/{target} publiés
+                  {done}/{target} published
                 </span>
               )}
               <button
                 type="button"
                 role="switch"
                 aria-checked={active}
-                aria-label={`${label} : ${active ? "actif" : "coupé"}`}
+                aria-label={`${label}: ${active ? "on" : "off"}`}
                 onClick={() => setDrafts((d) => ({ ...d, [key]: !d[key] }))}
                 style={{ width: 38, height: 22, borderRadius: 22, border: "none", padding: 0, cursor: "pointer", position: "relative", background: active ? platformMeta[key]?.badgeBg ?? "oklch(0.5 0.2 292)" : color.border, transition: "background .15s" }}
               >
@@ -80,10 +80,10 @@ export default function PlatformGoalsModal({
       {error && <p style={{ color: color.danger, fontSize: 13, margin: "16px 0 0" }}>{error}</p>}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 22 }}>
         <Button variant="secondary" onClick={onClose} disabled={saving}>
-          Annuler
+          Cancel
         </Button>
         <Button onClick={save} disabled={saving}>
-          {saving ? "..." : "Enregistrer"}
+          {saving ? "..." : "Save"}
         </Button>
       </div>
     </Modal>

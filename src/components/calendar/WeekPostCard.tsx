@@ -9,7 +9,7 @@ import { accent, accentAlpha, fontHeading, fontMono, statusMeta } from "@/lib/de
 import { platformMeta } from "@/lib/design/tokens";
 import styles from "./calendar.module.css";
 
-/** Teintes de la landing (src/components/landing/theme.ts) : le calendrier parle la même langue. */
+/** Tints of the landing page (src/components/landing/theme.ts): the calendar speaks the same language. */
 const ink = {
   heading: "#1b1713",
   body: "#221d19",
@@ -18,9 +18,9 @@ const ink = {
   card: "#fffdfa",
 };
 
-const DAY_FORMAT = new Intl.DateTimeFormat("fr-FR", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+const DAY_FORMAT = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
 
-/** « MER. 15 OCT. » — les créneaux sont stockés à minuit UTC, on les lit donc en UTC. */
+/** "WED, OCT 15" — slots are stored at UTC midnight, so we read them in UTC. */
 export function dayLabel(iso: string): string {
   return DAY_FORMAT.format(new Date(iso)).replace(/\./g, "").toUpperCase();
 }
@@ -30,13 +30,13 @@ function platformLabel(platform: string) {
 }
 
 function formatBadge(script: NonNullable<WeekEntry["script"]>): string {
-  if (script.contentType === "text") return "Texte";
-  if (script.visualFormat === "animation") return `Animation · ${Math.round((script.durationMs ?? 8000) / 1000)} s`;
-  if (script.visualFormat === "carousel") return `Carrousel · 1/${script.preview?.slideCount ?? script.slideCount ?? "…"}`;
+  if (script.contentType === "text") return "Text";
+  if (script.visualFormat === "animation") return `Animation · ${Math.round((script.durationMs ?? 8000) / 1000)}s`;
+  if (script.visualFormat === "carousel") return `Carousel · 1/${script.preview?.slideCount ?? script.slideCount ?? "…"}`;
   return "Image";
 }
 
-/** Première slide de la maquette, mise à l'échelle de la carte et centrée sur fond sombre. */
+/** First slide of the mockup, scaled to the card and centered on a dark background. */
 function DesignPreview({ scriptId, preview, hasLogo }: { scriptId: string; preview: NonNullable<NonNullable<WeekEntry["script"]>["preview"]>; hasLogo: boolean }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
@@ -92,22 +92,22 @@ function StatusChip({ status }: { status: NonNullable<WeekEntry["script"]>["stat
 }
 
 /**
- * Un post encore vide, en verre irisé : la série, le titre de l'épisode prévu par le plan (sinon
- * « Post à venir »), le projet relié, et l'invitation à le rédiger.
+ * A still-empty post, in iridescent glass: the series, the title of the episode planned by the plan (otherwise
+ * "Upcoming post"), the linked project, and the invitation to write it.
  */
 function HoloBody({ entry }: { entry: WeekEntry }) {
   const upcoming = entry.upcoming;
   return (
     <div style={{ position: "absolute", inset: 0, padding: 18, display: "flex", flexDirection: "column", zIndex: 1 }}>
       <span style={{ alignSelf: "flex-start", fontSize: 11.5, fontWeight: 600, color: "#4d3778", background: "rgba(255,253,250,0.7)", borderRadius: 999, padding: "4px 9px" }}>
-        {entry.series?.label ?? "Post libre"}
+        {entry.series?.label ?? "Free post"}
       </span>
       <div style={{ marginTop: "auto" }}>
         <p
           className={styles.clamp3}
           style={{ margin: 0, fontFamily: fontHeading, fontWeight: 700, fontSize: upcoming?.title ? 19 : 21, lineHeight: 1.15, letterSpacing: "-0.02em", color: upcoming?.title ? ink.heading : "rgba(34,29,25,0.45)" }}
         >
-          {upcoming?.title ?? "Post à venir"}
+          {upcoming?.title ?? "Upcoming post"}
         </p>
         {upcoming?.project && (
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: 12.5, color: ink.secondary }}>
@@ -115,16 +115,16 @@ function HoloBody({ entry }: { entry: WeekEntry }) {
             {upcoming.project}
           </div>
         )}
-        <div style={{ marginTop: 14, fontSize: 12.5, fontWeight: 600, color: "#4d3778" }}>Rédiger →</div>
+        <div style={{ marginTop: 14, fontSize: 12.5, fontWeight: 600, color: "#4d3778" }}>Write →</div>
       </div>
     </div>
   );
 }
 
 /**
- * Un créneau de la semaine, affiché comme le post qu'il sera (même langage que les cartes de la
- * landing) : la maquette pour un visuel, le début du texte pour un post écrit, une carte en
- * pointillés « à rédiger » pour un créneau vide.
+ * A slot of the week, shown as the post it will be (same language as the landing page cards):
+ * the mockup for a visual, the start of the text for a written post, a dashed
+ * "to write" card for an empty slot.
  */
 export default function WeekPostCard({
   entry,
@@ -141,11 +141,11 @@ export default function WeekPostCard({
   isPast: boolean;
   onOpen: () => void;
   onEditSlot: () => void;
-  /** Mention avant la date (ex. « Post suivant »), pour la carte qui prolonge la semaine. */
+  /** Label before the date (e.g. "Next post"), for the card that extends the week. */
   kicker?: string;
 }) {
   const script = entry.script;
-  const seriesLabel = entry.series?.label ?? "Post libre";
+  const seriesLabel = entry.series?.label ?? "Free post";
   const className = `${styles.card} ${!script ? styles.holo : ""} ${isPast ? styles.past : ""}`;
 
   let body: React.ReactNode;
@@ -177,7 +177,7 @@ export default function WeekPostCard({
       </>
     );
   } else if (script.contentType === "visual") {
-    // Maquette pas encore composée : la carte « motion » de la landing, avec le titre.
+    // Mockup not composed yet: the landing page's "motion" card, with the title.
     body = (
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(160deg, oklch(0.32 0.12 292) 0%, oklch(0.2 0.06 292) 100%)" }}>
         <span className={styles.blob} />
@@ -188,7 +188,7 @@ export default function WeekPostCard({
           className={styles.clamp5}
           style={{ position: "absolute", left: 16, right: 16, top: "50%", transform: "translateY(-50%)", margin: 0, color: "#fffdfa", fontFamily: fontHeading, fontWeight: 700, fontSize: 22, lineHeight: 1.1, letterSpacing: "-0.03em" }}
         >
-          {script.title ?? "Sans titre"}
+          {script.title ?? "Untitled"}
         </p>
         <div style={{ position: "absolute", left: 12, bottom: 12 }}>
           <StatusChip status={script.status} />
@@ -202,15 +202,15 @@ export default function WeekPostCard({
           <span style={{ width: 30, height: 30, borderRadius: "50%", background: `linear-gradient(135deg, ${accentAlpha(0.6)}, ${accent})`, flexShrink: 0 }} />
           <span style={{ minWidth: 0 }}>
             <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: ink.heading, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {authorName || "Toi"}
+              {authorName || "You"}
             </span>
             <span style={{ display: "block", fontSize: 11, color: ink.faint, fontFamily: fontMono }}>
-              {platformLabel(entry.platform)} · texte
+              {platformLabel(entry.platform)} · text
             </span>
           </span>
         </div>
         <p className={styles.clamp3} style={{ margin: 0, fontFamily: fontHeading, fontWeight: 700, fontSize: 17, lineHeight: 1.22, letterSpacing: "-0.015em", color: ink.heading }}>
-          {script.hookText || script.title || "Sans titre"}
+          {script.hookText || script.title || "Untitled"}
         </p>
         {script.caption && (
           <p className={styles.clamp5} style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: ink.secondary }}>
@@ -232,15 +232,15 @@ export default function WeekPostCard({
         <span>{dayLabel(entry.scheduledDate)}</span>
       </div>
       <div style={{ position: "relative" }}>
-        <button type="button" className={className} onClick={onOpen} aria-label={script ? `Ouvrir « ${script.title ?? "Sans titre"} »` : `Rédiger le post du ${dayLabel(entry.scheduledDate)}`}>
+        <button type="button" className={className} onClick={onOpen} aria-label={script ? `Open "${script.title ?? "Untitled"}"` : `Write the post for ${dayLabel(entry.scheduledDate)}`}>
           {body}
         </button>
         {!script && (
           <button
             type="button"
             onClick={onEditSlot}
-            title="Modifier ce créneau"
-            aria-label="Modifier ce créneau"
+            title="Edit this slot"
+            aria-label="Edit this slot"
             style={{ position: "absolute", top: 10, right: 10, zIndex: 2, width: 30, height: 30, borderRadius: 9, border: "1px solid rgba(255,255,255,0.8)", background: "rgba(255,253,250,0.75)", color: ink.secondary, display: "grid", placeItems: "center", cursor: "pointer" }}
           >
             <PenLine size={14} />
@@ -252,7 +252,7 @@ export default function WeekPostCard({
   );
 }
 
-/** Version téléphone : une ligne par post, la date, le réseau et le titre. */
+/** Phone version: one row per post, with the date, the network and the title. */
 export function WeekPostRow({ entry, isPast, onOpen, kicker }: { entry: WeekEntry; isPast: boolean; onOpen: () => void; kicker?: string }) {
   const script = entry.script;
   return (
@@ -284,7 +284,7 @@ export function WeekPostRow({ entry, isPast, onOpen, kicker }: { entry: WeekEntr
           {dayLabel(entry.scheduledDate)}
         </span>
         <span style={{ display: "block", fontSize: 15, fontWeight: 600, color: script || entry.upcoming?.title ? ink.heading : "rgba(34,29,25,0.5)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {script ? (script.title ?? "Sans titre") : (entry.upcoming?.title ?? `Post à venir · ${entry.series?.label ?? "Post libre"}`)}
+          {script ? (script.title ?? "Untitled") : (entry.upcoming?.title ?? `Upcoming post · ${entry.series?.label ?? "Free post"}`)}
         </span>
         {!script && entry.upcoming?.project && (
           <span style={{ display: "block", fontSize: 12, color: ink.secondary }}>{entry.upcoming.project}</span>

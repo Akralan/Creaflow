@@ -4,10 +4,10 @@ import { logger } from "@/lib/logger";
 import { isOnboardingComplete } from "@/lib/services/onboardingService";
 
 /**
- * Où envoyer un visiteur de la page d'accueil déjà connecté : le calendrier s'il a un profil,
- * l'onboarding sinon. `null` pour tout le monde d'autre — y compris en cas d'erreur (base
- * injoignable, cookie d'une autre version sans AUTH_SECRET) : la landing doit toujours s'afficher,
- * c'est la page que lisent les moteurs et les aperçus de liens (docs/SPEC_SEO.md §1).
+ * Where to send a signed-in visitor of the home page: the calendar if they have a profile,
+ * onboarding otherwise. `null` for everyone else — including on error (unreachable database,
+ * cookie from another version without AUTH_SECRET): the landing must always render,
+ * it's the page that search engines and link previews read (docs/SPEC_SEO.md §1).
  */
 export async function resolveSignedInDestination(): Promise<"/calendar" | "/onboarding" | null> {
   try {
@@ -15,10 +15,10 @@ export async function resolveSignedInDestination(): Promise<"/calendar" | "/onbo
     if (!userId) return null;
     return (await isOnboardingComplete(userId)) ? "/calendar" : "/onboarding";
   } catch (error) {
-    // Laisse passer les erreurs internes de Next (ex. le signal « cette route lit des cookies, ne
-    // pas la prérendre » émis au build) : seules les erreurs applicatives retombent sur la landing.
+    // Let Next's internal errors through (e.g. the "this route reads cookies, don't
+    // prerender it" signal emitted at build): only application errors fall back to the landing.
     unstable_rethrow(error);
-    logger.warn("Page d'accueil : vérification de session impossible, landing servie", {
+    logger.warn("Home page: session check failed, serving landing", {
       error: error instanceof Error ? error.message : String(error),
     });
     return null;

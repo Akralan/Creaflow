@@ -4,30 +4,30 @@ import { ApiError, handleApiError } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
 import { MAX_DESIGN_SLIDES, MAX_EXPORT_BYTES, MAX_VIDEO_EXPORT_BYTES, storeDesignExports, toApiDesignWithAssets, type ExportFile } from "@/lib/services/visualDesignService";
 
-// video/mp4 : export d'une animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §5.2).
+// video/mp4: export of an animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §5.2).
 const ALLOWED_MIME = new Set(["image/png", "image/jpeg", "image/webp", "video/mp4"]);
 
 /**
- * Réception des PNG rendus par le navigateur (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2 « Export »).
- * Multipart : un champ `slide-<planNumber>` par fichier.
+ * Reception of the PNGs rendered by the browser (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2 "Export").
+ * Multipart: one `slide-<planNumber>` field per file.
  */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userId = await requireUserId();
     const { id } = await params;
-    // Jusqu'à 12 × 4 Mo vers R2 par appel — même limite que la composition (spec §2 « Quota »).
+    // Up to 12 × 4 MB to R2 per call — same limit as composition (spec §2 "Quota").
     await enforceRateLimit("design-export", userId, 10, 60);
     const form = await request.formData();
     const files: ExportFile[] = [];
     for (const [field, value] of form.entries()) {
       const match = /^slide-(\d+)$/.exec(field);
       if (!match || !(value instanceof File)) continue;
-      if (!ALLOWED_MIME.has(value.type)) throw new ApiError(415, `Format d'image non supporté : ${value.type || "inconnu"}.`);
-      if (value.size > (value.type === "video/mp4" ? MAX_VIDEO_EXPORT_BYTES : MAX_EXPORT_BYTES)) throw new ApiError(413, `Slide ${match[1]} : fichier trop lourd.`);
+      if (!ALLOWED_MIME.has(value.type)) throw new ApiError(415, `Unsupported image format: ${value.type || "unknown"}.`);
+      if (value.size > (value.type === "video/mp4" ? MAX_VIDEO_EXPORT_BYTES : MAX_EXPORT_BYTES)) throw new ApiError(413, `Slide ${match[1]}: file too large.`);
       files.push({ planNumber: Number(match[1]), bytes: Buffer.from(await value.arrayBuffer()), mimeType: value.type });
       if (files.length > MAX_DESIGN_SLIDES) throw new ApiError(400, `${MAX_DESIGN_SLIDES} slides maximum.`);
     }
-    if (files.length === 0) throw new ApiError(400, "Aucune slide reçue.");
+    if (files.length === 0) throw new ApiError(400, "No slide received.");
     const design = await storeDesignExports(userId, id, files);
     return NextResponse.json({ design: await toApiDesignWithAssets(design) });
   } catch (error) {

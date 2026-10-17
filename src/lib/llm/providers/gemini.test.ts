@@ -57,6 +57,6 @@ describe("callGemini", () => {
 
   it("lève une erreur générique si aucun functionCall n'est renvoyé", async () => {
     generateContentMock.mockResolvedValue({ functionCalls: undefined });
-    await expect(callGemini(params)).rejects.toThrow("n'a pas renvoyé de réponse structurée");
+    await expect(callGemini(params)).rejects.toThrow("did not return a structured response");
   });
 });

@@ -42,7 +42,7 @@ async function readPage(
       blocks.push(block);
       if (block.type === "child_page") {
         const payload = (block.raw as Record<string, unknown>).child_page as { title?: string } | undefined;
-        children.push({ id: block.id, title: payload?.title ?? "Sans titre" });
+        children.push({ id: block.id, title: payload?.title ?? "Untitled" });
       }
     }
     cursor = truncated ? undefined : (page.nextCursor ?? undefined);
@@ -90,21 +90,21 @@ export const notionConnector: SourceConnector<NotionCandidateMeta> = {
   type: "notion_page",
   displayName: "Notion",
 
-  emptyMessage: "Cette page Notion ne contient aucun texte exploitable.",
-  truncatedMessage: "Page volumineuse : seule une partie du contenu Notion a été ingérée.",
+  emptyMessage: "This Notion page has no usable text.",
+  truncatedMessage: "Large page: only part of the Notion content was ingested.",
 
   isAuthError: (error) => error instanceof NotionAuthError,
 
   candidateHint: (meta) => {
-    const kind = meta.objectType === "data_source" ? "base de données" : "page";
-    const edited = meta.lastEditedTime ? `modifiée le ${meta.lastEditedTime.slice(0, 10)}` : null;
+    const kind = meta.objectType === "data_source" ? "database" : "page";
+    const edited = meta.lastEditedTime ? `edited on ${meta.lastEditedTime.slice(0, 10)}` : null;
     return [kind, edited].filter(Boolean).join(" · ");
   },
 
   picker: {
     emptyMessage:
-      "Aucune page Notion partagée avec CreaFlow. Dans Notion, ouvre la page voulue, puis « Partager » et invite l'intégration CreaFlow — elle ne voit que ce que tu lui partages.",
-    footnote: "On récupère le texte de la page et de ses sous-pages.",
+      "No Notion page shared with Buildloud. In Notion, open the page you want, click \"Share\" and invite the Buildloud integration — it only sees what you share with it.",
+    footnote: "We pull the text of the page and its subpages.",
   },
 
   async assertReady(userId) {

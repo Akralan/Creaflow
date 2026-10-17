@@ -9,8 +9,8 @@ import { deleteScriptForUser, patchScriptContent } from "@/lib/services/scriptSe
 import { toApiDesignWithAssets } from "@/lib/services/visualDesignService";
 import { storyboardStepSchema } from "@/lib/llm/scriptSchema";
 
-// Statut ET contenu (docs/SPEC_MATIERE_EDITEUR.md §4.5) — catégorie/angle/série volontairement
-// absents : brief verrouillé, non modifiable depuis l'éditeur (§4.2).
+// Status AND content (docs/SPEC_MATIERE_EDITEUR.md §4.5) — category/angle/series deliberately
+// absent: locked brief, not editable from the editor (§4.2).
 const patchSchema = z
   .object({
     status: z.enum(scriptStatusEnum.enumValues).optional(),
@@ -21,7 +21,7 @@ const patchSchema = z
     caption: z.string().min(1).optional(),
     hashtags: z.array(z.string()).optional(),
   })
-  .refine((data) => Object.keys(data).length > 0, { message: "Aucune modification fournie." });
+  .refine((data) => Object.keys(data).length > 0, { message: "No changes provided." });
 
 export async function GET(
   _request: NextRequest,
@@ -36,23 +36,23 @@ export async function GET(
       with: {
         product: true,
         contentCategory: true,
-        // Angle imposé, affiché en lecture seule dans le brief en en-tête de l'éditeur (§4.2).
+        // Imposed angle, shown read-only in the editor's header brief (§4.2).
         angle: { columns: { id: true, label: true, description: true } },
         series: { columns: { id: true, label: true } },
         metrics: true,
-        // Maquette du post visuel (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §4) — jointe ici, une route par vue.
+        // Mockup of the visual post (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §4) — joined here, one route per view.
         visualDesign: true,
-        // Matière utilisée (docs/SPEC_MATIERE_EDITEUR.md §3) — traçabilité affichée sur la fiche.
+        // Material used (docs/SPEC_MATIERE_EDITEUR.md §3) — traceability shown on the card.
         citations: { with: { sourceMaterial: { columns: { title: true } } } },
       },
     });
 
     if (!script) {
-      throw new ApiError(404, "Script introuvable.");
+      throw new ApiError(404, "Script not found.");
     }
 
 
-    // L'événement raconté (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5), pour le brief de l'éditeur.
+    // The event told (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5), for the editor brief.
     const event = script.eventId
       ? await db.query.materialEvents.findFirst({ where: eq(materialEvents.id, script.eventId), columns: { title: true, date: true } })
       : null;

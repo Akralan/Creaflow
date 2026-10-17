@@ -19,25 +19,25 @@ const SUGGEST_CONTENT_CATEGORIES_TOOL_NAME = "suggest_content_categories";
 const suggestContentCategoriesTool: LlmToolDefinition = {
   name: SUGGEST_CONTENT_CATEGORIES_TOOL_NAME,
   description:
-    "Propose entre 2 et 6 rôles éditoriaux (catégories de contenu) adaptés au métier précis du créateur, pour structurer son mix de publication.",
+    "Proposes between 2 and 6 editorial roles (content categories) suited to the creator's precise trade, to structure their publishing mix. All text in English.",
   input_schema: {
     type: "object",
     properties: {
       categories: {
         type: "array",
         description:
-          "Liste de 2 à 6 catégories de contenu, chacune avec un rôle distinct dans la stratégie (ex: promotionnel, coulisses/humain, éducatif/valeur, actualité, retours d'expérience... adapte entièrement les rôles au métier décrit, n'impose aucun triptyque fixe).",
+          "List of 2 to 6 content categories, each with a distinct role in the strategy (e.g. promotional, behind the scenes/human, educational/value, news, lessons learned... adapt the roles entirely to the described trade, impose no fixed triad).",
         minItems: 2,
         maxItems: 6,
         items: {
           type: "object",
           properties: {
-            label: { type: "string", description: "Libellé court affiché dans l'app (2-3 mots max)." },
+            label: { type: "string", description: "Short label shown in the app (2-3 words max)." },
             description: {
               type: "string",
-              description: "Guidance en une phrase pour orienter la génération de scripts de cette catégorie.",
+              description: "One-sentence guidance to steer the script generation of this category.",
             },
-            weight: { type: "integer", description: "Pourcentage cible dans le mix mensuel (5 à 90)." },
+            weight: { type: "integer", description: "Target percentage in the monthly mix (5 to 90)." },
           },
           required: ["label", "description", "weight"],
         },
@@ -47,9 +47,9 @@ const suggestContentCategoriesTool: LlmToolDefinition = {
   },
 };
 
-const SYSTEM_PROMPT = `Tu conçois le plan de contenu social media d'un créateur ou d'une entreprise, adapté précisément à son activité.
+const SYSTEM_PROMPT = `You design the social media content plan of a creator or a company, tailored precisely to their activity.
 
-Propose entre 2 et 6 catégories de contenu qui structureront son mix de publication mensuel. Les catégories doivent couvrir des rôles complémentaires et distincts (ex: pour un artisan : promotionnel / coulisses / éducatif ; pour un freelance produit web : build in public / retours d'expérience / astuces techniques / annonces produit — adapte entièrement le nombre et les rôles au métier décrit, n'impose aucun triptyque fixe). Pour chaque catégorie, propose un libellé court et un pourcentage cible réaliste (entre 5 et 90, sans obligation de sommer exactement à 100 — l'application normalise).`;
+Propose between 2 and 6 content categories that will structure their monthly publishing mix. The categories must cover complementary, distinct roles (e.g. for a craftsperson: promotional / behind the scenes / educational; for a freelance web product maker: build in public / lessons learned / technical tips / product announcements — adapt the number and the roles entirely to the described trade, impose no fixed triad). For each category, propose a short label and a realistic target percentage (between 5 and 90, no obligation to sum exactly to 100 — the application normalizes). Write everything in English.`;
 
 export function normalizeCategoryWeights(categories: CategoryEntry[]): CategoryEntry[] {
   const total = categories.reduce((sum, c) => sum + c.weight, 0);
@@ -74,11 +74,11 @@ export interface CategoryLabelsContext {
 
 export async function suggestContentCategories(context: CategoryLabelsContext): Promise<CategoryEntry[]> {
   const lines = [
-    `Marque : ${context.brandName} (${context.activityType})`,
-    context.expectations ? `Ce que l'auteur attend de CreaFlow : ${context.expectations}` : null,
+    `Brand: ${context.brandName} (${context.activityType})`,
+    context.expectations ? `What the author expects from Buildloud: ${context.expectations}` : null,
     context.products.length > 0
-      ? `Produits/projets : ${context.products.map((p) => p.name + (p.description ? ` — ${p.description}` : "")).join(" ; ")}`
-      : "Aucun produit renseigné.",
+      ? `Products/projects: ${context.products.map((p) => p.name + (p.description ? ` — ${p.description}` : "")).join("; ")}`
+      : "No product registered.",
   ].filter(Boolean);
 
   const args = await callStructured({

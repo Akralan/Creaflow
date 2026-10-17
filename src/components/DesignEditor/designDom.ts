@@ -2,16 +2,16 @@ import { DESIGN_FONTS, toRenderableFontFamily } from "@/lib/visualDesign/fonts";
 import { imagePlaceholder, parseImagePlaceholder } from "@/lib/visualDesign/designImages";
 
 /**
- * Passage entre le HTML stocké (placeholders, noms de polices lisibles) et le HTML rendu dans le
- * navigateur (URLs same-origin, variables CSS de next/font), plus les manipulations de calques de
- * l'édition manuelle. Tout ce fichier suppose un DOM (client). Le serveur repasse de toute façon
- * chaque écriture par la liste blanche : ici on ne valide rien, on transforme.
+ * Conversion between the stored HTML (placeholders, readable font names) and the HTML rendered in the
+ * browser (same-origin URLs, next/font CSS variables), plus the layer manipulations of
+ * manual editing. This whole file assumes a DOM (client). The server re-runs anyway
+ * every write through the allowlist: here we validate nothing, we only transform.
  */
 
 export const LOGO_PLACEHOLDER = "{{LOGO}}";
 
 export interface RenderUrls {
-  /** URL same-origin de chaque photo de la maquette, par référence (`p1` → `/api/scripts/…/design/images/p1`). */
+  /** Same-origin URL of each photo in the mockup, by reference (`p1` → `/api/scripts/…/design/images/p1`). */
   images: Record<string, string>;
   logoUrl: string | null;
 }
@@ -22,26 +22,26 @@ function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** HTML stocké → HTML affichable : placeholders résolus, polices traduites en variables CSS. */
+/** Stored HTML → displayable HTML: placeholders resolved, fonts translated to CSS variables. */
 export function toRenderableHtml(html: string, urls: RenderUrls): string {
   let out = html;
   for (const [ref, url] of Object.entries(urls.images)) out = out.split(imagePlaceholder(ref)).join(url);
   out = out.split(LOGO_PLACEHOLDER).join(urls.logoUrl ?? "");
   for (const font of DESIGN_FONTS) {
-    // Le navigateur peut avoir cité le nom (« "Playfair Display" ») lors d'une retouche manuelle.
+    // The browser may have quoted the name ("Playfair Display") during a manual edit.
     const re = new RegExp(`font-family:\\s*(['"]?)${escapeRegExp(font.name)}\\1\\s*(?=[;"])`, "g");
     out = out.replace(re, `font-family:${toRenderableFontFamily(font.name)}`);
   }
   return out;
 }
 
-/** HTML affiché (DOM) → HTML à stocker : URLs remises en placeholders, variables CSS en noms de polices. */
+/** Displayed HTML (DOM) → HTML to store: URLs put back as placeholders, CSS variables as font names. */
 export function fromRenderedHtml(html: string, urls: RenderUrls): string {
   let out = html;
   for (const [ref, url] of Object.entries(urls.images)) if (url) out = out.split(url).join(imagePlaceholder(ref));
   if (urls.logoUrl) out = out.split(urls.logoUrl).join(LOGO_PLACEHOLDER);
-  // Le navigateur peut réécrire `font-family: var(--x), a, b` en `font-family: var(--x), a, b` ou
-  // développer la valeur ; on ne dépend que de la présence de la variable.
+  // The browser may rewrite `font-family: var(--x), a, b` as `font-family: var(--x), a, b` or
+  // expand the value; we only depend on the presence of the variable.
   out = out.replace(/font-family:\s*var\((--font-design-[a-z-]+)\)[^;"]*/g, (_m, variable: string) => {
     const name = VARIABLE_TO_NAME.get(variable);
     return `font-family:${name ?? "Inter"}`;
@@ -49,7 +49,7 @@ export function fromRenderedHtml(html: string, urls: RenderUrls): string {
   return out;
 }
 
-/** Parse un HTML de slide (rendu ou stocké) en élément racine détaché. */
+/** Parses a slide's HTML (rendered or stored) into a detached root element. */
 export function parseSlide(html: string): HTMLElement | null {
   const doc = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
   const root = doc.body.firstElementChild;
@@ -64,7 +64,7 @@ export function findLayer(root: HTMLElement, layerId: string): HTMLElement | nul
   return layerElements(root).find((l) => l.getAttribute("data-layer") === layerId) ?? null;
 }
 
-/** Applique des styles à un calque et renvoie le HTML résultant (stocké ou rendu, selon l'entrée). */
+/** Applies styles to a layer and returns the resulting HTML (stored or rendered, depending on the input). */
 export function updateLayerStyle(html: string, layerId: string, styles: Record<string, string | null>): string {
   const root = parseSlide(html);
   if (!root) return html;
@@ -99,8 +99,8 @@ export function setLayerText(html: string, layerId: string, text: string): strin
   if (!root) return html;
   const layer = findLayer(root, layerId);
   if (!layer) return html;
-  // Cible l'élément de texte le plus profond qui porte du texte, pour garder la structure (flex,
-  // spans) du calque.
+  // Targets the deepest text element that carries text, to keep the structure (flex,
+  // spans) of the layer.
   const target = deepestTextHost(layer);
   target.textContent = text;
   return root.outerHTML;
@@ -119,9 +119,9 @@ export interface LayerInfo {
   type: "text" | "image" | "shape";
   text: string;
   style: Record<string, string>;
-  /** Calque image : référence de la photo affichée (`p1`), ou null (logo). */
+  /** Image layer: reference of the displayed photo (`p1`), or null (logo). */
   imageRef: string | null;
-  /** Calque image : styles de la balise <img> elle-même (object-fit). */
+  /** Image layer: styles of the <img> tag itself (object-fit). */
   imageStyle: Record<string, string>;
 }
 
@@ -137,7 +137,7 @@ export function describeLayer(html: string, layerId: string): LayerInfo | null {
     const v = layer.style.getPropertyValue(prop);
     if (v) style[prop] = v;
   }
-  // La police peut être posée sur un enfant (structure flex) : on remonte la première trouvée.
+  // The font may be set on a child (flex structure): we take the first one found.
   if (!style["font-family"] || !style["font-size"] || !style.color) {
     const inner = layer.querySelector<HTMLElement>("[style*='font']") ?? layer.querySelector<HTMLElement>("[style*='color']");
     if (inner) {
@@ -168,7 +168,7 @@ export function describeLayer(html: string, layerId: string): LayerInfo | null {
   };
 }
 
-/** `src` d'une <img> (placeholder stocké, ou URL rendue `…/design/images/p2?…`) → référence `p2`. */
+/** `src` of an <img> (stored placeholder, or rendered URL `…/design/images/p2?…`) → reference `p2`. */
 export function imageRefOfSrc(src: string): string | null {
   const stored = parseImagePlaceholder(src);
   if (stored) return stored;
@@ -176,7 +176,7 @@ export function imageRefOfSrc(src: string): string | null {
   return m ? m[1] : null;
 }
 
-/** Remplace la photo d'un calque image par une autre référence (HTML stocké). */
+/** Replaces the photo of an image layer with another reference (stored HTML). */
 export function setLayerImageRef(html: string, layerId: string, ref: string): string {
   const root = parseSlide(html);
   if (!root) return html;
@@ -186,7 +186,7 @@ export function setLayerImageRef(html: string, layerId: string, ref: string): st
   return root.outerHTML;
 }
 
-/** Styles de la balise <img> d'un calque image (object-fit…). */
+/** Styles of the <img> tag of an image layer (object-fit…). */
 export function updateLayerImageStyle(html: string, layerId: string, styles: Record<string, string | null>): string {
   const root = parseSlide(html);
   if (!root) return html;
@@ -200,8 +200,8 @@ export function updateLayerImageStyle(html: string, layerId: string, styles: Rec
 }
 
 /**
- * Ajoute un calque (HTML d'un seul élément, `data-type` posé) en fin de slide, avec un identifiant
- * libre. Renvoie le HTML stocké et l'identifiant. Le serveur refera passer la liste blanche.
+ * Adds a layer (single-element HTML, `data-type` set) at the end of the slide, with a free
+ * identifier. Returns the stored HTML and the identifier. The server will run the allowlist again.
  */
 export function appendLayer(html: string, layerHtml: string): { html: string; layerId: string } {
   const root = parseSlide(html);
@@ -220,7 +220,7 @@ export function appendLayer(html: string, layerHtml: string): { html: string; la
   return { html: root.outerHTML, layerId };
 }
 
-/** Calque image prêt à poser : photo centrée, 60 % du canevas, object-fit:cover (docs/SPEC_COMPOSITION_VISUELLE.md §6). */
+/** Image layer ready to place: centered photo, 60% of the canvas, object-fit:cover (docs/SPEC_COMPOSITION_VISUELLE.md §6). */
 export function buildImageLayerHtml(ref: string, canvas: { width: number; height: number }): string {
   const w = Math.round(canvas.width * 0.6);
   const h = Math.round(canvas.height * 0.6);
@@ -229,7 +229,7 @@ export function buildImageLayerHtml(ref: string, canvas: { width: number; height
   return `<div data-type="image" style="position:absolute;top:${top}px;left:${left}px;width:${w}px;height:${h}px;overflow:hidden;border-radius:${Math.round(canvas.width * 0.02)}px"><img src="${imagePlaceholder(ref)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>`;
 }
 
-/** Duplique une slide en renumérotant son plan. */
+/** Duplicates a slide, renumbering its layers. */
 export function nextPlanNumber(slides: { planNumber: number }[]): number {
   return slides.reduce((max, s) => Math.max(max, s.planNumber), 0) + 1;
 }
@@ -237,11 +237,11 @@ export function nextPlanNumber(slides: { planNumber: number }[]): number {
 const EDIT_ALLOWED_TAGS = new Set(["DIV", "SPAN", "P", "H1", "H2", "H3", "H4", "STRONG", "EM", "BR"]);
 
 /**
- * Nettoyage local d'un calque texte après édition en place (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §8) :
- * un collage peut y déposer du HTML riche (images, attributs d'événement). Le serveur refera passer
- * la liste blanche, mais ce HTML est réinjecté par innerHTML avant même la sauvegarde — on ne garde
- * donc que la structure textuelle, sans attribut autre que style. Le vrai garde-fou reste côté
- * serveur.
+ * Local cleanup of a text layer after in-place editing (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §8):
+ * a paste can drop rich HTML into it (images, event attributes). The server will run
+ * the allowlist again, but this HTML is re-injected via innerHTML even before saving — so we only keep
+ * the text structure, with no attribute other than style. The real safeguard remains on the
+ * server side.
  */
 export function scrubEditedTextLayer(layer: HTMLElement): void {
   for (const el of Array.from(layer.querySelectorAll("*"))) {
@@ -258,7 +258,7 @@ export function scrubEditedTextLayer(layer: HTMLElement): void {
   }
 }
 
-/** Collage en texte brut dans un calque en édition. */
+/** Plain-text paste into a layer being edited. */
 export function pastePlainText(e: ClipboardEvent): void {
   e.preventDefault();
   const text = e.clipboardData?.getData("text/plain") ?? "";

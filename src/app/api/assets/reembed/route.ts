@@ -4,12 +4,12 @@ import { recomputeAssetEmbeddingsForUser } from "@/lib/services/brandAssetServic
 import { handleApiError } from "@/lib/api/errors";
 
 /**
- * Recalcul one-shot des embeddings de la bibliothèque visuelle, à lancer après un changement de
- * modèle d'embedding (docs/SPEC_RESSOURCES_VISUELLES.md §8.4). Repart des descriptions déjà en base :
- * aucun appel vision, donc quasi gratuit.
+ * One-shot recomputation of the visual library embeddings, to run after the embedding model
+ * changes (docs/SPEC_RESSOURCES_VISUELLES.md §8.4). Starts again from the descriptions already in the database:
+ * no vision call, so nearly free.
  *
- * Pas d'écran dédié — c'est une opération de maintenance rare, appelée à la main :
- *   curl -X POST http://localhost:3000/api/assets/reembed -b "<cookie de session>"
+ * No dedicated screen — it is a rare maintenance operation, called by hand:
+ *   curl -X POST http://localhost:3000/api/assets/reembed -b "<session cookie>"
  */
 export async function POST() {
   try {

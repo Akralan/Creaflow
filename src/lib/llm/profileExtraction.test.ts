@@ -6,10 +6,10 @@ vi.mock("./provider", () => ({ callStructured: callStructuredMock }));
 import { buildExtractionMessage, extractProfileFromMaterial, normalizeSubjects } from "./profileExtraction";
 
 const items = [
-  { key: "source:gh", kind: "GitHub", label: "akralan/creaflow", excerpt: "README de CreaFlow" },
-  { key: "source:notion", kind: "Notion", label: "Journal de bord", excerpt: "Décisions produit" },
+  { key: "source:gh", kind: "GitHub", label: "akralan/creaflow", excerpt: "README de Buildloud" },
+  { key: "source:notion", kind: "Notion", label: "Logbook", excerpt: "Product decisions" },
   { key: "source:linear", kind: "Linear", label: "Autre projet", excerpt: "Tâches" },
-  { key: "note:n1", kind: "Notes collées", label: "Mes notes", excerpt: "Idées" },
+  { key: "note:n1", kind: "Pasted notes", label: "My notes", excerpt: "Ideas" },
 ];
 
 beforeEach(() => callStructuredMock.mockReset());
@@ -17,11 +17,11 @@ beforeEach(() => callStructuredMock.mockReset());
 describe("normalizeSubjects", () => {
   it("garde les regroupements du modèle", () => {
     const result = normalizeSubjects(
-      [{ name: "CreaFlow", description: "Outil", targetAudience: "Devs indés", keys: ["source:gh", "source:notion", "note:n1"] }, { name: "Autre", description: "", targetAudience: "", keys: ["source:linear"] }],
+      [{ name: "Buildloud", description: "Tool", targetAudience: "Indie devs", keys: ["source:gh", "source:notion", "note:n1"] }, { name: "Autre", description: "", targetAudience: "", keys: ["source:linear"] }],
       items
     );
     expect(result).toEqual([
-      { name: "CreaFlow", description: "Outil", targetAudience: "Devs indés", keys: ["source:gh", "source:notion", "note:n1"] },
+      { name: "Buildloud", description: "Tool", targetAudience: "Indie devs", keys: ["source:gh", "source:notion", "note:n1"] },
       { name: "Autre", description: "", targetAudience: "", keys: ["source:linear"] },
     ]);
   });
@@ -38,38 +38,38 @@ describe("normalizeSubjects", () => {
   });
 
   it("range une source oubliée dans son propre sujet, une note oubliée dans le premier", () => {
-    const result = normalizeSubjects([{ name: "CreaFlow", description: "", targetAudience: "", keys: ["source:gh"] }], items);
+    const result = normalizeSubjects([{ name: "Buildloud", description: "", targetAudience: "", keys: ["source:gh"] }], items);
     expect(result.map((s) => s.keys)).toEqual([["source:gh", "note:n1"], ["source:notion"], ["source:linear"]]);
-    expect(result[1].name).toBe("Journal de bord");
+    expect(result[1].name).toBe("Logbook");
   });
 
   it("fait un sujet de la note seule quand il n'y a rien d'autre", () => {
-    expect(normalizeSubjects([], [items[3]])).toEqual([{ name: "Mes notes", description: "", targetAudience: "", keys: ["note:n1"] }]);
+    expect(normalizeSubjects([], [items[3]])).toEqual([{ name: "My notes", description: "", targetAudience: "", keys: ["note:n1"] }]);
   });
 });
 
 describe("extractProfileFromMaterial", () => {
   it("transmet identité et matière, et normalise la réponse", async () => {
     callStructuredMock.mockResolvedValue({
-      activityType: " Tu construis CreaFlow. ",
-      targetAudience: "Développeurs",
-      subjects: [{ name: "CreaFlow", description: "Outil", targetAudience: "", keys: ["source:gh"] }],
+      activityType: " You build Buildloud. ",
+      targetAudience: "Developers",
+      subjects: [{ name: "Buildloud", description: "Tool", targetAudience: "", keys: ["source:gh"] }],
     });
     const result = await extractProfileFromMaterial({
       name: "Alix",
-      identities: [{ provider: "GitHub", login: "akralan", name: "Alix", bio: "Je construis des outils" }],
+      identities: [{ provider: "GitHub", login: "akralan", name: "Alix", bio: "I build tools" }],
       items: items.slice(0, 2),
     });
     const message: string = callStructuredMock.mock.calls[0][0].userMessage;
-    expect(message).toContain("Compte GitHub : akralan, nom affiché « Alix », bio « Je construis des outils »");
-    expect(message).toContain("--- [source:notion] Notion · Journal de bord ---");
-    expect(result.activityType).toBe("Tu construis CreaFlow.");
+    expect(message).toContain("GitHub account: akralan, display name \"Alix\", bio \"I build tools\"");
+    expect(message).toContain("--- [source:notion] Notion · Logbook ---");
+    expect(result.activityType).toBe("You build Buildloud.");
     expect(result.subjects.map((s) => s.keys)).toEqual([["source:gh"], ["source:notion"]]);
   });
 });
 
 describe("buildExtractionMessage", () => {
   it("signale un nom absent plutôt que de laisser une ligne vide", () => {
-    expect(buildExtractionMessage({ name: "", identities: [], items: [] })).toContain("Nom : (non renseigné)");
+    expect(buildExtractionMessage({ name: "", identities: [], items: [] })).toContain("Name: (not provided)");
   });
 });

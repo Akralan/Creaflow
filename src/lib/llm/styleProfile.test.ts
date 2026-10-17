@@ -25,7 +25,7 @@ describe("styleProfileSchema", () => {
   });
 
   it("plafonne le nombre de règles à 12", () => {
-    const rules = Array.from({ length: 13 }, (_, i) => ({ text: `Règle ${i}`, platform: null }));
+    const rules = Array.from({ length: 13 }, (_, i) => ({ text: `Rule ${i}`, platform: null }));
     expect(() => styleProfileSchema.parse({ ...legacyProfile, rules })).toThrow();
   });
 
@@ -41,12 +41,12 @@ describe("buildStyleBlock", () => {
   const profile = styleProfileSchema.parse({
     ...legacyProfile,
     rules: [
-      { text: "Jamais d'emoji.", platform: null },
-      { text: "Pas de hashtag dans le corps.", platform: "linkedin" },
-      { text: "Le hook tient en une phrase.", platform: "instagram" },
+      { text: "Never any emoji.", platform: null },
+      { text: "No hashtag in the body.", platform: "linkedin" },
+      { text: "The hook fits in one sentence.", platform: "instagram" },
     ],
-    avoid: ["découvrez", "n'hésitez pas"],
-    prefer: ["regarde", "on teste"],
+    avoid: ["discover", "don't hesitate"],
+    prefer: ["look", "we test"],
   });
 
   it("renvoie une chaîne vide sans profil", () => {
@@ -57,23 +57,23 @@ describe("buildStyleBlock", () => {
   it("injecte la voix, les règles globales et celles de la plateforme cible seulement", () => {
     const block = buildStyleBlock(profile, "linkedin");
     expect(block.startsWith("=== STYLE ===")).toBe(true);
-    expect(block).toContain(`Voix : ${legacyProfile.summary}`);
-    expect(block).toContain("- Jamais d'emoji.");
-    expect(block).toContain("- Pas de hashtag dans le corps.");
-    expect(block).not.toContain("Le hook tient en une phrase.");
-    expect(block).toContain("À bannir : découvrez, n'hésitez pas");
-    expect(block).toContain("À privilégier : regarde, on teste");
+    expect(block).toContain(`Voice: ${legacyProfile.summary}`);
+    expect(block).toContain("- Never any emoji.");
+    expect(block).toContain("- No hashtag in the body.");
+    expect(block).not.toContain("The hook fits in one sentence.");
+    expect(block).toContain("Avoid: discover, don't hesitate");
+    expect(block).toContain("Prefer: look, we test");
   });
 
   it("n'injecte aucune règle de plateforme quand la plateforme est inconnue", () => {
     const block = buildStyleBlock(profile, null);
-    expect(block).toContain("- Jamais d'emoji.");
+    expect(block).toContain("- Never any emoji.");
     expect(block).not.toContain("linkedin");
-    expect(block).not.toContain("Le hook tient en une phrase.");
+    expect(block).not.toContain("The hook fits in one sentence.");
   });
 
   it("se limite à la voix pour un profil ancien sans règles", () => {
     const block = buildStyleBlock(styleProfileSchema.parse(legacyProfile), "instagram");
-    expect(block).toBe(`=== STYLE ===\nVoix : ${legacyProfile.summary}`);
+    expect(block).toBe(`=== STYLE ===\nVoice: ${legacyProfile.summary}`);
   });
 });

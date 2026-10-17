@@ -1,14 +1,14 @@
 /**
- * Polices du design (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2 « Polices ») — liste fermée, chargée par
- * next/font/google dans le layout racine (src/app/layout.tsx) sous des variables CSS. Le HTML
- * stocké porte le nom lisible (`font-family: Inter`), c'est ce que le modèle écrit et relit ; le
- * rendu le traduit en `var(--font-design-…)` (toRenderableHtml, client) et l'export l'embarque via
- * les @font-face de next/font, servies same-origin.
+ * Design fonts (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2 "Fonts") — closed list, loaded by
+ * next/font/google in the root layout (src/app/layout.tsx) under CSS variables. The stored
+ * HTML carries the readable name (`font-family: Inter`), which is what the model writes and rereads;
+ * rendering translates it into `var(--font-design-…)` (toRenderableHtml, client) and the export
+ * embeds it via next/font's @font-face rules, served same-origin.
  */
 export interface DesignFont {
-  /** Nom que le modèle et l'auteur manipulent. */
+  /** Name the model and the author manipulate. */
   name: string;
-  /** Variable CSS posée par next/font sur <html>. */
+  /** CSS variable set by next/font on <html>. */
   cssVariable: string;
   /** Famille de repli si la variable est absente (rendu hors app, ex. test). */
   fallback: string;
@@ -26,7 +26,7 @@ export const DESIGN_FONTS: DesignFont[] = [
 
 const BY_NORMALIZED_NAME = new Map(DESIGN_FONTS.map((f) => [f.name.toLowerCase(), f]));
 
-/** Résout une valeur `font-family` écrite par le modèle (guillemets, casse, repli après virgule) vers une police connue. */
+/** Resolves a `font-family` value written by the model (quotes, case, fallback after a comma) to a known font. */
 export function resolveDesignFont(fontFamilyValue: string): DesignFont | null {
   const first = fontFamilyValue.split(",")[0]?.trim().replace(/^['"]|['"]$/g, "").toLowerCase() ?? "";
   return BY_NORMALIZED_NAME.get(first) ?? null;

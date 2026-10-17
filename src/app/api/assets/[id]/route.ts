@@ -8,8 +8,8 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
     const userId = await requireUserId();
     const { id } = await params;
 
-    // Soft delete : les objets R2 ne sont pas supprimés, des scripts déjà générés peuvent encore
-    // référencer cet asset.
+    // Soft delete: R2 objects are not removed, scripts already generated may still
+    // reference this asset.
     await archiveAssetForUser(userId, id);
 
     return NextResponse.json({ ok: true });

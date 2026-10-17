@@ -117,7 +117,7 @@ export async function syncSeriesSlots(userId: string): Promise<Map<string, Serie
       }
     });
   } catch (error) {
-    logger.error("Mise à jour du calendrier depuis les rythmes impossible", error, { userId });
+    logger.error("Calendar update from the rhythms failed", error, { userId });
   }
   return changes;
 }

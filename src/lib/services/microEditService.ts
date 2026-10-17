@@ -27,14 +27,14 @@ async function loadOwnedScript(userId: string, scriptId: string) {
     where: and(eq(scripts.id, scriptId), eq(scripts.userId, userId)),
   });
   if (!script) {
-    throw new ApiError(404, "Script introuvable.");
+    throw new ApiError(404, "Script not found.");
   }
   return script;
 }
 
 function replaceOnce(current: string, selectedText: string, replacement: string): string {
   if (!current.includes(selectedText)) {
-    throw new ApiError(409, "Le texte sélectionné ne correspond plus au contenu actuel — recharge le script.");
+    throw new ApiError(409, "The selected text no longer matches the current content — reload the script.");
   }
   return current.replace(selectedText, replacement);
 }
@@ -71,7 +71,7 @@ export async function applySelectionInstruction(
 
   const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
   const brandContext = profile
-    ? `Marque : ${profile.brandName} (${profile.activityType})`
+    ? `Brand: ${profile.brandName} (${profile.activityType})`
     : "";
   // La matière du sujet est fournie ici aussi (pas seulement à la génération complète) : sans elle,
   // une instruction comme "base-toi sur le premier run" ou "parle plutôt de X" est impossible à
@@ -106,7 +106,7 @@ export async function applySelectionInstruction(
     const storyboard = (script.storyboard as { planNumber: number; description: string }[] | null) ?? [];
     const step = storyboard[index];
     if (!step) {
-      throw new ApiError(404, "Plan introuvable.");
+      throw new ApiError(404, "Shot not found.");
     }
     patch.storyboard = storyboard.map((s, i) =>
       i === index ? { ...s, description: replaceOnce(s.description, params.selectedText, rewrittenText) } : s
@@ -115,7 +115,7 @@ export async function applySelectionInstruction(
     const field = params.blockField as Exclude<SelectionBlockField, `storyboard.${number}`>;
     const currentValue = script[field];
     if (typeof currentValue !== "string" || !currentValue) {
-      throw new ApiError(400, "Champ vide, rien à retoucher.");
+      throw new ApiError(400, "Empty field, nothing to edit.");
     }
     (patch as Record<string, string>)[field] = replaceOnce(currentValue, params.selectedText, rewrittenText);
   }
@@ -142,7 +142,7 @@ export async function regenerateBlock(userId: string, scriptId: string, block: M
   const script = await loadOwnedScript(userId, scriptId);
 
   if (block === "storyboard" && script.contentType === "text") {
-    throw new ApiError(400, "Pas de storyboard pour un script texte.");
+    throw new ApiError(400, "No storyboard for a text script.");
   }
 
   const context = await buildGenerationContext(
@@ -168,16 +168,16 @@ export async function regenerateBlock(userId: string, scriptId: string, block: M
   if (block === "hook" && script.contentType === "text") {
     const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
     const brandContext = profile
-      ? `Marque : ${profile.brandName} (${profile.activityType})`
+      ? `Brand: ${profile.brandName} (${profile.activityType})`
       : "";
     const args = await callStructured({
       system:
-        "Tu es un rédacteur qui ajuste l'accroche et, si besoin, le titre d'un post existant pour CreaFlow, sans jamais réécrire le texte lui-même — fourni ci-dessous comme référence fixe.\n\nTu ne dois JAMAIS inventer une information factuelle qui ne figure pas dans ce texte.",
+        "You are a writer who adjusts the hook and, if needed, the title of an existing post for Buildloud, without ever rewriting the text itself — supplied below as a fixed reference.\n\nYou must NEVER invent factual information that does not appear in this text. Write in English.",
       userMessage: [
         brandContext,
         buildStyleBlock(parseStoredStyleProfile(profile?.styleProfile), script.platform),
-        `Titre actuel : ${script.title ?? "(sans titre)"}`,
-        `Texte actuel du post (référence fixe, ne pas modifier) :\n${script.caption}`,
+        `Current title: ${script.title ?? "(untitled)"}`,
+        `Current post text (fixed reference, do not modify):\n${script.caption}`,
         buildConceptContextLine(script.concept),
       ]
         .filter(Boolean)
@@ -197,7 +197,7 @@ export async function regenerateBlock(userId: string, scriptId: string, block: M
   const args = await callStructured({
     // Le cœur seul : la méthode en étapes suppose les champs de préparation, que les outils de bloc
     // n'ont pas (docs/SPEC_PROMPT_GENERATION_V3.md §4.1).
-    system: `${SCRIPT_CORE_PROMPT}\n\nTu dois régénérer UNIQUEMENT le bloc demandé via l'outil fourni — laisse strictement de côté le reste du script, déjà figé et non transmis ici.`,
+    system: `${SCRIPT_CORE_PROMPT}\n\nYou must regenerate ONLY the requested block via the supplied tool — strictly leave aside the rest of the script, already frozen and not transmitted here.`,
     userMessage: [buildScriptUserMessage(context), buildConceptContextLine(script.concept)].filter(Boolean).join("\n\n"),
     tool: toolForBlock(block, script.contentType),
     maxTokens: 1024,

@@ -25,7 +25,7 @@ const REFRESH_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 
 async function ownedProduct(userId: string, productId: string) {
   const product = await db.query.products.findFirst({ where: and(eq(products.id, productId), eq(products.userId, userId)) });
-  if (!product) throw new ApiError(404, "Sujet introuvable.");
+  if (!product) throw new ApiError(404, "Subject not found.");
   return product;
 }
 
@@ -48,7 +48,7 @@ async function enforceActiveCap(userId: string, productId: string): Promise<void
   if (excess <= 0) return;
   await db
     .update(inspirations)
-    .set({ status: "dismissed", dismissedBy: "system", dismissReason: "Remplacée par une trouvaille plus récente.", updatedAt: new Date() })
+    .set({ status: "dismissed", dismissedBy: "system", dismissReason: "Replaced by a more recent finding.", updatedAt: new Date() })
     .where(inArray(inspirations.id, active.slice(0, excess).map((i) => i.id)));
 }
 
@@ -96,7 +96,7 @@ export async function refreshInspirationsIfStale(userId: string, productId: stri
   try {
     await runInspirationResearch(userId, productId);
   } catch (err) {
-    logger.error("Veille d'inspiration automatique échouée", err, { productId });
+    logger.error("Automatic inspiration watch failed", err, { productId });
   }
 }
 
@@ -106,11 +106,11 @@ export async function setInspirationStatus(userId: string, id: string, status: "
     .set(
       status === "active"
         ? { status, dismissedBy: null, dismissReason: null, shownCount: 0, dropVotes: 0, updatedAt: new Date() }
-        : { status, dismissedBy: "user", dismissReason: "Écartée à la main.", updatedAt: new Date() }
+        : { status, dismissedBy: "user", dismissReason: "Dismissed by hand.", updatedAt: new Date() }
     )
     .where(and(eq(inspirations.id, id), eq(inspirations.userId, userId)))
     .returning();
-  if (!updated) throw new ApiError(404, "Fiche introuvable.");
+  if (!updated) throw new ApiError(404, "Card not found.");
   if (status === "active") await enforceActiveCap(userId, updated.productId);
   return updated;
 }
@@ -120,7 +120,7 @@ export async function deleteInspiration(userId: string, id: string): Promise<voi
     .delete(inspirations)
     .where(and(eq(inspirations.id, id), eq(inspirations.userId, userId)))
     .returning({ id: inspirations.id });
-  if (!deleted) throw new ApiError(404, "Fiche introuvable.");
+  if (!deleted) throw new ApiError(404, "Card not found.");
 }
 
 /** Fiches actives injectées dans le prompt, numérotées i1…i10 pour le modèle (§3.3). */
@@ -173,7 +173,7 @@ export async function applyInspirationFeedback(userId: string, trace: Generation
       .set({
         dropVotes: votes,
         // La raison du dernier signalement : c'est elle qu'on affiche si la fiche finit écartée.
-        dismissReason: drop.why || "Signalée inutile par le rédacteur.",
+        dismissReason: drop.why || "Flagged as useless by the writer.",
         status: sql`case when ${votes} >= ${DROP_VOTES_TO_DISMISS} then 'dismissed'::inspiration_status else ${inspirations.status} end`,
         dismissedBy: sql`case when ${votes} >= ${DROP_VOTES_TO_DISMISS} then 'model' else ${inspirations.dismissedBy} end`,
         updatedAt: now,
@@ -182,7 +182,7 @@ export async function applyInspirationFeedback(userId: string, trace: Generation
   }
   await db
     .update(inspirations)
-    .set({ status: "dismissed", dismissedBy: "system", dismissReason: `Montrée ${MAX_SHOWN_UNUSED} fois sans jamais servir.`, updatedAt: now })
+    .set({ status: "dismissed", dismissedBy: "system", dismissReason: `Shown ${MAX_SHOWN_UNUSED} times without ever being used.`, updatedAt: now })
     .where(
       and(
         eq(inspirations.userId, userId),

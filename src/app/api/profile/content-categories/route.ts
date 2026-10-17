@@ -42,14 +42,14 @@ export async function POST(request: NextRequest) {
 
     const rawBody = await request.text();
     if (rawBody) {
-      // Édition manuelle : on valide et on normalise les poids sans repasser par l'IA.
+      // Manual edit: we validate and normalise the weights without going through the AI again.
       const { categories: items } = saveSchema.parse(JSON.parse(rawBody));
       const categories = await saveCategoriesForUser(userId, items);
       return NextResponse.json({ categories });
     }
 
-    // Régénération complète des catégories via l'IA (contrairement à l'édition manuelle
-    // ci-dessus) — même ordre de grandeur que style-analysis pour une action de ce type.
+    // Full regeneration of the categories via AI (unlike the manual edit
+    // above) — same order of magnitude as style-analysis for an action of this kind.
     await enforceRateLimit("content-categories-generate", userId, 5, 60);
     const categories = await generateCategoriesForUser(userId);
     return NextResponse.json({ categories });

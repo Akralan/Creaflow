@@ -9,11 +9,10 @@ import { describeUiElementsForPrompt } from "@/lib/visualDesign/uiElements";
 import type { VerticalId } from "@/lib/verticals/types";
 
 /**
- * Composition et révision d'une maquette (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md Annexe A, complétée par
- * docs/SPEC_COMPOSITION_VISUELLE.md Annexe A : photos multiples, détourage, montages, éléments
- * d'interface). Un seul tool, deux messages. Toute sortie repasse par la liste blanche ; en cas de
- * refus, un second appel reçoit le rapport d'erreurs — même esprit que la seconde tentative de
- * callStructured.
+ * Composition and revision of a mockup (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md Annex A, completed by
+ * docs/SPEC_COMPOSITION_VISUELLE.md Annex A: multiple photos, cutout, montages, interface
+ * elements). A single tool, two messages. Every output goes back through the whitelist; on
+ * refusal, a second call receives the error report — same spirit as callStructured's second attempt.
  */
 
 export const DESIGN_TOOL_NAME = "design_visual_post";
@@ -34,30 +33,30 @@ export const designSlideOutputSchema = z.object({
 export const designResultSchema = z.object({
   theme: designThemeSchema,
   slides: z.array(designSlideOutputSchema).min(1).max(12),
-  // Photos utilisées et leur variante (docs/SPEC_COMPOSITION_VISUELLE.md Annexe A.3) ; vide si aucune.
+  // Photos used and their variant (docs/SPEC_COMPOSITION_VISUELLE.md Annex A.3); empty if none.
   images: z.array(z.object({ ref: z.string(), variant: z.string() })).default([]),
-  // Animation seulement (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md Annexe A.3) ; vide sinon.
+  // Animation only (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md Annex A.3); empty otherwise.
   timeline: z.array(z.unknown()).default([]),
-  // Commentaire, pas un livrable : un modèle qui l'omet ne doit pas faire refuser toute la maquette
-  // (observé en réel sur une animation, 2026-10-17).
+  // A comment, not a deliverable: a model that omits it must not get the whole mockup refused
+  // (seen in real use on an animation, 2026-10-17).
   rationale: z.string().default(""),
 });
 export type DesignResult = z.infer<typeof designResultSchema>;
 
 export const designVisualPostTool: LlmToolDefinition = {
   name: DESIGN_TOOL_NAME,
-  description: "Compose la maquette d'un post visuel : un thème commun et une slide HTML par entrée du storyboard.",
+  description: "Composes the mockup of a visual post: a common theme and one HTML slide per storyboard entry. All visible text on the slides is in English.",
   input_schema: {
     type: "object",
     properties: {
       theme: {
         type: "object",
-        description: "Thème commun à toutes les slides.",
+        description: "Theme common to all slides.",
         properties: {
-          palette: { type: "array", description: "3 à 5 couleurs hex, la première dominante.", items: { type: "string" } },
-          fontHeading: { type: "string", description: "Police des titres, prise dans la liste autorisée." },
-          fontBody: { type: "string", description: "Police du texte courant, prise dans la liste autorisée." },
-          mood: { type: "string", description: "L'ambiance en quelques mots (ex. « chaleureux, artisanal, contrasté »)." },
+          palette: { type: "array", description: "3 to 5 hex colors, the first dominant.", items: { type: "string" } },
+          fontHeading: { type: "string", description: "Heading font, taken from the allowed list." },
+          fontBody: { type: "string", description: "Body text font, taken from the allowed list." },
+          mood: { type: "string", description: "The mood in a few words (e.g. \"warm, artisanal, contrasted\")." },
         },
         required: ["palette", "fontHeading", "fontBody", "mood"],
         additionalProperties: false,
@@ -65,7 +64,7 @@ export const designVisualPostTool: LlmToolDefinition = {
       slides: {
         type: "array",
         description:
-          "Une entrée par slide du storyboard, dans l'ordre. html = un unique <div> racine de la taille exacte du canevas, dont chaque enfant direct est un CALQUE position:absolute avec data-layer (identifiant court unique) et data-type (text | image | shape). Styles inline uniquement.",
+          "One entry per storyboard slide, in order. html = a single root <div> of the exact canvas size, each direct child of which is a position:absolute LAYER with data-layer (short unique identifier) and data-type (text | image | shape). Inline styles only.",
         items: {
           type: "object",
           properties: {
@@ -79,12 +78,12 @@ export const designVisualPostTool: LlmToolDefinition = {
       images: {
         type: "array",
         description:
-          "Les photos effectivement utilisées dans les slides, parmi celles listées, avec leur variante : \"original\" (photo entière) ou \"cutout\" (sujet détouré sur fond transparent, seulement si le détourage est disponible pour cette photo). Une photo non listée ici ne doit pas apparaître dans le HTML. Tableau vide sans photo.",
+          "The photos actually used in the slides, among those listed, with their variant: \"original\" (whole photo) or \"cutout\" (subject cut out on a transparent background, only if cutout is available for this photo). A photo not listed here must not appear in the HTML. Empty array without photos.",
         items: {
           type: "object",
           properties: {
-            ref: { type: "string", description: "Référence de la photo (p1, p2…)." },
-            variant: { type: "string", description: `Un de : ${DESIGN_IMAGE_VARIANTS.join(", ")}.` },
+            ref: { type: "string", description: "Reference of the photo (p1, p2…)." },
+            variant: { type: "string", description: `One of: ${DESIGN_IMAGE_VARIANTS.join(", ")}.` },
           },
           required: ["ref", "variant"],
           additionalProperties: false,
@@ -93,22 +92,22 @@ export const designVisualPostTool: LlmToolDefinition = {
       timeline: {
         type: "array",
         description:
-          "Uniquement pour une ANIMATION : une entrée par calque qui apparaît ou disparaît { layerId, enter, startMs, enterMs, exit, exitAtMs }. Un calque absent est visible du début à la fin. Tableau vide pour une maquette statique.",
+          "Only for an ANIMATION: one entry per layer that appears or disappears { layerId, enter, startMs, enterMs, exit, exitAtMs }. An absent layer is visible from start to end. Empty array for a static mockup.",
         items: {
           type: "object",
           properties: {
             layerId: { type: "string" },
-            enter: { type: "string", description: `Un de : ${ENTER_EFFECTS.join(", ")}.` },
+            enter: { type: "string", description: `One of: ${ENTER_EFFECTS.join(", ")}.` },
             startMs: { type: "integer" },
-            enterMs: { type: "integer", description: "Durée de l'entrée, 300 à 800 ms." },
-            exit: { type: ["string", "null"], description: `Un de : ${EXIT_EFFECTS.join(", ")}, ou null si le calque reste jusqu'à la fin.` },
+            enterMs: { type: "integer", description: "Duration of the entrance, 300 to 800 ms." },
+            exit: { type: ["string", "null"], description: `One of: ${EXIT_EFFECTS.join(", ")}, or null if the layer stays until the end.` },
             exitAtMs: { type: ["integer", "null"] },
           },
           required: ["layerId", "enter", "startMs", "enterMs", "exit", "exitAtMs"],
           additionalProperties: false,
         },
       },
-      rationale: { type: "string", description: "2 phrases : le parti pris de composition et pourquoi il sert l'idée du post." },
+      rationale: { type: "string", description: "2 sentences: the composition choice and why it serves the post's idea." },
     },
     required: ["theme", "slides", "images", "timeline", "rationale"],
     additionalProperties: false,
@@ -117,13 +116,13 @@ export const designVisualPostTool: LlmToolDefinition = {
 
 const VERTICAL_HINTS: Record<VerticalId, string> = {
   creator: "",
-  dev: "- Public développeur : les cartes de code (police JetBrains Mono, white-space:pre, fond sombre), les captures d'écran dans un cadre de navigateur ou de téléphone, les avant/après côte à côte, les chiffres et les schémas en blocs fonctionnent bien. Sobre, lisible, pas de décoration gratuite.",
+  dev: "- Developer audience: code cards (JetBrains Mono font, white-space:pre, dark background), screenshots in a browser or phone frame, side-by-side before/afters, numbers and block diagrams work well. Sober, readable, no gratuitous decoration.",
   artisan:
-    "- Artisan : la photo du produit est le sujet, le texte la sert (nom, prix, appel à l'action). Un produit détouré centré sur un fond de marque avec une étiquette de prix est souvent la meilleure première slide. Ne recouvre jamais l'objet lui-même ; place le texte sur les zones calmes de l'image.",
-  entrepreneur: "- Entrepreneur : hiérarchie nette, un message par slide, couleurs de marque, appel à l'action explicite sur la dernière slide.",
+    "- Craftsperson: the product photo is the subject, the text serves it (name, price, call to action). A cut-out product centered on a brand background with a price tag is often the best first slide. Never cover the object itself; put the text on the calm areas of the image.",
+  entrepreneur: "- Entrepreneur: clear hierarchy, one message per slide, brand colors, explicit call to action on the last slide.",
 };
 
-/** Une photo mise à disposition de l'agent (docs/SPEC_COMPOSITION_VISUELLE.md Annexe A.1). */
+/** A photo made available to the agent (docs/SPEC_COMPOSITION_VISUELLE.md Annex A.1). */
 export interface DesignImageContext {
   ref: string;
   description: string;
@@ -138,58 +137,58 @@ export interface DesignPromptContext {
   hasLogo: boolean;
   brandKitDescription: string;
   vertical: VerticalId;
-  /** Photos déclarées sur la maquette ; vide pour une composition typographique. */
+  /** Photos declared on the mockup; empty for a typographic composition. */
   images: DesignImageContext[];
-  /** Animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) : durée totale ; null pour une maquette statique. */
+  /** Animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md): total duration; null for a static mockup. */
   animationDurationMs?: number | null;
 }
 
 function buildPhotosRule(ctx: DesignPromptContext): string {
   if (ctx.images.length === 0) {
-    return `- Images : ${ctx.hasLogo ? 'uniquement src="{{LOGO}}"' : "aucune (aucune photo fournie, pas de logo)"}. Aucune URL, aucun url() en CSS. Fonds unis et gradients autorisés.`;
+    return `- Images: ${ctx.hasLogo ? 'only src="{{LOGO}}"' : "none (no photo supplied, no logo)"}. No URL, no url() in CSS. Solid backgrounds and gradients allowed.`;
   }
   const refs = ctx.images.map((i) => `"{{IMG:${i.ref}}}"`).join(", ");
   const anyCutout = ctx.images.some((i) => i.cutoutAvailable);
   return [
-    `- Photos : uniquement src=${refs} parmi les photos listées${ctx.hasLogo ? ', et src="{{LOGO}}"' : ""}. Aucune autre URL, aucun url() en CSS. Chaque photo utilisée est déclarée dans \`images\` avec sa variante : "original" (photo entière, object-fit:cover)${anyCutout ? ' ou "cutout" (sujet détouré sur fond transparent — seulement pour une photo marquée « détourage disponible » ; pose-le sur un fond uni ou un gradient avec une ombre portée, jamais sur une autre photo chargée)' : ""}. Une photo peut rester inutilisée.`,
-    "- Montages, un motif par slide : produit détouré centré sur fond de marque avec ombre portée ; deux photos côte à côte (avant / après) ; grille 2×2 ; photo pleine page + médaillon rond (clip-path:circle(50% at 50% 50%)) ; collage décalé avec légère rotation (transform:rotate). Une photo dominante par slide, les autres en appui ; jamais plus de 3 photos sur une slide.",
+    `- Photos: only src=${refs} among the listed photos${ctx.hasLogo ? ', and src="{{LOGO}}"' : ""}. No other URL, no url() in CSS. Each photo used is declared in \`images\` with its variant: "original" (whole photo, object-fit:cover)${anyCutout ? ' or "cutout" (subject cut out on a transparent background — only for a photo marked "cutout available"; place it on a solid background or a gradient with a drop shadow, never on another loaded photo)' : ""}. A photo may remain unused.`,
+    "- Montages, one pattern per slide: cut-out product centered on a brand background with a drop shadow; two photos side by side (before / after); 2×2 grid; full-page photo + round medallion (clip-path:circle(50% at 50% 50%)); offset collage with a slight rotation (transform:rotate). One dominant photo per slide, the others as support; never more than 3 photos on a slide.",
   ].join("\n");
 }
 
 export function buildDesignSystemPrompt(ctx: DesignPromptContext): string {
   const hint = VERTICAL_HINTS[ctx.vertical];
-  return `Tu es directeur artistique pour les réseaux sociaux. Tu composes des maquettes en HTML avec styles inline, destinées à être rendues telles quelles en image, à partir des VRAIES photos de la marque : tu ne décris jamais une image à générer, tu assembles.
-Contraintes absolues :
-- Canevas : ${ctx.width}×${ctx.height} px. Racine unique : <div style="position:relative;width:${ctx.width}px;height:${ctx.height}px;overflow:hidden">.
-- Chaque enfant direct de la racine est un CALQUE : position:absolute, top/left/width/height en px, attributs data-layer="l1" (unique) et data-type="text" | "image" | "shape". Au plus ${MAX_LAYERS_PER_SLIDE} calques par slide. Flexbox autorisé À L'INTÉRIEUR d'un calque.
-- Balises autorisées : div, span, p, h1-h4, strong, em, br, img. Rien d'autre. Pas de <style>, pas de classes, pas d'événements.
+  return `You are an art director for social media. You compose mockups in HTML with inline styles, meant to be rendered as is into an image, from the brand's REAL photos: you never describe an image to generate, you assemble.
+Absolute constraints:
+- Canvas: ${ctx.width}×${ctx.height} px. Single root: <div style="position:relative;width:${ctx.width}px;height:${ctx.height}px;overflow:hidden">.
+- Each direct child of the root is a LAYER: position:absolute, top/left/width/height in px, attributes data-layer="l1" (unique) and data-type="text" | "image" | "shape". At most ${MAX_LAYERS_PER_SLIDE} layers per slide. Flexbox allowed INSIDE a layer.
+- Allowed tags: div, span, p, h1-h4, strong, em, br, img. Nothing else. No <style>, no classes, no event handlers.
 ${buildPhotosRule(ctx)}
-- Éléments d'interface (calques shape ou text faits de div + styles) : ${describeUiElementsForPrompt()}. Utilise-les quand ils servent le message, jamais pour décorer.
-- Polices : uniquement ${designFontNames().join(", ")}. Pas d'import.
-- Marge de sécurité : rien d'important à moins de 5 % des bords.
-- Lisibilité : contraste fort entre texte et fond (voile sombre ou clair sur la photo si nécessaire), une hiérarchie nette (un titre, un sous-texte, éventuellement un détail), jamais plus de 3 tailles de police par slide.
-- Les mots viennent du storyboard fourni : tu choisis QUOI afficher et COMMENT, tu n'inventes pas de contenu et tu ne reformules pas le fond.
-- Cohérence : même thème, mêmes polices, même logique de placement sur toutes les slides d'un carrousel ; la dernière slide porte l'appel à l'action si le storyboard en a un.
-${ctx.brandKitDescription ? `- Identité de marque à respecter : ${ctx.brandKitDescription}.` : "- Pas d'identité de marque définie : compose une palette à partir de la description des photos et du ton de la marque."}
+- Interface elements (shape or text layers made of div + styles): ${describeUiElementsForPrompt()}. Use them when they serve the message, never to decorate.
+- Fonts: only ${designFontNames().join(", ")}. No imports.
+- Safe margin: nothing important within 5% of the edges.
+- Legibility: strong contrast between text and background (dark or light overlay on the photo if needed), a clear hierarchy (a title, a subtext, possibly a detail), never more than 3 font sizes per slide.
+- The words come from the supplied storyboard: you choose WHAT to display and HOW, you don't invent content and you don't rephrase the substance. All visible text is in English.
+- Consistency: same theme, same fonts, same placement logic across all slides of a carousel; the last slide carries the call to action if the storyboard has one.
+${ctx.brandKitDescription ? `- Brand identity to respect: ${ctx.brandKitDescription}.` : "- No brand identity defined: compose a palette from the photo descriptions and the brand's tone."}
 ${hint}
 ${ctx.animationDurationMs ? buildAnimationParagraph(ctx.animationDurationMs) : ""}`.trim();
 }
 
-/** Paragraphe ANIMATION du system prompt (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md Annexe A.2). */
+/** ANIMATION paragraph of the system prompt (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md Annex A.2). */
 export function buildAnimationParagraph(durationMs: number): string {
-  return `ANIMATION : cette maquette est une animation de ${durationMs} ms sur UNE SEULE slide (renvoie exactement une slide). En plus du HTML, renvoie \`timeline\` : une entrée par calque qui apparaît ou disparaît, { layerId, enter: ${ENTER_EFFECTS.map((e) => `"${e}"`).join(" | ")}, startMs, enterMs (300 à 800), exit: ${EXIT_EFFECTS.map((e) => `"${e}"`).join(" | ")} ou null, exitAtMs ou null }.
-Règles : chaque moment du storyboard devient un ou plusieurs calques texte rattachés à ce moment, dans l'ordre ; les moments se succèdent (un moment sort avant ou au plus 500 ms après l'entrée du suivant) ; le dernier moment reste jusqu'à la fin ; jamais plus de 2 calques qui entrent en même temps ; le fond et les photos ne sont pas dans la timeline (visibles tout du long), sauf un léger zoom-in sur une photo si cela sert le rythme ; typewriter seulement sur un calque texte court.`;
+  return `ANIMATION: this mockup is a ${durationMs} ms animation on a SINGLE slide (return exactly one slide). In addition to the HTML, return \`timeline\`: one entry per layer that appears or disappears, { layerId, enter: ${ENTER_EFFECTS.map((e) => `"${e}"`).join(" | ")}, startMs, enterMs (300 to 800), exit: ${EXIT_EFFECTS.map((e) => `"${e}"`).join(" | ")} or null, exitAtMs or null }.
+Rules: each storyboard moment becomes one or more text layers attached to that moment, in order; moments follow one another (a moment exits before or at most 500 ms after the next one enters); the last moment stays until the end; never more than 2 layers entering at the same time; the background and photos are not in the timeline (visible throughout), except a slight zoom-in on a photo if it serves the rhythm; typewriter only on a short text layer.`;
 }
 
-/** Bloc `=== PHOTOS ===` (docs/SPEC_COMPOSITION_VISUELLE.md Annexe A.1), commun à la création et à la révision. */
+/** `=== PHOTOS ===` block (docs/SPEC_COMPOSITION_VISUELLE.md Annex A.1), shared by creation and revision. */
 export function buildPhotosBlock(images: DesignImageContext[]): string {
-  if (images.length === 0) return "=== PHOTOS ===\nAucune photo : composition typographique.";
+  if (images.length === 0) return "=== PHOTOS ===\nNo photo: typographic composition.";
   const lines = images.map((i) =>
     [
-      `${i.ref} : ${i.description}`,
+      `${i.ref}: ${i.description}`,
       i.orientation,
-      i.productName ? `produit : ${i.productName}` : null,
-      i.cutoutAvailable ? "détourage disponible" : "détourage non disponible",
+      i.productName ? `product: ${i.productName}` : null,
+      i.cutoutAvailable ? "cutout available" : "cutout not available",
     ]
       .filter(Boolean)
       .join(" · ")
@@ -203,7 +202,7 @@ export interface DesignPostContext {
   hookVisual: string | null;
   storyboard: { planNumber: number; description: string }[];
   brandName: string;
-  /** Ton appris des retouches (styleProfile.tone), null tant qu'aucun style n'a été appris. */
+  /** Tone learned from edits (styleProfile.tone), null until a style has been learned. */
   tone: string | null;
 }
 
@@ -213,14 +212,14 @@ export function buildDesignCreateMessage(
   format: { width: number; height: number; animationDurationMs?: number | null }
 ): string {
   const storyboard = ctx.storyboard
-    .map((s) => (format.animationDurationMs ? `Moment ${s.planNumber} : ${s.description}` : `${s.planNumber}. ${s.description}`))
+    .map((s) => (format.animationDurationMs ? `Moment ${s.planNumber}: ${s.description}` : `${s.planNumber}. ${s.description}`))
     .join("\n");
   const formatLine = format.animationDurationMs
-    ? `Plateforme : ${ctx.platform} · Format : ${format.width}×${format.height} · ANIMATION de ${format.animationDurationMs} ms sur une seule slide`
-    : `Plateforme : ${ctx.platform} · Format : ${format.width}×${format.height}`;
+    ? `Platform: ${ctx.platform} · Format: ${format.width}×${format.height} · ${format.animationDurationMs} ms ANIMATION on a single slide`
+    : `Platform: ${ctx.platform} · Format: ${format.width}×${format.height}`;
   return [
-    `=== POST ===\n${formatLine}\nTitre : ${ctx.title ?? "(sans titre)"}\nAccroche visuelle : ${ctx.hookVisual ?? "(aucune)"}\n${format.animationDurationMs ? "Moments du texte, dans l'ordre" : "Storyboard"} :\n${storyboard}`,
-    `=== MARQUE ===\nNom : ${ctx.brandName}${ctx.tone ? ` · Ton : ${ctx.tone}` : ""}`,
+    `=== POST ===\n${formatLine}\nTitle: ${ctx.title ?? "(untitled)"}\nVisual hook: ${ctx.hookVisual ?? "(none)"}\n${format.animationDurationMs ? "Text moments, in order" : "Storyboard"}:\n${storyboard}`,
+    `=== BRAND ===\nName: ${ctx.brandName}${ctx.tone ? ` · Tone: ${ctx.tone}` : ""}`,
     buildPhotosBlock(images),
   ].join("\n\n");
 }
@@ -238,15 +237,15 @@ export function buildDesignReviseMessage(params: {
   const slides = params.slides.map((s) => `--- slide ${s.planNumber} ---\n${s.html}`).join("\n");
   const timelineSection =
     params.timeline && params.durationMs
-      ? `=== LIGNE DE TEMPS ACTUELLE (${params.durationMs} ms) ===\n${describeTimeline(params.timeline)}\nRenvoie la ligne de temps complète révisée (les calques non concernés inchangés).`
+      ? `=== CURRENT TIMELINE (${params.durationMs} ms) ===\n${describeTimeline(params.timeline)}\nReturn the complete revised timeline (unaffected layers unchanged).`
       : null;
-  const variants = params.currentVariants.length > 0 ? `\nVariantes actuelles : ${params.currentVariants.map((v) => `${v.ref} = ${v.variant}`).join(", ")}.` : "";
+  const variants = params.currentVariants.length > 0 ? `\nCurrent variants: ${params.currentVariants.map((v) => `${v.ref} = ${v.variant}`).join(", ")}.` : "";
   return [
-    `=== INSTRUCTION DE L'AUTEUR ===\n${params.instruction}\nPortée : ${params.planNumber ? `slide ${params.planNumber} uniquement` : "toutes les slides"}`,
-    `=== THÈME (à conserver sauf si l'instruction le change) ===\n${JSON.stringify(params.theme)}`,
+    `=== AUTHOR'S INSTRUCTION ===\n${params.instruction}\nScope: ${params.planNumber ? `slide ${params.planNumber} only` : "all slides"}`,
+    `=== THEME (to keep unless the instruction changes it) ===\n${JSON.stringify(params.theme)}`,
     `${buildPhotosBlock(params.images)}${variants}`,
     timelineSection,
-    `=== HTML ACTUEL ===\n${slides}\nRenvoie TOUTES les slides (les slides hors portée strictement inchangées) et la liste \`images\` complète. Conserve les data-layer existants quand le calque subsiste : l'auteur a pu le retoucher à la main.`,
+    `=== CURRENT HTML ===\n${slides}\nReturn ALL the slides (slides out of scope strictly unchanged) and the complete \`images\` list. Keep the existing data-layer values when the layer remains: the author may have edited it by hand.`,
   ]
     .filter((s): s is string => Boolean(s))
     .join("\n\n");
@@ -255,9 +254,9 @@ export function buildDesignReviseMessage(params: {
 export interface SanitizedDesignResult {
   theme: DesignTheme;
   slides: { planNumber: number; html: string }[];
-  /** Photos utilisées par au moins une slide, avec la variante retenue. */
+  /** Photos used by at least one slide, with the chosen variant. */
   images: { ref: string; variant: DesignImageVariant }[];
-  /** Null pour une maquette statique. */
+  /** Null for a static mockup. */
   timeline: Timeline | null;
   rationale: string;
 }
@@ -284,15 +283,15 @@ function sanitizeResult(raw: unknown, options: SanitizeContext): SanitizedDesign
       return { planNumber: slide.planNumber, html: sanitized.html };
     } catch (err) {
       if (err instanceof DesignValidationError) {
-        issues.push(...err.issues.map((i) => `slide ${slide.planNumber} : ${i}`));
+        issues.push(...err.issues.map((i) => `slide ${slide.planNumber}: ${i}`));
         return { planNumber: slide.planNumber, html: "" };
       }
       throw err;
     }
   });
-  // Variantes : celles annoncées par le modèle, ramenées à "original" quand le détourage n'est pas
-  // disponible (repli silencieux, docs/SPEC_COMPOSITION_VISUELLE.md §2) ; une photo utilisée dans le
-  // HTML mais oubliée de la liste est ajoutée en "original".
+  // Variants: those announced by the model, brought back to "original" when cutout isn't
+  // available (silent fallback, docs/SPEC_COMPOSITION_VISUELLE.md §2); a photo used in the
+  // HTML but forgotten from the list is added as "original".
   const declared = new Map(parsed.images.map((i) => [i.ref, i.variant]));
   const images = [...usedRefs].map((ref) => {
     const ctx = options.images.find((i) => i.ref === ref);
@@ -302,13 +301,13 @@ function sanitizeResult(raw: unknown, options: SanitizeContext): SanitizedDesign
   });
   let timeline: Timeline | null = null;
   if (options.animationDurationMs) {
-    if (slides.length !== 1) issues.push(`une animation tient sur UNE slide, ${slides.length} renvoyées`);
+    if (slides.length !== 1) issues.push(`an animation fits on ONE slide, ${slides.length} returned`);
     else {
       try {
         timeline = normalizeTimeline(parsed.timeline, layerIdsBySlide.get(slides[0].planNumber) ?? [], options.animationDurationMs);
-        if (timeline.length === 0) issues.push("ligne de temps vide : au moins un calque doit apparaître");
+        if (timeline.length === 0) issues.push("empty timeline: at least one layer must appear");
       } catch (err) {
-        if (err instanceof TimelineValidationError) issues.push(...err.issues.map((i) => `ligne de temps : ${i}`));
+        if (err instanceof TimelineValidationError) issues.push(...err.issues.map((i) => `timeline: ${i}`));
         else throw err;
       }
     }
@@ -317,22 +316,22 @@ function sanitizeResult(raw: unknown, options: SanitizeContext): SanitizedDesign
   return { theme: parsed.theme, slides, images, timeline, rationale: parsed.rationale };
 }
 
-/** Appel + liste blanche, avec une seconde tentative nourrie du rapport d'erreurs. */
+/** Call + whitelist, with a second attempt fed with the error report. */
 async function callDesignTool(system: string, userMessage: string, options: SanitizeContext): Promise<SanitizedDesignResult> {
   const first = await callStructured({ system, userMessage, tool: designVisualPostTool, maxTokens: 8192 });
   try {
     return sanitizeResult(first, options);
   } catch (err) {
-    // Une réponse mal formée (slide vide, champ manquant) a droit à la même seconde tentative qu'un
-    // HTML refusé par la liste blanche (observé en réel : une 2e slide vide sur une animation).
+    // A malformed response (empty slide, missing field) gets the same second attempt as an
+    // HTML refused by the whitelist (seen in real use: an empty 2nd slide on an animation).
     const issues =
       err instanceof DesignValidationError
         ? err.issues
         : err instanceof z.ZodError
-          ? err.issues.map((i) => `champ ${i.path.join(".") || "racine"} : ${i.message}`)
+          ? err.issues.map((i) => `field ${i.path.join(".") || "root"}: ${i.message}`)
           : null;
     if (!issues) throw err;
-    const retryMessage = `${userMessage}\n\n=== TA PRÉCÉDENTE RÉPONSE A ÉTÉ REFUSÉE ===\n${issues.map((i) => `- ${i}`).join("\n")}\nCorrige ces points et renvoie la maquette complète.`;
+    const retryMessage = `${userMessage}\n\n=== YOUR PREVIOUS RESPONSE WAS REJECTED ===\n${issues.map((i) => `- ${i}`).join("\n")}\nFix these points and return the complete mockup.`;
     const second = await callStructured({ system, userMessage: retryMessage, tool: designVisualPostTool, maxTokens: 8192 });
     return sanitizeResult(second, options);
   }

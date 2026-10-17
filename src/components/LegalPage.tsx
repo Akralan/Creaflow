@@ -6,22 +6,22 @@ import { heading1Style } from "@/components/ui/TextField";
 import { isPublisherComplete } from "@/lib/legal/publisher";
 
 const LEGAL_LINKS = [
-  { href: "/legal/cgu", label: "Conditions Générales d'Utilisation et de Vente" },
-  { href: "/legal/confidentialite", label: "Politique de confidentialité" },
-  { href: "/legal/mentions-legales", label: "Mentions légales" },
+  { href: "/legal/cgu", label: "Terms of Use and Sale" },
+  { href: "/legal/confidentialite", label: "Privacy Policy" },
+  { href: "/legal/mentions-legales", label: "Legal Notice" },
 ];
 
-/** Date de dernière mise à jour commune aux trois documents — ils ont été réécrits ensemble. */
-export const LEGAL_UPDATED_AT = "16 octobre 2026";
+/** Last-updated date shared by the three documents — they were rewritten together. */
+export const LEGAL_UPDATED_AT = "October 16, 2026";
 
 /**
- * Layout partagé des 3 pages légales — typographie lisible, pas de mise en page marketing.
+ * Shared layout for the 3 legal pages — readable typography, no marketing layout.
  *
- * La bannière « en cours de finalisation » n'est pas un texte à retirer à la main : elle s'affiche
- * tant que src/lib/legal/publisher.ts contient un placeholder, et disparaît d'elle-même ensuite
- * (docs/SPEC_LEGAL_EMAIL_RGPD.md §2.1). Les trois documents restent des rédactions internes, à
- * faire relire par un professionnel du droit avant l'ouverture commerciale — en particulier les
- * clauses de responsabilité, de rétractation et de droit applicable.
+ * The "being finalized" banner is not text to remove by hand: it is displayed as long as
+ * src/lib/legal/publisher.ts contains a placeholder, and disappears by itself afterwards
+ * (docs/SPEC_LEGAL_EMAIL_RGPD.md §2.1). The three documents remain internal drafts, to be
+ * reviewed by a legal professional before commercial launch — in particular the liability,
+ * withdrawal and governing-law clauses.
  */
 export default function LegalPage({
   title,
@@ -38,11 +38,11 @@ export default function LegalPage({
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "56px 24px 80px" }}>
         <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 10, fontFamily: fontHeading, fontWeight: 700, fontSize: 18, color: color.text, textDecoration: "none" }}>
           <BrandMark size={28} />
-          CreaFlow
+          Buildloud
         </Link>
 
         <h1 style={{ ...heading1Style, marginTop: 28, marginBottom: 6 }}>{title}</h1>
-        <p style={{ margin: "0 0 36px", fontSize: 13, color: color.textFaint }}>Dernière mise à jour : {updatedAt}</p>
+        <p style={{ margin: "0 0 36px", fontSize: 13, color: color.textFaint }}>Last updated: {updatedAt}</p>
 
         {!complete && (
           <p
@@ -56,8 +56,8 @@ export default function LegalPage({
               color: color.text2,
             }}
           >
-            <strong>Document en cours de finalisation.</strong> Les informations entre crochets seront
-            complétées avant l&apos;ouverture commerciale du service.
+            <strong>Document being finalized.</strong> The information in square brackets will be
+            completed before the service launches commercially.
           </p>
         )}
 

@@ -2,8 +2,8 @@ import { z } from "zod";
 import { resolveDesignFont } from "./fonts";
 
 /**
- * Identité de marque pour les maquettes (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2) — portée par
- * `creatorProfiles.brandKit`. Tout est optionnel : l'agent complète ce qui manque.
+ * Brand identity for mockups (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2) — carried by
+ * `creatorProfiles.brandKit`. Everything is optional: the agent fills in what is missing.
  */
 const hexColor = z
   .string()
@@ -35,7 +35,7 @@ export function parseStoredBrandKit(raw: unknown): BrandKit | null {
   return result.success ? result.data : null;
 }
 
-/** Ligne injectée dans le prompt ; vide si le kit ne dit rien. */
+/** Line injected in the prompt; empty if the kit says nothing. */
 export function describeBrandKit(kit: BrandKit | null): string {
   if (!kit) return "";
   const parts: string[] = [];

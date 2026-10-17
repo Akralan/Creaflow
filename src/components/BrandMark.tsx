@@ -3,9 +3,9 @@
 import { useId } from "react";
 
 /**
- * Icône de marque CreaFlow : un carré arrondi en dégradé accent, un « C » tracé en arc et un
- * point qui s'en échappe — le flux de contenu qui sort de la conversation. Le dégradé a un id
- * unique par instance (useId) pour pouvoir afficher la marque plusieurs fois sur une page.
+ * Buildloud brand icon: a rounded square in accent gradient, a "C" drawn as an arc and a
+ * dot escaping from it — the flow of content coming out of the conversation. The gradient has a
+ * unique id per instance (useId) so the mark can be shown several times on a page.
  */
 export default function BrandMark({ size = 28 }: { size?: number }) {
   const gradientId = useId();

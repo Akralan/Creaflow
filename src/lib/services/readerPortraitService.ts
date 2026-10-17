@@ -36,7 +36,7 @@ async function buildPortrait(userId: string, product: ProductRow): Promise<Reade
   // Les résumés n'existent pas forcément encore (ils naissent paresseusement) : le titre du
   // document en tient lieu plutôt que de lancer un résumé par document ici.
   const materialSummaries = materials
-    .map((m) => m.summary ?? (m.title ? `Document « ${m.title} »` : null))
+    .map((m) => m.summary ?? (m.title ? `Document "${m.title}"` : null))
     .filter((s): s is string => Boolean(s));
   return describeReaders({
     subjectName: product.name,
@@ -53,7 +53,7 @@ async function buildPortrait(userId: string, product: ProductRow): Promise<Reade
 /** Refait le portrait d'un sujet, même corrigé à la main (bouton « Refaire le portrait »). */
 export async function regenerateReaderPortrait(userId: string, productId: string): Promise<ReaderPortrait> {
   const product = await db.query.products.findFirst({ where: and(eq(products.id, productId), eq(products.userId, userId)) });
-  if (!product) throw new ApiError(404, "Sujet introuvable.");
+  if (!product) throw new ApiError(404, "Subject not found.");
   const portrait = await buildPortrait(userId, product);
   await db.update(products).set({ readerPortrait: portrait }).where(eq(products.id, product.id));
   scheduleEventQualification(userId, product.id);
@@ -89,7 +89,7 @@ export async function refreshStaleReaderPortraits(userId: string, productIds?: s
       // Les événements déjà lus reçoivent leur public (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3).
       scheduleEventQualification(userId, product.id);
     } catch (err) {
-      logger.error("Portrait des lecteurs échoué", err, { productId: product.id });
+      logger.error("Reader portrait failed", err, { productId: product.id });
     }
   }
 }
@@ -101,7 +101,7 @@ export const readerPortraitEditSchema = z.object({
 /** Correction à la main : le portrait n'est plus remplacé automatiquement. */
 export async function saveReaderPortrait(userId: string, productId: string, readers: Reader[]): Promise<ReaderPortrait> {
   const product = await db.query.products.findFirst({ where: and(eq(products.id, productId), eq(products.userId, userId)) });
-  if (!product) throw new ApiError(404, "Sujet introuvable.");
+  if (!product) throw new ApiError(404, "Subject not found.");
   const previous = parseStoredReaderPortrait(product.readerPortrait);
   const portrait: ReaderPortrait = {
     readers,

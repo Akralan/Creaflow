@@ -13,20 +13,20 @@ export class ApiError extends Error {
 
 export function handleApiError(error: unknown): NextResponse {
   if (error instanceof UnauthorizedError) {
-    return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
   if (error instanceof ZodError) {
     return NextResponse.json(
-      { error: "Requête invalide", details: error.flatten() },
+      { error: "Invalid request", details: error.flatten() },
       { status: 400 }
     );
   }
   if (error instanceof ApiError) {
     return NextResponse.json({ error: error.message }, { status: error.status });
   }
-  // Erreur non anticipée (pas un ApiError/ZodError/UnauthorizedError connu) — seul cas remonté à
-  // Sentry depuis ce point central : les erreurs "attendues" ci-dessus sont un fonctionnement
-  // normal de l'API, pas un incident à signaler.
-  logger.error("Erreur serveur non gérée dans une route API", error);
-  return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  // Unanticipated error (not a known ApiError/ZodError/UnauthorizedError) — the only case reported to
+  // Sentry from this central point: the "expected" errors above are normal
+  // API behaviour, not an incident to report.
+  logger.error("Unhandled server error in an API route", error);
+  return NextResponse.json({ error: "Server error" }, { status: 500 });
 }

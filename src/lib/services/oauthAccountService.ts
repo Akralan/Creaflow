@@ -18,7 +18,7 @@ export type AccountResolution =
 
 function unverifiedEmailMessage(providerId: string): string {
   const label = identityProviderLabel(providerId);
-  return `${label} ne fournit pas d'adresse email vérifiée pour ce compte. Vérifie ton email sur ${label}, puis réessaie.`;
+  return `${label} did not provide a verified email address for this account. Verify your email on ${label}, then try again.`;
 }
 
 /**
@@ -49,11 +49,11 @@ export function decideAccountResolution(input: {
     // Mode « brancher une source » : l'email du compte tiers n'a pas à correspondre — la personne
     // prouve les deux comptes en étant connectée aux deux à la fois.
     if (input.identityUserId && input.identityUserId !== input.sessionUserId) {
-      return { action: "reject", reason: `Ce compte ${label} est déjà utilisé par un autre compte CreaFlow.` };
+      return { action: "reject", reason: `This ${label} account is already used by another Buildloud account.` };
     }
     if (input.identityUserId) return { action: "login", userId: input.sessionUserId };
     if (input.sessionUserHasOtherIdentity) {
-      return { action: "reject", reason: `Ton compte CreaFlow est déjà relié à un autre compte ${label}.` };
+      return { action: "reject", reason: `Your Buildloud account is already linked to another ${label} account.` };
     }
     return { action: "link", userId: input.sessionUserId };
   }
@@ -191,7 +191,7 @@ export async function getValidProviderAccessToken(userId: string, providerId: st
   const account = await getOAuthAccount(userId, providerId);
   const label = identityProviderLabel(providerId);
   if (!account) {
-    throw new ApiError(400, `Aucun compte ${label} connecté.`);
+    throw new ApiError(400, `No ${label} account connected.`);
   }
 
   if (!account.accessTokenExpiresAt || account.accessTokenExpiresAt.getTime() - EXPIRY_MARGIN_MS > Date.now()) {
@@ -200,7 +200,7 @@ export async function getValidProviderAccessToken(userId: string, providerId: st
 
   const provider = getIdentityProvider(providerId);
   if (!provider?.refreshTokens || !account.refreshToken) {
-    throw new ApiError(409, `Connexion ${label} expirée — reconnecte ton compte pour continuer.`);
+    throw new ApiError(409, `${label} connection expired — reconnect your account to continue.`);
   }
 
   try {
@@ -218,6 +218,6 @@ export async function getValidProviderAccessToken(userId: string, providerId: st
       .where(eq(oauthAccounts.id, account.id));
     return refreshed.accessToken;
   } catch {
-    throw new ApiError(409, `Connexion ${label} expirée — reconnecte ton compte pour continuer.`);
+    throw new ApiError(409, `${label} connection expired — reconnect your account to continue.`);
   }
 }

@@ -45,7 +45,7 @@ export const linkedinProvider: SocialProvider = {
       }),
     });
     if (!response.ok) {
-      throw new Error(`Échange du code LinkedIn échoué (${response.status})`);
+      throw new Error(`LinkedIn code exchange failed (${response.status})`);
     }
     const data = await response.json();
 
@@ -72,7 +72,7 @@ export const linkedinProvider: SocialProvider = {
     );
     if (!response.ok) {
       throw new Error(
-        `Récupération des posts LinkedIn échouée (${response.status}). Nécessite probablement l'accès "Community Management API" — voir commentaire en tête de fichier.`
+        `Fetching LinkedIn posts failed (${response.status}). Probably requires "Community Management API" access — see the comment at the top of the file.`
       );
     }
     const data = await response.json();
@@ -101,7 +101,7 @@ export const linkedinProvider: SocialProvider = {
     });
     if (!response.ok) {
       throw new Error(
-        `Récupération des métriques LinkedIn échouée (${response.status}). Nécessite l'accès "Community Management API" — voir commentaire en tête de fichier.`
+        `Fetching LinkedIn metrics failed (${response.status}). Requires "Community Management API" access — see the comment at the top of the file.`
       );
     }
     const data = await response.json();

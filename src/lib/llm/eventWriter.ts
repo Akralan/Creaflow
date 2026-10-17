@@ -13,10 +13,10 @@ import { splitDocumentIntoParts } from "./eventReader";
 import { buildFormatBlock, enforceStoryboardCount, type VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
 
 /**
- * Le rédacteur par événements (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5) : un agent qui reçoit UN
- * événement, UN lecteur et la forme de la série, peut relire le document source et la ligne de
- * temps, écrit un brouillon, le juge comme le lecteur, recommence, puis soumet. Les contrôles du
- * code tournent dans l'outil de soumission : un post refusé revient au modèle avec ses fautes.
+ * The per-event writer (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5): an agent that receives ONE
+ * event, ONE reader and the series form, can reread the source document and the timeline, writes a
+ * draft, judges it as the reader would, starts again, then submits. The code checks run inside the
+ * submission tool: a rejected post goes back to the model with its faults.
  */
 
 export interface BriefEvent {
@@ -31,15 +31,15 @@ export interface BriefEvent {
 
 export interface EventBrief {
   event: BriefEvent;
-  /** Les deux événements précédents et le suivant dans la ligne de temps, pour situer. */
+  /** The two previous events and the next one in the timeline, to situate. */
   before: BriefEvent[];
   after: BriefEvent[];
   reader: Reader;
   form: SeriesForm;
   seriesLabel: string;
-  /** Le document d'où vient l'événement, en entier — null pour un événement écrit à la main. */
+  /** The document the event comes from, in full — null for a hand-written event. */
   source: { id: string; title: string | null; text: string } | null;
-  /** La ligne de temps du sujet (titres et dates), pour read_timeline. */
+  /** The subject's timeline (titles and dates), for read_timeline. */
   timeline: BriefEvent[];
 }
 
@@ -60,40 +60,41 @@ const READ_TIMELINE_TOOL = "read_timeline";
 const REVIEW_DRAFT_TOOL = "review_draft";
 const SUBMIT_POST_TOOL = "submit_post";
 
-/** Au plus deux soumissions : la seconde a lu le rapport des contrôles. */
+/** At most two submissions: the second has read the checks report. */
 const MAX_SUBMISSIONS = 2;
 const MAX_DRAFTS = 3;
 
 function formatEventDate(e: BriefEvent): string {
-  if (!e.date || e.datePrecision === "unknown") return "date inconnue";
+  if (!e.date || e.datePrecision === "unknown") return "unknown date";
   const d = new Date(`${e.date}T00:00:00.000Z`);
-  if (e.datePrecision === "month") return d.toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
-  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  if (e.datePrecision === "month") return d.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
+  return d.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 }
 
 function eventLine(e: BriefEvent): string {
   return `${formatEventDate(e)} — ${e.title}`;
 }
 
-const METHOD_PROMPT = `<methode>
-Tu racontes UN événement à UNE personne. Tout le reste est au service de ça.
-1. Relis la source avec ${READ_SOURCE_TOOL} : le document d'où vient l'événement, en entier. C'est là que sont les détails vrais (les mots exacts, les chiffres, ce qui s'est passé juste avant et juste après). Si tu as besoin de situer l'événement dans l'histoire, ${READ_TIMELINE_TOOL}.
-2. Écris un brouillon complet, pour cette seule personne, à partir de ce seul événement, dans la forme de la série.
-3. Soumets-le à ${REVIEW_DRAFT_TOOL} avec ton verdict honnête, formulé comme le lecteur le dirait : est-ce qu'il lit la deuxième phrase ? est-ce qu'il arrive au bout ? est-ce qu'il apprend quelque chose qu'il ne savait pas ? est-ce qu'on dirait l'auteur, ou un service marketing ? Si le verdict est mauvais, dis en une ligne ce qui cloche et recommence à l'étape 2. Trois brouillons au plus.
-4. Quand un brouillon tient, ${SUBMIT_POST_TOOL}. Si les contrôles le refusent, corrige exactement ce qui est signalé et resoumets.
-</methode>
+const METHOD_PROMPT = `<method>
+You tell ONE event to ONE person. Everything else serves that.
+1. Reread the source with ${READ_SOURCE_TOOL}: the document the event comes from, in full. That's where the true details are (the exact words, the numbers, what happened just before and just after). If you need to place the event in the story, ${READ_TIMELINE_TOOL}.
+2. Write a complete draft, for this one person, from this one event, in the series form.
+3. Submit it to ${REVIEW_DRAFT_TOOL} with your honest verdict, phrased the way the reader would say it: do they read the second sentence? do they make it to the end? do they learn something they didn't know? does it sound like the author, or like a marketing department? If the verdict is bad, say in one line what's wrong and start again at step 2. Three drafts at most.
+4. When a draft holds, ${SUBMIT_POST_TOOL}. If the checks reject it, fix exactly what is flagged and resubmit.
+</method>
 
-<ce_qui_fait_un_post>
-- Il commence dans l'événement, pas avant : pas de contexte, pas d'annonce, pas « dans cette série ». La première phrase est déjà dedans.
-- Il raconte ce qui s'est passé, puis ce que ça a changé. Avec les détails de la source : les mots exacts des gens, les chiffres, la date si elle compte.
-- Il n'explique pas le produit. Si le lecteur comprend ce que fait le produit, c'est parce qu'il a vu ce qui s'est passé, pas parce qu'on le lui a décrit.
-- Il se termine quand l'histoire est finie. Pas de morale, pas de liste de fonctionnalités, pas de « dans le prochain épisode », pas d'appel à l'action sauf si la forme de la série en demande un.
-- Il raconte CET événement et s'arrête avant le suivant. Les événements d'avant et d'après servent à situer en une demi-phrase (« une semaine après la démo »), sans leurs chiffres ni leurs détails : ils ont eu ou auront leur propre post.
-- Il ne ressemble pas au post précédent. Regarde <derniers_posts> : si le dernier ouvrait sur un chiffre, celui-ci ouvre autrement ; s'il finissait sur « la prochaine étape », celui-ci finit sur autre chose, ou s'arrête net. La forme de la série dit ce qu'un épisode contient, pas dans quel ordre.
-- Les hashtags, s'il y en a, changent avec le post : ceux de l'événement, pas ceux du projet.
-- Il est écrit pour UNE personne, avec ses mots, à sa longueur. Ce qu'elle ne comprend pas n'y est pas, ou est expliqué par son effet.
-- L'auteur parle à la première personne du singulier. « Nous » seulement si le brief ou la source dit qu'il y a une équipe, et pour désigner cette équipe.
-</ce_qui_fait_un_post>`;
+<what_makes_a_post>
+- It starts inside the event, not before: no context, no announcement, no "in this series". The first sentence is already in it.
+- It tells what happened, then what it changed. With the details from the source: people's exact words, the numbers, the date if it matters.
+- It doesn't explain the product. If the reader understands what the product does, it's because they saw what happened, not because it was described to them.
+- It ends when the story is over. No moral, no feature list, no "next episode", no call to action unless the series form asks for one.
+- It tells THIS event and stops before the next one. The events before and after only serve to situate in half a sentence ("a week after the demo"), without their numbers or details: they had or will have their own post.
+- It doesn't look like the previous post. Look at <recent_posts>: if the last one opened with a number, this one opens differently; if it ended on "the next step", this one ends on something else, or stops dead. The series form says what an episode contains, not in what order.
+- Hashtags, if any, change with the post: the event's, not the project's.
+- It is written for ONE person, in their words, at their length. What they wouldn't understand isn't in it, or is explained through its effect.
+- The author speaks in the first person singular. "We" only if the brief or the source says there is a team, and to refer to that team.
+- Everything is written in English.
+</what_makes_a_post>`;
 
 export const EVENT_WRITER_SYSTEM_PROMPT = `${SCRIPT_CORE_PROMPT}\n\n${METHOD_PROMPT}`;
 
@@ -108,39 +109,39 @@ export function buildEventWriterUserMessage(context: EventWriterContext): string
   const sections: string[] = [];
 
   sections.push(
-    tag("evenement", [
-      `Série : ${brief.seriesLabel} — ${context.subjectName}, par ${context.brandName} (${context.activityType}).`,
-      `L'événement à raconter : ${eventLine(brief.event)}`,
-      `Ce qui s'est passé : ${brief.event.whatHappened}`,
-      brief.event.whatChanged ? `Ce que ça a changé : ${brief.event.whatChanged}` : "Ce que ça a changé : rien de noté.",
-      brief.before.length ? `Juste avant, dans l'histoire :\n${brief.before.map((e) => `- ${eventLine(e)}`).join("\n")}` : "C'est le premier événement de l'histoire.",
-      brief.after.length ? `Juste après :\n${brief.after.map((e) => `- ${eventLine(e)}`).join("\n")}` : "Rien d'enregistré après, pour l'instant.",
+    tag("event", [
+      `Series: ${brief.seriesLabel} — ${context.subjectName}, by ${context.brandName} (${context.activityType}).`,
+      `The event to tell: ${eventLine(brief.event)}`,
+      `What happened: ${brief.event.whatHappened}`,
+      brief.event.whatChanged ? `What it changed: ${brief.event.whatChanged}` : "What it changed: nothing noted.",
+      brief.before.length ? `Just before, in the story:\n${brief.before.map((e) => `- ${eventLine(e)}`).join("\n")}` : "This is the first event of the story.",
+      brief.after.length ? `Just after:\n${brief.after.map((e) => `- ${eventLine(e)}`).join("\n")}` : "Nothing recorded after, for now.",
       brief.source
-        ? `Source : « ${brief.source.title ?? "document"} », à relire avec ${READ_SOURCE_TOOL}.`
-        : "Pas de document source : l'auteur a écrit cet événement lui-même. Tu n'as que ce qui est ci-dessus.",
+        ? `Source: "${brief.source.title ?? "document"}", to reread with ${READ_SOURCE_TOOL}.`
+        : "No source document: the author wrote this event themselves. You only have what is above.",
     ])
   );
 
   sections.push(
-    tag("lecteur", [
-      `${r.label} : ${r.who}`,
-      r.knows ? `Sait déjà : ${r.knows}` : null,
-      r.wants ? `Vient chercher : ${r.wants}` : null,
-      r.stopsFor ? `S'arrête pour : ${r.stopsFor}` : null,
-      r.turnsOff ? `Fuit : ${r.turnsOff}` : null,
-      r.words.length ? `Ses mots : ${r.words.join(", ")}` : null,
+    tag("reader", [
+      `${r.label}: ${r.who}`,
+      r.knows ? `Already knows: ${r.knows}` : null,
+      r.wants ? `Comes looking for: ${r.wants}` : null,
+      r.stopsFor ? `Stops for: ${r.stopsFor}` : null,
+      r.turnsOff ? `Turned off by: ${r.turnsOff}` : null,
+      r.words.length ? `Their words: ${r.words.join(", ")}` : null,
     ].filter((l): l is string => l !== null))
   );
 
   sections.push(
-    tag("forme", [
-      `Ce qu'il vient chercher dans cette série : ${f.wants}`,
-      `Un bon épisode pour lui : ${f.episodeShape}`,
-      `Ce qui le fait partir : ${f.avoid}`,
-      `Longueur et registre : ${f.register}`,
-      f.signature ? `Signature de la série, à replacer naturellement : ${f.signature}` : null,
-      f.words.length ? `Ses mots : ${f.words.join(", ")}` : null,
-      f.jargon.length ? `À éviter, ou à expliquer par l'effet : ${f.jargon.join(", ")}` : null,
+    tag("form", [
+      `What they come looking for in this series: ${f.wants}`,
+      `A good episode for them: ${f.episodeShape}`,
+      `What makes them leave: ${f.avoid}`,
+      `Length and register: ${f.register}`,
+      f.signature ? `Series signature, to work in naturally: ${f.signature}` : null,
+      f.words.length ? `Their words: ${f.words.join(", ")}` : null,
+      f.jargon.length ? `To avoid, or to explain through the effect: ${f.jargon.join(", ")}` : null,
     ].filter((l): l is string => l !== null))
   );
 
@@ -151,27 +152,27 @@ export function buildEventWriterUserMessage(context: EventWriterContext): string
   if (recent) sections.push(recent);
 
   const visualOnly = context.contentType === "visual" && context.visual?.withText === false;
-  sections.push(tag("plateforme", [platformRuleText(context.platform, { visualOnly })]));
+  sections.push(tag("platform", [platformRuleText(context.platform, { visualOnly })]));
   if (context.contentType === "visual") {
     const formatBlock = buildFormatBlock(context.visual);
     if (formatBlock) sections.push(formatBlock);
   }
 
-  sections.push(`Commence par ${READ_SOURCE_TOOL}.`);
+  sections.push(`Start with ${READ_SOURCE_TOOL}.`);
   return sections.join("\n\n");
 }
 
 const POST_FIELDS = {
-  concept: { type: "string", description: "En une phrase : ce que le lecteur doit retenir de cet événement." },
-  title: { type: "string", description: "Le nom de l'idée, court, impossible à réutiliser pour un autre post." },
-  caption: { type: "string", description: "Le texte du post, en entier, dans la forme de la série et la longueur de la plateforme." },
-  hashtags: { type: "array", items: { type: "string" }, description: "Dans le nombre donné par <plateforme>. Vide si elle n'en utilise pas." },
+  concept: { type: "string", description: "In one sentence: what the reader should remember from this event." },
+  title: { type: "string", description: "The name of the idea, short, impossible to reuse for another post." },
+  caption: { type: "string", description: "The post text, in full, in the series form and the platform's length." },
+  hashtags: { type: "array", items: { type: "string" }, description: "In the number given by <platform>. Empty if it doesn't use any." },
   usedExcerpts: {
     type: "array",
     items: { type: "string" },
-    description: "Les passages de la source copiés MOT POUR MOT qui fondent les faits du post, un par fait. Tableau vide si l'événement n'a pas de source.",
+    description: "The passages of the source copied WORD FOR WORD that ground the post's facts, one per fact. Empty array if the event has no source.",
   },
-  promisesMade: { type: "array", items: { type: "string" }, description: "Les promesses explicites faites au lecteur dans le post, copiées telles quelles. Vide sinon." },
+  promisesMade: { type: "array", items: { type: "string" }, description: "The explicit promises made to the reader in the post, copied as is. Empty otherwise." },
 };
 
 function buildTools(context: EventWriterContext, parts: number): LlmToolDefinition[] {
@@ -179,18 +180,18 @@ function buildTools(context: EventWriterContext, parts: number): LlmToolDefiniti
     context.contentType === "visual"
       ? {
           ...POST_FIELDS,
-          hookVisual: { type: "string", description: "La composition visuelle qui arrête le lecteur (image unique ou première slide)." },
+          hookVisual: { type: "string", description: "The visual composition that stops the reader (single image or first slide)." },
           storyboard: {
             type: "array",
-            description: "Les slides, numérotées, dans le nombre donné par <format>.",
+            description: "The slides, numbered, in the number given by <format>.",
             items: {
               type: "object",
-              properties: { planNumber: { type: "integer" }, description: { type: "string", description: "Ce qu'on voit et le texte affiché." } },
+              properties: { planNumber: { type: "integer" }, description: { type: "string", description: "What is seen and the text displayed." } },
               required: ["planNumber", "description"],
             },
           },
         }
-      : { ...POST_FIELDS, hookText: { type: "string", description: "La première phrase du post, telle quelle : elle est déjà dans l'événement." } };
+      : { ...POST_FIELDS, hookText: { type: "string", description: "The first sentence of the post, as is: it is already inside the event." } };
   const submitRequired =
     context.contentType === "visual"
       ? ["concept", "title", "hookVisual", "storyboard", "caption", "hashtags", "usedExcerpts", "promisesMade"]
@@ -200,32 +201,32 @@ function buildTools(context: EventWriterContext, parts: number): LlmToolDefiniti
     {
       name: READ_SOURCE_TOOL,
       description: context.brief.source
-        ? `Le document source de l'événement, en ${parts} partie${parts > 1 ? "s" : ""}. Lis au moins la partie qui contient l'événement ; tout le document si tu as besoin du contexte.`
-        : "Aucune source : cet événement a été écrit à la main par l'auteur.",
-      input_schema: { type: "object", properties: { part: { type: "integer", description: "Numéro de la partie, à partir de 1." } }, required: ["part"] },
+        ? `The event's source document, in ${parts} part${parts > 1 ? "s" : ""}. Read at least the part that contains the event; the whole document if you need the context.`
+        : "No source: this event was written by hand by the author.",
+      input_schema: { type: "object", properties: { part: { type: "integer", description: "Number of the part, starting at 1." } }, required: ["part"] },
     },
     {
       name: READ_TIMELINE_TOOL,
-      description: "La ligne de temps du sujet : tous ses événements datés, dans l'ordre. Pour situer, jamais pour raconter deux événements.",
+      description: "The subject's timeline: all its dated events, in order. To situate, never to tell two events.",
       input_schema: { type: "object", properties: {}, required: [] },
     },
     {
       name: REVIEW_DRAFT_TOOL,
-      description: "Soumets un brouillon complet à ta propre relecture, comme le lecteur. Garde une trace honnête : un brouillon jugé bon sera soumis, un brouillon jugé faible sera refait.",
+      description: "Submit a complete draft to your own review, as the reader. Keep an honest record: a draft judged good will be submitted, a draft judged weak will be redone.",
       input_schema: {
         type: "object",
         properties: {
-          draft: { type: "string", description: "Le brouillon complet du texte du post." },
-          readerVerdict: { type: "string", description: "Ce que le lecteur dirait en le lisant, en deux ou trois phrases, dans ses mots." },
-          keep: { type: "boolean", description: "Vrai si ce brouillon tient et peut être soumis." },
-          why: { type: "string", description: "Si keep est faux : ce qui cloche, en une ligne, et ce que tu changes." },
+          draft: { type: "string", description: "The complete draft of the post text." },
+          readerVerdict: { type: "string", description: "What the reader would say while reading it, in two or three sentences, in their words." },
+          keep: { type: "boolean", description: "True if this draft holds and can be submitted." },
+          why: { type: "string", description: "If keep is false: what's wrong, in one line, and what you change." },
         },
         required: ["draft", "readerVerdict", "keep", "why"],
       },
     },
     {
       name: SUBMIT_POST_TOOL,
-      description: "Soumet le post final. Les contrôles du code le vérifient : s'il est refusé, le rapport te revient et tu corriges.",
+      description: "Submits the final post. The code checks verify it: if it is rejected, the report comes back to you and you fix it.",
       input_schema: { type: "object", properties: submitProperties, required: submitRequired },
     },
   ];
@@ -255,7 +256,7 @@ const submittedVisualSchema = z.object({
 export interface EventWriterTrace {
   version: 4;
   event: { id: string; title: string; date: string | null };
-  /** Même forme que la trace V3 pour la mémoire des derniers posts (recentPosts.ts lit trace.reader.label). */
+  /** Same shape as the V3 trace for the latest-posts memory (recentPosts.ts reads trace.reader.label). */
   reader: { label: string };
   drafts: Array<{ draft: string; readerVerdict: string; keep: boolean; why: string }>;
   sourcePartsRead: number[];
@@ -302,11 +303,11 @@ export async function writeScriptFromEvent(context: EventWriterContext): Promise
     effort: "medium",
     onToolCall: async ({ name, input }) => {
       if (name === READ_SOURCE_TOOL) {
-        if (!brief.source) return { text: "", note: "Aucune source : écris à partir de l'événement tel qu'il t'est donné." };
+        if (!brief.source) return { text: "", note: "No source: write from the event as it is given to you." };
         const { part } = input as { part?: number };
         const index = Number(part);
         if (!Number.isInteger(index) || index < 1 || index > parts.length) {
-          throw new Error(`Partie ${part} inexistante : le document a ${parts.length} partie(s).`);
+          throw new Error(`Part ${part} does not exist: the document has ${parts.length} part(s).`);
         }
         partsRead.add(index);
         return { title: brief.source.title, part: index, parts: parts.length, text: parts[index - 1] };
@@ -320,17 +321,17 @@ export async function writeScriptFromEvent(context: EventWriterContext): Promise
           .object({ draft: z.string(), readerVerdict: z.string(), keep: z.boolean(), why: z.string().default("") })
           .parse(input);
         drafts.push(d);
-        if (d.keep) return { note: `Brouillon ${drafts.length} retenu. Soumets-le avec ${SUBMIT_POST_TOOL}.` };
-        if (drafts.length >= MAX_DRAFTS) return { note: `Trois brouillons : soumets le meilleur avec ${SUBMIT_POST_TOOL}, en corrigeant ce que tu as relevé.` };
-        return { note: `Brouillon ${drafts.length} écarté. Récris-le en corrigeant : ${d.why || "ce que ton verdict relève"}.` };
+        if (d.keep) return { note: `Draft ${drafts.length} kept. Submit it with ${SUBMIT_POST_TOOL}.` };
+        if (drafts.length >= MAX_DRAFTS) return { note: `Three drafts: submit the best one with ${SUBMIT_POST_TOOL}, fixing what you noted.` };
+        return { note: `Draft ${drafts.length} discarded. Rewrite it, fixing: ${d.why || "what your verdict points out"}.` };
       }
       if (name === SUBMIT_POST_TOOL) {
         let script: GeneratedScript;
         try {
           script = parseSubmission(input);
         } catch (err) {
-          const issues = err instanceof z.ZodError ? err.issues.map((i) => i.path.join(".") || "racine").join(", ") : String(err);
-          throw new Error(`Post refusé, format incomplet (${issues}) : renvoie tous les champs requis.`);
+          const issues = err instanceof z.ZodError ? err.issues.map((i) => i.path.join(".") || "root").join(", ") : String(err);
+          throw new Error(`Post rejected, incomplete format (${issues}): return all the required fields.`);
         }
         if (script.contentType === "visual") {
           script = { ...script, storyboard: enforceStoryboardCount(script.storyboard, context.visual).storyboard };
@@ -338,18 +339,18 @@ export async function writeScriptFromEvent(context: EventWriterContext): Promise
         const failures = checkGeneratedPost(script, null, checkContext);
         submissions.push({ script, failures });
         if (failures.length > 0 && submissions.length < MAX_SUBMISSIONS) {
-          throw new Error(`Post refusé par les contrôles :\n${failures.map((f) => `- ${f}`).join("\n")}\nCorrige exactement ces points et resoumets le post complet.`);
+          throw new Error(`Post rejected by the checks:\n${failures.map((f) => `- ${f}`).join("\n")}\nFix exactly these points and resubmit the complete post.`);
         }
-        return { accepted: true, note: failures.length ? "Accepté malgré des réserves : réponds en une phrase." : "Accepté. Réponds en une phrase." };
+        return { accepted: true, note: failures.length ? "Accepted despite reservations: reply in one sentence." : "Accepted. Reply in one sentence." };
       }
-      throw new Error(`Outil inconnu : ${name}`);
+      throw new Error(`Unknown tool: ${name}`);
     },
   });
 
   if (submissions.length === 0) {
-    throw new Error("Le rédacteur n'a soumis aucun post.");
+    throw new Error("The writer submitted no post.");
   }
-  // La meilleure soumission : la moins fautive ; à égalité, la dernière, qui a lu le rapport.
+  // The best submission: the least faulty; on a tie, the last one, which read the report.
   const best = submissions.reduce((b, s) => (s.failures.length <= b.failures.length ? s : b), submissions[0]);
   const trace: EventWriterTrace = {
     version: 4,
@@ -363,6 +364,6 @@ export async function writeScriptFromEvent(context: EventWriterContext): Promise
     turns: result.turns,
     stoppedAtMaxTurns: result.stoppedAtMaxTurns,
   };
-  // La trace V4 n'a pas la forme de la V3 : elle est rangée telle quelle sur scripts.generationTrace.
+  // The V4 trace doesn't have the V3 shape: it is stored as is on scripts.generationTrace.
   return { ...best.script, trace: trace as unknown as GeneratedScript["trace"] };
 }

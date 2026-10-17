@@ -5,13 +5,13 @@ import { rateLimitBuckets } from "@/db/schema";
 import { ApiError } from "@/lib/api/errors";
 
 /**
- * Rate limiting fenêtre fixe (fixed window), backé Postgres — pas de Redis dans l'infra actuelle
- * (cf. docs/TECH.md §7). Même mécanique que billingService.ts : logique pure et testable
- * (computeWindowStart, resolveRateLimitStatus) séparée du code DB-aware (checkRateLimit).
+ * Fixed-window rate limiting, Postgres-backed — no Redis in the current infrastructure
+ * (see docs/TECH.md §7). Same mechanics as billingService.ts: pure, testable logic
+ * (computeWindowStart, resolveRateLimitStatus) separate from the DB-aware code (checkRateLimit).
  *
- * Fenêtre fixe plutôt que glissante : plus simple, moins précis (jusqu'à 2x la limite affichée
- * possible à cheval sur deux fenêtres), jugé suffisant pour de la protection anti-abus/anti-spam,
- * pas pour un SLA de facturation précis (ça, c'est le rôle de billingService.ts).
+ * Fixed window rather than sliding: simpler, less precise (up to 2x the displayed limit
+ * possible straddling two windows), judged sufficient for anti-abuse/anti-spam protection,
+ * not for a precise billing SLA (that is billingService.ts's role).
  */
 
 export interface RateLimitStatus {
@@ -33,15 +33,15 @@ export function resolveRateLimitStatus(count: number, limit: number): RateLimitS
   return { allowed: count <= limit, count, limit };
 }
 
-// Nettoyage paresseux des fenêtres expirées — pas de cron dans ce repo (même philosophie que le
-// reste de l'app). Probabiliste pour ne pas ajouter un DELETE à chaque appel : la table ne
-// contient que des compteurs à courte durée de vie, une purge fréquente n'est pas critique.
+// Lazy cleanup of expired windows — no cron in this repo (same philosophy as the
+// rest of the app). Probabilistic so as not to add a DELETE to every call: the table
+// only holds short-lived counters, a frequent purge is not critical.
 const CLEANUP_PROBABILITY = 0.01;
-// Dérivée du windowSeconds de l'appel en cours (x2, marge de sécurité) plutôt qu'une constante
-// fixe : une constante fixe supposerait implicitement qu'aucun appel futur n'utilise une fenêtre
-// plus longue qu'elle, et purgerait silencieusement un bucket encore actif le jour où c'est le cas
-// (ex. un quota journalier ajouté plus tard). Avec ce calcul, la rétention s'ajuste d'elle-même.
-const CLEANUP_RETENTION_FLOOR_MS = 60 * 60 * 1000; // 1h plancher, même pour des fenêtres très courtes
+// Derived from the current call's windowSeconds (x2, safety margin) rather than a fixed
+// constant: a fixed constant would implicitly assume no future call uses a window
+// longer than it, and would silently purge a still-active bucket the day that happens
+// (e.g. a daily quota added later). With this calculation, retention adjusts itself.
+const CLEANUP_RETENTION_FLOOR_MS = 60 * 60 * 1000; // 1h floor, even for very short windows
 
 async function maybeCleanupExpiredBuckets(nowMs: number, windowSeconds: number): Promise<void> {
   if (Math.random() >= CLEANUP_PROBABILITY) return;
@@ -50,9 +50,9 @@ async function maybeCleanupExpiredBuckets(nowMs: number, windowSeconds: number):
 }
 
 /**
- * Incrémente le compteur de la fenêtre courante pour (scope, identifier) et renvoie son statut.
- * `nowMs` est un paramètre explicite (pas Date.now() interne) uniquement pour rester testable —
- * en usage réel, toujours appelé sans le passer (voir enforceRateLimit).
+ * Increments the current window's counter for (scope, identifier) and returns its status.
+ * `nowMs` is an explicit parameter (not an internal Date.now()) only to stay testable —
+ * in real use, always called without passing it (see enforceRateLimit).
  */
 export async function checkRateLimit(
   scope: string,
@@ -79,15 +79,15 @@ export async function checkRateLimit(
 }
 
 /**
- * Empreinte d'un identifiant personnel (email) pour la clé de bucket : la table ne contient alors
- * pas d'adresse en clair, seulement un hash — ce que la politique de confidentialité peut dire
- * sans mentir. L'IP, elle, reste en clair (utile pour diagnostiquer une rafale).
+ * Fingerprint of a personal identifier (email) for the bucket key: the table then contains
+ * no plain address, only a hash — which the privacy policy can state
+ * without lying. The IP, on the other hand, stays in plain text (useful for diagnosing a burst).
  */
 export function pseudonymizeIdentifier(identifier: string): string {
   return createHash("sha256").update(identifier).digest("hex").slice(0, 32);
 }
 
-/** À appeler en tête des routes sensibles (auth, génération LLM, actions Stripe). */
+/** To be called at the top of sensitive routes (auth, LLM generation, Stripe actions). */
 export async function enforceRateLimit(
   scope: string,
   identifier: string,
@@ -96,21 +96,21 @@ export async function enforceRateLimit(
 ): Promise<void> {
   const status = await checkRateLimit(scope, identifier, limit, windowSeconds);
   if (!status.allowed) {
-    throw new ApiError(429, "Trop de requêtes. Réessaie dans quelques instants.");
+    throw new ApiError(429, "Too many requests. Try again in a few moments.");
   }
 }
 
 /**
- * IP client à partir de `X-Forwarded-For` (posé par la plupart des plateformes d'hébergement —
- * Vercel, Railway, etc.). Fait confiance à cet en-tête : en self-hosting direct sans proxy devant
- * l'app, un client pourrait le falsifier pour contourner la limite par IP — acceptable en v1, la
- * limite par utilisateur (userId) sur les routes authentifiées n'a pas ce problème.
+ * Client IP from `X-Forwarded-For` (set by most hosting platforms —
+ * Vercel, Railway, etc.). Trusts this header: in direct self-hosting with no proxy in front of
+ * the app, a client could forge it to bypass the per-IP limit — acceptable in v1, the
+ * per-user limit (userId) on authenticated routes does not have this problem.
  *
- * Renvoie `null` si l'en-tête est absent plutôt qu'une valeur de repli du type "unknown" : une
- * telle valeur servirait de clé de bucket partagée par TOUS les clients sans l'en-tête (déploiement
- * sans proxy devant l'app), et il suffirait qu'un seul dépasse la limite pour bloquer tous les
- * autres — un déni de service auto-infligé pire que l'absence de limite par IP. Les appelants
- * doivent sauter le check par IP sur `null` (voir login/route.ts, signup/route.ts).
+ * Returns `null` if the header is absent rather than a fallback value such as "unknown": such
+ * a value would serve as a bucket key shared by ALL clients without the header (deployment
+ * with no proxy in front of the app), and a single one exceeding the limit would be enough to block all the
+ * others — a self-inflicted denial of service worse than having no per-IP limit. Callers
+ * must skip the per-IP check on `null` (see login/route.ts, signup/route.ts).
  */
 export function getClientIp(request: Request): string | null {
   const forwardedFor = request.headers.get("x-forwarded-for");

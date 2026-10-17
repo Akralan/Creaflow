@@ -3,10 +3,10 @@ import { redirect } from "next/navigation";
 import LandingPage from "@/components/landing/LandingPage";
 import { resolveSignedInDestination } from "@/lib/auth/entry";
 
-// Composant serveur (docs/SPEC_SEO.md §1) : la landing arrive complète dans le HTML, titres et
-// texte compris — c'est ce que lisent les moteurs et les aperçus de liens (WhatsApp, LinkedIn,
-// Slack), qui n'exécutent pas de JavaScript. Un utilisateur déjà connecté est redirigé côté
-// serveur, sans l'écran blanc que produisait l'ancienne vérification au montage.
+// Server component (docs/SPEC_SEO.md §1): the landing arrives complete in the HTML, titles and
+// text included — that's what search engines and link previews (WhatsApp, LinkedIn,
+// Slack) read, since they don't run JavaScript. A signed-in user is redirected on the
+// server, without the blank screen the old check on mount used to produce.
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export default async function RootPage() {

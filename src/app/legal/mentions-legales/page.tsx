@@ -3,17 +3,17 @@ import { PUBLISHER, SERVICE_NAME } from "@/lib/legal/publisher";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Mentions légales",
-  description: "Éditeur, hébergement et contact du service CreaFlow.",
+  title: "Legal Notice",
+  description: "Publisher, hosting and contact details of the Buildloud service.",
   alternates: { canonical: "/legal/mentions-legales" },
 };
 
-// Obligatoire en France pour tout site accessible au public (LCEN, art. 6-III). Tout le contenu
-// variable vient de src/lib/legal/publisher.ts — rien à modifier ici le jour où l'entité est arrêtée.
+// Mandatory in France for any publicly accessible website (LCEN, art. 6-III). All variable content
+// comes from src/lib/legal/publisher.ts — nothing to change here once the entity is set up.
 export default function MentionsLegalesPage() {
   return (
-    <LegalPage title="Mentions légales">
-      <h2 style={sectionTitleStyle}>Éditeur du site</h2>
+    <LegalPage title="Legal Notice">
+      <h2 style={sectionTitleStyle}>Site publisher</h2>
       <p>
         {PUBLISHER.name}
         <br />
@@ -21,40 +21,40 @@ export default function MentionsLegalesPage() {
         <br />
         {PUBLISHER.address}
         <br />
-        SIRET : {PUBLISHER.siret}
+        SIRET: {PUBLISHER.siret}
         <br />
-        TVA : {PUBLISHER.vat}
+        VAT: {PUBLISHER.vat}
         <br />
-        Email de contact : {PUBLISHER.contactEmail}
+        Contact email: {PUBLISHER.contactEmail}
       </p>
 
-      <h2 style={sectionTitleStyle}>Directeur de la publication</h2>
+      <h2 style={sectionTitleStyle}>Publication director</h2>
       <p>{PUBLISHER.publicationDirector}</p>
 
-      <h2 style={sectionTitleStyle}>Hébergement</h2>
+      <h2 style={sectionTitleStyle}>Hosting</h2>
       <p>
-        Application : {PUBLISHER.appHost.name}, {PUBLISHER.appHost.address} — {PUBLISHER.appHost.contact}
+        Application: {PUBLISHER.appHost.name}, {PUBLISHER.appHost.address} — {PUBLISHER.appHost.contact}
         <br />
-        Base de données : {PUBLISHER.dbHost.name}, {PUBLISHER.dbHost.address} — {PUBLISHER.dbHost.contact}
+        Database: {PUBLISHER.dbHost.name}, {PUBLISHER.dbHost.address} — {PUBLISHER.dbHost.contact}
       </p>
 
-      <h2 style={sectionTitleStyle}>Propriété intellectuelle</h2>
+      <h2 style={sectionTitleStyle}>Intellectual property</h2>
       <p>
-        La structure générale, les textes, graphismes, logos et éléments composant {SERVICE_NAME} sont,
-        sauf mention contraire, la propriété de l&apos;éditeur ou de ses partenaires. Toute reproduction,
-        représentation ou diffusion, en tout ou partie, sans autorisation, est interdite. Les contenus
-        créés par les utilisateurs à l&apos;aide du service restent la propriété de leurs auteurs (voir
-        les conditions générales).
+        The overall structure, texts, graphics, logos and elements making up {SERVICE_NAME} are, unless
+        otherwise stated, the property of the publisher or its partners. Any reproduction,
+        representation or distribution, in whole or in part, without authorization is prohibited.
+        Content created by users with the service remains the property of its authors (see the terms
+        and conditions).
       </p>
 
-      <h2 style={sectionTitleStyle}>Données personnelles</h2>
+      <h2 style={sectionTitleStyle}>Personal data</h2>
       <p>
-        Le traitement des données personnelles est décrit dans la politique de confidentialité. Pour
-        exercer vos droits : {PUBLISHER.contactEmail}.
+        The processing of personal data is described in the privacy policy. To exercise your rights:
+        {PUBLISHER.contactEmail}.
       </p>
 
       <h2 style={sectionTitleStyle}>Contact</h2>
-      <p>Pour toute question relative au site ou au service : {PUBLISHER.contactEmail}.</p>
+      <p>For any question about the site or the service: {PUBLISHER.contactEmail}.</p>
     </LegalPage>
   );
 }

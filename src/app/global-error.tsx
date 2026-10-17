@@ -3,22 +3,22 @@
 import { useEffect } from "react";
 import * as Sentry from "@sentry/nextjs";
 
-// Ne couvre que les erreurs dans le root layout lui-même (rarissime) — error.tsx couvre tout le
-// reste. Rendu de document séparé sans les styles/polices globaux (limite documentée de Next.js),
-// donc styles minimaux en dur plutôt que les tokens de design habituels de l'app.
+// Only covers errors in the root layout itself (very rare) — error.tsx covers everything
+// else. Separate document render without the global styles/fonts (documented Next.js limitation),
+// hence minimal hard-coded styles rather than the app's usual design tokens.
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     Sentry.captureException(error);
   }, [error]);
 
   return (
-    <html lang="fr">
+    <html lang="en">
       <body style={{ margin: 0, fontFamily: "system-ui, sans-serif", background: "#f7f4ef", color: "#1c1917" }}>
         <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24 }}>
           <div style={{ maxWidth: 440, textAlign: "center" }}>
-            <h1 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 10px" }}>Une erreur est survenue</h1>
+            <h1 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 10px" }}>Something went wrong</h1>
             <p style={{ color: "#78706a", fontSize: 14, margin: "0 0 24px" }}>
-              Le problème a été signalé automatiquement.
+              The problem was reported automatically.
             </p>
             <button
               onClick={reset}
@@ -33,7 +33,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
                 cursor: "pointer",
               }}
             >
-              Réessayer
+              Try again
             </button>
           </div>
         </div>

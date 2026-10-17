@@ -19,14 +19,14 @@ export const LINEAR_OAUTH_SCOPE = "read";
 
 export class LinearAuthError extends Error {
   constructor() {
-    super("L'accès Linear a été révoqué ou a expiré — reconnecte ton compte.");
+    super("Linear access was revoked or has expired — reconnect your account.");
     this.name = "LinearAuthError";
   }
 }
 
 export class LinearRateLimitError extends ConnectorRateLimitError {
   constructor(retryAfterMinutes: number) {
-    super(`Quota Linear atteint. Réessaie dans ${retryAfterMinutes} minute(s).`, retryAfterMinutes);
+    super(`Linear rate limit reached. Try again in ${retryAfterMinutes} minute(s).`, retryAfterMinutes);
     this.name = "LinearRateLimitError";
   }
 }
@@ -35,7 +35,7 @@ function credentials(): { clientId: string; clientSecret: string; redirectUri: s
   const clientId = process.env.LINEAR_CLIENT_ID;
   const clientSecret = process.env.LINEAR_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
-    throw new Error("LINEAR_CLIENT_ID et LINEAR_CLIENT_SECRET doivent être définis dans l'environnement.");
+    throw new Error("LINEAR_CLIENT_ID and LINEAR_CLIENT_SECRET must be set in the environment.");
   }
   return { clientId, clientSecret, redirectUri: getOAuthRedirectUri("linear") };
 }
@@ -71,7 +71,7 @@ async function postToken(body: Record<string, string>): Promise<LinearTokens> {
   });
 
   if (!response.ok) {
-    throw new Error(`Échange du code Linear échoué (${response.status}) : ${await response.text()}`);
+    throw new Error(`Linear code exchange failed (${response.status}): ${await response.text()}`);
   }
 
   const data = (await response.json()) as {
@@ -82,7 +82,7 @@ async function postToken(body: Record<string, string>): Promise<LinearTokens> {
   };
 
   if (!data.access_token) {
-    throw new Error("Échange du code Linear échoué : réponse sans access_token.");
+    throw new Error("Linear code exchange failed: response without access_token.");
   }
 
   return {
@@ -133,7 +133,7 @@ async function gql<T>(token: string, query: string, variables?: Record<string, u
     throw new LinearRateLimitError(Math.max(1, Math.ceil(seconds / 60)));
   }
   if (!response.ok) {
-    throw new Error(`Appel Linear échoué (${response.status}) : ${await response.text()}`);
+    throw new Error(`Linear call failed (${response.status}): ${await response.text()}`);
   }
 
   const body = (await response.json()) as { data?: T; errors?: Array<{ message?: string; extensions?: { code?: string } }> };
@@ -143,10 +143,10 @@ async function gql<T>(token: string, query: string, variables?: Record<string, u
     if (body.errors.some((e) => e.extensions?.code === "AUTHENTICATION_ERROR")) {
       throw new LinearAuthError();
     }
-    throw new Error(`Appel Linear échoué : ${body.errors.map((e) => e.message ?? "erreur inconnue").join(" ; ")}`);
+    throw new Error(`Linear call failed: ${body.errors.map((e) => e.message ?? "unknown error").join("; ")}`);
   }
   if (!body.data) {
-    throw new Error("Appel Linear échoué : réponse sans données.");
+    throw new Error("Linear call failed: response without data.");
   }
   return body.data;
 }

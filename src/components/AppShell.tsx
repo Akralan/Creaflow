@@ -12,11 +12,11 @@ import { CategoryLabelsContext } from "@/contexts/CategoryLabelsContext";
 import { SeriesContext } from "@/contexts/SeriesContext";
 
 const navItems = [
-  { href: "/calendar", label: "Calendrier", icon: CalendarDays, match: (p: string) => p.startsWith("/calendar") || p.startsWith("/scripts") },
+  { href: "/calendar", label: "Calendar", icon: CalendarDays, match: (p: string) => p.startsWith("/calendar") || p.startsWith("/scripts") },
   { href: "/direction", label: "Direction", icon: Compass, match: (p: string) => p.startsWith("/direction") },
   { href: "/performance", label: "Performance", icon: TrendingUp, match: (p: string) => p.startsWith("/performance") },
   { href: "/assistant", label: "Assistant", icon: Sparkles, match: (p: string) => p.startsWith("/assistant") },
-  { href: "/settings", label: "Paramètres", icon: Settings, match: (p: string) => p.startsWith("/settings") },
+  { href: "/settings", label: "Settings", icon: Settings, match: (p: string) => p.startsWith("/settings") },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -27,8 +27,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [categories, setCategories] = useState<ContentCategory[]>([]);
   const [series, setSeries] = useState<ContentSeries[]>([]);
   const [checked, setChecked] = useState(false);
-  // Entrée du menu mise en lumière (src/lib/navHighlight.ts). La coquille ne rend rien avant
-  // `checked`, donc lire le stockage dès l'initialisation ne crée pas d'écart d'hydratation.
+  // Menu entry highlighted (src/lib/navHighlight.ts). The shell renders nothing before
+  // `checked`, so reading storage at initialisation does not create a hydration mismatch.
   const [highlighted, setHighlighted] = useState<string | null>(readNavHighlight);
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener(NAV_HIGHLIGHT_EVENT, onHighlight);
   }, []);
 
-  // Elle s'éteint dès qu'on ouvre sa page.
+  // It turns off as soon as its page is opened.
   useEffect(() => {
     const current = readNavHighlight();
     if (current && navItems.find((item) => item.href === current)?.match(pathname)) clearNavHighlight();
@@ -91,7 +91,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 8px 24px" }}>
           <BrandMark size={34} />
           <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 19, letterSpacing: "-0.02em" }}>
-            CreaFlow
+            Buildloud
           </span>
         </div>
 
@@ -127,7 +127,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 </span>
                 {item.label}
                 {glowing && (
-                  <span aria-label="Nouveau" style={{ marginLeft: "auto", width: 7, height: 7, borderRadius: "50%", background: accent }} />
+                  <span aria-label="New" style={{ marginLeft: "auto", width: 7, height: 7, borderRadius: "50%", background: accent }} />
                 )}
               </Link>
             );
@@ -146,7 +146,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             borderTop: `1px solid ${color.dividerAlt}`,
             cursor: "pointer",
           }}
-          title="Se déconnecter"
+          title="Sign out"
         >
           <div
             style={{
@@ -158,7 +158,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {profile?.brandName || "Mon espace"}
+              {profile?.brandName || "My workspace"}
             </div>
             <div style={{ fontSize: 12, color: color.textFaint, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {user?.email}

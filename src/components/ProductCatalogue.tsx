@@ -10,8 +10,8 @@ import MaterialPanel from "@/components/MaterialPanel";
 import ReaderPortraitPanel from "@/components/ReaderPortraitPanel";
 import InspirationsPanel from "@/components/InspirationsPanel";
 
-/** Override d'audience par sujet (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — null = fallback sur
- *  l'audience de marque (paramètres > Identité). Panneau dépliable, même pattern que "Matière". */
+/** Per-topic audience override (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — null = fall back to
+ *  the brand audience (settings > Identity). Collapsible panel, same pattern as "Material". */
 function AudienceOverridePanel({ product, onUpdated }: { product: Product; onUpdated: (product: Product) => void }) {
   const [value, setValue] = useState(product.targetAudience ?? "");
   const [saving, setSaving] = useState(false);
@@ -24,7 +24,7 @@ function AudienceOverridePanel({ product, onUpdated }: { product: Product; onUpd
       const { product: updated } = await api.updateProduct(product.id, { targetAudience: value.trim() || null });
       onUpdated(updated);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong while saving.");
     } finally {
       setSaving(false);
     }
@@ -33,15 +33,15 @@ function AudienceOverridePanel({ product, onUpdated }: { product: Product; onUpd
   return (
     <div style={{ display: "grid", gap: 8 }}>
       <TextAreaField
-        label="Pour qui"
-        helper="Les gens que ce sujet sert. Laisse vide pour utiliser l'audience de marque définie dans les paramètres."
+        label="Who it's for"
+        helper="The people this topic serves. Leave empty to use the brand audience set in settings."
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Qui achète ou lit, ce qui l'intéresse, ce qu'il doit retenir de ce sujet précis"
+        placeholder="Who buys or reads, what they care about, what they should remember about this specific topic"
       />
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <Button variant="secondary" onClick={save} disabled={saving || value === (product.targetAudience ?? "")}>
-          {saving ? "..." : "Enregistrer"}
+          {saving ? "..." : "Save"}
         </Button>
         {error && <span style={{ fontSize: 12, color: color.danger }}>{error}</span>}
       </div>
@@ -85,7 +85,7 @@ export default function ProductCatalogue({ onCountChange }: { onCountChange?: (c
       setDescription("");
       setValueProposition("");
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'ajout du produit.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong while adding the topic.");
     }
   }
 
@@ -95,7 +95,7 @@ export default function ProductCatalogue({ onCountChange }: { onCountChange?: (c
       await api.deleteProduct(id);
       setProducts((prev) => prev.filter((p) => p.id !== id));
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de la suppression.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong while deleting.");
     }
   }
 
@@ -105,8 +105,8 @@ export default function ProductCatalogue({ onCountChange }: { onCountChange?: (c
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <span style={{ fontSize: 14, color: color.textMuted }}>
-          {products.length} sujet{products.length > 1 ? "s" : ""} sur {MAX_PRODUCTS}
-          {products.length < MAX_PRODUCTS ? ` · vous pouvez en ajouter ${MAX_PRODUCTS - products.length}` : ""}
+          {products.length} of {MAX_PRODUCTS} topic{MAX_PRODUCTS > 1 ? "s" : ""}
+          {products.length < MAX_PRODUCTS ? ` · you can add ${MAX_PRODUCTS - products.length} more` : ""}
         </span>
       </div>
 
@@ -151,7 +151,7 @@ export default function ProductCatalogue({ onCountChange }: { onCountChange?: (c
                   flexShrink: 0,
                 }}
               >
-                {expandedAudienceId === p.id ? "Fermer" : "Lecteurs"}
+                {expandedAudienceId === p.id ? "Close" : "Readers"}
               </button>
               <button
                 onClick={() => setExpandedInspirationId((cur) => (cur === p.id ? null : p.id))}
@@ -166,7 +166,7 @@ export default function ProductCatalogue({ onCountChange }: { onCountChange?: (c
                   flexShrink: 0,
                 }}
               >
-                {expandedInspirationId === p.id ? "Fermer" : "Inspirations"}
+                {expandedInspirationId === p.id ? "Close" : "Inspirations"}
               </button>
               <button
                 onClick={() => setExpandedMaterialId((cur) => (cur === p.id ? null : p.id))}
@@ -181,7 +181,7 @@ export default function ProductCatalogue({ onCountChange }: { onCountChange?: (c
                   flexShrink: 0,
                 }}
               >
-                {expandedMaterialId === p.id ? "Fermer" : "Matière"}
+                {expandedMaterialId === p.id ? "Close" : "Material"}
               </button>
               <button
                 onClick={() => deleteProduct(p.id)}
@@ -196,7 +196,7 @@ export default function ProductCatalogue({ onCountChange }: { onCountChange?: (c
                   flexShrink: 0,
                 }}
               >
-                Supprimer
+                Delete
               </button>
             </div>
             {expandedAudienceId === p.id && (
@@ -225,23 +225,23 @@ export default function ProductCatalogue({ onCountChange }: { onCountChange?: (c
 
       {products.length < MAX_PRODUCTS && (
         <div style={{ border: `1.5px dashed ${color.dashedBorder}`, borderRadius: 14, padding: 16, display: "grid", gap: 10 }}>
-          <TextField label="Nom du sujet" value={name} onChange={(e) => setName(e.target.value)} placeholder="Collier Aurore" />
+          <TextField label="Topic name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Aurora Necklace" />
           <TextField
             label="Description"
             optional
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Argent 925, chaîne fine 42cm"
+            placeholder="925 silver, fine chain, 42cm"
           />
           <TextField
-            label="Proposition de valeur"
+            label="Value proposition"
             optional
             value={valueProposition}
             onChange={(e) => setValueProposition(e.target.value)}
-            placeholder="Élégance du quotidien"
+            placeholder="Everyday elegance"
           />
           <Button variant="secondary" onClick={addProduct} disabled={!name.trim()}>
-            + Ajouter ce sujet
+            + Add this topic
           </Button>
         </div>
       )}

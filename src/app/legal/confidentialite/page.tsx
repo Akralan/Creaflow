@@ -4,8 +4,8 @@ import { color } from "@/lib/design/tokens";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Politique de confidentialité",
-  description: "Quelles données CreaFlow traite, pourquoi, avec quels sous-traitants, et vos droits.",
+  title: "Privacy Policy",
+  description: "What data Buildloud processes, why, with which processors, and your rights.",
   alternates: { canonical: "/legal/confidentialite" },
 };
 import { PUBLISHER, SERVICE_NAME } from "@/lib/legal/publisher";
@@ -20,268 +20,261 @@ const thStyle: React.CSSProperties = {
 };
 const tdStyle: React.CSSProperties = { padding: "8px 10px", borderBottom: `1px solid ${color.divider}`, verticalAlign: "top" };
 
-// Reflète l'architecture réelle du produit (docs/TECH.md, docs/SPEC_LEGAL_EMAIL_RGPD.md §2.3) : un
-// nouveau sous-traitant (analytics, nouveau provider LLM, Session Replay Sentry…) doit passer par
-// ici avant d'être activé. Rédaction interne à faire relire par un professionnel du droit (RGPD)
-// avant l'ouverture commerciale.
+// Reflects the product's actual architecture (docs/TECH.md, docs/SPEC_LEGAL_EMAIL_RGPD.md §2.3): a
+// new processor (analytics, new LLM provider, Sentry Session Replay...) must go through here
+// before being enabled. Internal draft to be reviewed by a legal professional (GDPR) before
+// commercial launch.
 export default function ConfidentialitePage() {
   return (
-    <LegalPage title="Politique de confidentialité">
+    <LegalPage title="Privacy Policy">
       <p>
-        Cette politique décrit les données personnelles traitées par {SERVICE_NAME}, édité par{" "}
-        {PUBLISHER.name} (voir les <Link href="/legal/mentions-legales">mentions légales</Link>),
-        responsable de traitement au sens du Règlement Général sur la Protection des Données (RGPD).
+        This policy describes the personal data processed by {SERVICE_NAME}, published by{" "}
+        {PUBLISHER.name} (see the <Link href="/legal/mentions-legales">legal notice</Link>), the data
+        controller within the meaning of the General Data Protection Regulation (GDPR).
       </p>
 
-      <h2 style={sectionTitleStyle}>1. Données collectées</h2>
+      <h2 style={sectionTitleStyle}>1. Data collected</h2>
       <table style={tableStyle}>
         <thead>
           <tr>
-            <th style={thStyle}>Donnée</th>
-            <th style={thStyle}>Quand</th>
-            <th style={thStyle}>Finalité</th>
+            <th style={thStyle}>Data</th>
+            <th style={thStyle}>When</th>
+            <th style={thStyle}>Purpose</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td style={tdStyle}>Email, mot de passe (haché, jamais stocké en clair)</td>
-            <td style={tdStyle}>Création de compte</td>
-            <td style={tdStyle}>Authentification, emails de service</td>
+            <td style={tdStyle}>Email, password (hashed, never stored in plain text)</td>
+            <td style={tdStyle}>Account creation</td>
+            <td style={tdStyle}>Authentication, service emails</td>
           </tr>
           <tr>
-            <td style={tdStyle}>Identité fournie par GitHub, Notion ou Linear (identifiant, nom, avatar, email)</td>
-            <td style={tdStyle}>Inscription ou connexion via l&apos;un de ces fournisseurs</td>
-            <td style={tdStyle}>Authentification, pré-remplissage du profil</td>
+            <td style={tdStyle}>Identity provided by GitHub, Notion or Linear (identifier, name, avatar, email)</td>
+            <td style={tdStyle}>Sign-up or sign-in through one of these providers</td>
+            <td style={tdStyle}>Authentication, profile pre-filling</td>
           </tr>
           <tr>
-            <td style={tdStyle}>Profil de marque (nom, activité, ton, valeurs, audience, matériel)</td>
-            <td style={tdStyle}>Onboarding, saisie manuelle</td>
-            <td style={tdStyle}>Personnaliser les contenus générés</td>
+            <td style={tdStyle}>Brand profile (name, activity, tone, values, audience, equipment)</td>
+            <td style={tdStyle}>Onboarding, manual entry</td>
+            <td style={tdStyle}>Personalizing generated content</td>
           </tr>
           <tr>
             <td style={tdStyle}>
-              Matière écrite (documents importés, réponses à l&apos;interview, contenu de vos dépôts, pages
-              et projets connectés), sujets, séries, scripts générés et corrigés, calendrier, messages
-              échangés avec l&apos;assistant
+              Written material (imported documents, interview answers, contents of your repositories,
+              connected pages and projects), topics, series, generated and corrected scripts, calendar,
+              messages exchanged with the assistant
             </td>
-            <td style={tdStyle}>Usage du service</td>
-            <td style={tdStyle}>Fonctionnement du service, apprentissage de votre style d&apos;écriture (propre à votre compte)</td>
+            <td style={tdStyle}>Use of the service</td>
+            <td style={tdStyle}>Operating the service, learning your writing style (specific to your account)</td>
           </tr>
           <tr>
-            <td style={tdStyle}>Jetons d&apos;accès OAuth (réseaux sociaux, Google Drive, GitHub, Notion, Linear)</td>
-            <td style={tdStyle}>Connexion volontaire d&apos;un compte tiers</td>
-            <td style={tdStyle}>Lecture de vos posts, métriques, documents et dépôts — révocable à tout moment</td>
+            <td style={tdStyle}>OAuth access tokens (social networks, Google Drive, GitHub, Notion, Linear)</td>
+            <td style={tdStyle}>Voluntary connection of a third-party account</td>
+            <td style={tdStyle}>Reading your posts, metrics, documents and repositories — revocable at any time</td>
           </tr>
           <tr>
-            <td style={tdStyle}>Photos importées, leur version détourée, description IA associée, maquettes de posts visuels</td>
-            <td style={tdStyle}>Usage de la bibliothèque de ressources visuelles</td>
-            <td style={tdStyle}>Composition de vos posts visuels</td>
+            <td style={tdStyle}>Imported photos, their background-removed version, associated AI description, visual post mockups</td>
+            <td style={tdStyle}>Use of the visual resources library</td>
+            <td style={tdStyle}>Composing your visual posts</td>
           </tr>
           <tr>
-            <td style={tdStyle}>Données de facturation (plan, statut d&apos;abonnement, identifiant client Stripe) — jamais les coordonnées bancaires</td>
-            <td style={tdStyle}>Souscription à un abonnement payant</td>
-            <td style={tdStyle}>Facturation, gestion de l&apos;abonnement</td>
+            <td style={tdStyle}>Billing data (plan, subscription status, Stripe customer ID) — never full banking details</td>
+            <td style={tdStyle}>Subscribing to a paid plan</td>
+            <td style={tdStyle}>Billing, subscription management</td>
           </tr>
           <tr>
-            <td style={tdStyle}>Adresse IP, navigateur, identifiant de compte</td>
-            <td style={tdStyle}>Chaque requête ; en cas d&apos;erreur technique</td>
-            <td style={tdStyle}>Sécurité (limitation de débit), diagnostic des erreurs</td>
+            <td style={tdStyle}>IP address, browser, account identifier</td>
+            <td style={tdStyle}>Every request; in case of a technical error</td>
+            <td style={tdStyle}>Security (rate limiting), error diagnosis</td>
           </tr>
         </tbody>
       </table>
 
-      <h2 style={sectionTitleStyle}>2. Base légale des traitements</h2>
+      <h2 style={sectionTitleStyle}>2. Legal basis for processing</h2>
       <p>
-        Le traitement des données nécessaires au fonctionnement du compte et du service (authentification,
-        génération de contenu, facturation, emails de service) repose sur l&apos;exécution du contrat qui
-        vous lie à l&apos;éditeur (art. 6.1.b RGPD). La connexion de comptes tiers repose sur votre
-        consentement, donné au moment de la connexion et révocable à tout moment. Les mesures de
-        sécurité et le diagnostic des erreurs reposent sur l&apos;intérêt légitime de l&apos;éditeur à assurer
-        la disponibilité et la sécurité du service. La conservation des factures repose sur une
-        obligation légale.
+        Processing of the data needed to operate the account and the service (authentication, content
+        generation, billing, service emails) is based on the performance of the contract between you
+        and the publisher (art. 6.1.b GDPR). Connecting third-party accounts is based on your consent,
+        given at the time of connection and revocable at any time. Security measures and error
+        diagnosis are based on the publisher&apos;s legitimate interest in ensuring the availability
+        and security of the service. Keeping invoices is based on a legal obligation.
       </p>
 
-      <h2 style={sectionTitleStyle}>3. Destinataires des données — sous-traitants</h2>
+      <h2 style={sectionTitleStyle}>3. Recipients of the data — processors</h2>
       <p>
-        Certaines données sont transmises à des prestataires techniques, dans la stricte mesure
-        nécessaire au fonctionnement du service :
+        Some data is transmitted to technical providers, strictly to the extent necessary for the
+        service to work:
       </p>
       <table style={tableStyle}>
         <thead>
           <tr>
-            <th style={thStyle}>Prestataire</th>
-            <th style={thStyle}>Rôle</th>
-            <th style={thStyle}>Localisation</th>
+            <th style={thStyle}>Provider</th>
+            <th style={thStyle}>Role</th>
+            <th style={thStyle}>Location</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td style={tdStyle}>OpenAI</td>
             <td style={tdStyle}>
-              Génération de texte par IA, assistant éditorial, indexation de vos images (votre matière,
-              votre profil et vos consignes leur sont transmis pour produire une réponse)
+              AI text generation, editorial assistant, indexing of your images (your material, your
+              profile and your instructions are sent to them to produce a response)
             </td>
-            <td style={tdStyle}>États-Unis</td>
+            <td style={tdStyle}>United States</td>
           </tr>
           <tr>
             <td style={tdStyle}>Google (Gemini API)</td>
-            <td style={tdStyle}>Description automatique de vos photos (vos images lui sont transmises pour être décrites)</td>
-            <td style={tdStyle}>États-Unis</td>
+            <td style={tdStyle}>Automatic description of your photos (your images are sent to it to be described)</td>
+            <td style={tdStyle}>United States</td>
           </tr>
           <tr>
             <td style={tdStyle}>Photoroom</td>
             <td style={tdStyle}>
-              Détourage d&apos;une photo (suppression du fond) — uniquement quand vous le demandez pour une
-              photo donnée ; la photo lui est transmise, le résultat est conservé par nos soins
+              Photo background removal — only when you request it for a given photo; the photo is sent
+              to them, the result is kept by us
             </td>
             <td style={tdStyle}>France</td>
           </tr>
           <tr>
-            <td style={tdStyle}>Cloudflare (stockage R2)</td>
-            <td style={tdStyle}>Stockage des images (originaux importés, vignettes, détourages)</td>
-            <td style={tdStyle}>Réseau mondial Cloudflare</td>
+            <td style={tdStyle}>Cloudflare (R2 storage)</td>
+            <td style={tdStyle}>Image storage (imported originals, thumbnails, background-removed versions)</td>
+            <td style={tdStyle}>Cloudflare global network</td>
           </tr>
           <tr>
             <td style={tdStyle}>Stripe</td>
-            <td style={tdStyle}>Traitement des paiements et de la facturation</td>
-            <td style={tdStyle}>États-Unis / Irlande</td>
+            <td style={tdStyle}>Payment and billing processing</td>
+            <td style={tdStyle}>United States / Ireland</td>
           </tr>
           <tr>
             <td style={tdStyle}>Brevo</td>
-            <td style={tdStyle}>Envoi des emails de service (réinitialisation de mot de passe, avis de sécurité)</td>
-            <td style={tdStyle}>Union européenne (France)</td>
+            <td style={tdStyle}>Sending service emails (password reset, security notices)</td>
+            <td style={tdStyle}>European Union (France)</td>
           </tr>
           <tr>
             <td style={tdStyle}>Sentry</td>
             <td style={tdStyle}>
-              Remontée des erreurs techniques (adresse IP, navigateur, identifiant de compte, trace de
-              l&apos;erreur — jamais le contenu de vos scripts ni vos mots de passe)
+              Reporting technical errors (IP address, browser, account identifier, error trace — never
+              the content of your scripts or your passwords)
             </td>
-            <td style={tdStyle}>États-Unis</td>
+            <td style={tdStyle}>United States</td>
           </tr>
           <tr>
             <td style={tdStyle}>GitHub, Notion, Linear</td>
-            <td style={tdStyle}>Identité et lecture de vos dépôts, pages et projets — uniquement si vous connectez le compte concerné</td>
-            <td style={tdStyle}>États-Unis</td>
+            <td style={tdStyle}>Identity and reading of your repositories, pages and projects — only if you connect the relevant account</td>
+            <td style={tdStyle}>United States</td>
           </tr>
           <tr>
             <td style={tdStyle}>Meta (Instagram), LinkedIn, Google (Drive), X</td>
-            <td style={tdStyle}>Lecture de vos posts, métriques et images — uniquement si vous connectez le compte concerné</td>
-            <td style={tdStyle}>Variable selon la plateforme</td>
+            <td style={tdStyle}>Reading your posts, metrics and images — only if you connect the relevant account</td>
+            <td style={tdStyle}>Varies by platform</td>
           </tr>
           <tr>
             <td style={tdStyle}>{PUBLISHER.appHost.name}</td>
-            <td style={tdStyle}>Hébergement de l&apos;application</td>
+            <td style={tdStyle}>Application hosting</td>
             <td style={tdStyle}>{PUBLISHER.appHost.address}</td>
           </tr>
           <tr>
             <td style={tdStyle}>{PUBLISHER.dbHost.name}</td>
-            <td style={tdStyle}>Hébergement de la base de données</td>
+            <td style={tdStyle}>Database hosting</td>
             <td style={tdStyle}>{PUBLISHER.dbHost.address}</td>
           </tr>
         </tbody>
       </table>
       <p>
-        Ces prestataires n&apos;utilisent vos données que pour exécuter la prestation demandée par
-        l&apos;éditeur, et non à leurs propres fins. Les prestataires d&apos;IA sont sollicités via leurs
-        offres professionnelles, dont les conditions excluent l&apos;utilisation de vos données pour
-        l&apos;entraînement de leurs modèles. Aucune donnée n&apos;est vendue à des tiers.
+        These providers use your data only to perform the service requested by the publisher, and not
+        for their own purposes. AI providers are used through their business offerings, whose terms
+        exclude the use of your data to train their models. No data is sold to third parties.
       </p>
 
-      <h2 style={sectionTitleStyle}>4. Transferts hors Union européenne</h2>
+      <h2 style={sectionTitleStyle}>4. Transfers outside the European Union</h2>
       <p>
-        Plusieurs prestataires listés ci-dessus sont situés aux États-Unis. Ces transferts s&apos;appuient
-        sur les garanties reconnues par le RGPD applicables à chaque prestataire : clauses contractuelles
-        types de la Commission européenne, ou certification au cadre de protection des données
-        UE-États-Unis (Data Privacy Framework).
+        Several of the providers listed above are located in the United States. These transfers rely
+        on the safeguards recognized by the GDPR that apply to each provider: the European
+        Commission&apos;s standard contractual clauses, or certification under the EU-US Data Privacy
+        Framework.
       </p>
 
-      <h2 style={sectionTitleStyle}>5. Durée de conservation</h2>
+      <h2 style={sectionTitleStyle}>5. Retention period</h2>
       <p>
-        Vos données sont conservées tant que votre compte est actif. Lorsque vous supprimez votre
-        compte :
+        Your data is kept as long as your account is active. When you delete your account:
       </p>
       <ul>
         <li>
-          vos données dans l&apos;application (profil, matière, scripts, calendrier, jetons d&apos;accès,
-          images stockées) sont effacées <strong>immédiatement</strong> ;
+          your data in the application (profile, material, scripts, calendar, access tokens, stored
+          images) is erased <strong>immediately</strong>;
         </li>
         <li>
-          vos factures et votre identifiant client sont conservés par Stripe pendant la durée légale
-          des obligations comptables (dix ans) ;
+          your invoices and customer identifier are kept by Stripe for the legal period required by
+          accounting obligations (ten years);
         </li>
         <li>
-          les traces d&apos;erreurs techniques déjà remontées à Sentry sont purgées à l&apos;échéance de leur
-          rétention (90 jours au plus) ;
+          technical error traces already reported to Sentry are purged at the end of their retention
+          period (90 days at most);
         </li>
         <li>
-          les sauvegardes de la base de données tenues par l&apos;hébergeur sont écrasées par rotation dans
-          un délai maximal de trente jours.
+          database backups held by the host are overwritten on a rotating basis within a maximum of
+          thirty days.
         </li>
       </ul>
       <p>
-        Les jetons de réinitialisation de mot de passe expirent au bout d&apos;une heure. Les compteurs de
-        limitation de débit portent sur l&apos;adresse IP et sur une empreinte de l&apos;email (jamais
-        l&apos;adresse en clair) ; ils sont purgés automatiquement dans les heures qui suivent leur
-        création.
+        Password reset tokens expire after one hour. Rate-limiting counters are based on the IP
+        address and on a fingerprint of the email (never the plain address); they are automatically
+        purged within hours of their creation.
       </p>
 
       <h2 style={sectionTitleStyle}>6. Cookies</h2>
       <p>
-        {SERVICE_NAME} utilise un unique cookie strictement nécessaire au fonctionnement du service : un
-        cookie de session (httpOnly, sécurisé) qui vous maintient connecté pendant sept jours. Ce cookie
-        ne sert à aucun suivi publicitaire ni à aucune mesure d&apos;audience, et n&apos;est donc soumis à
-        aucun consentement préalable. Si un outil de mesure d&apos;audience ou publicitaire venait à être
-        ajouté, cette politique serait mise à jour et un bandeau de consentement ajouté avant toute
-        activation.
+        {SERVICE_NAME} uses a single cookie strictly necessary for the service to work: a session
+        cookie (httpOnly, secure) that keeps you signed in for seven days. This cookie is not used
+        for any advertising tracking or audience measurement, and is therefore not subject to prior
+        consent. If an audience-measurement or advertising tool were to be added, this policy would be
+        updated and a consent banner added before any activation.
       </p>
 
       <h2 style={sectionTitleStyle}>7. Emails</h2>
       <p>
-        {SERVICE_NAME} ne vous envoie que des emails de service : lien de réinitialisation de mot de
-        passe, avis de modification de votre mot de passe, confirmation de suppression de compte,
-        information sur une modification des conditions ou des prix. Aucune newsletter, aucune
-        prospection, aucun suivi d&apos;ouverture.
+        {SERVICE_NAME} only sends you service emails: password reset link, notice of a change to your
+        password, account deletion confirmation, information about a change to the terms or prices.
+        No newsletter, no prospecting, no open tracking.
       </p>
 
-      <h2 style={sectionTitleStyle}>8. Vos droits</h2>
+      <h2 style={sectionTitleStyle}>8. Your rights</h2>
       <p>
-        Conformément au RGPD, vous disposez d&apos;un droit d&apos;accès, de rectification, d&apos;effacement, de
-        limitation, de portabilité et d&apos;opposition sur vos données personnelles. Deux de ces droits
-        s&apos;exercent directement depuis les paramètres de votre compte (onglet « Compte ») :
+        Under the GDPR, you have the right of access, rectification, erasure, restriction,
+        portability and objection regarding your personal data. Two of these rights can be exercised
+        directly from your account settings (&quot;Account&quot; tab):
       </p>
       <ul>
         <li>
-          <strong>Portabilité et accès</strong> : « Télécharger mes données » produit un fichier JSON
-          contenant l&apos;ensemble de vos données (profil, matière, scripts, calendrier, connexions sans
-          leurs jetons, abonnement) ; les images y sont référencées par leur adresse.
+          <strong>Portability and access</strong>: &quot;Download my data&quot; produces a JSON file
+          containing all of your data (profile, material, scripts, calendar, connections without their
+          tokens, subscription); images are referenced in it by their address.
         </li>
         <li>
-          <strong>Effacement</strong> : « Supprimer mon compte » efface immédiatement vos données, comme
-          décrit à la section 5.
+          <strong>Erasure</strong>: &quot;Delete my account&quot; immediately erases your data, as
+          described in section 5.
         </li>
       </ul>
       <p>
-        Pour les autres droits, ou toute question, écrivez à {PUBLISHER.contactEmail} ; nous répondons
-        dans un délai d&apos;un mois. Vous pouvez également introduire une réclamation auprès de la
-        Commission Nationale de l&apos;Informatique et des Libertés (CNIL, www.cnil.fr).
+        For other rights, or any question, write to {PUBLISHER.contactEmail}; we reply within one
+        month. You may also lodge a complaint with the Commission Nationale de l&apos;Informatique et
+        des Libertés (CNIL, www.cnil.fr).
       </p>
 
-      <h2 style={sectionTitleStyle}>9. Sécurité</h2>
+      <h2 style={sectionTitleStyle}>9. Security</h2>
       <p>
-        Les mots de passe sont hachés (jamais stockés en clair), les échanges avec le service sont
-        chiffrés (HTTPS), et l&apos;accès aux données est limité à votre compte. Des mesures de limitation
-        de débit protègent le service contre les tentatives d&apos;accès frauduleuses. Un changement de mot
-        de passe ferme toutes les sessions ouvertes et vous est notifié par email.
+        Passwords are hashed (never stored in plain text), exchanges with the service are encrypted
+        (HTTPS), and access to data is limited to your account. Rate-limiting measures protect the
+        service against fraudulent access attempts. Changing your password signs out all open sessions
+        and you are notified by email.
       </p>
 
-      <h2 style={sectionTitleStyle}>10. Mineurs</h2>
-      <p>{SERVICE_NAME} n&apos;est pas destiné aux personnes de moins de 18 ans.</p>
+      <h2 style={sectionTitleStyle}>10. Minors</h2>
+      <p>{SERVICE_NAME} is not intended for people under 18.</p>
 
       <h2 style={sectionTitleStyle}>Contact</h2>
       <p>
-        Pour toute question relative à cette politique ou à vos données personnelles :{" "}
-        {PUBLISHER.contactEmail}.
+        For any question about this policy or your personal data: {PUBLISHER.contactEmail}.
       </p>
     </LegalPage>
   );

@@ -22,13 +22,13 @@ import { DEFAULT_PUBLISHING_DAYS } from "@/lib/validation";
 type Tab = "identity" | "catalogue" | "assets" | "connexions" | "billing" | "account";
 
 const tabs: Array<{ id: Tab; label: string }> = [
-  { id: "identity", label: "Identité de marque" },
-  { id: "catalogue", label: "Sujets" },
-  { id: "assets", label: "Ressources visuelles" },
-  { id: "connexions", label: "Connexions sociales" },
-  { id: "billing", label: "Facturation" },
-  // La personne, pas sa marque (docs/SPEC_LEGAL_EMAIL_RGPD.md §1) : mot de passe, export, suppression.
-  { id: "account", label: "Compte" },
+  { id: "identity", label: "Brand identity" },
+  { id: "catalogue", label: "Topics" },
+  { id: "assets", label: "Visual assets" },
+  { id: "connexions", label: "Social connections" },
+  { id: "billing", label: "Billing" },
+  // The person, not their brand (docs/SPEC_LEGAL_EMAIL_RGPD.md §1): password, export, deletion.
+  { id: "account", label: "Account" },
 ];
 
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
@@ -85,7 +85,7 @@ function IdentityTab() {
       await api.saveProfile({ brandName, activityType, targetAudience, expectations, publishingDays });
       setSaved(true);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong while saving.");
     } finally {
       setSaving(false);
     }
@@ -96,36 +96,36 @@ function IdentityTab() {
   return (
     <div style={{ display: "grid", gap: 20 }}>
     <Card style={{ padding: 28, display: "grid", gap: 20 }}>
-      <TextField label="Ton nom" value={brandName} onChange={(e) => setBrandName(e.target.value)} />
-      <TextField label="Type d'activité" value={activityType} onChange={(e) => setActivityType(e.target.value)} />
+      <TextField label="Your name" value={brandName} onChange={(e) => setBrandName(e.target.value)} />
+      <TextField label="Type of work" value={activityType} onChange={(e) => setActivityType(e.target.value)} />
       <TextAreaField
-        label="Audience visée"
+        label="Target audience"
         value={targetAudience}
         onChange={(e) => setTargetAudience(e.target.value)}
-        placeholder="Qui achète ou lit, ce qui l'intéresse, ce qu'il doit retenir de la marque"
+        placeholder="Who buys or reads, what they care about, what they should remember about the brand"
       />
-      {/* Le ton n'est plus demandé : il s'apprend des retouches (docs/SPEC_ONBOARDING_MVP.md §1). */}
+      {/* Tone is no longer asked for: it is learned from edits (docs/SPEC_ONBOARDING_MVP.md §1). */}
       <TextAreaField
-        label="Ce que tu attends de CreaFlow"
+        label="What you expect from Buildloud"
         value={expectations}
         onChange={(e) => setExpectations(e.target.value)}
-        placeholder="Je veux publier chaque semaine sans y passer mes soirées, et que les gens suivent la construction de mon produit jusqu'au lancement."
+        placeholder="I want to publish every week without spending my evenings on it, and have people follow my product being built all the way to launch."
       />
       <div>
         <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 4 }}>
-          Jours où tu peux publier
+          Days you can publish
         </label>
         <p style={{ margin: "0 0 12px", fontSize: 13, color: color.textMuted }}>
-          Proposés quand tu crées une série. Chaque série a ensuite son propre rythme, dans Direction.
+          Suggested when you create a series. Each series then has its own rhythm, in Direction.
         </p>
         <PublishingDaysPicker value={publishingDays} onChange={setPublishingDays} />
       </div>
       {error && <p style={{ color: color.danger, fontSize: 13, margin: 0 }}>{error}</p>}
       <div style={{ display: "flex", alignItems: "center", gap: 12, paddingTop: 8, borderTop: `1px solid ${color.dividerAlt}`, marginTop: 4 }}>
         <Button onClick={handleSave} disabled={saving} style={{ padding: "11px 22px", fontSize: 14 }}>
-          {saving ? "..." : "Enregistrer"}
+          {saving ? "..." : "Save"}
         </Button>
-        {saved && <span style={{ fontSize: 13, color: "oklch(0.5 0.14 150)" }}>Enregistré.</span>}
+        {saved && <span style={{ fontSize: 13, color: "oklch(0.5 0.14 150)" }}>Saved.</span>}
       </div>
     </Card>
     <BrandKitPanel />
@@ -158,9 +158,9 @@ function ConnexionsTab() {
   );
 }
 
-/** Une carte par fournisseur connecté, au-dessus du catalogue manuel : brancher de nouvelles
- *  sources comme sujets sans refaire l'onboarding. Le catalogue est remonté (clé) après chaque
- *  connexion pour refléter les sujets fraîchement créés. */
+/** One card per connected provider, above the manual catalogue: plug in new
+ *  sources as topics without redoing onboarding. The catalogue is remounted (key) after each
+ *  connection to reflect the freshly created topics. */
 function ConnectorCard({
   provider,
   onConnected,
@@ -176,18 +176,18 @@ function ConnectorCard({
     <Card style={{ padding: 20, marginBottom: 20 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <div>
-          <div style={{ fontWeight: 600, fontSize: 15 }}>Ajouter depuis {label}</div>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>Add from {label}</div>
           <div style={{ fontSize: 13, color: color.textMuted, marginTop: 2 }}>
-            Chaque élément choisi devient un sujet, avec son contenu comme matière.
+            Each item you pick becomes a topic, with its content as material.
           </div>
         </div>
         <Button variant="secondary" onClick={() => setShowPicker((v) => !v)}>
-          {showPicker ? "Masquer" : "Choisir"}
+          {showPicker ? "Hide" : "Choose"}
         </Button>
       </div>
       {showPicker && (
         <div style={{ marginTop: 18 }}>
-          {/* GitHub garde son sélecteur historique : sa route porte la forme « dépôt », testée à part. */}
+          {/* GitHub keeps its legacy picker: its route carries the "repo" shape, tested separately. */}
           {isGithub ? (
             <RepoPicker variant="settings" onConnected={onConnected} />
           ) : (
@@ -204,8 +204,8 @@ function CatalogueTab() {
   const [catalogueKey, setCatalogueKey] = useState(0);
 
   useEffect(() => {
-    // Les fournisseurs réellement reliés au compte, et non la verticale : "dev" couvre GitHub
-    // comme Linear (docs/SPEC_CONNECTEURS_ET_SUJETS.md §7.2).
+    // The providers actually linked to the account, not the vertical: "dev" covers GitHub
+    // as well as Linear (docs/SPEC_CONNECTEURS_ET_SUJETS.md §7.2).
     api.getProfile().then(({ connectedProviders }) => setProviders(connectedProviders));
   }, []);
 
@@ -229,7 +229,7 @@ function SettingsContent() {
 
   return (
     <div style={{ padding: "32px 36px", maxWidth: 820 }}>
-      <h1 style={{ ...heading1Style, marginBottom: 20 }}>Paramètres</h1>
+      <h1 style={{ ...heading1Style, marginBottom: 20 }}>Settings</h1>
       <div style={{ display: "flex", gap: 4, borderBottom: `1px solid ${color.border}`, marginBottom: 28 }}>
         {tabs.map((t) => (
           <TabButton key={t.id} active={tab === t.id} onClick={() => setTab(t.id)}>

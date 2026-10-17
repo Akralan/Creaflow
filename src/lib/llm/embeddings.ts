@@ -1,20 +1,20 @@
 import { getOpenAIClient } from "./providers/openaiClient";
 
-// Dimension fixe, cohérente avec brandAssets.embedding (vector(768), src/db/schema.ts).
+// Fixed dimension, consistent with brandAssets.embedding (vector(768), src/db/schema.ts).
 const DIMENSIONS = 768;
 
 /**
- * Embeddings via OpenAI, indépendamment de `LLM_PROVIDER` — même parti pris que la boucle agentique
- * de l'assistant (docs/SPEC_ASSISTANT_AGENTIQUE.md §2.2) : `LLM_PROVIDER` pilote la génération de
- * contenu, pas toutes les capacités du produit.
+ * Embeddings via OpenAI, regardless of `LLM_PROVIDER` — same stance as the assistant's agentic
+ * loop (docs/SPEC_ASSISTANT_AGENTIQUE.md §2.2): `LLM_PROVIDER` drives content generation, not
+ * all of the product's capabilities.
  *
- * Remplace Gemini `text-embedding-004`, retiré côté Google : l'appel renvoyait
- * `404 models/text-embedding-004 is not found for API version v1beta`, ce qui cassait toute
- * génération de contenu visuel (docs/SPEC_RESSOURCES_VISUELLES.md §8.4).
+ * Replaces Gemini `text-embedding-004`, retired on Google's side: the call returned
+ * `404 models/text-embedding-004 is not found for API version v1beta`, which broke all
+ * visual content generation (docs/SPEC_RESSOURCES_VISUELLES.md §8.4).
  *
- * `dimensions: 768` est explicite : le défaut de text-embedding-3-small est 1536, ce qui ferait
- * échouer l'insertion dans `vector(768)`. Ce paramètre tronque nativement le vecteur, sans
- * migration de schéma ni réindexation.
+ * `dimensions: 768` is explicit: the default of text-embedding-3-small is 1536, which would make
+ * insertion into `vector(768)` fail. This parameter natively truncates the vector, without
+ * schema migration or reindexing.
  */
 export async function embedText(text: string): Promise<number[]> {
   const model = process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small";
@@ -26,7 +26,7 @@ export async function embedText(text: string): Promise<number[]> {
 
   const values = response.data?.[0]?.embedding;
   if (!values) {
-    throw new Error("Aucun embedding renvoyé par le modèle.");
+    throw new Error("No embedding returned by the model.");
   }
   return values;
 }

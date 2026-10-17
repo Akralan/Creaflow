@@ -22,10 +22,10 @@ const variantClass: Record<Variant, string> = {
 };
 
 /**
- * Un panneau de la pile : collant en haut de la fenêtre. Quand le suivant arrive, celui-ci
- * s'estompe et se floute pendant que le suivant apparaît en fondu avec le mouvement de sa
- * `variant` (cf. .stackPanel dans landing.module.css et le bloc « transition » de
- * useScrollTick). `background` doit être opaque.
+ * A panel of the stack: sticky at the top of the window. When the next one arrives, this one
+ * fades and blurs while the next fades in with the motion of its
+ * `variant` (see .stackPanel in landing.module.css and the "transition" block of
+ * useScrollTick). `background` must be opaque.
  */
 function Panel({
   index,
@@ -46,12 +46,12 @@ function Panel({
 }
 
 /**
- * Landing recentrée sur la cible prioritaire de docs/PRODUCT.md §2.1 : indépendants,
- * fondateurs et développeurs qui ont déjà de la matière écrite. Une promesse, un CTA répété.
+ * Landing refocused on the priority target of docs/PRODUCT.md §2.1: freelancers,
+ * founders and developers who already have written material. One promise, one repeated CTA.
  *
- * Ordre des panneaux : le hero promet et montre, « Ce que ça change » pose le problème et sa
- * réponse en un seul écran (tu crées tes produits, on crée ton audience), « Comment ça marche »
- * explique, le CTA conclut. La grille de fonctionnalités est masquée (FEATURES_ENABLED).
+ * Panel order: the hero promises and shows, "What changes" lays out the problem and its
+ * answer on a single screen (you build your products, we build your audience), "How it works"
+ * explains, the CTA concludes. The feature grid is hidden (FEATURES_ENABLED).
  */
 export default function LandingPage() {
   return (
@@ -62,7 +62,7 @@ export default function LandingPage() {
         <Panel index={0}>
           <LandingHero />
           <LandingSources />
-          {/* Témoignages / logos : masqué tant qu'il n'y a rien de réel à montrer. */}
+          {/* Testimonials / logos: hidden until there is something real to show. */}
           <LandingSocialProofSlot />
         </Panel>
         <Panel index={1} variant="slide">
@@ -72,14 +72,14 @@ export default function LandingPage() {
           <LandingHowItWorks />
         </Panel>
         {FEATURES_ENABLED && (
-          /* Même mouvement d'arrivée que « Ce que ça change » : acceptable tant que ce panneau
-             n'est affiché que pour comparaison. */
+          /* Same entrance motion as "What changes": acceptable as long as this panel
+             is only shown for comparison. */
           <Panel index={3} variant="slide">
             <LandingFeatures />
           </Panel>
         )}
         <Panel index={4} variant="blur">
-          {/* CTA final + tarifs (masqués pour l'instant, cf. PRICING_ENABLED). */}
+          {/* Final CTA + pricing (hidden for now, see PRICING_ENABLED). */}
           <LandingOffer />
           <LandingFooter />
         </Panel>

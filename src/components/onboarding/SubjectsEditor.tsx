@@ -62,22 +62,22 @@ export default function SubjectsEditor({
       {subjects.map((subject, index) => (
         <div key={index} style={{ border: `1px solid ${color.border}`, borderRadius: 14, padding: 14, display: "grid", gap: 8 }}>
           <input
-            aria-label="Nom du sujet"
+            aria-label="Subject name"
             value={subject.name}
             onChange={(e) => update(index, { name: e.target.value })}
             style={{ ...inputStyle, fontWeight: 600, fontSize: 15 }}
           />
           <input
-            aria-label="Description du sujet"
+            aria-label="Subject description"
             value={subject.description}
-            placeholder="En une phrase, ce qu'est ce projet"
+            placeholder="In one sentence, what this project is"
             onChange={(e) => update(index, { description: e.target.value })}
             style={inputStyle}
           />
           <input
-            aria-label="Pour qui est ce sujet"
+            aria-label="Who this subject is for"
             value={subject.targetAudience}
-            placeholder="Pour qui : les gens que ce projet sert"
+            placeholder="Who it's for: the people this project serves"
             onChange={(e) => update(index, { targetAudience: e.target.value })}
             style={inputStyle}
           />
@@ -89,7 +89,7 @@ export default function SubjectsEditor({
                   {PROVIDER_ICONS[item.provider] ?? <span aria-hidden>✎</span>}
                   <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
                   <select
-                    aria-label={`Déplacer ${item.label}`}
+                    aria-label={`Move ${item.label}`}
                     value={index}
                     onChange={(e) => {
                       const value = e.target.value;
@@ -99,10 +99,10 @@ export default function SubjectsEditor({
                   >
                     {subjects.map((s, i) => (
                       <option key={i} value={i}>
-                        {i === index ? "Dans ce sujet" : `→ ${s.name || "Sans nom"}`}
+                        {i === index ? "In this subject" : `→ ${s.name || "Unnamed"}`}
                       </option>
                     ))}
-                    <option value={NEW_SUBJECT}>→ Sujet à part</option>
+                    <option value={NEW_SUBJECT}>→ Separate subject</option>
                   </select>
                 </div>
               );

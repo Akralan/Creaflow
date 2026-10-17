@@ -30,9 +30,9 @@ const jetBrainsMono = JetBrains_Mono({
   weight: ["400", "500"],
 });
 
-// Polices des maquettes de posts visuels (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2 « Polices »,
-// liste dans src/lib/visualDesign/fonts.ts). Chargées ici pour que le canevas ET l'export PNG
-// (html-to-image, qui embarque les @font-face same-origin) voient les mêmes fichiers.
+// Fonts for the visual post mockups (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2 "Polices",
+// list in src/lib/visualDesign/fonts.ts). Loaded here so that the canvas AND the PNG export
+// (html-to-image, which embeds same-origin @font-face) see the same files.
 const designInter = Inter({ variable: "--font-design-inter", subsets: ["latin"] });
 const designSpaceGrotesk = Space_Grotesk({ variable: "--font-design-space-grotesk", subsets: ["latin"] });
 const designPlayfair = Playfair_Display({ variable: "--font-design-playfair", subsets: ["latin"], style: ["normal", "italic"] });
@@ -40,12 +40,12 @@ const designDmSerif = DM_Serif_Display({ variable: "--font-design-dm-serif", sub
 const designCaveat = Caveat({ variable: "--font-design-caveat", subsets: ["latin"] });
 const designJetBrainsMono = JetBrains_Mono({ variable: "--font-design-jetbrains-mono", subsets: ["latin"] });
 
-// Métadonnées communes (docs/SPEC_SEO.md §2). `metadataBase` rend absolues les URL relatives des
-// segments enfants (canonical, image Open Graph). Les pages qui ne doivent pas être indexées le
-// disent elles-mêmes via NO_INDEX ; ici on ne bloque tout que si le déploiement entier n'est pas
-// indexable (hôte de démo, local). L'image Open Graph vient de src/app/opengraph-image.tsx, que
-// Next relie tout seul ; les balises twitter:* héritent des balises og:* quand elles ne sont pas
-// définies à part.
+// Shared metadata (docs/SPEC_SEO.md §2). `metadataBase` makes the relative URLs of child
+// segments absolute (canonical, Open Graph image). Pages that must not be indexed say so
+// themselves via NO_INDEX; here we only block everything if the whole deployment is not
+// indexable (demo host, local). The Open Graph image comes from src/app/opengraph-image.tsx, which
+// Next wires up on its own; twitter:* tags inherit from og:* tags when not defined
+// separately.
 export const metadata: Metadata = {
   metadataBase: getSiteUrl(),
   title: { default: SITE_TITLE, template: `%s · ${SITE_NAME}` },
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
   applicationName: SITE_NAME,
   openGraph: {
     type: "website",
-    locale: "fr_FR",
+    locale: "en_US",
     siteName: SITE_NAME,
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
@@ -80,7 +80,7 @@ export default function RootLayout({
     designJetBrainsMono.variable,
   ].join(" ");
   return (
-    <html lang="fr" className={fontClasses}>
+    <html lang="en" className={fontClasses}>
       <body suppressHydrationWarning>{children}</body>
     </html>
   );

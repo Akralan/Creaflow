@@ -13,7 +13,7 @@ export async function GET(
     await requireUserId();
     const { platform } = await params;
     if (!hasOAuthProvider(platform)) {
-      throw new ApiError(404, "Cette plateforme ne propose pas de connexion OAuth.");
+      throw new ApiError(404, "This platform does not offer OAuth sign-in.");
     }
 
     // 32 octets (64 caractères hex) plutôt que 16 : satisfait aussi bien le rôle de nonce CSRF

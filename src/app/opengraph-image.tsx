@@ -3,12 +3,12 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { SITE_NAME } from "@/lib/seo";
 
-// Image d'aperçu quand on partage un lien du site (docs/SPEC_SEO.md §2) : Next la sert sur
-// /opengraph-image et la relie dans og:image et twitter:image de toutes les pages. Générée une
-// fois au build (aucune API de requête ici), à partir du même dessin que le favicon (icon0.svg)
-// et des deux polices de la landing. Les .ttf vivent dans src/assets/fonts (licence OFL) parce que
-// Satori ne lit ni les woff2 de next/font ni les polices du système.
-export const alt = "CreaFlow — Vos notes de travail deviennent vos posts de la semaine";
+// Preview image when a link to the site is shared (docs/SPEC_SEO.md §2): Next serves it on
+// /opengraph-image and wires it into og:image and twitter:image on every page. Generated once
+// at build (no request API here), from the same drawing as the favicon (icon0.svg)
+// and the landing's two fonts. The .ttf files live in src/assets/fonts (OFL license) because
+// Satori reads neither next/font's woff2 files nor system fonts.
+export const alt = "Buildloud — Your work notes become your posts for the week";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -36,23 +36,23 @@ export default async function OpenGraphImage() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- Satori ne connaît pas next/image */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- Satori doesn't know next/image */}
           <img src={iconSrc} width={64} height={64} alt="" />
           <div style={{ fontFamily: "Bricolage Grotesque", fontWeight: 700, fontSize: 40, letterSpacing: "-0.02em" }}>{SITE_NAME}</div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 28, maxWidth: 1000 }}>
           <div style={{ fontFamily: "Bricolage Grotesque", fontWeight: 700, fontSize: 70, lineHeight: 1.06, letterSpacing: "-0.03em" }}>
-            Vos notes de travail deviennent vos posts de la semaine.
+            Your work notes become your posts for the week.
           </div>
           <div style={{ fontSize: 30, lineHeight: 1.35, color: "#574d45" }}>
-            Rédacteur en chef IA pour indépendants, fondateurs et développeurs qui documentent déjà ce qu&apos;ils font.
+            An AI editor-in-chief for freelancers, founders and developers who already document what they do.
           </div>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 24, color: "#8a7f74" }}>
           <div style={{ width: 14, height: 14, borderRadius: 7, background: "#6431c3" }} />
-          Vous écrivez déjà. On fait le reste.
+          You already write. We do the rest.
         </div>
       </div>
     ),

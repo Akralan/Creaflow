@@ -4,7 +4,7 @@ import { Pause, Play } from "lucide-react";
 import { color } from "@/lib/design/tokens";
 import { MAX_DURATION_MS, MIN_DURATION_MS } from "@/lib/visualDesign/visualFormat";
 
-/** Barre de temps d'une animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §6) : lecture, curseur, durée. */
+/** Time bar of an animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md §6): playback, playhead, duration. */
 export default function TimelineBar({
   durationMs,
   playheadMs,
@@ -27,7 +27,7 @@ export default function TimelineBar({
       <button
         onClick={() => onPlayingChange(!playing)}
         disabled={disabled}
-        title={playing ? "Pause" : "Lecture"}
+        title={playing ? "Pause" : "Play"}
         style={{
           background: color.inputBg,
           border: `1px solid ${color.inputBorder}`,
@@ -62,7 +62,7 @@ export default function TimelineBar({
         max={MAX_DURATION_MS / 1000}
         value={Math.round(durationMs / 1000)}
         disabled={disabled}
-        title="Durée totale (secondes)"
+        title="Total duration (seconds)"
         onChange={(e) => {
           const seconds = Math.min(MAX_DURATION_MS / 1000, Math.max(MIN_DURATION_MS / 1000, Number(e.target.value) || MIN_DURATION_MS / 1000));
           onDurationChange(seconds * 1000);

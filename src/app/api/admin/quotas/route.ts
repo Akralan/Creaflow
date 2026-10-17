@@ -3,13 +3,13 @@ import { requireAdmin } from "@/lib/auth/admin";
 import { accountQuotasSchema, findAccountQuotas, setAccountQuotas } from "@/lib/services/adminQuotaService";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 
-/** Quotas d'un compte, réservé aux emails de ADMIN_EMAILS (docs/SPEC_QUOTAS_ADMIN.md) — 404 sinon. */
+/** Quotas of an account, restricted to the emails in ADMIN_EMAILS (docs/SPEC_QUOTAS_ADMIN.md) — 404 otherwise. */
 
 export async function GET(request: NextRequest) {
   try {
     await requireAdmin();
     const email = request.nextUrl.searchParams.get("email")?.trim();
-    if (!email) throw new ApiError(400, "Indique un email.");
+    if (!email) throw new ApiError(400, "Provide an email.");
     return NextResponse.json({ account: await findAccountQuotas(email) });
   } catch (error) {
     return handleApiError(error);

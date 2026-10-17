@@ -15,10 +15,10 @@ const candidateMetricsSchema = z.object({
   shares: z.number().int(),
 });
 
-/** Confirmation utilisateur unique du rattachement post↔script (docs/SPEC_METRIQUES_AUTO.md §4) —
- *  "confirm" rattache définitivement (le pipeline de fetch met ensuite directement à jour ce post
- *  via platformPostId, sans repasser par le matching), "dismiss" est tout aussi définitif : ce
- *  candidat n'est plus jamais reproposé. */
+/** Single user confirmation of the post↔script link (docs/SPEC_METRIQUES_AUTO.md §4) —
+ *  "confirm" attaches definitively (the fetch pipeline then updates this post directly
+ *  via platformPostId, without going through matching again), "dismiss" is just as final: this
+ *  candidate is never proposed again. */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userId = await requireUserId();
@@ -29,10 +29,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       where: and(eq(postMatchCandidates.id, id), eq(postMatchCandidates.userId, userId)),
     });
     if (!candidate) {
-      throw new ApiError(404, "Candidat de rattachement introuvable.");
+      throw new ApiError(404, "Link candidate not found.");
     }
     if (candidate.status !== "pending") {
-      throw new ApiError(400, "Ce candidat a déjà été traité.");
+      throw new ApiError(400, "This candidate has already been handled.");
     }
 
     if (action === "dismiss") {

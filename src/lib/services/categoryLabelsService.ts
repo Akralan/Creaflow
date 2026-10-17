@@ -16,8 +16,8 @@ export async function listActiveCategoriesForUser(userId: string) {
   }));
 }
 
-/** Résout des libellés de catégorie vers leurs ids, correspondance exacte insensible à la casse.
- *  Ignore silencieusement un libellé qui ne matche aucune catégorie active fournie. */
+/** Resolves category labels to their ids, exact case-insensitive match.
+ *  Silently ignores a label that matches no supplied active category. */
 export function resolveCategoryLabelsToIds(
   categoryLabels: string[],
   activeCategories: Array<{ id: string; label: string }>
@@ -26,8 +26,8 @@ export function resolveCategoryLabelsToIds(
   return categoryLabels.map((l) => byLabel.get(l.trim().toLowerCase())).filter((id): id is string => !!id);
 }
 
-/** Variante à un seul libellé (docs/SPEC_SERIES_ET_ROLES.md §3 : une série porte exactement un rôle).
- *  `null` si le libellé ne matche aucune catégorie active. */
+/** Single-label variant (docs/SPEC_SERIES_ET_ROLES.md §3: a series carries exactly one role).
+ *  `null` if the label matches no active category. */
 export function resolveCategoryLabelToId(
   categoryLabel: string,
   activeCategories: Array<{ id: string; label: string }>
@@ -35,12 +35,12 @@ export function resolveCategoryLabelToId(
   return resolveCategoryLabelsToIds([categoryLabel], activeCategories)[0] ?? null;
 }
 
-/** Génère un nouveau jeu de catégories via l'IA. Archive l'ancien jeu actif plutôt que de le supprimer,
- *  pour ne jamais casser les scripts/créneaux calendrier qui le référencent déjà. */
+/** Generates a new set of categories via AI. Archives the old active set rather than deleting it,
+ *  so as never to break the scripts/calendar slots that already reference it. */
 export async function generateCategoriesForUser(userId: string) {
   const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
   if (!profile) {
-    throw new ApiError(400, "Configure d'abord ton profil créateur avant de générer les catégories.");
+    throw new ApiError(400, "Set up your creator profile first before generating categories.");
   }
 
   const productList = await db.query.products.findMany({ where: eq(products.userId, userId) });
@@ -62,8 +62,8 @@ export async function generateCategoriesForUser(userId: string) {
       .insert(contentCategories)
       .values(suggested.map((c) => ({ userId, ...c })))
       .returning();
-    // La génération IA ne propose pas de ciblage plateforme — même forme que listActiveCategoriesForUser
-    // (qui joint contentCategoriesPlatforms), sinon le front plante sur `.platforms.length` (undefined).
+    // AI generation does not propose platform targeting — same shape as listActiveCategoriesForUser
+    // (which joins contentCategoriesPlatforms), otherwise the front end crashes on `.platforms.length` (undefined).
     return inserted.map((c) => ({ ...c, platforms: [] as string[] }));
   });
 }
@@ -74,12 +74,12 @@ interface CategoryInput {
   description: string;
   weight: number;
   platforms: string[];
-  /** Aiguillage matière×catégorie (docs/SPEC_MATIERE_EDITEUR.md §5.3) — curatable manuellement ici. */
+  /** Material×category routing (docs/SPEC_MATIERE_EDITEUR.md §5.3) — manually curatable here. */
   materialHungry?: boolean;
 }
 
-/** Enregistrement manuel : met à jour les catégories existantes, insère les nouvelles,
- *  archive celles qui ne sont plus présentes dans la liste envoyée par l'utilisateur. */
+/** Manual save: updates existing categories, inserts new ones,
+ *  archives those no longer present in the list sent by the user. */
 export async function saveCategoriesForUser(userId: string, items: CategoryInput[]) {
   const normalized = normalizeCategoryWeights(items as CategoryEntry[]).map((c, i) => ({
     ...c,
@@ -92,9 +92,9 @@ export async function saveCategoriesForUser(userId: string, items: CategoryInput
   const keptIds = new Set(normalized.filter((c) => c.id).map((c) => c.id as string));
   const toArchive = active.filter((c) => !keptIds.has(c.id));
 
-  // docs/SPEC_SERIES_ET_ROLES.md §7 : un rôle porté par une série active ne peut pas être archivé —
-  // la série se retrouverait sans rôle (invariant "exactement un rôle par série") et disparaîtrait
-  // silencieusement de la génération du calendrier.
+  // docs/SPEC_SERIES_ET_ROLES.md §7: a role carried by an active series cannot be archived —
+  // the series would be left without a role ("exactly one role per series" invariant) and would silently
+  // disappear from calendar generation.
   if (toArchive.length > 0) {
     const blocking = await db.query.contentSeriesCategories.findMany({
       where: inArray(
@@ -105,8 +105,8 @@ export async function saveCategoriesForUser(userId: string, items: CategoryInput
     });
     const activeBlocking = blocking.filter((b) => !b.series.archived);
     if (activeBlocking.length > 0) {
-      const detail = activeBlocking.map((b) => `« ${b.category.label} » (série « ${b.series.label} »)`).join(", ");
-      throw new ApiError(400, `Impossible de retirer un rôle encore utilisé par une série active : ${detail}.`);
+      const detail = activeBlocking.map((b) => `"${b.category.label}" (series "${b.series.label}")`).join(", ");
+      throw new ApiError(400, `Cannot remove a role still used by an active series: ${detail}.`);
     }
   }
 
@@ -127,8 +127,8 @@ export async function saveCategoriesForUser(userId: string, items: CategoryInput
         if (!updated) continue;
         categoryId = updated.id;
         await tx.delete(contentCategoriesPlatforms).where(eq(contentCategoriesPlatforms.categoryId, categoryId));
-        // Même forme que listActiveCategoriesForUser/generateCategoriesForUser (platforms rattaché) —
-        // sinon le front plante sur `.platforms.length` (undefined) juste après un enregistrement réussi.
+        // Same shape as listActiveCategoriesForUser/generateCategoriesForUser (platforms attached) —
+        // otherwise the front end crashes on `.platforms.length` (undefined) right after a successful save.
         results.push({ ...updated, platforms: c.platforms });
       } else {
         const [inserted] = await tx

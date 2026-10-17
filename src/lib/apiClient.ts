@@ -4,7 +4,7 @@ import type { SeriesRhythm } from "@/lib/seriesRhythm";
 export class ApiClientError extends Error {
   constructor(
     message: string,
-    /** Statut HTTP de la réponse, pour distinguer un accès tiers expiré (409) d'une vraie panne. */
+    /** HTTP status of the response, to tell an expired third-party access (409) from a real outage. */
     readonly status?: number
   ) {
     super(message);
@@ -18,7 +18,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   });
   const body = await res.json().catch(() => null);
   if (!res.ok) {
-    throw new ApiClientError(body?.error || `Erreur ${res.status}`, res.status);
+    throw new ApiClientError(body?.error || `Error ${res.status}`, res.status);
   }
   return body as T;
 }
@@ -36,7 +36,7 @@ export interface User {
   email: string;
 }
 
-/** Ce que l'onglet Compte affiche — miroir de AccountSummary (accountService.ts), dates sérialisées. */
+/** What the Account tab displays — mirror of AccountSummary (accountService.ts), dates serialized. */
 export interface AccountSummary {
   email: string;
   createdAt: string;
@@ -44,8 +44,8 @@ export interface AccountSummary {
   providers: Array<{ id: string; displayName: string }>;
 }
 
-/** Dépôt public proposé à l'étape « Projets » de l'onboarding dev et dans paramètres > Sujets.
- *  `alreadyConnected` : déjà source d'un sujet — affiché grisé, non re-sélectionnable. */
+/** Public repository offered at the "Projects" step of dev onboarding and in settings > Topics.
+ *  `alreadyConnected`: already the source of a topic — shown greyed out, not selectable again. */
 export interface GithubRepoOption {
   externalId: string;
   fullName: string;
@@ -57,9 +57,9 @@ export interface GithubRepoOption {
   alreadyConnected: boolean;
 }
 
-/** Candidat proposé par un connecteur, sous la forme générique que rend
- *  /api/connectors/[provider]/candidates. `hint` est composé par le connecteur : l'écran de
- *  sélection l'affiche sans jamais savoir de quel fournisseur il vient. */
+/** Candidate offered by a connector, in the generic shape returned by
+ *  /api/connectors/[provider]/candidates. `hint` is composed by the connector: the selection
+ *  screen displays it without ever knowing which provider it comes from. */
 export interface SourceCandidate {
   externalId: string;
   label: string;
@@ -77,12 +77,12 @@ export interface SourceCandidateList {
   candidates: SourceCandidate[];
 }
 
-/** Source connectée alimentant le corpus d'un sujet. */
+/** Connected source feeding a topic's corpus. */
 export interface MaterialSource {
   id: string;
   productId: string;
   type: "github_repo" | "notion_page" | "linear_project";
-  /** Nom lisible du fournisseur, fourni par le connecteur — l'UI ne le déduit pas de `type`. */
+  /** Human-readable provider name, supplied by the connector — the UI does not derive it from `type`. */
   connectorLabel: string;
   externalId: string;
   label: string;
@@ -116,13 +116,13 @@ export interface ContentCategory {
   weight: number;
   archived: boolean;
   createdAt: string;
-  /** Réseaux auxquels cette catégorie est restreinte ; vide = visible sur tous les réseaux. */
+  /** Networks this category is restricted to; empty = visible on all networks. */
   platforms: Platform[];
-  /** Aiguillage matière×catégorie (docs/SPEC_MATIERE_EDITEUR.md §5.3) — sous-représentée quand le corpus est sec. */
+  /** Material×category routing (docs/SPEC_MATIERE_EDITEUR.md §5.3) — under-represented when the corpus is dry. */
   materialHungry: boolean;
 }
 
-/** Forme légère d'une catégorie telle qu'embarquée (jointure) dans un Script ou une CalendarEntry. */
+/** Light shape of a category as embedded (join) in a Script or a CalendarEntry. */
 export interface ContentCategorySummary {
   id: string;
   label: string;
@@ -134,15 +134,15 @@ export interface CreatorProfile {
   userId: string;
   brandName: string;
   activityType: string;
-  /** « Qu'est-ce que tu attends de nous ? » (docs/SPEC_ONBOARDING_MVP.md §3). */
+  /** "What do you expect from us?" (docs/SPEC_ONBOARDING_MVP.md §3). */
   expectations: string | null;
-  /** Jours de publication, ISO : 1 = lundi … 7 = dimanche. Jamais vide. */
+  /** Publishing days, ISO: 1 = Monday … 7 = Sunday. Never empty. */
   publishingDays: number[];
-  /** Audience de marque (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — fallback pour Product.targetAudience. */
+  /** Brand audience (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — fallback for Product.targetAudience. */
   targetAudience: string | null;
   styleProfile: StyleProfile | null;
   styleProfileUpdatedAt: string | null;
-  /** Identité de marque des maquettes (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2), null tant que rien n'est défini. */
+  /** Brand identity of the mockups (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2), null while nothing is defined. */
   brandKit?: BrandKit | null;
 }
 
@@ -164,7 +164,7 @@ export interface DesignTheme {
 
 export interface DesignSlide {
   planNumber: number;
-  /** HTML passé par la liste blanche côté serveur — placeholders {{IMG:p1}} / {{LOGO}} non résolus. */
+  /** HTML passed through the server-side allow-list — placeholders {{IMG:p1}} / {{LOGO}} not resolved. */
   html: string;
   exportKey: string | null;
   exportUrl: string | null;
@@ -172,22 +172,22 @@ export interface DesignSlide {
 
 export type DesignImageVariant = "original" | "cutout";
 
-/** Photo d'une maquette (docs/SPEC_COMPOSITION_VISUELLE.md §4), référencée par {{IMG:ref}} dans le HTML. */
+/** Photo of a mockup (docs/SPEC_COMPOSITION_VISUELLE.md §4), referenced by {{IMG:ref}} in the HTML. */
 export interface DesignImage {
   ref: string;
   assetId: string;
   variant: DesignImageVariant;
   thumbnailUrl: string | null;
-  /** Le détouré est déjà calculé (bascule instantanée). */
+  /** The cutout is already computed (instant switch). */
   hasCutout: boolean;
 }
 
-/** Maquette d'un post visuel (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §4, docs/SPEC_COMPOSITION_VISUELLE.md §4). */
+/** Mockup of a visual post (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §4, docs/SPEC_COMPOSITION_VISUELLE.md §4). */
 export interface VisualDesign {
   id: string;
   scriptId: string;
   images: DesignImage[];
-  /** Le serveur a un provider de détourage configuré. */
+  /** The server has a background-removal provider configured. */
   cutoutAvailable: boolean;
   width: number;
   height: number;
@@ -195,7 +195,7 @@ export interface VisualDesign {
   slides: DesignSlide[];
   status: "draft" | "stale" | "exported";
   lastInstruction: string | null;
-  /** Animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) : null pour une maquette statique. */
+  /** Animation (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md): null for a static mockup. */
   durationMs: number | null;
   timeline: TimelineEntry[] | null;
   createdAt: string;
@@ -211,8 +211,8 @@ export interface TimelineEntry {
   exitAtMs: number | null;
 }
 
-/** Miroir de styleProfileSchema (src/lib/llm/styleProfile.ts). Les listes peuvent manquer sur un
- *  profil stocké avant le chantier d'apprentissage — lire avec `?? []`. */
+/** Mirror of styleProfileSchema (src/lib/llm/styleProfile.ts). The lists may be missing on a
+ *  profile stored before the learning work — read with `?? []`. */
 export interface StyleProfile {
   tone: string;
   sentenceLength: string;
@@ -231,7 +231,7 @@ export interface StyleRule {
 }
 
 export interface StyleLearningStatus {
-  /** Scripts finalisés (tourné/publié) jamais lus par une passe d'apprentissage. */
+  /** Finalized scripts (shot/published) never read by a learning pass. */
   pendingScripts: number;
   lastLearnedAt: string | null;
   pendingProposalId: string | null;
@@ -244,13 +244,13 @@ export interface Product {
   description: string | null;
   valueProposition: string | null;
   photoUrl: string | null;
-  /** Override d'audience par sujet (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — null = fallback marque. */
+  /** Per-topic audience override (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — null = brand fallback. */
   targetAudience: string | null;
-  /** Portrait des lecteurs (docs/SPEC_PROMPT_GENERATION_V3.md §2.2) — null tant qu'il n'est pas produit. */
+  /** Reader portrait (docs/SPEC_PROMPT_GENERATION_V3.md §2.2) — null until it is produced. */
   readerPortrait: ReaderPortrait | null;
 }
 
-/** Fiche de la veille d'inspiration d'un sujet (docs/SPEC_MEMOIRE_ET_VEILLE.md §3). */
+/** Inspiration watch card of a topic (docs/SPEC_MEMOIRE_ET_VEILLE.md §3). */
 export interface Inspiration {
   id: string;
   productId: string;
@@ -289,7 +289,7 @@ export interface Connection {
   platform: Platform;
   connected: boolean;
   connectedAt: string | null;
-  /** null si non connecté. "needs_reconnect" = refresh de token échoué, reconnexion requise. */
+  /** null if not connected. "needs_reconnect" = token refresh failed, reconnection required. */
   status: "ok" | "needs_reconnect" | null;
   hasMetricsFetch: boolean;
 }
@@ -301,7 +301,7 @@ export interface PostingGoal {
   targetCountPerWeek: number;
 }
 
-/** Un épisode du plan éditorial (docs/SPEC_REDACTEUR_EN_CHEF.md §2, Annexe B.5). */
+/** An episode of the editorial plan (docs/SPEC_REDACTEUR_EN_CHEF.md §2, Annexe B.5). */
 export interface ContentSeries {
   id: string;
   userId: string;
@@ -310,25 +310,25 @@ export interface ContentSeries {
   weight: number;
   archived: boolean;
   createdAt: string;
-  /** Rôle unique de la série (docs/SPEC_SERIES_ET_ROLES.md §1) — null uniquement pour des données
-   *  antérieures à la migration, une telle série est ignorée par le calendrier. */
+  /** Unique role of the series (docs/SPEC_SERIES_ET_ROLES.md §1) — null only for data
+   *  predating the migration, such a series is ignored by the calendar. */
   category: ContentCategorySummary | null;
-  /** Réseaux auxquels cette série est restreinte ; vide = visible sur tous les réseaux. */
+  /** Networks this series is restricted to; empty = visible on all networks. */
   platforms: Platform[];
-  /** Sujet dont cette série tire sa matière (sélecteur de sujet, docs/SPEC_REDACTEUR_EN_CHEF.md) —
-   *  null si la série n'est rattachée à aucun sujet précis (matière de niveau marque). */
+  /** Topic this series draws its material from (topic selector, docs/SPEC_REDACTEUR_EN_CHEF.md) —
+   *  null if the series is attached to no specific topic (brand-level material). */
   product: { id: string; name: string } | null;
-  /** Jours de publication de la série (docs/SPEC_RYTHME_DES_SERIES.md) — null = pas de rythme,
-   *  la série ne pose aucun créneau. */
+  /** Publishing days of the series (docs/SPEC_RYTHME_DES_SERIES.md) — null = no rhythm,
+   *  the series sets no slot. */
   rhythm: SeriesRhythm | null;
-  /** Le lecteur unique de la série (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4) : un label du portrait
-   *  du sujet. Null tant qu'il n'est pas choisi. */
+  /** The series' single reader (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4): a label from the topic's
+   *  portrait. Null until chosen. */
   readerLabel: string | null;
-  /** La forme de la série pour ce lecteur — null tant qu'elle n'est pas écrite. */
+  /** The series form for this reader — null until it is written. */
   form: SeriesForm | null;
 }
 
-/** La forme d'une série pour son lecteur (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4). */
+/** The form of a series for its reader (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4). */
 export interface SeriesForm {
   wants: string;
   episodeShape: string;
@@ -336,13 +336,13 @@ export interface SeriesForm {
   words: string[];
   jargon: string[];
   register: string;
-  /** Ce qui revient à chaque épisode (une phrase, un geste) — chaîne vide si rien. */
+  /** What comes back in every episode (a sentence, a gesture) — empty string if nothing. */
   signature: string;
   generatedAt: string | null;
   editedByUser: boolean;
 }
 
-/** Un événement vu par le plan d'une série. */
+/** An event as seen by a series plan. */
 export interface PlannedEvent {
   id: string;
   date: string | null;
@@ -362,7 +362,7 @@ export interface SeriesPlan {
   next: PlannedEvent | null;
 }
 
-/** Ce que l'enregistrement a changé au calendrier pour une série (docs/SPEC_RYTHME_DES_SERIES.md §4). */
+/** What saving changed in the calendar for a series (docs/SPEC_RYTHME_DES_SERIES.md §4). */
 export interface SeriesSlotChange {
   created: number;
   removed: number;
@@ -376,15 +376,15 @@ export interface StoryboardStep {
 
 export type ContentType = "visual" | "text";
 
-/** Format d'un post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) — propriété du script. */
+/** Format of a visual post (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) — property of the script. */
 export type VisualFormat = "single" | "carousel" | "animation";
 export interface VisualFormatFields {
   visualFormat?: VisualFormat;
-  /** Carrousel : 2 à 10. */
+  /** Carousel: 2 to 10. */
   slideCount?: number;
-  /** Animation : 5 000 à 15 000. */
+  /** Animation: 5,000 to 15,000. */
   durationMs?: number;
-  /** Faux = visuel seul, légende courte ; absent ou vrai = un post texte + visuel. */
+  /** False = visual only, short caption; absent or true = a text post + visual. */
   withText?: boolean;
 }
 
@@ -418,13 +418,13 @@ export interface Script {
   userId: string;
   productId: string | null;
   platform: Platform;
-  /** Nullable : naissance paresseuse (§4.5) — la ligne peut naître avant qu'un titre n'existe. */
+  /** Nullable: lazy creation (§4.5) — the row may be created before a title exists. */
   title: string | null;
-  /** Intention de génération (docs/SPEC_PROMPT_GENERATION_TECH.md §2) — non affiché à l'utilisateur
-   *  en V1 (§6.4) ; présent ici seulement pour conditionner l'affichage du bouton "autre idée". */
+  /** Generation intent (docs/SPEC_PROMPT_GENERATION_TECH.md §2) — not shown to the user
+   *  in V1 (§6.4); present here only to condition display of the "another idea" button. */
   concept: string | null;
   contentType: ContentType;
-  /** Format du post visuel — "single" hors contentType "visual". */
+  /** Format of the visual post — "single" outside contentType "visual". */
   visualFormat: VisualFormat;
   slideCount: number | null;
   durationMs: number | null;
@@ -435,25 +435,25 @@ export interface Script {
   caption: string;
   hashtags: string[];
   contentCategory: ContentCategorySummary;
-  /** Angle imposé (mécanisme anti-répétition) — présent uniquement sur la fiche détaillée (GET /api/scripts/:id). */
+  /** Imposed angle (anti-repetition mechanism) — present only on the detailed record (GET /api/scripts/:id). */
   angle?: { id: string; label: string; description: string } | null;
   series: ContentCategorySummary | null;
   status: ScriptStatus;
-  /** "generated" (LLM) / "imported" (POST /api/scripts/import) / "manual" (naissance paresseuse éditeur). */
+  /** "generated" (LLM) / "imported" (POST /api/scripts/import) / "manual" (lazy creation in the editor). */
   origin: "generated" | "imported" | "manual";
   createdAt: string;
   updatedAt: string;
   product?: Product | null;
   metrics?: PostMetrics | null;
-  /** Photo de marque trouvée par recherche sémantique à la génération (contentType "visual") — suggérée en premier pour la maquette. */
+  /** Brand photo found by semantic search at generation (contentType "visual") — suggested first for the mockup. */
   brandAssetId: string | null;
-  /** Maquette du post visuel — fiche détaillée uniquement, null tant qu'aucune n'a été composée. */
+  /** Mockup of the visual post — detailed record only, null until one has been composed. */
   visualDesign?: VisualDesign | null;
-  /** Matière utilisée pour ce script — présent uniquement sur la fiche détaillée. */
+  /** Material used for this script — present only on the detailed record. */
   citations?: Citation[];
-  /** L'événement raconté (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5) — null hors série à lecteur. */
+  /** The event told (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5) — null outside a series with a reader. */
   eventId: string | null;
-  /** Titre et date de l'événement, résolus à la lecture — fiche détaillée seulement. */
+  /** Title and date of the event, resolved at read time — detailed record only. */
   eventTitle?: string | null;
   eventDate?: string | null;
 }
@@ -465,8 +465,8 @@ export interface SourceMaterial {
   kind: "paste" | "file" | "interview";
   title: string | null;
   rawText: string;
-  /** Résumé orienté potentiel narratif (docs/SPEC_REDACTEUR_EN_CHEF.md §2/§3.1) — null tant que le
-   *  résumeur ne l'a pas encore traité (résumé en cours). */
+  /** Summary oriented toward narrative potential (docs/SPEC_REDACTEUR_EN_CHEF.md §2/§3.1) — null until the
+   *  summarizer has processed it (summary in progress). */
   summary: string | null;
   createdAt: string;
 }
@@ -474,11 +474,11 @@ export interface SourceMaterial {
 export type MaterialEventKind = "failure" | "decision" | "result" | "feedback" | "milestone";
 export type MaterialEventDatePrecision = "day" | "month" | "unknown";
 
-/** Événement de la ligne de temps d'un sujet (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3). */
+/** Event on a topic's timeline (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3). */
 export interface MaterialEvent {
   id: string;
   productId: string;
-  /** AAAA-MM-JJ, le 1er du mois au mois près, null sans date. */
+  /** YYYY-MM-DD, the 1st of the month when only the month is known, null without a date. */
   date: string | null;
   datePrecision: MaterialEventDatePrecision;
   title: string;
@@ -504,8 +504,8 @@ export interface EventReadingReport {
   reply: string;
 }
 
-/** Citation post-génération (docs/SPEC_MATIERE_EDITEUR.md §3) — passage du corpus rapporté comme
- *  utilisé par le LLM à la génération, retrouvé dans le texte source par recherche approximative. */
+/** Post-generation citation (docs/SPEC_MATIERE_EDITEUR.md §3) — passage of the corpus reported as
+ *  used by the LLM at generation, found in the source text by approximate search. */
 export interface Citation {
   id: string;
   sourceMaterialId: string | null;
@@ -513,10 +513,10 @@ export interface Citation {
   scriptId?: string | null;
   scriptTitle?: string | null;
   excerpt: string;
-  /** Position dans le texte source, présente uniquement sur la vue "citations d'un document". */
+  /** Position in the source text, present only on the "citations of a document" view. */
   matchStart?: number | null;
   matchLength?: number | null;
-  /** Présent uniquement sur la vue "citations d'un script" (GET /api/scripts/:id). */
+  /** Present only on the "citations of a script" view (GET /api/scripts/:id). */
   matched?: boolean;
 }
 
@@ -533,15 +533,15 @@ export interface CalendarEntry {
   script: { id: string; title: string; status: ScriptStatus } | null;
 }
 
-/** Ce qu'un créneau vide va devenir : l'épisode prévu par le plan de sa série et le projet relié. */
+/** What an empty slot will become: the episode planned by its series' plan and the linked project. */
 export interface UpcomingPost {
   title: string | null;
   project: string | null;
 }
 
-/** Créneau de la vue semaine : le post lui-même, pour l'afficher comme un post et non une case. */
+/** Week-view slot: the post itself, to display it as a post and not a box. */
 export interface WeekEntry extends Omit<CalendarEntry, "script"> {
-  /** Créneau vide uniquement (null pour un créneau passé). */
+  /** Empty slot only (null for a past slot). */
   upcoming?: UpcomingPost | null;
   script: {
     id: string;
@@ -552,9 +552,9 @@ export interface WeekEntry extends Omit<CalendarEntry, "script"> {
     slideCount: number | null;
     durationMs: number | null;
     hookText: string | null;
-    /** Début du texte du post seulement. */
+    /** Beginning of the post text only. */
     caption: string | null;
-    /** Première slide de la maquette (placeholders non résolus), null tant qu'elle n'est pas composée. */
+    /** First slide of the mockup (placeholders not resolved), null until it is composed. */
     preview: {
       html: string;
       width: number;
@@ -570,8 +570,8 @@ export interface OnboardingMessage {
   content: string;
 }
 
-/** État de l'onboarding (docs/SPEC_ONBOARDING_MVP.md §2) — `signedIn: false` à l'écran 1, avant
- *  que le premier branchement ne crée le compte. */
+/** Onboarding state (docs/SPEC_ONBOARDING_MVP.md §2) — `signedIn: false` on screen 1, before
+ *  the first connection creates the account. */
 export type OnboardingState =
   | { signedIn: false }
   | {
@@ -583,11 +583,11 @@ export type OnboardingState =
       notes: Array<{ id: string; excerpt: string }>;
     };
 
-/** Sujet proposé par la lecture de la matière : `keys` = `source:<id>` / `note:<id>` regroupés. */
+/** Topic proposed by reading the material: `keys` = grouped `source:<id>` / `note:<id>`. */
 export interface OnboardingSubjectDraft {
   name: string;
   description: string;
-  /** « Pour qui » de ce sujet (docs/SPEC_PROMPT_GENERATION_V3.md §2.1). */
+  /** "Who is it for" of this topic (docs/SPEC_PROMPT_GENERATION_V3.md §2.1). */
   targetAudience: string;
   keys: string[];
 }
@@ -597,12 +597,12 @@ export interface OnboardingDraft {
   targetAudience: string;
   subjects: OnboardingSubjectDraft[];
   extracted: boolean;
-  /** Raison lisible quand la lecture par l'IA a échoué. */
+  /** Readable reason when the AI reading failed. */
   failureReason: string | null;
 }
 
-/** Fichier déposé dans la conversation de l'assistant, en attente d'être rangé en matière
- *  (docs/SPEC_ASSISTANT_AGENTIQUE.md §5.1). Le contenu ne remonte jamais côté client. */
+/** File dropped into the assistant conversation, waiting to be filed as material
+ *  (docs/SPEC_ASSISTANT_AGENTIQUE.md §5.1). The content never goes back to the client. */
 export interface AssistantAttachment {
   id: string;
   filename: string;
@@ -644,7 +644,7 @@ export interface BrandAsset {
   userId: string;
   sourceType: "upload" | "google_drive";
   thumbnailUrl: string | null;
-  /** PNG détouré, une fois calculé (docs/SPEC_COMPOSITION_VISUELLE.md §2). */
+  /** Cutout PNG, once computed (docs/SPEC_COMPOSITION_VISUELLE.md §2). */
   cutoutUrl: string | null;
   status: "pending" | "ready" | "unreachable";
   aiDescription: string | null;
@@ -671,7 +671,7 @@ export interface BillingSubscription {
 export interface BillingInfo {
   subscription: BillingSubscription | null;
   quota: QuotaStatus;
-  /** Pool distinct pour les micro-retouches de l'éditeur (docs/SPEC_MATIERE_EDITEUR.md §4.6). */
+  /** Separate pool for the editor's micro-edits (docs/SPEC_MATIERE_EDITEUR.md §4.6). */
   microEditQuota: QuotaStatus;
   plans: Array<{ id: "starter" | "pro"; name: string; scriptsPerMonth: number }>;
 }
@@ -683,7 +683,7 @@ export interface GoogleDriveConnection {
   connectedAt: string | null;
 }
 
-/** Écran /admin/quotas (docs/SPEC_QUOTAS_ADMIN.md). `custom` null = limite normale. */
+/** /admin/quotas screen (docs/SPEC_QUOTAS_ADMIN.md). `custom` null = normal limit. */
 export interface AdminAccountQuotas {
   userId: string;
   email: string;
@@ -697,27 +697,27 @@ export const api = {
   login: (email: string, password: string) => post<{ user: User }>("/api/auth/login", { email, password }),
   logout: () => post<{ ok: true }>("/api/auth/logout"),
   me: () => apiFetch<{ user: User | null }>("/api/auth/me"),
-  /** Répond toujours ok, que l'adresse soit connue ou non — ne révèle pas qui est inscrit. */
+  /** Always responds ok, whether or not the address is known — does not reveal who is registered. */
   forgotPassword: (email: string) => post<{ ok: true }>("/api/auth/password/forgot", { email }),
-  /** Connecte l'utilisateur dans la foulée (cookie de session posé par la route). */
+  /** Signs the user in right away (session cookie set by the route). */
   resetPassword: (token: string, password: string) => post<{ ok: true }>("/api/auth/password/reset", { token, password }),
 
-  // Onglet Compte (docs/SPEC_LEGAL_EMAIL_RGPD.md §4) — la personne, pas sa marque.
+  // Account tab (docs/SPEC_LEGAL_EMAIL_RGPD.md §4) — the person, not their brand.
   getAccount: () => apiFetch<{ account: AccountSummary }>("/api/account"),
   changePassword: (currentPassword: string | undefined, newPassword: string) =>
     post<{ ok: true }>("/api/account/password", { currentPassword, newPassword }),
-  /** Le corps est le fichier d'export lui-même ; le client le propose au téléchargement. */
+  /** The body is the export file itself; the client offers it for download. */
   exportAccount: () => apiFetch<Record<string, unknown>>("/api/account/export"),
   deleteAccount: (confirmation: { password?: string; emailConfirmation?: string }) =>
     apiFetch<{ ok: true }>("/api/account", { method: "DELETE", body: JSON.stringify(confirmation) }),
-  /** Le bouton GitHub de /login n'est rendu que si les variables d'environnement sont présentes. */
+  /** The GitHub button on /login is only rendered if the environment variables are present. */
   getGithubStatus: () => apiFetch<{ configured: boolean }>("/api/auth/github/status"),
 
   getGithubRepos: () => apiFetch<{ repos: GithubRepoOption[] }>("/api/github/repos"),
   connectGithubRepos: (repos: GithubRepoOption[]) =>
     post<{ results: ConnectRepoResult[] }>("/api/github/repos", { repos }),
 
-  /** Fournisseurs d'identité configurés sur cet environnement — /login n'affiche que ceux-là. */
+  /** Identity providers configured on this environment — /login only shows those. */
   getOAuthProviders: () => apiFetch<{ providers: Array<{ id: string; displayName: string }> }>("/api/auth/oauth/providers"),
 
   getSourceCandidates: (provider: string) =>
@@ -736,15 +736,15 @@ export const api = {
   getMaterialSources: (productId: string) =>
     apiFetch<{ sources: MaterialSource[] }>(`/api/material-sources?productId=${productId}`),
   syncMaterialSource: (id: string) => post<{ report: SyncReport }>(`/api/material-sources/${id}/sync`),
-  /** Supprime aussi les documents miroir de la source — confirmer côté UI avant d'appeler. */
+  /** Also deletes the source's mirror documents — confirm on the UI side before calling. */
   deleteMaterialSource: (id: string) => del<{ ok: true }>(`/api/material-sources/${id}`),
 
   getProfile: () =>
     apiFetch<{
       profile: CreatorProfile | null;
       vertical: "creator" | "dev" | "artisan" | "entrepreneur";
-      /** Fournisseurs auxquels ce compte est relié. C'est CETTE liste qui dit quel sélecteur
-       *  afficher, pas la verticale — "dev" couvre GitHub comme Linear. */
+      /** Providers this account is linked to. It is THIS list that says which selector
+       *  to show, not the vertical — "dev" covers GitHub as well as Linear. */
       connectedProviders: Array<{ id: string; displayName: string }>;
       githubConnected: boolean;
       styleLearning: StyleLearningStatus;
@@ -756,8 +756,8 @@ export const api = {
     expectations?: string;
     publishingDays?: number[];
   }) => post<{ profile: CreatorProfile }>("/api/profile", data),
-  /** Passe d'apprentissage du style (docs/SPEC_APPRENTISSAGE_STYLE.md). `proposalId` null = profil
-   *  écrit directement (première analyse), sinon une proposition à valider a été créée. */
+  /** Style learning pass (docs/SPEC_APPRENTISSAGE_STYLE.md). `proposalId` null = profile
+   *  written directly (first analysis), otherwise a proposal to validate was created. */
   triggerStyleAnalysis: (options?: { includeLearned?: boolean }) =>
     post<{
       profile: CreatorProfile;
@@ -770,7 +770,7 @@ export const api = {
     patch<{ styleProfile: StyleProfile }>("/api/profile/style", data),
   saveBrandKit: (data: BrandKit) => patch<{ brandKit: BrandKit }>("/api/profile/brand-kit", data),
 
-  // Maquette d'un post visuel (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §5.3)
+  // Mockup of a visual post (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §5.3)
   createDesign: (scriptId: string, data: { assetIds: string[]; format?: string }) =>
     post<{ design: VisualDesign; rationale: string }>(`/api/scripts/${scriptId}/design`, data),
   addDesignImage: (scriptId: string, assetId: string) => post<{ design: VisualDesign; ref: string }>(`/api/scripts/${scriptId}/design/images`, { assetId }),
@@ -791,10 +791,10 @@ export const api = {
   exportDesign: async (scriptId: string, files: { planNumber: number; blob: Blob }[]) => {
     const formData = new FormData();
     for (const f of files) formData.append(`slide-${f.planNumber}`, f.blob, `slide-${f.planNumber}.png`);
-    // Multipart : le navigateur fixe la frontière lui-même (cf. uploadAssets).
+    // Multipart: the browser sets the boundary itself (see uploadAssets).
     const res = await fetch(`/api/scripts/${scriptId}/design/export`, { method: "POST", body: formData });
     const body = await res.json().catch(() => null);
-    if (!res.ok) throw new ApiClientError(body?.error || `Erreur ${res.status}`);
+    if (!res.ok) throw new ApiClientError(body?.error || `Error ${res.status}`);
     return body as { design: VisualDesign };
   },
   listAssistantProposals: () => apiFetch<{ proposals: AssistantProposal[] }>("/api/assistant/proposals"),
@@ -813,7 +813,7 @@ export const api = {
   ) => post<{ categories: ContentCategory[] }>("/api/profile/content-categories", { categories }),
 
   getContentSeries: () => apiFetch<{ series: ContentSeries[] }>("/api/series"),
-  // Lecteur, forme et plan d'une série (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4).
+  // Reader, form and plan of a series (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4).
   getSeriesReaders: (seriesId: string) => apiFetch<{ readers: PortraitReader[] }>(`/api/series/${seriesId}/reader`),
   setSeriesReader: (seriesId: string, readerLabel: string) =>
     apiFetch<{ series: ContentSeries | null }>(`/api/series/${seriesId}/reader`, {
@@ -840,14 +840,14 @@ export const api = {
       rhythm?: SeriesRhythm | null;
     }>
   ) => post<{ series: ContentSeries[]; slotChanges: Record<string, SeriesSlotChange> }>("/api/series", { series }),
-  /** Validation des séries après l'onboarding : garde celles cochées, leur répartit les jours de
-   *  publication, remplit le calendrier et planifie la série principale. `planError` : la sélection
-   *  est faite, seul le plan a échoué. */
+  /** Validation of the series after onboarding: keeps the checked ones, distributes the publishing
+   *  days among them, fills the calendar and schedules the main series. `planError`: the selection
+   *  is done, only the plan failed. */
   confirmSeriesSelection: (keptIds: string[]) =>
     post<{ plannedSeriesId: string | null; planError: string | null }>("/api/series/selection", { keptIds }),
-  /** Bascule de mode et/ou sujet lié (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — endpoint dédié plutôt que
-   *  saveContentSeries : ce dernier archive toute série active omise du tableau soumis, inadapté à
-   *  l'édition d'un ou deux champs depuis une carte de la bibliothèque. */
+  /** Mode switch and/or linked topic (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — dedicated endpoint rather than
+   *  saveContentSeries: the latter archives any active series omitted from the submitted array, unsuited to
+   *  editing one or two fields from a library card. */
   updateSeriesFields: (id: string, fields: { productId: string | null }) =>
     patch<{ series: ContentSeries }>(`/api/series/${id}`, fields),
 
@@ -880,14 +880,14 @@ export const api = {
 
   getCalendar: (month: string) =>
     apiFetch<{ entries: CalendarEntry[]; goals: PostingGoal[] }>(`/api/calendar?month=${month}`),
-  /** Vue semaine : `to` exclu, dates au format YYYY-MM-DD. */
+  /** Week view: `to` exclusive, dates in YYYY-MM-DD format. */
   getCalendarWeek: (from: string, to: string) =>
     apiFetch<{
       entries: WeekEntry[];
       goals: PostingGoal[];
       authorName: string;
       hasLogo: boolean;
-      /** Premier créneau vide à venir hors de la bande affichée : la carte « post suivant ». */
+      /** First empty slot coming up outside the displayed strip: the "next post" card. */
       nextSlot: WeekEntry | null;
     }>(
       `/api/calendar?from=${from}&to=${to}`
@@ -910,8 +910,8 @@ export const api = {
     post<{ script: Script }>("/api/scripts/generate", { calendarEntryId, contentType, productId, directive, ...visual }),
   generateFreeformScript: (data: {
     platform: Platform;
-    /** Role du post libre ; omis quand seriesId est fourni - le serveur derive alors le role de la
-     *  serie (docs/SPEC_SERIES_ET_ROLES.md 4.2). */
+    /** Role of the free post; omitted when seriesId is provided - the server then derives the role from the
+     *  series (docs/SPEC_SERIES_ET_ROLES.md 4.2). */
     contentCategoryId?: string;
     contentType: ContentType;
     productId?: string;
@@ -943,15 +943,15 @@ export const api = {
   ) => post<{ script: Script }>(`/api/scripts/${id}/micro-edit`, { action: "selection_instruction", ...data }),
   regenerateScriptBlock: (id: string, block: "hook" | "storyboard" | "caption" | "hashtags") =>
     post<{ script: Script }>(`/api/scripts/${id}/micro-edit`, { action: "block_regenerate", block }),
-  /** "Autre idée, même brief" (docs/SPEC_PROMPT_GENERATION_TECH.md §6) — remplace tout le contenu du
-   *  script en place, brief verrouillé. Confirmation à afficher côté appelant avant d'exécuter (§6.3).
-   *  `directive` optionnelle (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A) : idée soufflée par le créateur, ou
-   *  commentaire pré-rempli par la bascule select-all ≥80 %. */
+  /** "Another idea, same brief" (docs/SPEC_PROMPT_GENERATION_TECH.md §6) — replaces the whole content of the
+   *  script in place, locked brief. Confirmation to display on the caller side before executing (§6.3).
+   *  Optional `directive` (docs/SPEC_REDACTEUR_EN_CHEF.md Lot A): idea suggested by the creator, or
+   *  comment pre-filled by the ≥80% select-all toggle. */
   newIdea: (id: string, data?: { directive?: string }) =>
     post<{ script: Script }>(`/api/scripts/${id}/new-idea`, data),
   importScript: (data: {
     platform: Platform;
-    /** Role du post libre ; omis quand seriesId est fourni (docs/SPEC_SERIES_ET_ROLES.md 4.2). */
+    /** Role of the free post; omitted when seriesId is provided (docs/SPEC_SERIES_ET_ROLES.md 4.2). */
     contentCategoryId?: string;
     contentType: ContentType;
     productId?: string;
@@ -966,7 +966,7 @@ export const api = {
     storyboard?: StoryboardStep[];
   }) => post<{ script: Script }>("/api/scripts/import", data),
 
-  // Ligne de temps d'un sujet (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3).
+  // Timeline of a topic (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3).
   getEvents: (productId: string) =>
     apiFetch<{ events: MaterialEvent[]; unreadDocuments: number }>(`/api/events?productId=${productId}`),
   createEvent: (data: {
@@ -982,15 +982,15 @@ export const api = {
   updateEvent: (id: string, data: Partial<Omit<MaterialEvent, "id" | "productId" | "sourceMaterialId" | "sourceMaterial" | "excerpt" | "origin" | "createdAt">>) =>
     patch<{ event: MaterialEvent }>(`/api/events/${id}`, data),
   deleteEvent: (id: string) => del<{ ok: true }>(`/api/events/${id}`),
-  /** Lit les documents pas encore lus du sujet et enregistre leurs événements. Long : plusieurs minutes possibles. */
+  /** Reads the topic's documents not yet read and records their events. Long: several minutes possible. */
   readEvents: (productId: string) => post<{ report: EventReadingReport }>("/api/events/read", { productId }),
   getMaterials: (productId?: string) =>
     apiFetch<{ materials: SourceMaterial[] }>(`/api/materials${productId ? `?productId=${productId}` : ""}`),
   addPastedMaterial: (data: { productId?: string; title?: string; rawText: string }) =>
     post<{ material: SourceMaterial }>("/api/materials", data),
   deleteMaterial: (id: string) => del<{ ok: true }>(`/api/materials/${id}`),
-  /** Édition manuelle du résumé (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — devient la source de vérité,
-   *  jamais regénérée automatiquement ensuite. `null` remet le document en attente de résumé. */
+  /** Manual edit of the summary (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — becomes the source of truth,
+   *  never regenerated automatically afterwards. `null` puts the document back to awaiting a summary. */
   updateMaterialSummary: (id: string, summary: string | null) =>
     patch<{ material: SourceMaterial }>(`/api/materials/${id}`, { summary }),
   getMaterialCitations: (id: string) => apiFetch<{ citations: Citation[] }>(`/api/materials/${id}/citations`),
@@ -1000,7 +1000,7 @@ export const api = {
     if (productId) formData.append("productId", productId);
     const res = await fetch("/api/materials/upload", { method: "POST", body: formData });
     const body = await res.json().catch(() => null);
-    if (!res.ok) throw new ApiClientError(body?.error || `Erreur ${res.status}`);
+    if (!res.ok) throw new ApiClientError(body?.error || `Error ${res.status}`);
     return body as { material: SourceMaterial };
   },
 
@@ -1038,12 +1038,12 @@ export const api = {
   uploadAssistantAttachment: async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-    // Pas d'en-tête Content-Type explicite : le navigateur doit fixer lui-même la frontière
-    // multipart, ce que le helper `apiFetch` (JSON par défaut) ne permet pas.
+    // No explicit Content-Type header: the browser must set the multipart boundary
+    // itself, which the `apiFetch` helper (JSON by default) does not allow.
     const res = await fetch("/api/assistant/attachments", { method: "POST", body: formData });
     const body = await res.json().catch(() => null);
     if (!res.ok) {
-      throw new ApiClientError(body?.error || `Erreur ${res.status}`, res.status);
+      throw new ApiClientError(body?.error || `Error ${res.status}`, res.status);
     }
     return body as { attachment: AssistantAttachment };
   },
@@ -1056,12 +1056,12 @@ export const api = {
   uploadAssets: async (files: FileList | File[]) => {
     const formData = new FormData();
     Array.from(files).forEach((file) => formData.append("files", file));
-    // Pas d'en-tête Content-Type explicite : le navigateur doit fixer lui-même la frontière
-    // multipart, ce que le helper `apiFetch` (JSON par défaut) ne permet pas.
+    // No explicit Content-Type header: the browser must set the multipart boundary
+    // itself, which the `apiFetch` helper (JSON by default) does not allow.
     const res = await fetch("/api/assets", { method: "POST", body: formData });
     const body = await res.json().catch(() => null);
     if (!res.ok) {
-      throw new ApiClientError(body?.error || `Erreur ${res.status}`, res.status);
+      throw new ApiClientError(body?.error || `Error ${res.status}`, res.status);
     }
     return body as { assets: BrandAsset[] };
   },

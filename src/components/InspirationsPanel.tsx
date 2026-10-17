@@ -6,17 +6,17 @@ import { api, ApiClientError, type Inspiration } from "@/lib/apiClient";
 import { color } from "@/lib/design/tokens";
 
 const DISMISSED_BY: Record<string, string> = {
-  model: "le rédacteur",
-  user: "toi",
-  system: "le système",
+  model: "the writer",
+  user: "you",
+  system: "the system",
 };
 
-const DATE = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long" });
+const DATE = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric" });
 
 /**
- * Veille d'inspiration d'un sujet (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.4) : ce que la veille a trouvé sur
- * le web, réinjecté dans les prompts des posts suivants. Les fiches écartées restent visibles avec la
- * raison, et se remettent d'un clic.
+ * Inspiration research for a topic (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.4): what the research found on
+ * the web, fed back into the prompts of the following posts. Dismissed cards stay visible with the
+ * reason, and can be restored in one click.
  */
 export default function InspirationsPanel({ productId }: { productId: string }) {
   const [list, setList] = useState<Inspiration[] | null>(null);
@@ -31,7 +31,7 @@ export default function InspirationsPanel({ productId }: { productId: string }) 
         setList(r.inspirations);
         setRefreshedAt(r.refreshedAt);
       })
-      .catch(() => setError("Impossible de charger les inspirations."));
+      .catch(() => setError("Couldn't load the inspirations."));
   }, [productId]);
 
   async function research() {
@@ -42,7 +42,7 @@ export default function InspirationsPanel({ productId }: { productId: string }) 
       setList(r.inspirations);
       setRefreshedAt(r.refreshedAt);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "La veille a échoué.");
+      setError(err instanceof ApiClientError ? err.message : "The research failed.");
     } finally {
       setBusy(false);
     }
@@ -54,7 +54,7 @@ export default function InspirationsPanel({ productId }: { productId: string }) 
       await action();
       setList((cur) => (cur ? next(cur) : cur));
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong while saving.");
     }
   }
 
@@ -75,8 +75,8 @@ export default function InspirationsPanel({ productId }: { productId: string }) 
         <div style={{ color: color.textSecondary }}>{i.insight}</div>
         <div style={{ color: color.textMuted, fontSize: 12 }}>
           {meta}
-          {i.usedCount > 0 && ` · utilisée ${i.usedCount} fois`}
-          {muted && i.dismissedBy && ` · écartée par ${DISMISSED_BY[i.dismissedBy] ?? i.dismissedBy}${i.dismissReason ? ` : ${i.dismissReason}` : ""}`}
+          {i.usedCount > 0 && ` · used ${i.usedCount} time${i.usedCount > 1 ? "s" : ""}`}
+          {muted && i.dismissedBy && ` · dismissed by ${DISMISSED_BY[i.dismissedBy] ?? i.dismissedBy}${i.dismissReason ? `: ${i.dismissReason}` : ""}`}
         </div>
         <div style={{ display: "flex", gap: 14 }}>
           {muted ? (
@@ -88,22 +88,22 @@ export default function InspirationsPanel({ productId }: { productId: string }) 
                 )
               }
             >
-              Remettre
+              Restore
             </button>
           ) : (
             <button
               style={{ ...smallButton, color: color.text3 }}
               onClick={() =>
                 act(i.id, () => api.setInspirationStatus(i.id, "dismissed"), (cur) =>
-                  cur.map((x) => (x.id === i.id ? { ...x, status: "dismissed", dismissedBy: "user", dismissReason: "Écartée à la main." } : x))
+                  cur.map((x) => (x.id === i.id ? { ...x, status: "dismissed", dismissedBy: "user", dismissReason: "Dismissed by hand." } : x))
                 )
               }
             >
-              Écarter
+              Dismiss
             </button>
           )}
           <button style={{ ...smallButton, color: color.danger }} onClick={() => act(i.id, () => api.deleteInspiration(i.id), (cur) => cur.filter((x) => x.id !== i.id))}>
-            Supprimer
+            Delete
           </button>
         </div>
       </div>
@@ -116,22 +116,22 @@ export default function InspirationsPanel({ productId }: { productId: string }) 
         <div style={{ fontSize: 13, fontWeight: 600, color: color.textSecondary }}>
           Inspirations
           <span style={{ fontWeight: 400, color: color.textMuted }}>
-            {refreshedAt ? ` · dernière veille le ${DATE.format(new Date(refreshedAt))}` : " · aucune veille pour l'instant"}
+            {refreshedAt ? ` · last research on ${DATE.format(new Date(refreshedAt))}` : " · no research yet"}
           </span>
         </div>
         <Button variant="secondary" onClick={research} disabled={busy}>
-          {busy ? "Veille en cours… (1 à 2 min)" : "Lancer une veille"}
+          {busy ? "Researching… (1 to 2 min)" : "Run research"}
         </Button>
       </div>
       <p style={{ fontSize: 12, color: color.textMuted, margin: 0 }}>
-        Ce qui marche déjà pour les lecteurs de ce sujet, trouvé sur le web. Le rédacteur s&apos;en inspire pour la forme des posts, jamais pour les faits, et peut écarter une fiche qui ne sert pas.
+        What already works for this topic&apos;s readers, found on the web. The writer takes inspiration from it for the shape of posts, never for facts, and can dismiss a card that isn&apos;t useful.
       </p>
-      {list === null && !error && <p style={{ fontSize: 13, color: color.textMuted, margin: 0 }}>Chargement…</p>}
-      {list !== null && active.length === 0 && <p style={{ fontSize: 13, color: color.textMuted, margin: 0 }}>Aucune fiche active.</p>}
+      {list === null && !error && <p style={{ fontSize: 13, color: color.textMuted, margin: 0 }}>Loading…</p>}
+      {list !== null && active.length === 0 && <p style={{ fontSize: 13, color: color.textMuted, margin: 0 }}>No active cards.</p>}
       {active.map(card)}
       {dismissed.length > 0 && (
         <>
-          <div style={{ fontSize: 12, fontWeight: 600, color: color.textMuted, marginTop: 4 }}>Écartées</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: color.textMuted, marginTop: 4 }}>Dismissed</div>
           {dismissed.map(card)}
         </>
       )}

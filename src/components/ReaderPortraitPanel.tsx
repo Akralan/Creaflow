@@ -7,17 +7,17 @@ import { api, ApiClientError, type PortraitReader, type Product, type ReaderPort
 import { color } from "@/lib/design/tokens";
 
 const FIELDS: Array<{ key: Exclude<keyof PortraitReader, "label" | "words">; label: string }> = [
-  { key: "who", label: "Qui" },
-  { key: "knows", label: "Sait déjà" },
-  { key: "wants", label: "Vient chercher" },
-  { key: "stopsFor", label: "S'arrête pour" },
-  { key: "turnsOff", label: "Fuit" },
+  { key: "who", label: "Who" },
+  { key: "knows", label: "Already knows" },
+  { key: "wants", label: "Comes looking for" },
+  { key: "stopsFor", label: "Stops for" },
+  { key: "turnsOff", label: "Turned off by" },
 ];
 
 /**
- * Portrait des lecteurs d'un sujet (docs/SPEC_PROMPT_GENERATION_V3.md §2.2) : lu par la génération
- * avant chaque post. En lecture par défaut ; « Modifier » le corrige à la main (il n'est alors plus
- * remplacé automatiquement), « Refaire le portrait » le relit depuis le sujet et sa matière.
+ * Reader portrait of a topic (docs/SPEC_PROMPT_GENERATION_V3.md §2.2): read by the generation
+ * before each post. Read-only by default; "Edit" corrects it by hand (it is then no longer
+ * replaced automatically), "Redo the portrait" rebuilds it from the topic and its material.
  */
 export default function ReaderPortraitPanel({ product, onUpdated }: { product: Product; onUpdated: (product: Product) => void }) {
   const [editing, setEditing] = useState<PortraitReader[] | null>(null);
@@ -33,7 +33,7 @@ export default function ReaderPortraitPanel({ product, onUpdated }: { product: P
       onUpdated({ ...product, readerPortrait });
       setEditing(null);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong while saving.");
     } finally {
       setBusy(false);
     }
@@ -45,11 +45,11 @@ export default function ReaderPortraitPanel({ product, onUpdated }: { product: P
 
   return (
     <div style={{ display: "grid", gap: 10 }}>
-      <div style={{ fontSize: 13, fontWeight: 600, color: color.textSecondary }}>Portrait des lecteurs</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: color.textSecondary }}>Reader portrait</div>
 
       {!portrait && !editing && (
         <p style={{ fontSize: 13, color: color.textMuted, margin: 0 }}>
-          Pas encore de portrait. Il se prépare tout seul après l&apos;enregistrement du « Pour qui », ou tout de suite avec le bouton ci-dessous.
+          No portrait yet. It builds itself after you save &ldquo;Who it&apos;s for&rdquo;, or right away with the button below.
         </p>
       )}
 
@@ -58,7 +58,7 @@ export default function ReaderPortraitPanel({ product, onUpdated }: { product: P
           <div key={index} style={{ border: `1px solid ${color.border}`, borderRadius: 10, padding: 10, fontSize: 13, display: "grid", gap: 3 }}>
             <div style={{ fontWeight: 600 }}>
               {reader.label}
-              {index === 0 && portrait.readers.length > 1 && <span style={{ color: color.textMuted, fontWeight: 400 }}> · public principal</span>}
+              {index === 0 && portrait.readers.length > 1 && <span style={{ color: color.textMuted, fontWeight: 400 }}> · main audience</span>}
             </div>
             {FIELDS.map(({ key, label }) =>
               reader[key] ? (
@@ -70,7 +70,7 @@ export default function ReaderPortraitPanel({ product, onUpdated }: { product: P
             )}
             {reader.words.length > 0 && (
               <div style={{ color: color.textSecondary }}>
-                <span style={{ color: color.textMuted }}>Ses mots : </span>
+                <span style={{ color: color.textMuted }}>Their words: </span>
                 {reader.words.join(", ")}
               </div>
             )}
@@ -80,12 +80,12 @@ export default function ReaderPortraitPanel({ product, onUpdated }: { product: P
       {editing &&
         editing.map((reader, index) => (
           <div key={index} style={{ border: `1px solid ${color.border}`, borderRadius: 10, padding: 10, display: "grid", gap: 8 }}>
-            <TextField label="Nom du public" value={reader.label} onChange={(e) => updateReader(index, { label: e.target.value })} />
+            <TextField label="Audience name" value={reader.label} onChange={(e) => updateReader(index, { label: e.target.value })} />
             {FIELDS.map(({ key, label }) => (
               <TextField key={key} label={label} value={reader[key]} onChange={(e) => updateReader(index, { [key]: e.target.value })} />
             ))}
             <TextField
-              label="Ses mots (séparés par des virgules)"
+              label="Their words (comma-separated)"
               value={reader.words.join(", ")}
               onChange={(e) => updateReader(index, { words: e.target.value.split(",").map((w) => w.trim()).filter(Boolean) })}
             />
@@ -94,7 +94,7 @@ export default function ReaderPortraitPanel({ product, onUpdated }: { product: P
                 onClick={() => setEditing((cur) => cur && cur.filter((_, i) => i !== index))}
                 style={{ justifySelf: "start", fontSize: 12, color: color.danger, background: "none", border: "none", cursor: "pointer", padding: 0 }}
               >
-                Retirer ce public
+                Remove this audience
               </button>
             )}
           </div>
@@ -108,29 +108,29 @@ export default function ReaderPortraitPanel({ product, onUpdated }: { product: P
               disabled={busy || editing.some((r) => !r.label.trim() || !r.who.trim())}
               onClick={() => run(() => api.saveReaderPortrait(product.id, editing))}
             >
-              {busy ? "..." : "Enregistrer le portrait"}
+              {busy ? "..." : "Save portrait"}
             </Button>
             {editing.length < 3 && (
               <Button
                 variant="secondary"
                 onClick={() => setEditing((cur) => cur && [...cur, { label: "", who: "", knows: "", wants: "", stopsFor: "", turnsOff: "", words: [] }])}
               >
-                + Un public
+                + Add an audience
               </Button>
             )}
             <Button variant="secondary" onClick={() => setEditing(null)} disabled={busy}>
-              Annuler
+              Cancel
             </Button>
           </>
         ) : (
           <>
             {portrait && (
               <Button variant="secondary" onClick={() => setEditing(portrait.readers.map((r) => ({ ...r, words: [...r.words] })))}>
-                Modifier
+                Edit
               </Button>
             )}
             <Button variant="secondary" onClick={() => run(() => api.regenerateReaderPortrait(product.id))} disabled={busy}>
-              {busy ? "Lecture…" : portrait ? "Refaire le portrait" : "Préparer le portrait"}
+              {busy ? "Reading…" : portrait ? "Redo the portrait" : "Build the portrait"}
             </Button>
           </>
         )}

@@ -38,12 +38,12 @@ describe("exchangeAuthCode", () => {
 
   it("lève une erreur explicite si Google ne renvoie pas de refresh_token", async () => {
     fetchMock.mockResolvedValue({ ok: true, json: async () => ({ access_token: "at", expires_in: 3600 }) });
-    await expect(exchangeAuthCode("auth-code")).rejects.toThrow("Google n'a pas renvoyé de refresh token");
+    await expect(exchangeAuthCode("auth-code")).rejects.toThrow("Google did not return a refresh token");
   });
 
   it("lève une erreur si la requête échoue", async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 400, text: async () => "invalid_grant" });
-    await expect(exchangeAuthCode("bad-code")).rejects.toThrow("Échange du code Google Drive échoué");
+    await expect(exchangeAuthCode("bad-code")).rejects.toThrow("Google Drive code exchange failed");
   });
 });
 
@@ -56,7 +56,7 @@ describe("refreshAccessToken", () => {
 
   it("lève une erreur si le refresh échoue", async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 401, text: async () => "invalid_grant" });
-    await expect(refreshAccessToken("rt")).rejects.toThrow("Rafraîchissement du token Google Drive échoué");
+    await expect(refreshAccessToken("rt")).rejects.toThrow("Google Drive token refresh failed");
   });
 });
 
@@ -72,7 +72,7 @@ describe("fetchFileMetadata", () => {
 
   it("lève une erreur si le fichier est introuvable", async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 404 });
-    await expect(fetchFileMetadata("missing", "at")).rejects.toThrow("Métadonnées Drive introuvables");
+    await expect(fetchFileMetadata("missing", "at")).rejects.toThrow("Drive metadata not found");
   });
 });
 
@@ -92,7 +92,7 @@ describe("fetchFileMedia", () => {
 
   it("lève une erreur si la lecture échoue", async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 403 });
-    await expect(fetchFileMedia("file-1", "at")).rejects.toThrow("Lecture du fichier Drive");
+    await expect(fetchFileMedia("file-1", "at")).rejects.toThrow("Reading Drive file");
   });
 });
 

@@ -1,9 +1,9 @@
 import * as Sentry from "@sentry/nextjs";
 
-// register() est appelé une seule fois au démarrage du serveur — charge la config Sentry propre
-// à chaque runtime (Node vs Edge). Sans SENTRY_DSN défini, Sentry.init() ci-dessous s'exécute
-// avec dsn: undefined, ce qui désactive silencieusement l'envoi d'événements (comportement
-// documenté du SDK) — aucune branche conditionnelle nécessaire ici.
+// register() is called only once at server startup — loads the Sentry config specific
+// to each runtime (Node vs Edge). Without SENTRY_DSN defined, Sentry.init() below runs
+// with dsn: undefined, which silently disables event sending (documented
+// SDK behaviour) — no conditional branch needed here.
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     await import("./sentry.server.config");
@@ -13,7 +13,7 @@ export async function register(): Promise<void> {
   }
 }
 
-// Capture automatiquement les erreurs serveur non gérées (Server Components, Route Handlers,
-// Server Actions) que handleApiError (src/lib/api/errors.ts) ne voit pas — celui-ci ne couvre que
-// les routes API qui l'appellent explicitement dans leur catch.
+// Automatically captures unhandled server errors (Server Components, Route Handlers,
+// Server Actions) that handleApiError (src/lib/api/errors.ts) does not see — it only covers
+// the API routes that call it explicitly in their catch.
 export const onRequestError = Sentry.captureRequestError;

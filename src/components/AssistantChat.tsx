@@ -10,7 +10,7 @@ import { accent, accentAlpha, color } from "@/lib/design/tokens";
 const GREETING: OnboardingMessage = {
   role: "assistant",
   content:
-    "Salut ! Dis-moi ce qui change dans ton activité (nouveau produit, mise à jour d'un projet, retour client...) et je te proposerai des mises à jour de ton catalogue ou de ta direction éditoriale. Tu peux aussi glisser un fichier .md ou .txt ici pour l'ajouter à ta matière.",
+    "Hi! Tell me what's changing in your work (a new product, a project update, customer feedback...) and I'll suggest updates to your catalogue or your editorial direction. You can also drop a .md or .txt file here to add it to your material.",
 };
 
 export default function AssistantChat({ onProposalsChange }: { onProposalsChange: (proposals: AssistantProposal[]) => void }) {
@@ -40,8 +40,8 @@ export default function AssistantChat({ onProposalsChange }: { onProposalsChange
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  /** Le fichier est déposé tout de suite mais n'entre pas dans la matière : il attend qu'une
-   *  proposition de rangement soit validée (docs/SPEC_ASSISTANT_AGENTIQUE.md §5.1). */
+  /** The file is dropped right away but does not enter the material: it waits until a
+   *  filing proposal is approved (docs/SPEC_ASSISTANT_AGENTIQUE.md §5.1). */
   async function uploadFiles(files: File[]) {
     if (files.length === 0) return;
     setError(null);
@@ -52,7 +52,7 @@ export default function AssistantChat({ onProposalsChange }: { onProposalsChange
         setAttachments((a) => [...a, attachment]);
       }
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Fichier refusé, réessaie.");
+      setError(err instanceof ApiClientError ? err.message : "File rejected, please try again.");
     } finally {
       setUploading(false);
     }
@@ -63,7 +63,7 @@ export default function AssistantChat({ onProposalsChange }: { onProposalsChange
     try {
       await api.discardAssistantAttachment(id);
     } catch {
-      // Le fichier a pu être rangé entre-temps : la liste se resynchronise au prochain message.
+      // The file may have been filed in the meantime: the list resyncs on the next message.
     }
   }
 
@@ -80,7 +80,7 @@ export default function AssistantChat({ onProposalsChange }: { onProposalsChange
       onProposalsChange(proposals);
       setAttachments(pending);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Erreur, réessaie.");
+      setError(err instanceof ApiClientError ? err.message : "Something went wrong, please try again.");
     } finally {
       setSending(false);
     }
@@ -95,7 +95,7 @@ export default function AssistantChat({ onProposalsChange }: { onProposalsChange
         setDragging(true);
       }}
       onDragLeave={(e) => {
-        // Ne pas éteindre la surbrillance en survolant un enfant de la zone.
+        // Don't turn off the highlight when hovering a child of the zone.
         if (e.currentTarget.contains(e.relatedTarget as Node)) return;
         setDragging(false);
       }}
@@ -162,7 +162,7 @@ export default function AssistantChat({ onProposalsChange }: { onProposalsChange
                 {a.filename}
                 <button
                   onClick={() => discard(a.id)}
-                  title="Retirer ce fichier"
+                  title="Remove this file"
                   style={{ display: "flex", border: "none", background: "none", cursor: "pointer", color: color.textFaint, padding: 2 }}
                 >
                   <X size={12} />
@@ -186,7 +186,7 @@ export default function AssistantChat({ onProposalsChange }: { onProposalsChange
           <IconActionButton
             icon={Paperclip}
             variant="neutral"
-            title="Joindre un fichier .md ou .txt"
+            title="Attach a .md or .txt file"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
             size={40}
@@ -198,7 +198,7 @@ export default function AssistantChat({ onProposalsChange }: { onProposalsChange
               if (e.key === "Enter") handleSend();
             }}
             placeholder={
-              attachments.length > 0 ? "Dis-lui quoi faire de ce fichier..." : "Écris ton message..."
+              attachments.length > 0 ? "Tell it what to do with this file..." : "Write your message..."
             }
             style={{
               flex: 1,
@@ -211,7 +211,7 @@ export default function AssistantChat({ onProposalsChange }: { onProposalsChange
             }}
           />
           <Button onClick={handleSend} disabled={sending || !input.trim()} style={{ padding: "10px 18px" }}>
-            {sending ? "..." : "Envoyer"}
+            {sending ? "..." : "Send"}
           </Button>
         </div>
       </div>

@@ -6,13 +6,13 @@ import { ACTIVE_PERSONA_IDS } from "@/components/landing/flags";
 import styles from "@/components/landing/landing.module.css";
 
 /**
- * Horloge unique pour tous les exemples de la landing : toutes les PERIOD_MS, tout ce qui
- * dépend du profil s'efface (phase "out"), puis le profil suivant apparaît (phase "in").
- * Un seul store module-level pour que le hero et les fonctionnalités changent ensemble.
+ * Single clock for all the landing examples: every PERIOD_MS, everything that
+ * depends on the profile fades out (phase "out"), then the next profile appears (phase "in").
+ * One module-level store so the hero and the features change together.
  */
 const PERIOD_MS = 7000;
 
-/** Profils affichés (cf. ACTIVE_PERSONA_IDS). Liste vide ou ids inconnus : tous les profils. */
+/** Profiles shown (see ACTIVE_PERSONA_IDS). Empty list or unknown ids: all profiles. */
 const activePersonas = allPersonas.filter((p) => ACTIVE_PERSONA_IDS.includes(p.id));
 const personas = activePersonas.length > 0 ? activePersonas : allPersonas;
 const FADE_OUT_MS = 380;
@@ -48,7 +48,7 @@ function tick() {
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
-  // Un seul profil : rien à faire tourner.
+  // Single profile: nothing to rotate.
   if (!running && personas.length > 1) {
     running = true;
     tick();
@@ -63,7 +63,7 @@ function subscribe(listener: () => void) {
   };
 }
 
-/** Suspend la rotation (survol de la démo, par exemple) sans la réinitialiser. */
+/** Pauses the rotation (demo hover, for example) without resetting it. */
 export function pausePersonaRotation(value: boolean) {
   paused = value;
 }

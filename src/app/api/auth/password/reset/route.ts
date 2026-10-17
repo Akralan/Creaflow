@@ -7,7 +7,7 @@ import { resetPasswordWithToken } from "@/lib/services/passwordService";
 
 const schema = z.object({
   token: z.string().min(20).max(200),
-  password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères."),
+  password: z.string().min(8, "Password must be at least 8 characters."),
 });
 
 // Le jeton vaut preuve de possession de l'adresse : on connecte l'utilisateur dans la foulée.

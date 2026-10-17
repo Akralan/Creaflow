@@ -63,9 +63,9 @@ const formatTag = (strong = false): CSSProperties => ({
 });
 
 const bars: Array<{ label: string; width: number; color: string }> = [
-  { label: "Coulisses", width: 84, color: accent },
-  { label: "Décisions", width: 58, color: "oklch(0.62 0.16 292)" },
-  { label: "Tutos", width: 26, color: "oklch(0.72 0.11 292)" },
+  { label: "Behind the scenes", width: 84, color: accent },
+  { label: "Decisions", width: 58, color: "oklch(0.62 0.16 292)" },
+  { label: "How-tos", width: 26, color: "oklch(0.72 0.11 292)" },
 ];
 
 export default function LandingFeatures() {
@@ -73,7 +73,7 @@ export default function LandingFeatures() {
   return (
     <section
       id="fonctionnalites"
-      data-screen-label="Fonctionnalités"
+      data-screen-label="Features"
       style={{ maxWidth: 1160, margin: "0 auto", padding: "clamp(56px, 9vw, 116px) clamp(18px, 5vw, 44px)" }}
     >
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: "14px 32px", marginBottom: "clamp(28px, 4.5vw, 54px)" }}>
@@ -82,7 +82,7 @@ export default function LandingFeatures() {
             data-reveal=""
             style={{ margin: "0 0 12px", fontFamily: fontMono, fontSize: 12, letterSpacing: "0.14em", textTransform: "uppercase", color: text.faint }}
           >
-            Ce que fait CreaFlow
+            What Buildloud does
           </p>
           <h2
             data-reveal=""
@@ -99,12 +99,12 @@ export default function LandingFeatures() {
               textWrap: "balance",
             }}
           >
-            Un rédacteur en chef qui ne parle que de ce que vous avez fait
+            An editor-in-chief that only talks about what you actually did
           </h2>
         </div>
         <p data-reveal="" data-delay={120} className={styles.hideOnPhone} style={{ margin: 0, fontSize: "1.02rem", lineHeight: 1.55, color: text.secondary, maxWidth: "38ch", textWrap: "pretty" }}>
-          Tout part de votre matière. Rien n&apos;est inventé, rien n&apos;est répété, et vous gardez le dernier mot
-          sur chaque post.
+          It all starts from your material. Nothing is made up, nothing is repeated, and you have the final say
+          on every post.
         </p>
       </div>
 
@@ -134,11 +134,11 @@ export default function LandingFeatures() {
                   color: text.heading,
                 }}
               >
-                Il n&apos;écrit qu&apos;à partir de votre matière
+                It only writes from your material
               </h3>
               <p style={{ margin: 0, fontSize: "1rem", lineHeight: 1.62, color: text.secondary, maxWidth: "44ch", textWrap: "pretty" }}>
-                Un commit, une page de notes, une issue fermée : chaque post est tiré d&apos;un fait que vous avez
-                consigné, et vous voyez d&apos;où il vient. Pas de matière, pas de post. Jamais de détail inventé.
+                A commit, a page of notes, a closed issue: every post is drawn from a fact you
+                recorded, and you can see where it comes from. No material, no post. Never an invented detail.
               </p>
             </div>
             <div className={fadeClass} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 8, padding: "clamp(12px, 2vw, 20px)", borderRadius: 16, background: "#faf7f2", border: `1px solid ${ink(0.06)}` }} aria-hidden="true">
@@ -164,9 +164,9 @@ export default function LandingFeatures() {
 
         <article data-reveal="" data-delay={60} style={cardBase} {...hoverHandlers(cardBase, cardHover)}>
           <span style={eyebrow}>02</span>
-          <h3 style={cardTitle}>Jamais deux fois le même angle</h3>
+          <h3 style={cardTitle}>Never the same angle twice</h3>
           <p style={cardDescription}>
-            CreaFlow se souvient de tout ce que vous avez publié et s&apos;impose un angle neuf à chaque génération.
+            Buildloud remembers everything you&apos;ve published and forces a fresh angle on every generation.
           </p>
           <div style={cardVisual}>
             <AngleRotator />
@@ -175,33 +175,33 @@ export default function LandingFeatures() {
 
         <article data-reveal="" data-delay={120} style={cardBase} {...hoverHandlers(cardBase, cardHover)}>
           <span style={eyebrow}>03</span>
-          <h3 style={cardTitle}>Le bon format pour chaque plateforme</h3>
+          <h3 style={cardTitle}>The right format for every platform</h3>
           <p style={cardDescription}>
-            Post texte pour LinkedIn, script plan par plan pour TikTok, carrousel pour Instagram. Même matière, bon
+            Text post for LinkedIn, shot-by-shot script for TikTok, carousel for Instagram. Same material, right
             format.
           </p>
           <div style={cardVisual} aria-hidden="true">
             <div style={{ ...visualBox, display: "flex", flexWrap: "wrap", gap: 7 }}>
-              <span style={formatTag(true)}>LinkedIn · texte</span>
+              <span style={formatTag(true)}>LinkedIn · text</span>
               <span style={formatTag()}>TikTok · script</span>
-              <span style={formatTag()}>Instagram · carrousel</span>
-              <span style={formatTag()}>YouTube · plan par plan</span>
+              <span style={formatTag()}>Instagram · carousel</span>
+              <span style={formatTag()}>YouTube · shot by shot</span>
             </div>
           </div>
         </article>
 
-        {/* Sur téléphone, on s'arrête aux trois premières : matière, angles, formats. */}
+        {/* On phones, we stop at the first three: material, angles, formats. */}
         <article data-reveal="" data-delay={180} className={styles.hideOnPhone} style={cardBase} {...hoverHandlers(cardBase, cardHover)}>
           <span style={eyebrow}>04</span>
-          <h3 style={cardTitle}>Ce qui marche guide la suite</h3>
+          <h3 style={cardTitle}>What works guides what&apos;s next</h3>
           <p style={cardDescription}>
-            Vues et réactions remontent automatiquement. CreaFlow propose de rééquilibrer votre ligne, vous validez ou
-            non.
+            Views and reactions come back automatically. Buildloud suggests rebalancing your line, and you approve or
+            not.
           </p>
           <div style={cardVisual} aria-hidden="true">
             <div style={{ ...visualBox, display: "grid", gap: 9 }}>
               {bars.map((bar) => (
-                <div key={bar.label} style={{ display: "grid", gridTemplateColumns: "64px minmax(0, 1fr)", alignItems: "center", gap: 10 }}>
+                <div key={bar.label} style={{ display: "grid", gridTemplateColumns: "104px minmax(0, 1fr)", alignItems: "center", gap: 10 }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: text.body }}>{bar.label}</span>
                   <span style={{ height: 8, borderRadius: 999, background: bg.track, overflow: "hidden" }}>
                     <span style={{ display: "block", height: "100%", width: `${bar.width}%`, borderRadius: 999, background: bar.color }} />
@@ -209,8 +209,8 @@ export default function LandingFeatures() {
                 </div>
               ))}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 4, paddingTop: 9, borderTop: `1px solid ${ink(0.07)}` }}>
-                <span style={{ fontSize: 12, color: text.secondary }}>Proposition : 2 coulisses par semaine</span>
-                <span style={{ fontSize: 11.5, fontWeight: 600, padding: "5px 10px", borderRadius: 8, background: accent, color: "#fffdfa", whiteSpace: "nowrap" }}>Valider</span>
+                <span style={{ fontSize: 12, color: text.secondary }}>Suggestion: 2 behind-the-scenes posts a week</span>
+                <span style={{ fontSize: 11.5, fontWeight: 600, padding: "5px 10px", borderRadius: 8, background: accent, color: "#fffdfa", whiteSpace: "nowrap" }}>Approve</span>
               </div>
             </div>
           </div>
@@ -218,20 +218,20 @@ export default function LandingFeatures() {
 
         <article data-reveal="" data-delay={240} className={styles.hideOnPhone} style={cardBase} {...hoverHandlers(cardBase, cardHover)}>
           <span style={eyebrow}>05</span>
-          <h3 style={cardTitle}>Votre style, appris de vos corrections</h3>
+          <h3 style={cardTitle}>Your style, learned from your edits</h3>
           <p style={cardDescription}>
-            Chaque phrase que vous retouchez devient une règle, proposée à validation, que CreaFlow respecte ensuite
-            partout où il écrit.
+            Every sentence you tweak becomes a rule, offered for your approval, that Buildloud then follows
+            everywhere it writes.
           </p>
           <div style={cardVisual} aria-hidden="true">
             <div style={{ ...visualBox, display: "grid", gap: 7 }}>
-              <span style={{ fontFamily: fontMono, fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: text.faint }}>Règle apprise</span>
+              <span style={{ fontFamily: fontMono, fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: text.faint }}>Learned rule</span>
               <span style={{ fontSize: 12.5, lineHeight: 1.45, color: text.body }}>
-                Jamais de « Je suis ravi d&apos;annoncer ». Entrer par le fait, pas par l&apos;émotion.
+                Never &ldquo;I&apos;m thrilled to announce&rdquo;. Lead with the fact, not the emotion.
               </span>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: fontMono, fontSize: 10.5, color: accentText }}>
                 <span style={{ width: 5, height: 5, borderRadius: "50%", background: accent }} />
-                appliquée à 12 posts
+                applied to 12 posts
               </span>
             </div>
           </div>

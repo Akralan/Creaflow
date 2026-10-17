@@ -24,12 +24,12 @@ export default function ImportScriptModal({
     <Modal open={open} onClose={onClose} width={620}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 }}>
         <div>
-          <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 20 }}>Importer un script</div>
+          <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 20 }}>Import a script</div>
           <p style={{ margin: "6px 0 0", color: color.textMuted, fontSize: 14 }}>
-            Un texte déjà écrit ailleurs — CreaFlow en assure juste le suivi.
+            A text already written elsewhere — Buildloud just tracks it.
           </p>
         </div>
-        <IconActionButton icon={X} variant="neutral" title="Fermer" onClick={onClose} size={32} />
+        <IconActionButton icon={X} variant="neutral" title="Close" onClick={onClose} size={32} />
       </div>
       <div style={{ marginTop: 18 }}>
         <ImportScriptForm scheduledDate={scheduledDate} calendarEntryId={calendarEntryId} onImported={onImported} />

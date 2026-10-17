@@ -41,7 +41,7 @@ async function fetchUserId(accessToken: string): Promise<string> {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!response.ok) {
-    throw new Error(`Lecture du profil X échouée (${response.status})`);
+    throw new Error(`Reading the X profile failed (${response.status})`);
   }
   const data = await response.json();
   return data.data?.id ?? "";
@@ -82,7 +82,7 @@ export const xProvider: SocialProvider = {
     if (!verifier) {
       // Ne devrait jamais arriver via le callback générique (qui repasse toujours `state`) —
       // garde-fou explicite plutôt qu'un appel PKCE silencieusement invalide côté X.
-      throw new Error("Échange du code X impossible : code_verifier PKCE manquant.");
+      throw new Error("X code exchange impossible: missing PKCE code_verifier.");
     }
     const { clientId } = getCredentials();
     const response = await fetch(TOKEN_ENDPOINT, {
@@ -97,7 +97,7 @@ export const xProvider: SocialProvider = {
       }),
     });
     if (!response.ok) {
-      throw new Error(`Échange du code X échoué (${response.status})`);
+      throw new Error(`X code exchange failed (${response.status})`);
     }
     return toOAuthTokens(await response.json());
   },
@@ -114,7 +114,7 @@ export const xProvider: SocialProvider = {
       }),
     });
     if (!response.ok) {
-      throw new Error(`Rafraîchissement du token X échoué (${response.status})`);
+      throw new Error(`X token refresh failed (${response.status})`);
     }
     return toOAuthTokens(await response.json(), refreshToken);
   },
@@ -125,7 +125,7 @@ export const xProvider: SocialProvider = {
       headers: { Authorization: `Bearer ${tokens.accessToken}` },
     });
     if (!response.ok) {
-      throw new Error(`Récupération des posts X échouée (${response.status})`);
+      throw new Error(`Fetching X posts failed (${response.status})`);
     }
     const data = await response.json();
     const tweets: Array<{ id: string; text?: string }> = data.data || [];
@@ -144,7 +144,7 @@ export const xProvider: SocialProvider = {
       headers: { Authorization: `Bearer ${tokens.accessToken}` },
     });
     if (!response.ok) {
-      throw new Error(`Récupération des métriques X échouée (${response.status})`);
+      throw new Error(`Fetching X metrics failed (${response.status})`);
     }
     const data = await response.json();
     const tweets: Array<{

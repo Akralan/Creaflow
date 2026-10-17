@@ -6,13 +6,13 @@ import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 
-// Source de vérité du statut d'abonnement (docs Phase 1 facturation). Ne PAS utiliser
-// requireUserId() ici : Stripe n'envoie pas notre cookie de session, l'authenticité de la requête
-// vient uniquement de la vérification de signature (constructEvent) — jamais du contenu du payload
-// seul, qu'un tiers pourrait forger.
+// Source of truth for the subscription status (billing Phase 1 docs). Do NOT use
+// requireUserId() here: Stripe does not send our session cookie, the authenticity of the request
+// comes only from signature verification (constructEvent) — never from the payload content
+// alone, which a third party could forge.
 function getWebhookSecret(): string {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!secret) throw new Error("STRIPE_WEBHOOK_SECRET n'est pas défini dans l'environnement.");
+  if (!secret) throw new Error("STRIPE_WEBHOOK_SECRET is not set in the environment.");
   return secret;
 }
 
@@ -23,7 +23,7 @@ function planFromMetadata(metadata: Stripe.Metadata): "starter" | "pro" | null {
 export async function POST(request: NextRequest) {
   const signature = request.headers.get("stripe-signature");
   if (!signature) {
-    return NextResponse.json({ error: "Signature Stripe manquante." }, { status: 400 });
+    return NextResponse.json({ error: "Missing Stripe signature." }, { status: 400 });
   }
 
   const rawBody = await request.text();
@@ -33,11 +33,11 @@ export async function POST(request: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(rawBody, signature, getWebhookSecret());
   } catch (err) {
-    // warn, pas error : une signature invalide arrive couramment via des scanners/bots qui
-    // tapent l'URL du webhook au hasard, pas seulement via un vrai incident de config — ne pas
-    // saturer Sentry avec ce bruit (logger.error déclencherait une capture d'exception).
-    logger.warn("Signature webhook Stripe invalide", { err: String(err) });
-    return NextResponse.json({ error: "Signature invalide." }, { status: 400 });
+    // warn, not error: an invalid signature commonly comes from scanners/bots hitting the webhook
+    // URL at random, not only from a real configuration incident — don't flood Sentry with this
+    // noise (logger.error would trigger an exception capture).
+    logger.warn("Invalid Stripe webhook signature", { err: String(err) });
+    return NextResponse.json({ error: "Invalid signature." }, { status: 400 });
   }
 
   try {
@@ -48,14 +48,14 @@ export async function POST(request: NextRequest) {
 
         const userId = session.client_reference_id;
         if (!userId) {
-          logger.error("checkout.session.completed sans client_reference_id", undefined, { sessionId: session.id });
+          logger.error("checkout.session.completed without client_reference_id", undefined, { sessionId: session.id });
           break;
         }
 
         const stripeSubscription = await stripe.subscriptions.retrieve(session.subscription as string);
         const plan = planFromMetadata(stripeSubscription.metadata);
         if (!plan) {
-          logger.error("Abonnement Stripe sans metadata.plan valide", undefined, {
+          logger.error("Stripe subscription without valid metadata.plan", undefined, {
             stripeSubscriptionId: stripeSubscription.id,
           });
           break;
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
         const userId = stripeSubscription.metadata.userId;
         const plan = planFromMetadata(stripeSubscription.metadata);
         if (!userId || !plan) {
-          logger.error("customer.subscription.updated sans metadata userId/plan", undefined, {
+          logger.error("customer.subscription.updated without userId/plan metadata", undefined, {
             stripeSubscriptionId: stripeSubscription.id,
           });
           break;
@@ -99,11 +99,11 @@ export async function POST(request: NextRequest) {
         break;
     }
   } catch (error) {
-    // Erreur de traitement (DB, appel Stripe) plutôt qu'un event volontairement ignoré (ceux-ci
-    // font `break` plus haut sans lever) : on répond 5xx pour que Stripe réessaie automatiquement
-    // (retries avec backoff jusqu'à ~3 jours) au lieu d'accepter silencieusement un event perdu.
-    logger.error("Erreur de traitement du webhook Stripe", error, { eventType: event.type });
-    return NextResponse.json({ error: "Erreur de traitement interne." }, { status: 500 });
+    // Processing error (DB, Stripe call) rather than a deliberately ignored event (those
+    // `break` above without throwing): we respond 5xx so that Stripe retries automatically
+    // (retries with backoff for up to ~3 days) instead of silently accepting a lost event.
+    logger.error("Error processing Stripe webhook", error, { eventType: event.type });
+    return NextResponse.json({ error: "Internal processing error." }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });

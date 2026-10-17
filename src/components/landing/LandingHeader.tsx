@@ -57,20 +57,20 @@ export default function LandingHeader() {
         <Link href="#top" style={logoLinkStyle} {...hoverHandlers(logoLinkStyle, logoLinkHover)}>
           <BrandMark size={30} />
           <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 20.5, letterSpacing: "-0.025em" }}>
-            CreaFlow
+            Buildloud
           </span>
         </Link>
         <nav style={{ display: "flex", alignItems: "center", gap: "clamp(8px, 1.6vw, 26px)" }}>
           {FEATURES_ENABLED ? (
             <Link href="#fonctionnalites" style={navLinkStyle} {...hoverHandlers(navLinkStyle, navLinkHover)}>
-              Fonctionnalités
+              Features
             </Link>
           ) : (
             <Link href="#ce-que-ca-change" style={navLinkStyle} {...hoverHandlers(navLinkStyle, navLinkHover)}>
-              Ce que ça change
+              What changes
             </Link>
           )}
-          {/* Les tarifs remplacent le CTA final en fondu : le lien demande l'affichage avant d'y aller. */}
+          {/* Pricing replaces the final CTA with a fade: the link asks for it to be shown before jumping there. */}
           {PRICING_ENABLED && (
             <Link
               href="#tarifs"
@@ -78,11 +78,11 @@ export default function LandingHeader() {
               {...hoverHandlers(tarifsLinkStyle, tarifsLinkHover)}
               onClick={() => window.dispatchEvent(new CustomEvent(OPEN_PRICING_EVENT))}
             >
-              Tarifs
+              Pricing
             </Link>
           )}
           <Link href="/login" style={ctaLinkStyle} {...hoverHandlers(ctaLinkStyle, ctaLinkHover)}>
-            Se connecter
+            Log in
           </Link>
         </nav>
       </div>

@@ -53,7 +53,7 @@ export async function disconnectGoogleDrive(userId: string): Promise<void> {
 export async function getValidAccessToken(userId: string): Promise<string> {
   const connection = await getGoogleDriveConnectionForUser(userId);
   if (!connection) {
-    throw new ApiError(409, "Aucune connexion Google Drive — connecte ton compte pour continuer.");
+    throw new ApiError(409, "No Google Drive connection — connect your account to continue.");
   }
 
   if (connection.accessTokenExpiresAt.getTime() - EXPIRY_MARGIN_MS > Date.now()) {
@@ -72,7 +72,7 @@ export async function getValidAccessToken(userId: string): Promise<string> {
       .update(googleDriveConnections)
       .set({ status: "needs_reconnect" })
       .where(eq(googleDriveConnections.id, connection.id));
-    throw new ApiError(409, "Connexion Google Drive expirée — reconnecte ton compte pour continuer.");
+    throw new ApiError(409, "Google Drive connection expired — reconnect your account to continue.");
   }
 }
 

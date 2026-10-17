@@ -1,17 +1,17 @@
 /**
- * Traduit une erreur du fournisseur LLM en phrase pour l'écran. L'erreur brute reste dans les logs :
- * la personne a besoin de savoir si ça vaut la peine de réessayer, pas du code HTTP.
+ * Translates an LLM provider error into a sentence for the screen. The raw error stays in the logs:
+ * the person needs to know whether it's worth retrying, not the HTTP code.
  */
 export function llmFailureMessage(error: unknown): string {
   const raw = error instanceof Error ? error.message : String(error);
   if (/credit|quota|billing|insufficient/i.test(raw)) {
-    return "Le service d'IA a refusé la demande : le compte OpenAI n'a plus de crédits.";
+    return "The AI service refused the request: the OpenAI account is out of credits.";
   }
   if (/\b401\b|api key|unauthori[sz]ed|incorrect.*key/i.test(raw)) {
-    return "Le service d'IA n'est pas configuré : la clé OpenAI est absente ou invalide.";
+    return "The AI service is not configured: the OpenAI key is missing or invalid.";
   }
   if (/\b429\b|rate limit/i.test(raw)) {
-    return "Le service d'IA est saturé pour le moment.";
+    return "The AI service is overloaded at the moment.";
   }
-  return "Le service d'IA n'a pas répondu.";
+  return "The AI service did not respond.";
 }

@@ -9,19 +9,19 @@ import { handleApiError } from "@/lib/api/errors";
 import { enforceRateLimit } from "@/lib/services/rateLimitService";
 
 const schema = z.object({
-  // true = rejoue aussi les scripts déjà appris (reconstruction manuelle du profil).
+  // true = also replays scripts already learned from (manual rebuild of the profile).
   includeLearned: z.boolean().optional(),
 });
 
 /**
- * Passe d'apprentissage du style (docs/SPEC_APPRENTISSAGE_STYLE.md §5.3). Crée une proposition à
- * valider, sauf s'il n'y avait aucun profil (écriture directe). Renvoie le profil courant et l'état
- * du compteur pour que l'écran se mette à jour sans second appel.
+ * Style learning pass (docs/SPEC_APPRENTISSAGE_STYLE.md §5.3). Creates a proposal to
+ * validate, unless there was no profile (direct write). Returns the current profile and the state
+ * of the counter so the screen updates without a second call.
  */
 export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId();
-    // Analyse coûteuse (un appel LLM sur jusqu'à 20 scripts) — limite basse.
+    // Costly analysis (one LLM call over up to 20 scripts) — low limit.
     await enforceRateLimit("style-analysis", userId, 5, 60);
     const text = await request.text();
     const body = schema.parse(text ? JSON.parse(text) : {});

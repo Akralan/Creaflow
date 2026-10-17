@@ -5,11 +5,11 @@ import { users } from "@/db/schema";
 import { ApiError } from "@/lib/api/errors";
 import { getMicroEditQuotaStatus, getQuotaStatus, getSubscriptionForUser } from "@/lib/services/billingService";
 
-/** Écran /admin/quotas (docs/SPEC_QUOTAS_ADMIN.md) : un compte, ses compteurs et ses quotas propres. */
+/** /admin/quotas screen (docs/SPEC_QUOTAS_ADMIN.md): one account, its counters and its own quotas. */
 
 export const accountQuotasSchema = z.object({
   userId: z.uuid(),
-  /** null = limite normale de l'essai ou du plan. */
+  /** null = normal limit of the trial or plan. */
   scriptLimit: z.number().int().min(0).max(100_000).nullable(),
   microEditLimit: z.number().int().min(0).max(100_000).nullable(),
 });
@@ -19,7 +19,7 @@ export async function findAccountQuotas(email: string) {
     where: eq(sql`lower(${users.email})`, email.trim().toLowerCase()),
     columns: { id: true, email: true, scriptLimit: true, microEditLimit: true },
   });
-  if (!user) throw new ApiError(404, "Aucun compte avec cet email.");
+  if (!user) throw new ApiError(404, "No account with this email.");
   const [scripts, microEdits, subscription] = await Promise.all([
     getQuotaStatus(user.id),
     getMicroEditQuotaStatus(user.id),
@@ -40,6 +40,6 @@ export async function setAccountQuotas(input: z.infer<typeof accountQuotasSchema
     .set({ scriptLimit: input.scriptLimit, microEditLimit: input.microEditLimit })
     .where(eq(users.id, input.userId))
     .returning({ email: users.email });
-  if (!updated) throw new ApiError(404, "Compte introuvable.");
+  if (!updated) throw new ApiError(404, "Account not found.");
   return findAccountQuotas(updated.email);
 }

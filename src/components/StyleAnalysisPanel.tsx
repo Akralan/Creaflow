@@ -7,11 +7,11 @@ import { accentAlpha, color } from "@/lib/design/tokens";
 import { KNOWN_PLATFORMS, platformLabel } from "@/lib/social/types";
 import AssistantProposalsPanel from "@/components/AssistantProposalsPanel";
 
-/** Seuil d'affichage de la suggestion — même valeur que STYLE_LEARNING_SUGGESTION_THRESHOLD côté serveur. */
+/** Threshold for showing the suggestion — same value as STYLE_LEARNING_SUGGESTION_THRESHOLD on the server. */
 const SUGGESTION_THRESHOLD = 5;
 
 function descriptors(styleProfile: StyleProfile) {
-  return [`Ton : ${styleProfile.tone}`, styleProfile.sentenceLength, `Emojis : ${styleProfile.emojiUsage}`, `Registre : ${styleProfile.vocabulary}`];
+  return [`Tone: ${styleProfile.tone}`, styleProfile.sentenceLength, `Emojis: ${styleProfile.emojiUsage}`, `Register: ${styleProfile.vocabulary}`];
 }
 
 const chipStyle: React.CSSProperties = {
@@ -48,13 +48,13 @@ const inlineInput: React.CSSProperties = {
 
 function formatDate(iso: string | null) {
   if (!iso) return null;
-  return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+  return new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric" });
 }
 
 /**
- * Panneau « Style de communication » des Paramètres (docs/SPEC_APPRENTISSAGE_STYLE.md §6.1) :
- * voix détectée, règles apprises éditables à la main, compteur de scripts corrigés, et la
- * proposition d'analyse en attente s'il y en a une.
+ * "Communication style" panel in Settings (docs/SPEC_APPRENTISSAGE_STYLE.md §6.1):
+ * detected voice, learned rules editable by hand, count of edited scripts, and the
+ * pending analysis proposal if there is one.
  */
 export default function StyleAnalysisPanel() {
   const [profile, setProfile] = useState<StyleProfile | null>(null);
@@ -91,13 +91,13 @@ export default function StyleAnalysisPanel() {
     try {
       const result = await api.triggerStyleAnalysis({ includeLearned });
       if (result.proposalId) {
-        setNotice("Analyse terminée : une proposition de mise à jour t'attend ci-dessous.");
+        setNotice("Analysis done: an update proposal is waiting for you below.");
       } else {
-        setNotice("Profil de style créé.");
+        setNotice("Style profile created.");
       }
       await refresh();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Analyse impossible.");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't run the analysis.");
     } finally {
       setLoading(false);
     }
@@ -109,7 +109,7 @@ export default function StyleAnalysisPanel() {
       const { styleProfile } = await api.updateStyleLists(patch);
       setProfile(styleProfile);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "Enregistrement impossible.");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't save.");
     }
   }
 
@@ -122,28 +122,28 @@ export default function StyleAnalysisPanel() {
     <div style={{ border: `1px solid ${accentAlpha(0.25)}`, background: accentAlpha(0.06), borderRadius: 14, padding: 16, display: "grid", gap: 14 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         <div>
-          <div style={{ fontWeight: 600, fontSize: 14 }}>Style d&apos;écriture</div>
+          <div style={{ fontWeight: 600, fontSize: 14 }}>Writing style</div>
           <div style={{ fontSize: 12, color: color.textMuted, marginTop: 2 }}>
-            {profile?.evidence?.scriptCount ? `Appris sur ${profile.evidence.scriptCount} scripts` : "Pas encore appris de tes scripts"}
-            {status?.lastLearnedAt ? ` · dernière analyse le ${formatDate(status.lastLearnedAt)}` : ""}
-            {pending > 0 ? ` · ${pending} script${pending > 1 ? "s" : ""} corrigé${pending > 1 ? "s" : ""} depuis` : ""}
+            {profile?.evidence?.scriptCount ? `Learned from ${profile.evidence.scriptCount} scripts` : "Nothing learned from your scripts yet"}
+            {status?.lastLearnedAt ? ` · last analysis on ${formatDate(status.lastLearnedAt)}` : ""}
+            {pending > 0 ? ` · ${pending} script${pending > 1 ? "s" : ""} edited since` : ""}
           </div>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
           {profile && (
-            <button onClick={() => runAnalysis(true)} disabled={loading} style={{ ...smallButton, color: color.textMuted, borderColor: color.border }} title="Rejoue aussi les scripts déjà analysés">
-              Tout réanalyser
+            <button onClick={() => runAnalysis(true)} disabled={loading} style={{ ...smallButton, color: color.textMuted, borderColor: color.border }} title="Also replays scripts that were already analyzed">
+              Re-analyze everything
             </button>
           )}
           <button onClick={() => runAnalysis(false)} disabled={loading} style={smallButton}>
-            {loading ? "Analyse..." : profile ? "Analyser les corrections" : "Analyser mon style"}
+            {loading ? "Analyzing..." : profile ? "Analyze edits" : "Analyze my style"}
           </button>
         </div>
       </div>
 
       {pending >= SUGGESTION_THRESHOLD && !pendingProposal && (
         <p style={{ margin: 0, fontSize: 13, color: color.text2 }}>
-          Tu as corrigé {pending} scripts depuis la dernière analyse : c&apos;est le bon moment pour mettre ton style à jour.
+          You&apos;ve edited {pending} scripts since the last analysis: a good time to update your style.
         </p>
       )}
       {error && <p style={{ margin: 0, fontSize: 12, color: color.danger }}>{error}</p>}
@@ -151,7 +151,7 @@ export default function StyleAnalysisPanel() {
 
       {pendingProposal && (
         <div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: color.textMuted, marginBottom: 6 }}>Nouvelle analyse à valider</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: color.textMuted, marginBottom: 6 }}>New analysis to approve</div>
           <AssistantProposalsPanel
             proposals={[pendingProposal]}
             onProposalsChange={() => {
@@ -173,15 +173,15 @@ export default function StyleAnalysisPanel() {
           <p style={{ margin: 0, fontSize: 13, color: color.text2 }}>{profile.summary}</p>
 
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: color.textMuted, marginBottom: 6 }}>Règles apprises de tes corrections</div>
-            {rules.length === 0 && <p style={{ margin: "0 0 6px", fontSize: 12, color: color.textFaint }}>Aucune règle pour l&apos;instant.</p>}
+            <div style={{ fontSize: 12, fontWeight: 600, color: color.textMuted, marginBottom: 6 }}>Rules learned from your edits</div>
+            {rules.length === 0 && <p style={{ margin: "0 0 6px", fontSize: 12, color: color.textFaint }}>No rules yet.</p>}
             <div style={{ display: "grid", gap: 4 }}>
               {rules.map((rule, i) => (
                 <div key={`${rule.text}-${i}`} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
                   <span style={{ flex: 1 }}>{rule.text}</span>
                   {rule.platform && <span style={{ fontSize: 11, color: color.textFaint }}>{platformLabel(rule.platform)}</span>}
                   <button
-                    title="Retirer cette règle"
+                    title="Remove this rule"
                     onClick={() => saveLists({ rules: rules.filter((_, j) => j !== i) })}
                     style={{ background: "none", border: "none", cursor: "pointer", color: color.textFaint, padding: 2, display: "flex" }}
                   >
@@ -201,28 +201,28 @@ export default function StyleAnalysisPanel() {
               }}
               style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}
             >
-              <input style={inlineInput} value={newRule} onChange={(e) => setNewRule(e.target.value)} placeholder="Ajouter une règle (ex. Jamais de question en ouverture)" maxLength={140} />
+              <input style={inlineInput} value={newRule} onChange={(e) => setNewRule(e.target.value)} placeholder="Add a rule (e.g. Never open with a question)" maxLength={140} />
               <select style={{ ...inlineInput, flex: "0 0 auto", minWidth: 0 }} value={newRulePlatform} onChange={(e) => setNewRulePlatform(e.target.value)}>
-                <option value="">Toutes plateformes</option>
+                <option value="">All platforms</option>
                 {KNOWN_PLATFORMS.map((p) => (
                   <option key={p.key} value={p.key}>
                     {p.label}
                   </option>
                 ))}
               </select>
-              <button type="submit" style={smallButton} disabled={rules.length >= 12} title={rules.length >= 12 ? "12 règles maximum" : "Ajouter"}>
+              <button type="submit" style={smallButton} disabled={rules.length >= 12} title={rules.length >= 12 ? "12 rules maximum" : "Add"}>
                 <Plus size={14} style={{ verticalAlign: "-2px" }} />
               </button>
             </form>
           </div>
 
-          <ListEditor label="À bannir" items={avoid} draft={newAvoid} setDraft={setNewAvoid} onChange={(items) => saveLists({ avoid: items })} placeholder="mot ou expression" />
-          <ListEditor label="À privilégier" items={prefer} draft={newPrefer} setDraft={setNewPrefer} onChange={(items) => saveLists({ prefer: items })} placeholder="tournure" />
+          <ListEditor label="To avoid" items={avoid} draft={newAvoid} setDraft={setNewAvoid} onChange={(items) => saveLists({ avoid: items })} placeholder="word or phrase" />
+          <ListEditor label="Preferred" items={prefer} draft={newPrefer} setDraft={setNewPrefer} onChange={(items) => saveLists({ prefer: items })} placeholder="phrasing" />
         </>
       ) : (
         <p style={{ margin: 0, fontSize: 13, color: color.textMuted }}>
-          Pas encore d&apos;analyse. Elle se nourrit des scripts que tu finalises (tournés ou publiés) après les avoir corrigés, de ceux
-          que tu écris toi-même, et à défaut des légendes d&apos;un compte connecté.
+          No analysis yet. It feeds on the scripts you finalize (shot or published) after editing them, on the ones
+          you write yourself, and failing that, on the captions of a connected account.
         </p>
       )}
     </div>
@@ -252,7 +252,7 @@ function ListEditor({
           <span key={`${item}-${i}`} style={{ ...chipStyle, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12 }}>
             {item}
             <button
-              title="Retirer"
+              title="Remove"
               onClick={() => onChange(items.filter((_, j) => j !== i))}
               style={{ background: "none", border: "none", cursor: "pointer", color: color.textFaint, padding: 0, display: "flex" }}
             >

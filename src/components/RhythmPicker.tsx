@@ -4,18 +4,18 @@ import { accentAlpha, color } from "@/lib/design/tokens";
 import { mondayOf, toIsoDate, type SeriesRhythm } from "@/lib/seriesRhythm";
 
 const DAYS = [
-  { n: 1, short: "L", name: "lundi" },
-  { n: 2, short: "M", name: "mardi" },
-  { n: 3, short: "M", name: "mercredi" },
-  { n: 4, short: "J", name: "jeudi" },
-  { n: 5, short: "V", name: "vendredi" },
-  { n: 6, short: "S", name: "samedi" },
-  { n: 7, short: "D", name: "dimanche" },
+  { n: 1, short: "M", name: "Monday" },
+  { n: 2, short: "T", name: "Tuesday" },
+  { n: 3, short: "W", name: "Wednesday" },
+  { n: 4, short: "T", name: "Thursday" },
+  { n: 5, short: "F", name: "Friday" },
+  { n: 6, short: "S", name: "Saturday" },
+  { n: 7, short: "S", name: "Sunday" },
 ];
 
 const DAY_MS = 86_400_000;
 
-/** Ancre d'une semaine sur deux : le lundi de cette semaine, ou de la suivante. */
+/** Anchor of an every-other-week rhythm: the Monday of this week, or of the next. */
 function anchorFor(nextWeek: boolean): string {
   const monday = mondayOf(new Date());
   return toIsoDate(nextWeek ? new Date(monday.getTime() + 7 * DAY_MS) : monday);
@@ -34,9 +34,9 @@ const pill = (active: boolean): React.CSSProperties => ({
 });
 
 /**
- * Rythme d'une série (docs/SPEC_RYTHME_DES_SERIES.md §4) : 7 jours à cocher, et « chaque semaine »
- * ou « une semaine sur deux ». Sous chaque jour, les autres séries qui y publient déjà — une
- * information, pas une interdiction : deux séries peuvent publier le même jour.
+ * Rhythm of a series (docs/SPEC_RYTHME_DES_SERIES.md §4): 7 days to tick, and "every week"
+ * or "every other week". Under each day, the other series already publishing then — an
+ * information, not a prohibition: two series can publish on the same day.
  */
 export default function RhythmPicker({
   value,
@@ -45,12 +45,12 @@ export default function RhythmPicker({
 }: {
   value: SeriesRhythm;
   onChange: (rhythm: SeriesRhythm) => void;
-  /** Jour ISO → noms des autres séries qui publient ce jour-là. */
+  /** ISO day → names of the other series publishing that day. */
   takenBy?: Record<number, string[]>;
 }) {
   function toggleDay(day: number) {
     const days = value.days.includes(day) ? value.days.filter((d) => d !== day) : [...value.days, day].sort((a, b) => a - b);
-    // Au moins un jour : décocher le dernier ne fait rien.
+    // At least one day: unticking the last one does nothing.
     if (days.length > 0) onChange({ ...value, days });
   }
 
@@ -86,19 +86,19 @@ export default function RhythmPicker({
       </div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         <button type="button" onClick={() => onChange({ ...value, every: 1, anchor: null })} style={pill(value.every === 1)}>
-          Chaque semaine
+          Every week
         </button>
         <button type="button" onClick={() => onChange({ ...value, every: 2, anchor: value.anchor ?? anchorFor(false) })} style={pill(value.every === 2)}>
-          Une semaine sur deux
+          Every other week
         </button>
       </div>
       {value.every === 2 && (
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           <button type="button" onClick={() => onChange({ ...value, anchor: anchorFor(false) })} style={pill(!nextWeek)}>
-            À partir de cette semaine
+            Starting this week
           </button>
           <button type="button" onClick={() => onChange({ ...value, anchor: anchorFor(true) })} style={pill(nextWeek)}>
-            À partir de la semaine prochaine
+            Starting next week
           </button>
         </div>
       )}
@@ -106,7 +106,7 @@ export default function RhythmPicker({
   );
 }
 
-/** Jour → noms des séries qui y publient, sans la série en cours d'édition. */
+/** Day → names of the series publishing then, excluding the series being edited. */
 export function daysTakenBy(series: Array<{ id: string; label: string; rhythm: SeriesRhythm | null }>, exceptId?: string): Record<number, string[]> {
   const result: Record<number, string[]> = {};
   for (const s of series) {

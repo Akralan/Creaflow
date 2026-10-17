@@ -9,52 +9,52 @@ import {
 } from "./publisher";
 
 const complete: PublisherIdentity = {
-  name: "Alix Exemple",
-  legalForm: "Entrepreneur individuel",
-  address: "1 rue de l'Exemple, 75000 Paris",
+  name: "Alex Example",
+  legalForm: "Sole proprietor",
+  address: "1 Example Street, 75000 Paris",
   siret: "123 456 789 00012",
-  vat: "TVA non applicable, art. 293 B du CGI",
+  vat: "VAT not applicable, art. 293 B of the French General Tax Code",
   contactEmail: "contact@example.com",
-  publicationDirector: "Alix Exemple",
-  appHost: { name: "Hébergeur A", address: "Adresse A", contact: "contact@a.example" },
-  dbHost: { name: "Hébergeur B", address: "Adresse B", contact: "contact@b.example" },
-  consumerMediator: { name: "Médiateur X", url: "https://mediateur.example" },
+  publicationDirector: "Alex Example",
+  appHost: { name: "Host A", address: "Address A", contact: "contact@a.example" },
+  dbHost: { name: "Host B", address: "Address B", contact: "contact@b.example" },
+  consumerMediator: { name: "Mediator X", url: "https://mediateur.example" },
 };
 
 describe("isPlaceholder", () => {
-  it("reconnaît une valeur vide ou entre crochets", () => {
+  it("recognizes an empty or bracketed value", () => {
     expect(isPlaceholder("")).toBe(true);
     expect(isPlaceholder("   ")).toBe(true);
-    expect(isPlaceholder("[Nom de l'éditeur]")).toBe(true);
+    expect(isPlaceholder("[Publisher name]")).toBe(true);
   });
 
-  it("laisse passer une vraie valeur, même avec des crochets à l'intérieur", () => {
-    expect(isPlaceholder("Alix Exemple")).toBe(false);
+  it("lets a real value through, even with brackets inside", () => {
+    expect(isPlaceholder("Alex Example")).toBe(false);
     expect(isPlaceholder("SAS Exemple [Paris]")).toBe(false);
   });
 });
 
 describe("isPublisherComplete", () => {
-  it("est faux tant que l'identité réelle n'est pas renseignée (état actuel du dépôt)", () => {
-    // Si ce test casse parce que l'identité a été remplie, c'est le signal attendu : la bannière
-    // « document en cours de finalisation » disparaît d'elle-même des pages légales.
+  it("is false until the real identity is filled in (current state of the repo)", () => {
+    // If this test breaks because the identity was filled in, that is the expected signal: the
+    // "document being finalized" banner disappears from the legal pages by itself.
     expect(isPublisherComplete(PUBLISHER)).toBe(false);
     expect(missingPublisherFields(PUBLISHER)).toContain("name");
   });
 
-  it("est vrai dès que tous les champs, y compris les hébergeurs et le médiateur, sont remplis", () => {
+  it("is true as soon as all fields, including hosts and mediator, are filled in", () => {
     expect(isPublisherComplete(complete)).toBe(true);
     expect(missingPublisherFields(complete)).toEqual([]);
   });
 
-  it("nomme précisément le champ imbriqué qui manque", () => {
+  it("names the exact missing nested field", () => {
     const partial = { ...complete, dbHost: { ...complete.dbHost, contact: "[Contact]" } };
     expect(missingPublisherFields(partial)).toEqual(["dbHost.contact"]);
   });
 });
 
 describe("getContactEmail", () => {
-  it("ne renvoie jamais un placeholder, pour ne pas produire un mailto cassé", () => {
+  it("never returns a placeholder, to avoid producing a broken mailto", () => {
     expect(getContactEmail(PUBLISHER)).toBeNull();
     expect(getContactEmail(complete)).toBe("contact@example.com");
   });

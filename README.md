@@ -1,12 +1,12 @@
-# CreaFlow
+# Buildloud
 
-Application Next.js de production éditoriale pour les réseaux sociaux : l'onboarding cerne la marque
-et ses sujets, un « rédacteur en chef » planifie des séries de contenus, et l'app génère les scripts
-puis les place dans un calendrier.
+Next.js editorial production app for social networks: onboarding captures the brand and its topics,
+an "editor-in-chief" plans content series, and the app generates the scripts and places them in a
+calendar.
 
-## Démarrage rapide
+## Quick start
 
-Prérequis : **Node 20+** et **Docker Desktop** (démarré).
+Prerequisites: **Node 20+** and **Docker Desktop** (running).
 
 ```bash
 npm install
@@ -14,83 +14,85 @@ npm run setup
 npm run dev
 ```
 
-`npm run setup` fait tout le reste : il crée le `.env` à partir de `.env.example` (avec un
-`AUTH_SECRET` généré), démarre la base Postgres du `docker-compose.yml`, attend qu'elle réponde et
-applique les migrations. Il est relançable sans risque — un `.env` existant n'est jamais écrasé.
+`npm run setup` does everything else: it creates `.env` from `.env.example` (with a generated
+`AUTH_SECRET`), starts the Postgres database from `docker-compose.yml`, waits for it to respond and
+applies the migrations. It is safe to rerun — an existing `.env` is never overwritten.
 
-L'app tourne ensuite sur http://localhost:3000.
+The app then runs at http://localhost:3000.
 
-### Une clé LLM est nécessaire — OpenAI pour l'instant
+### An LLM key is required — OpenAI for now
 
-Sans clé, l'app démarre mais l'onboarding ne peut rien générer — donc rien à tester. Deux lignes à
-renseigner dans `.env` :
+Without a key, the app starts but onboarding cannot generate anything — so there is nothing to test.
+Two lines to fill in `.env`:
 
 ```
 LLM_PROVIDER=openai
 OPENAI_API_KEY=sk-...
 ```
 
-> **Seul OpenAI fonctionne aujourd'hui.** `LLM_PROVIDER` accepte aussi `gemini`, `anthropic` et
-> `groq` : ces providers existent dans le code mais ne sont pas opérationnels, ne pas compter dessus
-> pour faire tourner l'app.
+> **Only OpenAI works today.** `LLM_PROVIDER` also accepts `gemini`, `anthropic` and
+> `groq`: these providers exist in the code but are not operational, do not rely on them
+> to run the app.
 
-Tout le reste de `.env.example` est optionnel : sans les clés OAuth (TikTok, Instagram, LinkedIn,
-GitHub), sans Stripe, sans stockage R2, l'app fonctionne — seules les fonctionnalités concernées sont
-inactives ou masquées. Sans `BREVO_API_KEY`, les emails de service (mot de passe oublié, avis de
-sécurité) s'écrivent dans les logs du serveur au lieu de partir : le lien de réinitialisation se lit
-directement dans le terminal. Pour envoyer pour de vrai (clé Brevo, domaine d'envoi à authentifier,
-`EMAIL_FROM`), suivre `docs/SETUP_EMAILS_BREVO.md`. La bibliothèque de ressources visuelles, elle, exige R2 + Google Cloud
+Everything else in `.env.example` is optional: without the OAuth keys (TikTok, Instagram, LinkedIn,
+GitHub), without Stripe, without R2 storage, the app works — only the features concerned are
+inactive or hidden. Without `BREVO_API_KEY`, service emails (forgotten password, security
+notices) are written to the server logs instead of being sent: the reset link can be read
+directly in the terminal. To send for real (Brevo key, sending domain to authenticate,
+`EMAIL_FROM`), follow `docs/SETUP_EMAILS_BREVO.md`. The visual resource library requires R2 + Google Cloud
 (`docs/SETUP_RESSOURCES_VISUELLES.md`).
 
-## La base de données
+## The database
 
-Le `docker-compose.yml` lance l'image **`pgvector/pgvector:pg17`**, et non une image Postgres nue :
-la migration `0007` crée l'extension `vector` (embeddings de la bibliothèque visuelle). Le port hôte
-est **5433** pour cohabiter avec un Postgres déjà installé sur la machine.
+`docker-compose.yml` runs the **`pgvector/pgvector:pg17`** image, not a bare Postgres image:
+migration `0007` creates the `vector` extension (visual library embeddings). The host port
+is **5433** so it can coexist with a Postgres already installed on the machine.
 
 ```bash
-docker compose up -d     # démarrer la base
-docker compose down      # l'arrêter (les données sont conservées dans un volume)
-docker compose down -v   # tout supprimer, y compris les données
+docker compose up -d     # start the database
+docker compose down      # stop it (data is kept in a volume)
+docker compose down -v   # remove everything, including the data
 ```
 
-Pour utiliser un Postgres déjà installé plutôt que Docker : il lui faut l'extension pgvector (voir
-`drizzle/README_PGVECTOR.md`), puis il suffit de pointer `DATABASE_URL` dessus et de lancer
+To use an already installed Postgres instead of Docker: it needs the pgvector extension (see
+`drizzle/README_PGVECTOR.md`), then just point `DATABASE_URL` at it and run
 `npm run db:migrate`.
 
-## Commandes
+## Commands
 
-| Commande | Effet |
+| Command | Effect |
 | --- | --- |
-| `npm run setup` | Premier lancement : `.env`, base Docker, migrations |
-| `npm run dev` | Serveur de développement |
-| `npm run build` / `npm run start` | Build de production / lancement |
+| `npm run setup` | First launch: `.env`, Docker database, migrations |
+| `npm run dev` | Development server |
+| `npm run build` / `npm run start` | Production build / launch |
 | `npm run lint` | ESLint |
-| `npm run test` | Suite Vitest (logique pure, appels LLM mockés, aucune base requise) |
-| `npm run db:generate` | Génère une migration SQL à partir de `src/db/schema.ts` |
-| `npm run db:migrate` | Applique les migrations en attente sur `DATABASE_URL` |
-| `npm run db:studio` | Ouvre Drizzle Studio pour inspecter la base |
+| `npm run test` | Vitest suite (pure logic, mocked LLM calls, no database required) |
+| `npm run db:generate` | Generates a SQL migration from `src/db/schema.ts` |
+| `npm run db:migrate` | Applies pending migrations to `DATABASE_URL` |
+| `npm run db:studio` | Opens Drizzle Studio to inspect the database |
 
 ## Documentation
 
-- `docs/PRODUCT.md` — vision produit et fonctionnalités.
-- `docs/TECH.md` — stack, modèle de données, endpoints, architecture des prompts.
-- `docs/DEPLOIEMENT_VPS.md` — mise en production sur un VPS (Docker Compose, Caddy, sauvegardes).
-- `docs/` — les specs par chantier (séries et rôles, rédacteur en chef, assistant agentique,
-  ressources visuelles, onboarding développeur).
+The documents in `docs/` are written in French.
 
-## Licence
+- `docs/PRODUCT.md` — product vision and features.
+- `docs/TECH.md` — stack, data model, endpoints, prompt architecture.
+- `docs/DEPLOIEMENT_VPS.md` — production deployment on a VPS (Docker Compose, Caddy, backups).
+- `docs/` — the per-project specs (series and roles, editor-in-chief, agentic assistant,
+  visual resources, developer onboarding).
 
-CreaFlow est distribué sous [Elastic License 2.0](LICENSE).
+## License
 
-En résumé :
+Buildloud is distributed under the [Elastic License 2.0](LICENSE).
 
-- ✅ Vous pouvez l'installer, l'utiliser (y compris dans un cadre professionnel), le modifier et le
-  redistribuer.
-- ❌ Vous ne pouvez pas le proposer à des tiers en tant que service hébergé ou managé (SaaS).
-- ❌ Vous ne pouvez pas retirer ou contourner les mentions de licence.
+In short:
 
-Ce résumé n'a pas de valeur juridique, seul le fichier `LICENSE` fait foi. Pour un usage commercial
-en tant que service, contactez alix.chagotpro@gmail.com.
+- ✅ You may install it, use it (including in a professional setting), modify it and
+  redistribute it.
+- ❌ You may not offer it to third parties as a hosted or managed service (SaaS).
+- ❌ You may not remove or circumvent the license notices.
 
-Copyright © 2026 Alix Chagot. « CreaFlow » est une marque de Alix Chagot.
+This summary has no legal value, only the `LICENSE` file is authoritative. For commercial use
+as a service, contact alix.chagotpro@gmail.com.
+
+Copyright © 2026 Alix Chagot. "Buildloud" is a trademark of Alix Chagot.

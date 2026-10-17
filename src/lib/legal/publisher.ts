@@ -1,11 +1,11 @@
 /**
- * Identité de l'éditeur du service — le seul endroit à remplir pour que les mentions légales, les
- * CGU/CGV, la politique de confidentialité et le footer soient complets (docs/SPEC_LEGAL_EMAIL_RGPD.md
- * §2.1). Ce ne sont pas des secrets : ils vivent dans le code, pas dans `.env`.
+ * Publisher identity of the service: the only place to fill in so that the legal notice, the
+ * terms of use and sale, the privacy policy and the footer are complete (docs/SPEC_LEGAL_EMAIL_RGPD.md
+ * §2.1). These are not secrets: they live in the code, not in `.env`.
  *
- * Convention : une valeur entre [crochets] est un placeholder. Tant qu'il en reste un, les pages
- * légales affichent d'elles-mêmes une bannière « document en cours de finalisation »
- * (isPublisherComplete) — il n'y a rien d'autre à retirer le jour où l'entité est arrêtée.
+ * Convention: a value in [square brackets] is a placeholder. As long as one remains, the legal
+ * pages automatically display a "document being finalized" banner (isPublisherComplete) —
+ * there is nothing else to remove once the entity is set up.
  */
 
 export interface HostingProvider {
@@ -15,52 +15,52 @@ export interface HostingProvider {
 }
 
 export interface PublisherIdentity {
-  /** Nom de la personne physique ou raison sociale. */
+  /** Name of the individual or company name. */
   name: string;
-  /** « Entrepreneur individuel », « SAS au capital de … € », etc. */
+  /** "Sole proprietor", "SAS with share capital of … €", etc. */
   legalForm: string;
   address: string;
   siret: string;
-  /** Numéro de TVA intracommunautaire, ou mention de franchise en base (art. 293 B du CGI). */
+  /** EU VAT number, or VAT exemption notice (art. 293 B of the French General Tax Code). */
   vat: string;
   contactEmail: string;
   publicationDirector: string;
-  /** Hébergeur de l'application (serveur Next.js). */
+  /** Host of the application (Next.js server). */
   appHost: HostingProvider;
-  /** Hébergeur de la base de données, s'il diffère de l'application. */
+  /** Host of the database, if different from the application host. */
   dbHost: HostingProvider;
-  /** Médiateur de la consommation (obligatoire pour un professionnel vendant à des consommateurs). */
+  /** Consumer mediator (mandatory for a business selling to consumers). */
   consumerMediator: { name: string; url: string };
 }
 
 export const PUBLISHER: PublisherIdentity = {
-  name: "[Nom de l'éditeur]",
-  legalForm: "[Statut juridique]",
-  address: "[Adresse postale]",
+  name: "[Publisher name]",
+  legalForm: "[Legal status]",
+  address: "[Postal address]",
   siret: "[SIRET]",
-  vat: "[Numéro de TVA ou « TVA non applicable, art. 293 B du CGI »]",
-  contactEmail: "[email de contact]",
-  publicationDirector: "[Directeur de la publication]",
+  vat: "[VAT number or \"VAT not applicable, art. 293 B of the French General Tax Code\"]",
+  contactEmail: "[contact email]",
+  publicationDirector: "[Publication director]",
   appHost: {
-    name: "[Hébergeur de l'application]",
-    address: "[Adresse de l'hébergeur]",
-    contact: "[Contact de l'hébergeur]",
+    name: "[Application host]",
+    address: "[Host address]",
+    contact: "[Host contact]",
   },
   dbHost: {
-    name: "[Hébergeur de la base de données]",
-    address: "[Adresse de l'hébergeur]",
-    contact: "[Contact de l'hébergeur]",
+    name: "[Database host]",
+    address: "[Host address]",
+    contact: "[Host contact]",
   },
   consumerMediator: {
-    name: "[Médiateur de la consommation]",
-    url: "[URL du médiateur]",
+    name: "[Consumer mediator]",
+    url: "[Mediator URL]",
   },
 };
 
-/** Nom du service tel qu'il apparaît dans les documents et les emails. */
-export const SERVICE_NAME = "CreaFlow";
+/** Service name as it appears in documents and emails. */
+export const SERVICE_NAME = "Buildloud";
 
-/** Vrai pour une valeur encore à remplir : vide, ou entourée de crochets. */
+/** True for a value still to be filled in: empty, or wrapped in square brackets. */
 export function isPlaceholder(value: string): boolean {
   const trimmed = value.trim();
   return trimmed === "" || (trimmed.startsWith("[") && trimmed.endsWith("]"));
@@ -86,7 +86,7 @@ function flatten(identity: PublisherIdentity): Array<[string, string]> {
   ];
 }
 
-/** Champs encore en placeholder — vide quand l'identité est complète. */
+/** Fields still holding a placeholder — empty when the identity is complete. */
 export function missingPublisherFields(identity: PublisherIdentity = PUBLISHER): string[] {
   return flatten(identity)
     .filter(([, value]) => isPlaceholder(value))
@@ -98,8 +98,8 @@ export function isPublisherComplete(identity: PublisherIdentity = PUBLISHER): bo
 }
 
 /**
- * Email de contact utilisable dans un lien `mailto:` — null tant qu'il est en placeholder, pour
- * que le footer n'affiche pas un lien cassé.
+ * Contact email usable in a `mailto:` link — null while it is a placeholder, so that the footer
+ * does not display a broken link.
  */
 export function getContactEmail(identity: PublisherIdentity = PUBLISHER): string | null {
   return isPlaceholder(identity.contactEmail) ? null : identity.contactEmail;

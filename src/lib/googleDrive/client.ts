@@ -6,7 +6,7 @@ function getCredentials(): { clientId: string; clientSecret: string } {
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
-    throw new Error("NEXT_PUBLIC_GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET doivent être définis dans l'environnement.");
+    throw new Error("NEXT_PUBLIC_GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set in the environment.");
   }
   return { clientId, clientSecret };
 }
@@ -38,7 +38,7 @@ export async function exchangeAuthCode(code: string): Promise<ExchangedTokens> {
   });
 
   if (!response.ok) {
-    throw new Error(`Échange du code Google Drive échoué (${response.status}) : ${await response.text()}`);
+    throw new Error(`Google Drive code exchange failed (${response.status}): ${await response.text()}`);
   }
 
   const data = (await response.json()) as {
@@ -52,7 +52,7 @@ export async function exchangeAuthCode(code: string): Promise<ExchangedTokens> {
     // Sans lui, l'usage différé (§7.3 du cadrage) est impossible — on le traite comme une erreur
     // explicite plutôt que de stocker une connexion inutilisable au-delà de l'heure courante.
     throw new Error(
-      "Google n'a pas renvoyé de refresh token — le consentement a peut-être déjà été donné ; révoquer l'accès depuis myaccount.google.com/permissions puis réessayer."
+      "Google did not return a refresh token — consent may already have been granted; revoke access at myaccount.google.com/permissions and try again."
     );
   }
 
@@ -77,7 +77,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<{ access
   });
 
   if (!response.ok) {
-    throw new Error(`Rafraîchissement du token Google Drive échoué (${response.status}) : ${await response.text()}`);
+    throw new Error(`Google Drive token refresh failed (${response.status}): ${await response.text()}`);
   }
 
   const data = (await response.json()) as { access_token: string; expires_in: number };
@@ -97,7 +97,7 @@ export async function fetchFileMetadata(fileId: string, accessToken: string): Pr
   );
 
   if (!response.ok) {
-    throw new Error(`Métadonnées Drive introuvables pour ${fileId} (${response.status}).`);
+    throw new Error(`Drive metadata not found for ${fileId} (${response.status}).`);
   }
 
   return response.json();
@@ -109,7 +109,7 @@ export async function fetchFileMedia(fileId: string, accessToken: string): Promi
   });
 
   if (!response.ok) {
-    throw new Error(`Lecture du fichier Drive ${fileId} échouée (${response.status}).`);
+    throw new Error(`Reading Drive file ${fileId} failed (${response.status}).`);
   }
 
   const bytes = Buffer.from(await response.arrayBuffer());

@@ -4,16 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { color, fontHeading } from "@/lib/design/tokens";
 
 /**
- * Titre du script — brouillon local, comme EditableField et MaterialSummaryField.
+ * Script title — local draft, like EditableField and MaterialSummaryField.
  *
- * La saisie ne doit PAS écrire directement dans l'objet `script` du parent : la valeur persistée est
- * la seule référence permettant de savoir, au blur, si quelque chose a réellement changé. Quand le
- * parent portait lui-même la frappe, cette référence était écrasée à chaque caractère et la garde
- * anti-écriture-inutile comparait la saisie à elle-même — le titre d'un script fraîchement ouvert
- * n'était alors jamais enregistré.
+ * Typing must NOT write directly into the parent's `script` object: the persisted value is
+ * the only reference that tells us, on blur, whether anything actually changed. When the
+ * parent carried the typing itself, that reference was overwritten on every character and the
+ * unnecessary-write guard compared the input to itself — the title of a freshly opened script
+ * was then never saved.
  *
- * Même garde de resynchronisation que les autres champs : ne jamais écraser une frappe en cours si
- * la valeur change ailleurs (undo, régénération, autre session).
+ * Same resync guard as the other fields: never overwrite typing in progress if
+ * the value changes elsewhere (undo, regeneration, another session).
  */
 export default function TitleField({
   title,
@@ -33,12 +33,12 @@ export default function TitleField({
     <input
       ref={inputRef}
       value={draft}
-      placeholder="(sans titre)"
+      placeholder="(untitled)"
       onChange={(e) => setDraft(e.target.value)}
       onBlur={() => {
         const trimmed = draft.trim();
-        // Un titre vidé n'efface pas le titre persisté (la colonne est nullable mais le geste est
-        // presque toujours accidentel) — on restaure simplement l'affichage.
+        // An emptied title does not erase the persisted title (the column is nullable but the gesture is
+        // almost always accidental) — we simply restore the display.
         if (!trimmed) {
           setDraft(title ?? "");
           return;

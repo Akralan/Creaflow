@@ -13,16 +13,16 @@ import { accent, accentAlpha, color, fontHeading } from "@/lib/design/tokens";
 type VisualChoice = "animation" | "carousel";
 
 const VISUALS: Record<VisualChoice, { label: string; hint: string; icon: LucideIcon }> = {
-  animation: { label: "Animation", hint: "Quelques secondes qui bougent", icon: Film },
-  carousel: { label: "Photo / carrousel", hint: "Une image ou des slides", icon: Images },
+  animation: { label: "Animation", hint: "A few seconds in motion", icon: Film },
+  carousel: { label: "Photo / carousel", hint: "One image or slides", icon: Images },
 };
 
-/** Curseur « nombre d'images » : 1 = image unique, au-delà un carrousel. */
+/** "Number of images" slider: 1 = single image, beyond that a carousel. */
 const MAX_IMAGES = 7;
 const DEFAULT_IMAGES = 1;
 const DEFAULT_SECONDS = Math.round(DEFAULT_DURATION_MS / 1000);
 
-/** Réglages du visuel choisi : nombre d'images, ou durée de l'animation. */
+/** Settings of the chosen visual: number of images, or animation duration. */
 export interface VisualSettings {
   images: number;
   seconds: number;
@@ -34,8 +34,8 @@ function visualFields(visual: VisualChoice, settings: VisualSettings): VisualFor
 }
 
 /**
- * Ce que le choix devient : un seul post. Texte seul → post texte ; un visuel, avec ou sans texte →
- * post visuel dont la légende est un vrai texte rédigé, ou seulement une légende courte.
+ * What the choice becomes: a single post. Text only → text post; a visual, with or without text →
+ * visual post whose caption is a fully written text, or just a short caption.
  */
 export function generationRequest(
   visual: VisualChoice | null,
@@ -141,9 +141,9 @@ function ChoiceCard({
 }
 
 /**
- * Un clic sur un créneau du calendrier : on coche un visuel (animation OU photo/carrousel), du
- * texte, ou les deux — c'est toujours un seul post. « Rédiger » génère et ouvre le script. Le sujet
- * vient de la série du créneau (le serveur en hérite).
+ * A click on a calendar slot: tick a visual (animation OR photo/carousel), some
+ * text, or both — it's always a single post. "Write" generates and opens the script. The topic
+ * comes from the slot's series (the server inherits it).
  */
 export default function ScriptFormatChooser({
   entry,
@@ -172,7 +172,7 @@ export default function ScriptFormatChooser({
       const { script } = await api.generateScriptForEntry(entry.id, request.contentType, undefined, undefined, request.fields);
       router.push(`/scripts/${script.id}`);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "La rédaction a échoué, réessaie.");
+      setError(err instanceof ApiClientError ? err.message : "Writing failed, please try again.");
       setGenerating(false);
     }
   }
@@ -180,11 +180,11 @@ export default function ScriptFormatChooser({
   return (
     <Modal open={entry !== null} onClose={() => !generating && onClose()} width={640}>
       <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 20, margin: "0 0 4px" }}>
-        {generating ? "CreaFlow rédige ton post" : "Quel format ?"}
+        {generating ? "Buildloud is writing your post" : "Which format?"}
       </h2>
       <p style={{ margin: "0 0 20px", fontSize: 14, color: color.textMuted }}>
-        {entry?.series ? entry.series.label : "Post libre"}
-        {entry ? ` · ${entry.contentCategory.label}` : ""} — un visuel, du texte, ou les deux dans le même post.
+        {entry?.series ? entry.series.label : "Free post"}
+        {entry ? ` · ${entry.contentCategory.label}` : ""} — a visual, some text, or both in the same post.
       </p>
       {generating ? (
         <GenerationAnimation output={output} />
@@ -197,15 +197,15 @@ export default function ScriptFormatChooser({
             {...VISUALS[key]}
             selected={visual === key}
             disabled={generating}
-            // Un seul visuel par post : choisir l'un remplace l'autre, recliquer le retire.
+            // One visual per post: choosing one replaces the other, clicking again removes it.
             onClick={() => setVisual((current) => (current === key ? null : key))}
           />
         ))}
-        <ChoiceCard label="Texte" hint="Un post écrit" icon={Type} selected={text} disabled={generating} onClick={() => setText((t) => !t)} />
+        <ChoiceCard label="Text" hint="A written post" icon={Type} selected={text} disabled={generating} onClick={() => setText((t) => !t)} />
       </div>
       {visual === "carousel" && (
         <Slider
-          label={images <= 1 ? "1 image" : `${images} images · carrousel`}
+          label={images <= 1 ? "1 image" : `${images} images · carousel`}
           value={images}
           min={1}
           max={MAX_IMAGES}
@@ -215,7 +215,7 @@ export default function ScriptFormatChooser({
       )}
       {visual === "animation" && (
         <Slider
-          label={`Durée · ${seconds} secondes`}
+          label={`Duration · ${seconds} seconds`}
           value={seconds}
           min={MIN_DURATION_MS / 1000}
           max={MAX_DURATION_MS / 1000}
@@ -227,9 +227,9 @@ export default function ScriptFormatChooser({
       )}
       {error && <p style={{ margin: "16px 0 0", fontSize: 13, color: color.danger }}>{error}</p>}
       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12, marginTop: 22 }}>
-        {!request && <span style={{ fontSize: 13, color: color.textMuted }}>Choisis au moins un format.</span>}
+        {!request && <span style={{ fontSize: 13, color: color.textMuted }}>Pick at least one format.</span>}
         <Button onClick={generate} disabled={!request || generating}>
-          {generating ? "On rédige ton post…" : "Rédiger"}
+          {generating ? "Writing your post…" : "Write"}
         </Button>
       </div>
     </Modal>

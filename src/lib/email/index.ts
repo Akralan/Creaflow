@@ -4,11 +4,11 @@ import type { EmailMessage, EmailSender, EmailSenderIdentity } from "./types";
 
 export type { EmailMessage, EmailSender } from "./types";
 
-const DEFAULT_FROM: EmailSenderIdentity = { name: "CreaFlow", email: "no-reply@localhost" };
+const DEFAULT_FROM: EmailSenderIdentity = { name: "Buildloud", email: "no-reply@localhost" };
 
 /**
- * `EMAIL_FROM` accepte « Nom <adresse> » ou une adresse nue. Renvoie null si la valeur est absente
- * ou ne contient pas d'adresse exploitable — l'appelant retombe alors sur le défaut.
+ * `EMAIL_FROM` accepts "Name <address>" or a bare address. Returns null if the value is missing
+ * or contains no usable address — the caller then falls back to the default.
  */
 export function parseSenderIdentity(raw: string | undefined): EmailSenderIdentity | null {
   if (!raw) return null;
@@ -25,30 +25,30 @@ export function parseSenderIdentity(raw: string | undefined): EmailSenderIdentit
 }
 
 /**
- * Même philosophie que Stripe, GitHub ou le stockage objet : sans `BREVO_API_KEY`, l'app démarre
- * en mode console (docs/SPEC_LEGAL_EMAIL_RGPD.md §3.1). `EMAIL_PROVIDER=brevo` sans clé est une
- * erreur de configuration franche plutôt qu'un silence : on ne veut pas croire qu'un email part
- * alors qu'il finit dans les logs. Même logique en production : une clé oubliée ne doit pas faire
- * basculer silencieusement les liens de réinitialisation vers les logs — il faut demander le mode
- * console explicitement (`EMAIL_PROVIDER=console`), et le corps n'y est alors pas logué.
+ * Same philosophy as Stripe, GitHub or object storage: without `BREVO_API_KEY`, the app starts
+ * in console mode (docs/SPEC_LEGAL_EMAIL_RGPD.md §3.1). `EMAIL_PROVIDER=brevo` without a key is
+ * a plain configuration error rather than silence: we don't want to believe an email is going
+ * out when it ends up in the logs. Same logic in production: a forgotten key must not silently
+ * switch reset links to the logs — console mode must be requested explicitly
+ * (`EMAIL_PROVIDER=console`), and the body is then not logged.
  */
 export function getEmailSender(env: Record<string, string | undefined> = process.env): EmailSender {
   const explicit = env.EMAIL_PROVIDER;
   if (!explicit && !env.BREVO_API_KEY && env.NODE_ENV === "production") {
-    throw new Error("Aucun prestataire d'email configuré en production : définis BREVO_API_KEY (ou EMAIL_PROVIDER=console en connaissance de cause).");
+    throw new Error("No email provider configured in production: set BREVO_API_KEY (or EMAIL_PROVIDER=console knowingly).");
   }
   const provider = explicit || (env.BREVO_API_KEY ? "brevo" : "console");
   if (provider === "console") return consoleSender;
   if (provider === "brevo") {
     if (!env.BREVO_API_KEY) {
-      throw new Error("EMAIL_PROVIDER=brevo mais BREVO_API_KEY n'est pas défini dans l'environnement.");
+      throw new Error("EMAIL_PROVIDER=brevo but BREVO_API_KEY is not set in the environment.");
     }
     return createBrevoSender(env.BREVO_API_KEY, parseSenderIdentity(env.EMAIL_FROM) ?? DEFAULT_FROM);
   }
-  throw new Error(`EMAIL_PROVIDER inconnu : "${provider}" (attendu "brevo" ou "console").`);
+  throw new Error(`Unknown EMAIL_PROVIDER: "${provider}" (expected "brevo" or "console").`);
 }
 
-/** Point d'entrée unique des envois applicatifs. */
+/** Single entry point for application email sends. */
 export async function sendEmail(message: EmailMessage): Promise<void> {
   await getEmailSender().send(message);
 }

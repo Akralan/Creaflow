@@ -14,15 +14,15 @@ const NOTES_ICON = (
   </svg>
 );
 
-/** Ce qui s'échappe de chaque source : de quoi reconnaître sa propre matière. */
+/** What spills out of each source: enough to recognise your own material. */
 const CHIPS: Record<string, string[]> = {
   github: ["commit", "README.md", "+42 −7"],
-  notion: ["page", "Décisions", "journal"],
-  linear: ["issue", "terminée", "v2"],
-  notes: ["notes", "idée", "brouillon"],
+  notion: ["page", "Decisions", "journal"],
+  linear: ["issue", "done", "v2"],
+  notes: ["notes", "idea", "draft"],
 };
 
-/** Teintes des cartes de l'éventail : celles de la landing. */
+/** Tints of the fan cards: the ones from the landing page. */
 const FAN_COLORS = [
   "linear-gradient(160deg, oklch(0.55 0.2 292), oklch(0.35 0.14 292))",
   "linear-gradient(160deg, oklch(0.72 0.13 62), oklch(0.5 0.13 40))",
@@ -34,19 +34,19 @@ const FAN_COLORS = [
 function captionsFor(output: GenerationOutput): string[] {
   const last =
     output.kind === "text"
-      ? "J'écris ton post…"
+      ? "Writing your post…"
       : output.kind === "animation"
-        ? "Je découpe le texte en moments…"
+        ? "Splitting the text into moments…"
         : output.count > 1
-          ? `Je compose ${output.count} slides…`
-          : "Je compose ton image…";
-  return ["Je lis ta matière…", "Je cherche l'angle du jour…", "Je trouve l'accroche…", last];
+          ? `Composing ${output.count} slides…`
+          : "Composing your image…";
+  return ["Reading your material…", "Looking for today's angle…", "Finding the hook…", last];
 }
 
 /**
- * L'attente de la rédaction, mise en scène : la matière des sources branchées part en bulles vers
- * la « tambouille » qui tourne, et ressort sous la forme du post choisi — un texte qui s'écrit, des
- * images qui s'éventaillent, ou une animation. Purement décoratif : aucune donnée réelle n'y passe.
+ * The wait for writing, staged: the material from connected sources floats as bubbles into
+ * the spinning "mixer", and comes out as the chosen post — a text being written,
+ * images fanning out, or an animation. Purely decorative: no real data passes through.
  */
 export default function GenerationAnimation({ output }: { output: GenerationOutput }) {
   const [providers, setProviders] = useState<string[]>(["github", "notion"]);
@@ -64,7 +64,7 @@ export default function GenerationAnimation({ output }: { output: GenerationOutp
   }, []);
 
   useEffect(() => {
-    // La dernière phrase reste affichée : c'est l'étape la plus longue.
+    // The last phrase stays displayed: it's the longest step.
     const timer = setInterval(() => setStep((s) => Math.min(s + 1, captions.length - 1)), 2600);
     return () => clearInterval(timer);
   }, [captions.length]);
@@ -86,7 +86,7 @@ export default function GenerationAnimation({ output }: { output: GenerationOutp
         <div className={styles.lane}>
           {chips.map(({ label, row, i }, k) => {
             const rows = providers.length;
-            // Chaque source a sa hauteur de départ ; toutes convergent vers le centre.
+            // Each source has its own starting height; all converge toward the center.
             const top = 50 + (row - (rows - 1) / 2) * 60;
             return (
               <span

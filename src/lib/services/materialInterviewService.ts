@@ -26,11 +26,11 @@ export async function getInterviewHistory(userId: string, productId: string | nu
  * immédiatement utilisable — même pipeline que le collage direct (§3).
  */
 export async function appendInterviewTurn(userId: string, productId: string | null, userMessage: string) {
-  let subjectLabel = "l'activité de la marque";
+  let subjectLabel = "the brand's activity";
   if (productId) {
     const product = await db.query.products.findFirst({ where: and(eq(products.id, productId), eq(products.userId, userId)) });
     if (!product) {
-      throw new ApiError(404, "Sujet introuvable.");
+      throw new ApiError(404, "Subject not found.");
     }
     subjectLabel = product.name;
   }

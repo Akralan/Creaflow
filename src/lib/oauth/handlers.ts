@@ -44,12 +44,12 @@ function withError(path: string, message: string): string {
 function resolveProvider(providerId: string) {
   const provider = getIdentityProvider(providerId);
   if (!provider) {
-    throw new ApiError(404, "Ce fournisseur ne propose pas de connexion.");
+    throw new ApiError(404, "This provider does not offer sign-in.");
   }
   if (!provider.isConfigured()) {
     // Configuration absente : 404 plutôt que 500, la fonctionnalité n'existe simplement pas sur
     // cet environnement — même philosophie que Stripe et GitHub.
-    throw new ApiError(404, "Ce fournisseur n'est pas configuré sur cet environnement.");
+    throw new ApiError(404, "This provider is not configured in this environment.");
   }
   return provider;
 }
@@ -108,18 +108,18 @@ export async function handleOAuthCallback(request: NextRequest, providerId: stri
     const code = request.nextUrl.searchParams.get("code");
     const state = request.nextUrl.searchParams.get("state");
     if (!code) {
-      throw new ApiError(400, "Code OAuth manquant.");
+      throw new ApiError(400, "Missing OAuth code.");
     }
 
     const expectedState = cookieStore.get(stateCookieName(providerId))?.value;
     cookieStore.delete(stateCookieName(providerId));
     if (!state || state !== expectedState) {
-      throw new ApiError(400, "State OAuth invalide, réessaie la connexion.");
+      throw new ApiError(400, "Invalid OAuth state, please try connecting again.");
     }
 
     const { tokens, identity } = await provider.exchangeCode(code, state);
     if (!identity.providerUserId) {
-      throw new ApiError(502, `${provider.displayName} n'a pas renvoyé d'identifiant de compte exploitable.`);
+      throw new ApiError(502, `${provider.displayName} did not return a usable account identifier.`);
     }
 
     const sessionUserId = await getCurrentUserId();

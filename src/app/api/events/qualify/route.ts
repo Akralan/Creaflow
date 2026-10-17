@@ -7,7 +7,7 @@ import { handleApiError } from "@/lib/api/errors";
 
 const schema = z.object({ productId: z.uuid() });
 
-/** Redonne un public à tous les événements du sujet d'après son portrait des lecteurs (synchrone, un appel par lot de 60). */
+/** Reassigns an audience to all of the topic's events based on its reader portrait (synchronous, one call per batch of 60). */
 export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId();

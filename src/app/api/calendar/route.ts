@@ -21,13 +21,13 @@ const daySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format attendu : YYYY
 export async function GET(request: NextRequest) {
   try {
     const userId = await requireUserId();
-    // Vue semaine (`from`/`to`, bornes en jours, `to` exclu) : créneaux enrichis de leur post.
+    // Week view (`from`/`to`, day bounds, `to` exclusive): slots enriched with their post.
     const fromParam = request.nextUrl.searchParams.get("from");
     if (fromParam) {
       const from = new Date(`${daySchema.parse(fromParam)}T00:00:00.000Z`);
       const to = new Date(`${daySchema.parse(request.nextUrl.searchParams.get("to"))}T00:00:00.000Z`);
       if (!(to > from) || to.getTime() - from.getTime() > 62 * 24 * 3600 * 1000) {
-        throw new ApiError(400, "Période invalide.");
+        throw new ApiError(400, "Invalid period.");
       }
       return NextResponse.json(await listCalendarRange(userId, from, to));
     }
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/** Place un script déjà généré (non planifié) sur une date du calendrier. */
+/** Places an already generated (unscheduled) script on a calendar date. */
 export async function POST(request: NextRequest) {
   try {
     const userId = await requireUserId();

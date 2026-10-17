@@ -7,31 +7,31 @@ import { pausePersonaRotation, usePersona } from "@/components/landing/usePerson
 import SourceIcon from "@/components/landing/SourceIcon";
 import styles from "@/components/landing/landing.module.css";
 
-/** Un bénéfice reste en avant CYCLE_MS, puis le suivant prend le relais (sauf survol). */
+/** A benefit stays in front for CYCLE_MS, then the next one takes over (unless hovered). */
 const CYCLE_MS = 4200;
 
 /**
- * Les trois points, génériques : comment (rien à écrire), pourquoi (la régularité fait
- * l'audience), ce qu'on y gagne (des clients au lancement). Seuls les exemples des cartes
- * tournent avec le profil. Chaque carte du collage est rattachée à un point (son index).
+ * The three generic points: how (nothing to write), why (consistency builds
+ * the audience), what you get out of it (customers at launch). Only the card examples
+ * rotate with the profile. Each card in the collage is tied to a point (its index).
  */
 const outcomes: Array<{ title: string; description: string }> = [
   {
-    title: "Rien à écrire",
-    description: "CreaFlow lit ce que tu construis déjà (commits, notes, Notion) et rédige les posts à ta place.",
+    title: "Nothing to write",
+    description: "Buildloud reads what you're already building (commits, notes, Notion) and drafts the posts for you.",
   },
   {
-    title: "Tu publies chaque semaine",
-    description: "C'est la régularité qui fait grandir une audience, pas un post viral. Toi, tu relis et tu valides.",
+    title: "You post every week",
+    description: "Consistency grows an audience, not one viral post. All you do is review and approve.",
   },
   {
-    title: "Le jour du lancement, des gens t'attendent",
-    description: "Ceux qui t'ont suivi pendant que tu construisais deviennent tes premiers clients.",
+    title: "On launch day, people are waiting",
+    description: "The people who followed you while you built become your first customers.",
   },
 ];
 
-const dayIndex: Record<string, number> = { LUN: 0, MAR: 1, MER: 2, JEU: 3, VEN: 4, SAM: 5, DIM: 6 };
-const days = ["L", "M", "M", "J", "V", "S", "D"];
+const dayIndex: Record<string, number> = { MON: 0, TUE: 1, WED: 2, THU: 3, FRI: 4, SAT: 5, SUN: 6 };
+const days = ["M", "T", "W", "T", "F", "S", "S"];
 
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 function subscribeReducedMotion(onChange: () => void) {
@@ -78,12 +78,12 @@ const chipIcon = (background: string, color: string): CSSProperties => ({
   flexShrink: 0,
 });
 
-/** Variable CSS posée en inline (TypeScript ne connaît pas les propriétés custom). */
+/** CSS variable set inline (TypeScript doesn't know custom properties). */
 function cssVar(name: string, value: string): CSSProperties {
   return { [name]: value } as CSSProperties;
 }
 
-/** Courbe d'abonnés : points normalisés (0-100) tracés dans un viewBox 100 × 36. */
+/** Follower curve: normalized points (0-100) drawn in a 100 × 36 viewBox. */
 function Sparkline({ points }: { points: number[] }) {
   const step = 100 / (points.length - 1);
   const coords = points.map((p, i) => `${(i * step).toFixed(1)},${(34 - p * 0.32).toFixed(1)}`);
@@ -96,10 +96,10 @@ function Sparkline({ points }: { points: number[] }) {
 }
 
 /**
- * « Ce que ça change » : le problème et sa réponse en un seul écran, juste après le hero.
- * Tu crées tes produits, CreaFlow crée ton audience. À gauche trois points courts (le plus en
- * avant se relaie tout seul, ou au survol) ; à droite un collage de cartes flottantes dont les
- * exemples tournent avec le profil, comme le hero.
+ * "What changes": the problem and its answer on a single screen, right after the hero.
+ * You build your products, Buildloud builds your audience. On the left three short points (the
+ * one in front rotates on its own, or on hover); on the right a collage of floating cards whose
+ * examples rotate with the profile, like the hero.
  */
 export default function LandingOutcomes() {
   const { persona, fadeClass } = usePersona();
@@ -115,8 +115,8 @@ export default function LandingOutcomes() {
     if (paused || reducedMotion) return;
     const timer = window.setInterval(() => setActive((i) => (i + 1) % outcomes.length), CYCLE_MS);
     return () => window.clearInterval(timer);
-    // `active` relance l'intervalle après un clic, pour que la barre de temps reparte de zéro
-    // en même temps que le compte à rebours.
+    // `active` restarts the interval after a click, so the progress bar starts over from zero
+    // along with the countdown.
   }, [paused, reducedMotion, active]);
 
   const pause = (value: boolean) => {
@@ -130,7 +130,7 @@ export default function LandingOutcomes() {
   return (
     <section
       id="ce-que-ca-change"
-      data-screen-label="Bénéfices"
+      data-screen-label="Benefits"
       style={{ position: "relative", scrollMarginTop: 64, overflow: "hidden" }}
       onMouseEnter={() => pause(true)}
       onMouseLeave={() => pause(false)}
@@ -156,7 +156,7 @@ export default function LandingOutcomes() {
         className={styles.outcomesGrid}
         style={{ position: "relative", maxWidth: 1160, margin: "0 auto", padding: "clamp(56px, 9vw, 120px) clamp(18px, 5vw, 44px)" }}
       >
-        {/* Colonne texte : titre, une phrase, puis les trois points */}
+        {/* Text column: title, one sentence, then the three points */}
         <div style={{ minWidth: 0 }}>
           <h2
             data-reveal=""
@@ -172,15 +172,15 @@ export default function LandingOutcomes() {
               textWrap: "balance",
             }}
           >
-            Tu crées tes produits. <span style={{ color: accent }}>On crée ton audience.</span>
+            You build the product. <span style={{ color: accent }}>We build the audience.</span>
           </h2>
           <p
             data-reveal=""
             data-delay={80}
             style={{ margin: "20px 0 0", fontSize: "1.1rem", lineHeight: 1.55, color: text.secondary, maxWidth: "40ch", textWrap: "pretty" }}
           >
-            Un bon produit sans audience ne se vend pas. CreaFlow transforme ce que tu construis déjà en posts, chaque
-            semaine.
+            A great product with no audience doesn&apos;t sell. Buildloud turns what you&apos;re already building into posts,
+            every week.
           </p>
 
           <ol className={styles.outcomeList} style={cssVar("--cycle", `${CYCLE_MS}ms`)}>
@@ -199,7 +199,7 @@ export default function LandingOutcomes() {
                     onFocus={() => setActive(i)}
                   >
                     <span className={styles.outcomeBar} aria-hidden="true">
-                      {/* La clé relance le remplissage à chaque changement de point. */}
+                      {/* The key restarts the fill whenever the point changes. */}
                       {isActive && !reducedMotion && <span key={active} className={styles.outcomeFill} />}
                     </span>
                     <span
@@ -240,7 +240,7 @@ export default function LandingOutcomes() {
           </ol>
         </div>
 
-        {/* Collage de cartes flottantes, une par point */}
+        {/* Collage of floating cards, one per point */}
         <div data-reveal="" data-delay={120} className={styles.outcomeCollageOuter}>
           <div
             aria-hidden="true"
@@ -254,10 +254,10 @@ export default function LandingOutcomes() {
             }}
           />
           <div className={`${styles.outcomeCollage} ${fadeClass}`} aria-hidden="true">
-            {/* 01 : ton travail devient un post */}
+            {/* 01: your work becomes a post */}
             <div className={styles.outcomeBob} style={{ animationDuration: "6.2s" }}>
               <div className={styles.outcomeCard} data-active={active === 0} data-dim={active !== 0 && !reducedMotion} style={cssVar("--tilt", "-1.2deg")}>
-                <p style={{ ...eyebrow, marginBottom: 10 }}>Ton travail</p>
+                <p style={{ ...eyebrow, marginBottom: 10 }}>Your work</p>
                 <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr)", gap: 6 }}>
                   {proof.sources.map((source) => (
                     <div key={source.meta} style={sourceLine}>
@@ -276,12 +276,12 @@ export default function LandingOutcomes() {
               </div>
             </div>
 
-            {/* 02 : la semaine remplie */}
+            {/* 02: the filled-up week */}
             <div className={`${styles.outcomeBob} ${styles.outcomeCol2}`} style={{ animationDuration: "7.1s", animationDelay: "-2.4s" }}>
               <div className={styles.outcomeCard} data-active={active === 1} data-dim={active !== 1 && !reducedMotion} style={cssVar("--tilt", "1.3deg")}>
                 <div style={cardHead}>
-                  <span style={cardTitle}>Cette semaine</span>
-                  <span style={metaMono}>{persona.schedule.length} PRÊTS</span>
+                  <span style={cardTitle}>This week</span>
+                  <span style={metaMono}>{persona.schedule.length} READY</span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 12 }}>
                   {days.map((d, i) => {
@@ -331,21 +331,21 @@ export default function LandingOutcomes() {
                 </div>
                 <p style={{ margin: "12px 0 0", fontSize: 11.5, color: text.secondary, display: "flex", alignItems: "center", gap: 7 }}>
                   <span style={{ width: 5, height: 5, borderRadius: "50%", background: accent, flexShrink: 0 }} />
-                  Rien à écrire. Juste à relire.
+                  Nothing to write. Just review.
                 </p>
               </div>
             </div>
 
-            {/* 03 : l'audience qui grandit, et ce qu'elle rapporte */}
+            {/* 03: the audience that grows, and what it brings in */}
             <div className={styles.outcomeBob} style={{ animationDuration: "6.7s", animationDelay: "-1.1s" }}>
               <div className={styles.outcomeCard} data-active={active === 2} data-dim={active !== 2 && !reducedMotion} style={cssVar("--tilt", "0.9deg")}>
                 <div style={cardHead}>
-                  <span style={cardTitle}>Ton audience</span>
+                  <span style={cardTitle}>Your audience</span>
                   <span style={{ ...metaMono, color: accentText }}>{audience.delta}</span>
                 </div>
                 <p style={{ margin: "0 0 4px", fontFamily: fontHeading, fontWeight: 700, fontSize: 24, letterSpacing: "-0.03em", lineHeight: 1, color: text.heading }}>
                   {audience.followers}
-                  <span style={{ marginLeft: 6, fontFamily: fontMono, fontWeight: 400, fontSize: 10.5, letterSpacing: "0.06em", color: text.faint }}>ABONNÉS</span>
+                  <span style={{ marginLeft: 6, fontFamily: fontMono, fontWeight: 400, fontSize: 10.5, letterSpacing: "0.06em", color: text.faint }}>FOLLOWERS</span>
                 </p>
                 <Sparkline points={audience.curve} />
                 <div
@@ -360,7 +360,7 @@ export default function LandingOutcomes() {
                     border: `1px solid ${accentAlpha(0.22)}`,
                   }}
                 >
-                  <span style={chipIcon(accent, "#fffdfa")}>€</span>
+                  <span style={chipIcon(accent, "#fffdfa")}>$</span>
                   <span style={{ minWidth: 0, fontSize: 12, fontWeight: 600, color: text.body }}>{audience.signal}</span>
                 </div>
               </div>

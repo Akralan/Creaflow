@@ -3,11 +3,11 @@ import { filterByPlatform, parseMonth, planSeriesSlots, publishingDaysLabel } fr
 
 describe("publishingDaysLabel", () => {
   it("écrit les jours en clair, dans l'ordre de la semaine", () => {
-    expect(publishingDaysLabel([6, 3])).toBe("mercredi, samedi");
+    expect(publishingDaysLabel([6, 3])).toBe("Wednesday, Saturday");
   });
 
   it("ignore les doublons et les valeurs hors de 1..7", () => {
-    expect(publishingDaysLabel([7, 7, 0, 8, 1])).toBe("lundi, dimanche");
+    expect(publishingDaysLabel([7, 7, 0, 8, 1])).toBe("Monday, Sunday");
   });
 });
 

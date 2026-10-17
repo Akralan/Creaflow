@@ -25,10 +25,10 @@ const chip = (active: boolean): React.CSSProperties => ({
 });
 
 /**
- * Édition d'un créneau encore vide. Un créneau de série suit le rythme de sa série
- * (docs/SPEC_RYTHME_DES_SERIES.md) : on peut seulement sauter ce jour-là, ou aller changer le
- * rythme ; le passer dans une autre série serait défait au recalcul suivant. Un post placé à la
- * main hors série garde le choix de son rôle (docs/SPEC_SERIES_ET_ROLES.md §5.4).
+ * Editing a still-empty slot. A series slot follows its series' rhythm
+ * (docs/SPEC_RYTHME_DES_SERIES.md): you can only skip that day, or go and change the
+ * rhythm; moving it to another series would be undone at the next recalculation. A post placed by
+ * hand outside any series keeps the choice of its role (docs/SPEC_SERIES_ET_ROLES.md §5.4).
  */
 export default function SlotEditorModal({
   entry,
@@ -61,7 +61,7 @@ export default function SlotEditorModal({
       await action();
       onSaved();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : "La modification du créneau a échoué.");
+      setError(err instanceof ApiClientError ? err.message : "Couldn't update the slot.");
       setSaving(false);
     }
   }
@@ -74,12 +74,12 @@ export default function SlotEditorModal({
         <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4 }}>
           <PlatformLogo platform={entry.platform} size={20} />
           <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18 }}>
-            {entry.series.label} · {new Date(entry.scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long", timeZone: "UTC" })}
+            {entry.series.label} · {new Date(entry.scheduledDate).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" })}
           </span>
         </div>
         <p style={{ margin: "0 0 18px", fontSize: 13, color: color.textMuted, lineHeight: 1.5 }}>
-          Pas encore de post. Ce jour vient du rythme de la série : tu peux le sauter, ou{" "}
-          <Link href={`/direction?series=${entry.series.id}&edit=1`}>changer le rythme</Link>.
+          No post yet. This day comes from the series&apos; rhythm: you can skip it, or{" "}
+          <Link href={`/direction?series=${entry.series.id}&edit=1`}>change the rhythm</Link>.
         </p>
         {error && <p style={{ color: color.danger, fontSize: 13, margin: "0 0 14px" }}>{error}</p>}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -90,10 +90,10 @@ export default function SlotEditorModal({
             style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: color.danger, background: "none", border: "none", cursor: "pointer", padding: "8px 4px" }}
           >
             <Trash2 size={15} strokeWidth={2} />
-            {saving ? "…" : "Sauter ce jour"}
+            {saving ? "…" : "Skip this day"}
           </button>
           <div style={{ flex: 1 }} />
-          <IconActionButton icon={X} variant="neutral" title="Fermer" onClick={onClose} disabled={saving} />
+          <IconActionButton icon={X} variant="neutral" title="Close" onClick={onClose} disabled={saving} />
         </div>
       </Modal>
     );
@@ -104,15 +104,15 @@ export default function SlotEditorModal({
       <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4 }}>
         <PlatformLogo platform={entry.platform} size={20} />
         <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18 }}>
-          Créneau du {new Date(entry.scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long", timeZone: "UTC" })}
+          Slot for {new Date(entry.scheduledDate).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" })}
         </span>
       </div>
-      <p style={{ margin: "0 0 18px", fontSize: 13, color: color.textMuted }}>Pas encore de post sur ce créneau.</p>
+      <p style={{ margin: "0 0 18px", fontSize: 13, color: color.textMuted }}>No post in this slot yet.</p>
 
-      <div style={{ fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 8 }}>Série</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 8 }}>Series</div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
         <button type="button" onClick={() => setSeriesId("")} style={chip(seriesId === "")}>
-          Post libre
+          Free post
         </button>
         {availableSeries.map((s) => (
           <button key={s.id} type="button" onClick={() => selectSeries(s.id)} style={chip(s.id === seriesId)}>
@@ -122,7 +122,7 @@ export default function SlotEditorModal({
       </div>
 
       <div style={{ fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 8 }}>
-        Rôle{seriesId && <span style={{ color: color.textFaint, fontWeight: 400 }}> — imposé par la série</span>}
+        Role{seriesId && <span style={{ color: color.textFaint, fontWeight: 400 }}> — set by the series</span>}
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 22 }}>
         {categories.map((c) => {
@@ -155,17 +155,17 @@ export default function SlotEditorModal({
         <IconActionButton
           icon={Trash2}
           variant="danger"
-          title="Supprimer le créneau"
+          title="Delete the slot"
           onClick={() => run(() => api.deleteCalendarEntry(entry.id))}
           disabled={saving}
         />
         <div style={{ flex: 1 }} />
-        <IconActionButton icon={X} variant="neutral" title="Annuler" onClick={onClose} disabled={saving} />
+        <IconActionButton icon={X} variant="neutral" title="Cancel" onClick={onClose} disabled={saving} />
         <IconActionButton
           icon={Check}
           variant="primary"
-          title="Enregistrer"
-          // Avec une série, le serveur dérive le rôle : on n'envoie que seriesId (§4.2).
+          title="Save"
+          // With a series, the server derives the role: we only send seriesId (§4.2).
           onClick={() =>
             run(() =>
               api.updateCalendarEntry(entry.id, seriesId ? { seriesId } : { contentCategoryId: categoryId, seriesId: null })
