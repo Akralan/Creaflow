@@ -215,6 +215,58 @@ export function buildEventReaderUserMessage(context: EventReaderPromptContext): 
   return lines.join("\n");
 }
 
+// --- Qualification des publics (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3) ---
+// Les événements lus avant que le portrait des lecteurs existe n'ont pas de public ; quand le portrait
+// naît ou change, on leur en donne un en un appel structuré par lot, sans relire les documents.
+
+export const QUALIFY_EVENTS_TOOL = "qualify_events";
+
+export const qualifiedEventsSchema = z.object({
+  events: z.array(z.object({ id: z.string().min(1), audiences: z.array(z.string().trim().min(1)).max(5) })),
+});
+
+export function buildQualifyEventsTool(audienceLabels: string[]): LlmToolDefinition {
+  return {
+    name: QUALIFY_EVENTS_TOOL,
+    description: "Dit, pour chaque événement, à quels publics du sujet il peut intéresser.",
+    input_schema: {
+      type: "object",
+      properties: {
+        events: {
+          type: "array",
+          description: "Un élément par événement fourni, dans le même ordre, avec son id tel quel.",
+          items: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              audiences: {
+                type: "array",
+                items: { type: "string", enum: audienceLabels },
+                description: "Les publics pour qui cet événement vaut un post. Vide si aucun : il restera visible de toutes les séries.",
+              },
+            },
+            required: ["id", "audiences"],
+          },
+        },
+      },
+      required: ["events"],
+    },
+  };
+}
+
+export function buildQualifyEventsPrompt(params: {
+  subjectName: string;
+  readers: Array<{ label: string; who: string; wants: string; stopsFor: string; turnsOff: string }>;
+  events: Array<{ id: string; date: string | null; title: string; whatHappened: string; kind: string }>;
+}): { system: string; userMessage: string } {
+  const system = `Tu ranges les événements de la ligne de temps de « ${params.subjectName} » par public. Pour chaque événement, dis à quels publics du sujet il peut faire un post qui les arrête : un public est retenu si l'événement lui apprend quelque chose qu'il vient chercher, pas s'il peut vaguement le concerner. Un événement peut viser plusieurs publics, ou aucun. Ne modifie pas les événements, ne saute aucun id.`;
+  const readers = params.readers
+    .map((r) => `- ${r.label} : ${r.who}${r.wants ? ` Vient chercher : ${r.wants}` : ""}${r.stopsFor ? ` S'arrête pour : ${r.stopsFor}` : ""}${r.turnsOff ? ` Fuit : ${r.turnsOff}` : ""}`)
+    .join("\n");
+  const events = params.events.map((e) => `- [${e.id}] ${e.date ?? "sans date"} · ${e.kind} · ${e.title} — ${e.whatHappened}`).join("\n");
+  return { system, userMessage: `Publics du sujet :\n${readers}\n\nÉvénements :\n${events}\n\nRéponds via ${QUALIFY_EVENTS_TOOL}.` };
+}
+
 /** Plafond de tours pour une lecture : chaque partie demande au moins un tour, et les enregistrements
  *  s'ajoutent (souvent groupés dans le même tour). Borné pour qu'une lecture ne tourne jamais sans fin. */
 export function maxTurnsForParts(totalParts: number): number {

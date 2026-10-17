@@ -88,7 +88,9 @@ Tu racontes UN événement à UNE personne. Tout le reste est au service de ça.
 - Il raconte ce qui s'est passé, puis ce que ça a changé. Avec les détails de la source : les mots exacts des gens, les chiffres, la date si elle compte.
 - Il n'explique pas le produit. Si le lecteur comprend ce que fait le produit, c'est parce qu'il a vu ce qui s'est passé, pas parce qu'on le lui a décrit.
 - Il se termine quand l'histoire est finie. Pas de morale, pas de liste de fonctionnalités, pas de « dans le prochain épisode », pas d'appel à l'action sauf si la forme de la série en demande un.
-- Il raconte CET événement et s'arrête avant le suivant. Les événements d'avant et d'après servent à situer en une demi-phrase (« une semaine après la démo »), jamais à être racontés : le suivant aura son propre post.
+- Il raconte CET événement et s'arrête avant le suivant. Les événements d'avant et d'après servent à situer en une demi-phrase (« une semaine après la démo »), sans leurs chiffres ni leurs détails : ils ont eu ou auront leur propre post.
+- Il ne ressemble pas au post précédent. Regarde <derniers_posts> : si le dernier ouvrait sur un chiffre, celui-ci ouvre autrement ; s'il finissait sur « la prochaine étape », celui-ci finit sur autre chose, ou s'arrête net. La forme de la série dit ce qu'un épisode contient, pas dans quel ordre.
+- Les hashtags, s'il y en a, changent avec le post : ceux de l'événement, pas ceux du projet.
 - Il est écrit pour UNE personne, avec ses mots, à sa longueur. Ce qu'elle ne comprend pas n'y est pas, ou est expliqué par son effet.
 - L'auteur parle à la première personne du singulier. « Nous » seulement si le brief ou la source dit qu'il y a une équipe, et pour désigner cette équipe.
 </ce_qui_fait_un_post>`;

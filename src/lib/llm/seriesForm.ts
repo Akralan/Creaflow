@@ -46,7 +46,7 @@ const describeSeriesFormTool: LlmToolDefinition = {
       episodeShape: {
         type: "string",
         description:
-          "De quoi est fait un bon épisode pour lui : la structure, étape par étape, avec un exemple pris dans les événements fournis. Pas d'adjectifs, des éléments qu'on peut vérifier dans le post.",
+          "De quoi est fait un bon épisode pour lui : les ingrédients qu'on doit y trouver (ce qu'il veut savoir, ce qui lui sert, ce qui le fait rester), avec un exemple pris dans les événements fournis. Pas une recette numérotée : deux épisodes de la même série ne doivent pas avoir le même squelette, ni la même fin. Pas d'adjectifs, des éléments qu'on peut vérifier dans le post.",
       },
       avoid: { type: "string", description: "Ce qui le fait partir, en une ou deux phrases précises." },
       words: { type: "array", items: { type: "string" }, description: "6 à 12 mots ou expressions qu'il emploie vraiment." },
@@ -76,7 +76,7 @@ function buildSystemPrompt(context: SeriesFormContext): string {
 Un bon épisode, c'est un événement raconté : ce qui s'est passé, ce que ça a changé, pour cette personne-là. La forme dit comment on le raconte à CE lecteur. Deux exemples fictifs de ce qu'on attend, pour deux lecteurs différents d'un même projet (ne les recopie pas, ils servent à montrer le niveau de précision) :
 - celui qui utilise ce que l'auteur construit (un client, un joueur, un patient…) : « une situation précise vécue par quelqu'un comme lui, ce qui n'allait pas, ce que le produit a montré ou permis, ce que cette personne a fait ensuite, en six à dix lignes, sans un mot de technique » ;
 - un pair de l'auteur (un autre développeur, un autre artisan…) : « ce qu'on croyait, ce qui a cassé, ce qu'on a changé, le chiffre avant et après, en dix à quinze lignes, avec le nom des outils ».
-Écris pour le lecteur fourni, à partir de qui il est vraiment, et appuie l'exemple de structure sur un des événements réels listés. Ne décris jamais le projet lui-même : décris comment on le raconte.`;
+L'auteur écrit seul et dit « je » ; ne présume jamais d'une équipe, sauf si sa description en parle. Écris pour le lecteur fourni, à partir de qui il est vraiment, et appuie l'exemple sur un des événements réels listés. Ne décris jamais le projet lui-même : décris comment on le raconte. La forme dit ce qu'un épisode doit contenir et ce qu'il doit éviter, jamais dans quel ordre : un rédacteur qui suivrait une recette numérotée écrirait dix fois le même post.`;
 }
 
 function buildUserMessage(context: SeriesFormContext): string {

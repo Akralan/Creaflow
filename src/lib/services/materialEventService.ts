@@ -2,11 +2,14 @@ import { after } from "next/server";
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { creatorProfiles, materialEvents, products, sourceMaterials } from "@/db/schema";
-import { callAgentic } from "@/lib/llm/provider";
+import { callAgentic, callStructured } from "@/lib/llm/provider";
 import {
   buildEventReaderSystemPrompt,
   buildEventReaderTools,
   buildEventReaderUserMessage,
+  buildQualifyEventsPrompt,
+  buildQualifyEventsTool,
+  qualifiedEventsSchema,
   excerptIsInDocument,
   LIST_DOCUMENTS_TOOL,
   maxTurnsForParts,
@@ -342,6 +345,56 @@ export function readEventsInBackground(userId: string, productId: string | null)
 export function scheduleEventReading(userId: string, productId: string | null): void {
   if (!productId) return;
   const run = () => readEventsInBackground(userId, productId);
+  try {
+    after(run);
+  } catch {
+    void run();
+  }
+}
+
+const QUALIFY_BATCH = 60;
+
+/**
+ * Donne un public aux événements du sujet (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3) : tous, pas
+ * seulement ceux sans public, parce qu'un portrait qui change peut déplacer des événements. Un appel
+ * structuré par lot de 60, sans relire les documents. Sans portrait, ne fait rien. Renvoie le nombre
+ * d'événements qualifiés.
+ */
+export async function qualifyEventsForSubject(userId: string, productId: string): Promise<number> {
+  const product = await requireOwnedProduct(userId, productId);
+  const readers = parseStoredReaderPortrait(product.readerPortrait)?.readers ?? [];
+  if (readers.length === 0) return 0;
+  const labels = readers.map((r) => r.label);
+  const events = await db.query.materialEvents.findMany({
+    where: and(eq(materialEvents.userId, userId), eq(materialEvents.productId, productId)),
+    columns: { id: true, date: true, title: true, whatHappened: true, kind: true },
+    orderBy: [sql`${materialEvents.date} asc nulls last`, asc(materialEvents.createdAt)],
+  });
+  let qualified = 0;
+  for (let i = 0; i < events.length; i += QUALIFY_BATCH) {
+    const batch = events.slice(i, i + QUALIFY_BATCH);
+    const { system, userMessage } = buildQualifyEventsPrompt({
+      subjectName: product.name,
+      readers: readers.map((r) => ({ label: r.label, who: r.who, wants: r.wants, stopsFor: r.stopsFor, turnsOff: r.turnsOff })),
+      events: batch,
+    });
+    const raw = await callStructured({ system, userMessage, tool: buildQualifyEventsTool(labels), maxTokens: 4096 });
+    const parsed = qualifiedEventsSchema.parse(raw);
+    const known = new Set(batch.map((e) => e.id));
+    for (const item of parsed.events) {
+      if (!known.has(item.id)) continue;
+      const audiences = item.audiences.filter((a) => labels.includes(a));
+      await db.update(materialEvents).set({ audiences, updatedAt: new Date() }).where(eq(materialEvents.id, item.id));
+      qualified++;
+    }
+  }
+  logger.info("Événements qualifiés par public", { userId, productId, qualified, total: events.length });
+  return qualified;
+}
+
+/** À appeler quand le portrait des lecteurs d'un sujet naît ou change : jamais bloquant. */
+export function scheduleEventQualification(userId: string, productId: string): void {
+  const run = () => qualifyEventsForSubject(userId, productId).catch((err) => logger.error("Qualification des événements échouée", err, { userId, productId }));
   try {
     after(run);
   } catch {
