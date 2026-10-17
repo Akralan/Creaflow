@@ -514,6 +514,39 @@ export interface SourceMaterial {
   createdAt: string;
 }
 
+export type MaterialEventKind = "failure" | "decision" | "result" | "feedback" | "milestone";
+export type MaterialEventDatePrecision = "day" | "month" | "unknown";
+
+/** Événement de la ligne de temps d'un sujet (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3). */
+export interface MaterialEvent {
+  id: string;
+  productId: string;
+  /** AAAA-MM-JJ, le 1er du mois au mois près, null sans date. */
+  date: string | null;
+  datePrecision: MaterialEventDatePrecision;
+  title: string;
+  whatHappened: string;
+  whatChanged: string | null;
+  kind: MaterialEventKind;
+  audiences: string[];
+  sourceMaterialId: string | null;
+  sourceMaterial?: { id: string; title: string | null } | null;
+  excerpt: string | null;
+  origin: "reader" | "user";
+  createdAt: string;
+}
+
+export interface EventReadingReport {
+  documents: number;
+  documentsRead: number;
+  partsRead: number;
+  eventsSaved: number;
+  eventsRejected: number;
+  turns: number;
+  stoppedAtMaxTurns: boolean;
+  reply: string;
+}
+
 /** Citation post-génération (docs/SPEC_MATIERE_EDITEUR.md §3) — passage du corpus rapporté comme
  *  utilisé par le LLM à la génération, retrouvé dans le texte source par recherche approximative. */
 export interface Citation {
@@ -1013,6 +1046,24 @@ export const api = {
     storyboard?: StoryboardStep[];
   }) => post<{ script: Script }>("/api/scripts/import", data),
 
+  // Ligne de temps d'un sujet (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3).
+  getEvents: (productId: string) =>
+    apiFetch<{ events: MaterialEvent[]; unreadDocuments: number }>(`/api/events?productId=${productId}`),
+  createEvent: (data: {
+    productId: string;
+    date?: string;
+    datePrecision?: MaterialEventDatePrecision;
+    title: string;
+    whatHappened: string;
+    whatChanged?: string;
+    kind: MaterialEventKind;
+    audiences?: string[];
+  }) => post<{ event: MaterialEvent }>("/api/events", data),
+  updateEvent: (id: string, data: Partial<Omit<MaterialEvent, "id" | "productId" | "sourceMaterialId" | "sourceMaterial" | "excerpt" | "origin" | "createdAt">>) =>
+    patch<{ event: MaterialEvent }>(`/api/events/${id}`, data),
+  deleteEvent: (id: string) => del<{ ok: true }>(`/api/events/${id}`),
+  /** Lit les documents pas encore lus du sujet et enregistre leurs événements. Long : plusieurs minutes possibles. */
+  readEvents: (productId: string) => post<{ report: EventReadingReport }>("/api/events/read", { productId }),
   getMaterials: (productId?: string) =>
     apiFetch<{ materials: SourceMaterial[] }>(`/api/materials${productId ? `?productId=${productId}` : ""}`),
   addPastedMaterial: (data: { productId?: string; title?: string; rawText: string }) =>

@@ -4,6 +4,7 @@ import { creatorProfiles, materialSources, products, sourceMaterials } from "@/d
 import { getConnector } from "@/lib/connectors/registry";
 import type { ConnectorCandidate, IncomingDoc, MaterialSourceType } from "@/lib/connectors/types";
 import { markStaleForMaterialIngestion } from "@/lib/services/narrativeDirector";
+import { scheduleEventReading } from "@/lib/services/materialEventService";
 import { ApiError } from "@/lib/api/errors";
 import { MAX_ONBOARDING_SOURCES, MAX_PRODUCTS } from "@/lib/validation";
 import { logger } from "@/lib/logger";
@@ -126,7 +127,8 @@ export async function syncSource(userId: string, sourceId: string): Promise<Sync
       // summary remis à null : pour une source connectée, c'est la source qui fait foi, pas une
       // édition locale — rupture volontaire avec la règle « l'édition manuelle devient la source de
       // vérité » d'updateMaterialSummary. Le backfill paresseux le regénérera.
-      .set({ rawText: doc.rawText, externalChecksum: doc.externalChecksum, title: doc.title, summary: null })
+      // eventsReadAt aussi : un document qui a changé est à relire par le lecteur d'événements.
+      .set({ rawText: doc.rawText, externalChecksum: doc.externalChecksum, title: doc.title, summary: null, eventsReadAt: null })
       .where(eq(sourceMaterials.id, id));
   }
 
@@ -145,6 +147,7 @@ export async function syncSource(userId: string, sourceId: string): Promise<Sync
     // Sans ça le rédacteur en chef ne replanifierait pas après une synchro, alors qu'il le fait sur
     // un dépôt manuel (POST /api/materials).
     await markStaleForMaterialIngestion(userId, source.productId);
+    scheduleEventReading(userId, source.productId);
   }
 
   return {

@@ -38,6 +38,7 @@ import { styleProfileSchema } from "@/lib/llm/styleProfile";
 import { markStaleForMaterialIngestion } from "@/lib/services/narrativeDirector";
 import { ApiError } from "@/lib/api/errors";
 import { syncSeriesSlots } from "@/lib/services/seriesSlotSync";
+import { scheduleEventReading } from "@/lib/services/materialEventService";
 import { mondayOf, seriesRhythmSchema, toIsoDate } from "@/lib/seriesRhythm";
 
 // Fenêtre d'historique bornée par le VOLUME et non par le nombre de messages
@@ -652,6 +653,7 @@ export async function resolveProposal(
     }
 
     await markStaleForMaterialIngestion(userId, productId);
+    scheduleEventReading(userId, productId);
     summarizeMaterialId = material.id;
   } else if (proposal.kind === "material_update") {
     if (!proposal.targetId) {

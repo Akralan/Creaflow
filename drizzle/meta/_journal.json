@@ -309,6 +309,13 @@
       "when": 1792232394819,
       "tag": "0043_quotas_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1792241331325,
+      "tag": "0044_evenements_de_matiere",
+      "breakpoints": true
     }
   ]
 }

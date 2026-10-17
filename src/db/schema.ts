@@ -106,6 +106,11 @@ export const materialSourceStatusEnum = pgEnum("material_source_status", ["ok", 
 export const contentSeriesModeEnum = pgEnum("content_series_mode", ["feuilleton", "rendez_vous"]);
 // Fiche d'inspiration (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.1) : écartée, jamais effacée d'office.
 export const inspirationStatusEnum = pgEnum("inspiration_status", ["active", "dismissed"]);
+// Événement de matière (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3) : ce qui s'est passé, lu dans la
+// matière par le lecteur d'événements, ou ajouté à la main par l'auteur.
+export const materialEventKindEnum = pgEnum("material_event_kind", ["failure", "decision", "result", "feedback", "milestone"]);
+export const materialEventDatePrecisionEnum = pgEnum("material_event_date_precision", ["day", "month", "unknown"]);
+export const materialEventOriginEnum = pgEnum("material_event_origin", ["reader", "user"]);
 export const subscriptionPlanEnum = pgEnum("subscription_plan", ["starter", "pro"]);
 // Sous-ensemble des statuts Stripe (Subscription.status) réellement distingués côté produit —
 // "paused" n'est pas utilisé (pas de fonctionnalité de pause self-service en v1). Le webhook
@@ -428,12 +433,41 @@ export const sourceMaterials = pgTable(
     // Blob SHA GitHub pour un fichier, SHA du commit le plus récent pour le journal. C'est la
     // comparaison de cette valeur qui rend le re-sync idempotent sans relire le contenu.
     externalChecksum: text("external_checksum"),
+    // Dernière lecture par le lecteur d'événements (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3). Null =
+    // à lire. Remis à null quand un re-sync change le contenu, comme `summary`.
+    eventsReadAt: timestamp("events_read_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   // Un document par chemin et par source. Partiel : la matière collée à la main a sourceId null et
   // n'est pas concernée. Deux dépôts branchés sur le même sujet peuvent chacun avoir leur README.md.
   (t) => [uniqueIndex().on(t.sourceId, t.externalRef).where(sql`${t.sourceId} is not null`)]
 );
+
+// Événement de matière (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3) : l'unité que le rédacteur
+// raconte. Daté, ce qui s'est passé, ce que ça a changé, pour qui, et le passage qui le prouve.
+// CASCADE sur le sujet, comme les documents connectés : un événement sans son sujet n'a aucun sens
+// et ne doit surtout pas devenir de la matière de niveau marque.
+export const materialEvents = pgTable("material_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  // Jour ISO (AAAA-MM-JJ) ; au mois près, le 1er du mois ; null quand la matière ne date rien.
+  date: text("date"),
+  datePrecision: materialEventDatePrecisionEnum("date_precision").notNull().default("unknown"),
+  title: text("title").notNull(),
+  whatHappened: text("what_happened").notNull(),
+  whatChanged: text("what_changed"),
+  kind: materialEventKindEnum("kind").notNull(),
+  // Labels du portrait des lecteurs du sujet (products.readerPortrait) pour qui c'est intéressant.
+  audiences: text("audiences").array().notNull().default(sql`'{}'::text[]`),
+  // SET NULL : un événement ajouté à la main n'a pas de document ; et un document supprimé ne fait pas
+  // disparaître ce qu'on en a appris (le passage reste dans `excerpt`).
+  sourceMaterialId: uuid("source_material_id").references(() => sourceMaterials.id, { onDelete: "set null" }),
+  excerpt: text("excerpt"),
+  origin: materialEventOriginEnum("origin").notNull().default("reader"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
 
 // Citation post-génération (docs/SPEC_MATIERE_EDITEUR.md §3 — remplace le découpage en unités) : le
 // LLM rapporte lui-même, dans sa réponse de génération (GeneratedScript.usedExcerpts), les passages
@@ -855,6 +889,7 @@ export const productsRelations = relations(products, ({ many }) => ({
   narrativeStates: many(narrativeState),
   series: many(contentSeries),
   materialSources: many(materialSources),
+  events: many(materialEvents),
 }));
 
 export const materialSourcesRelations = relations(materialSources, ({ one, many }) => ({
@@ -879,6 +914,12 @@ export const sourceMaterialsRelations = relations(sourceMaterials, ({ one, many 
   product: one(products, { fields: [sourceMaterials.productId], references: [products.id] }),
   source: one(materialSources, { fields: [sourceMaterials.sourceId], references: [materialSources.id] }),
   citations: many(sourceMaterialCitations),
+  events: many(materialEvents),
+}));
+
+export const materialEventsRelations = relations(materialEvents, ({ one }) => ({
+  product: one(products, { fields: [materialEvents.productId], references: [products.id] }),
+  sourceMaterial: one(sourceMaterials, { fields: [materialEvents.sourceMaterialId], references: [sourceMaterials.id] }),
 }));
 
 export const sourceMaterialCitationsRelations = relations(sourceMaterialCitations, ({ one }) => ({

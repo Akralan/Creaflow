@@ -1,0 +1,40 @@
+2025-11-09 | day | feedback | Julien demande si la caméra peut compter les squats | devlog.md
+2025-11-16 | day | failure | Le prototype rate une répétition sur trois sur l'iPhone 11 | devlog.md
+2025-11-23 | day | decision | Le traitement est déplacé sur le téléphone | devlog.md
+2025-12-06 | day | failure | Le tremblement fait compter trois fois une répétition | devlog.md
+2025-12-20 | day | decision | Le développement commence par les quatre exercices debout | devlog.md
+2026-01-11 | day | milestone | Le premier build Android atteint 24 fps sur Pixel 7 | devlog.md
+2026-01-18 | day | decision | Un boîtier Raspberry Pi est commandé pour les patients sans smartphone | devlog.md
+2026-02-01 | day | milestone | L'API et les tables de suivi sont mises en place | devlog.md
+2026-02-07 | day | decision | Le parcours patient sans compte est choisi | devlog.md
+2026-02-15 | day | result | La première séance compte correctement 12 squats sur 12 | devlog.md
+2026-02-22 | day | failure | Le boîtier atteint 11 fps mais son écran est inutilisable à distance | devlog.md
+2026-03-07 | day | failure | Marion arrête la démo après un faux squat et Julien trouve l'app lente | devlog.md
+2026-03-14 | day | decision | La caméra à 45° devient obligatoire | devlog.md
+2026-03-21 | day | result | Le modèle full est stable mais tombe à 9 fps sur Pixel 4a | devlog.md
+2026-04-05 | day | decision | Le modèle full est déployé avec un saut d'image sous 12 fps | devlog.md
+2026-05-12 | day | milestone | Le pilote 1 commence avec cinq patients Android | devlog.md
+2026-05-26 | day | result | Trois patients sur cinq font au moins une séance | devlog.md
+2026-06-02 | day | decision | Les vidéos de séance sont définitivement exclues | devlog.md
+2026-06-15 | day | failure | Le passage à plein temps ne produit rien d'utile pour un patient la première semaine | devlog.md
+2026-06-21 | day | feedback | Julien corrige son squat grâce au feedback couleur | devlog.md
+2026-06-28 | day | milestone | Un patient fait ses exercices toute la semaine pour la première fois | devlog.md
+2026-07-06 | day | decision | Le taux d'adhésion par patient est ajouté au dashboard | devlog.md
+2026-07-13 | day | milestone | Le pilote 2 atteint quatre kinés et 19 patients | devlog.md
+2026-07-20 | day | feedback | Le prix de 29 € HT est accepté par deux kinés sur quatre | devlog.md
+2026-08-03 | day | result | Onze séances sont réalisées en deux semaines sur 19 patients | devlog.md
+2026-08-17 | day | decision | La mesure de l'élévation latérale passe du coude au poignet | devlog.md
+2026-08-30 | day | decision | Les trois exercices au sol sortent de la v0.4 | devlog.md
+2026-09-08 | day | result | Douze kinés demandent un accès en quatre jours | devlog.md
+2026-09-14 | day | failure | Le build iOS atteint 7 fps mais n'est pas livrable | devlog.md
+2026-09-21 | day | failure | Une mise à jour Expo casse la caméra Android | devlog.md
+2026-10-01 | month | result | La version 0.4 atteint 8 kinés actifs et 412 séances enregistrées | Mes notes
+2026-10-01 | month | result | La charge observée en v0.4 atteint 14 séances par jour et 61 Mo | Mes notes
+2026-10-01 | month | result | L’hystérésis de 8° réduit les faux positifs à 4 % sur 120 squats | Mes notes
+2026-10-01 | month | decision | La valeur d’hystérésis retenue est 8° | Mes notes
+2026-10-01 | month | result | La création d’un programme de 5 exercices prend 11 minutes la première fois | Mes notes
+2026-10-01 | month | result | La version web de repli atteint 10 à 14 fps sur un téléphone récent | Mes notes
+2026-10-01 | month | decision | Le VPS utilisé en v0.4 est identifié comme non certifié HDS | Mes notes
+2026-10-03 | day | decision | Les données patient sont anonymisées plutôt que hébergées HDS | devlog.md
+2026-10-10 | day | result | La v0.4 compte 31 patients et 12 personnes en liste d'attente | devlog.md
+---------- | unknown | failure | Le boîtier matériel a été abandonné | Mes notes

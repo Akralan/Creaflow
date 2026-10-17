@@ -6,6 +6,7 @@ import Button from "@/components/ui/Button";
 import GenerateSeriesFromMaterialModal from "@/components/GenerateSeriesFromMaterialModal";
 import MaterialInterviewChat from "@/components/MaterialInterviewChat";
 import ConnectedSources from "@/components/ConnectedSources";
+import EventTimeline from "@/components/EventTimeline";
 import { api, ApiClientError, type Citation, type SourceMaterial } from "@/lib/apiClient";
 import { color } from "@/lib/design/tokens";
 
@@ -238,6 +239,8 @@ export default function MaterialPanel({ productId }: { productId?: string }) {
     <div style={{ display: "grid", gap: 10 }}>
       {/* Une source est toujours rattachée à un sujet précis : rien à afficher au niveau marque. */}
       {productId && <ConnectedSources productId={productId} />}
+      {/* La ligne de temps du sujet (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3) : ce que la matière raconte. */}
+      {productId && <EventTimeline productId={productId} />}
       <div style={{ display: "flex", gap: 2, background: color.chipBg, borderRadius: 10, padding: 3, width: "fit-content", marginBottom: 4 }}>
         {(["paste", "interview"] as const).map((t) => (
           <button
