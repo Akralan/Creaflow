@@ -8,7 +8,7 @@ import styles from "@/components/landing/landing.module.css";
 
 /**
  * Three posts fanned out like playing cards, which pop up when the final section
- * scrolls into view: a photo (Instagram), a looping motion design (TikTok), a text post
+ * scrolls into view: a photo (Instagram), a looping motion design (LinkedIn), a text post
  * (LinkedIn). Three formats Tellovo produces — and something to dress up the top of the section.
  * Photo: Lorem Picsum #180 (Unsplash license), stored in public/landing/.
  */
@@ -60,7 +60,7 @@ export default function PostFan() {
         <div className={styles.fanInner} style={{ background: "linear-gradient(160deg, oklch(0.32 0.12 292) 0%, oklch(0.2 0.06 292) 100%)" }}>
           <span className={styles.fanBlob} />
           <span className={styles.fanBadge} style={{ background: "rgba(255,253,250,0.14)", color: "#fffdfa" }}>
-            TikTok · 45 s
+            LinkedIn · 10 s
           </span>
           <div className={styles.fanMotionLines} style={{ fontFamily: fontHeading }}>
             <span className={styles.fanLine}>The bug</span>
