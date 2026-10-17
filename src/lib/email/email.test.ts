@@ -6,13 +6,13 @@ import { accountDeletedEmail, passwordChangedEmail, passwordResetEmail } from ".
 
 describe("parseSenderIdentity", () => {
   it("reads a \"Name <address>\" form and a bare address", () => {
-    expect(parseSenderIdentity("Buildloud <no-reply@buildloud.example>")).toEqual({
-      name: "Buildloud",
-      email: "no-reply@buildloud.example",
+    expect(parseSenderIdentity("Tellovo <no-reply@tellovo.example>")).toEqual({
+      name: "Tellovo",
+      email: "no-reply@tellovo.example",
     });
-    expect(parseSenderIdentity("no-reply@buildloud.example")).toEqual({
-      name: "Buildloud",
-      email: "no-reply@buildloud.example",
+    expect(parseSenderIdentity("no-reply@tellovo.example")).toEqual({
+      name: "Tellovo",
+      email: "no-reply@tellovo.example",
     });
   });
 
@@ -55,7 +55,7 @@ describe("createBrevoSender", () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ messageId: "1" }), { status: 201 }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const sender = createBrevoSender("xkeysib-test", { name: "Buildloud", email: "no-reply@buildloud.example" });
+    const sender = createBrevoSender("xkeysib-test", { name: "Tellovo", email: "no-reply@tellovo.example" });
     await sender.send({ to: "alix@example.com", subject: "Subject", html: "<p>Hello</p>", text: "Hello" });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -64,7 +64,7 @@ describe("createBrevoSender", () => {
     expect(init.method).toBe("POST");
     expect((init.headers as Record<string, string>)["api-key"]).toBe("xkeysib-test");
     expect(JSON.parse(init.body as string)).toEqual({
-      sender: { name: "Buildloud", email: "no-reply@buildloud.example" },
+      sender: { name: "Tellovo", email: "no-reply@tellovo.example" },
       to: [{ email: "alix@example.com" }],
       subject: "Subject",
       htmlContent: "<p>Hello</p>",
@@ -77,7 +77,7 @@ describe("createBrevoSender", () => {
       "fetch",
       vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: "unauthorized", message: "Key not found" }), { status: 401 }))
     );
-    const sender = createBrevoSender("wrong", { name: "Buildloud", email: "no-reply@buildloud.example" });
+    const sender = createBrevoSender("wrong", { name: "Tellovo", email: "no-reply@tellovo.example" });
     await expect(sender.send({ to: "a@b.c", subject: "s", html: "h", text: "t" })).rejects.toThrow(/HTTP 401/);
   });
 });

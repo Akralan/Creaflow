@@ -26,10 +26,6 @@ Julien m'envoie une liste de 9 exercices qu'il prescrit le plus. 4 sont debout, 
 
 Passage à Expo. Premier build Android sur mon Pixel 7 avec TFLite et le modèle BlazePose lite : 24 fps. Sur le vieux Pixel 4a que j'ai racheté 60 € pour ça : 15 fps. L'iPhone de Julien, je n'ai pas encore de build iOS.
 
-## 2026-01-18
-
-Julien dit que la moitié de ses patients post-opératoires ont plus de 70 ans et pas de smartphone. Commandé un Raspberry Pi 5, une Camera Module 3 et un écran 7". 94 € en tout. Idée : une boîte à poser sur un meuble.
-
 ## 2026-02-01
 
 FastAPI + Postgres. Tables kines, patients, programs, program_exercises, exercises, sessions, session_exercises. Le kiné crée un programme, choisit des exercises avec un nombre de séries et de répétitions.
@@ -42,19 +38,15 @@ Pas de compte patient. Un SMS avec un lien et un code à 6 lettres. Le lien ouvr
 
 Julien a créé son premier programme sur le dashboard (version moche) en 11 minutes, dont 6 à chercher comment mettre 3 séries. Il m'a envoyé un SMS à lui-même et a fait la séance. 12 squats comptés sur 12. Il était content. Sur le Pixel 7.
 
-## 2026-02-22
-
-Le Pi 5 tient 11 fps avec le modèle lite. L'écran 7" est trop petit pour voir le squelette à 2 mètres. Je me demande qui va configurer le wifi chez une dame de 78 ans.
-
 ## 2026-03-07
 
-Démo au cabinet, Julien et Marion, entre deux patients. Marion se met de profil, comme on fait un squat en cabinet, et le squelette saute : le genou arrière est caché par le genou avant, le modèle le place n'importe où, l'angle part à 40°, le compteur compte une répétition qui n'existe pas. Elle a arrêté au bout de 40 secondes : « je ne peux pas donner ça à un patient ». Julien a trouvé l'app lente (c'est le Pixel 4a que j'avais apporté). Ils ont tous les deux dit non au boîtier avant même que je le sorte du sac : « je ne vais pas prêter une boîte à un patient », « qui la récupère ».
+Démo au cabinet, Julien et Marion, entre deux patients. Marion se met de profil, comme on fait un squat en cabinet, et le squelette saute : le genou arrière est caché par le genou avant, le modèle le place n'importe où, l'angle part à 40°, le compteur compte une répétition qui n'existe pas. Elle a arrêté au bout de 40 secondes : « je ne peux pas donner ça à un patient ». Julien a trouvé l'app lente (c'est le Pixel 4a que j'avais apporté).
 
 Je suis rentré en vélo sans musique.
 
 ## 2026-03-14
 
-Deux décisions. Le boîtier est abandonné. La caméra à 45° est obligatoire : avant la séance, l'app demande de se placer de trois quarts et vérifie que les 4 points hanches/genoux sont visibles avec une confiance > 0,6 pendant 2 secondes. Testé sur moi : ça marche, c'est chiant les trois premières fois, après on sait où poser le téléphone.
+Une décision : la caméra à 45° est obligatoire : avant la séance, l'app demande de se placer de trois quarts et vérifie que les 4 points hanches/genoux sont visibles avec une confiance > 0,6 pendant 2 secondes. Testé sur moi : ça marche, c'est chiant les trois premières fois, après on sait où poser le téléphone.
 
 ## 2026-03-21
 

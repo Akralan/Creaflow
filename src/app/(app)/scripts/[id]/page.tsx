@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Card from "@/components/ui/Card";
+import GenerationPanel from "@/components/GenerationPanel";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import DesignEditor from "@/components/DesignEditor/DesignEditor";
@@ -309,7 +310,11 @@ export default function ScriptPage() {
         <StatusDropdown status={script.status} onChange={handleStatusChange} />
       </div>
 
-      {applyingNewIdea && <p style={{ color: color.textMuted, fontSize: 13, margin: "0 0 14px" }}>Writing another idea…</p>}
+      {applyingNewIdea && (
+        <div style={{ margin: "0 0 18px", border: `1px solid ${color.border}`, background: color.cardBg, borderRadius: 16, padding: "18px 20px" }}>
+          <GenerationPanel title="Writing another idea" output={{ kind: "text" }} />
+        </div>
+      )}
       {error && <p style={{ color: color.danger, fontSize: 13, margin: "0 0 14px" }}>{error}</p>}
 
       {styleSuggestion !== null && (

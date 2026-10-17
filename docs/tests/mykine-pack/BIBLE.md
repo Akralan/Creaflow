@@ -15,7 +15,6 @@
 - **Back-end** : Python **FastAPI**, PostgreSQL 16, SQLAlchemy, déployé sur un VPS Scaleway (DEV1-S) à Paris, Docker Compose, Caddy.
 - **Dashboard kiné** : Next.js 15, TypeScript, Tailwind.
 - **Patient sans compte** : il reçoit un lien SMS (`mykine.app/s/<code à 6 lettres>`), le lien ouvre l'app ou une page web de repli.
-- **Boîtier** (abandonné) : Raspberry Pi 5 + Camera Module 3, écran 7", pensé pour les patients âgés sans smartphone. Coût estimé des pièces : 94 €. Abandonné le 14 mars 2026.
 
 ## Chiffres clés (à reprendre tels quels)
 
@@ -31,15 +30,13 @@
 ## Décisions datées (couche B, `decisions.md`)
 
 1. 2025-11-23 — Pose estimation sur l'appareil, jamais côté serveur (latence et vie privée).
-2. 2026-01-18 — Explorer un boîtier pour les patients sans smartphone.
-3. 2026-02-07 — Pas de compte patient : un lien SMS suffit.
-4. 2026-03-14 — Abandon du boîtier.
-5. 2026-03-14 — Caméra à 45° obligatoire, vérifiée avant la séance.
-6. 2026-04-05 — Passer du modèle `lite` au `full`, avec saut d'images une sur deux sur les téléphones lents.
-7. 2026-06-02 — Ne jamais stocker de vidéo. Seules les séries d'angles sont conservées.
-8. 2026-06-21 — Feedback en direct par couleur (vert / orange / rouge) sur le membre concerné, au lieu d'un score en fin de séance.
-9. 2026-08-30 — Retirer les exercices au sol du catalogue plutôt que les livrer mal.
-10. 2026-10-03 — Pas d'hébergeur HDS pour l'instant : anonymiser (pas de nom de patient côté serveur, un pseudonyme choisi par le kiné).
+2. 2026-02-07 — Pas de compte patient : un lien SMS suffit.
+3. 2026-03-14 — Caméra à 45° obligatoire, vérifiée avant la séance.
+4. 2026-04-05 — Passer du modèle `lite` au `full`, avec saut d'images une sur deux sur les téléphones lents.
+5. 2026-06-02 — Ne jamais stocker de vidéo. Seules les séries d'angles sont conservées.
+6. 2026-06-21 — Feedback en direct par couleur (vert / orange / rouge) sur le membre concerné, au lieu d'un score en fin de séance.
+7. 2026-08-30 — Retirer les exercices au sol du catalogue plutôt que les livrer mal.
+8. 2026-10-03 — Pas d'hébergeur HDS pour l'instant : anonymiser (pas de nom de patient côté serveur, un pseudonyme choisi par le kiné).
 
 ## Repères du devlog (couche B, `devlog.md`) — ordre chronologique
 
@@ -47,10 +44,10 @@
 - 2025-11-16 : prototype web, MediaPipe JS, compte des squats dans le navigateur. Marche sur le laptop, pas sur le téléphone de Julien (iPhone 11, 6 fps).
 - 2025-11-23 : décision sur l'appareil.
 - 2025-12 : calcul d'angle de flexion du genou (hanche-genou-cheville), premiers seuils ; le compteur compte double quand on tremble en bas.
-- 2026-01 : Expo, premier build Android ; TFLite ; boîtier commandé (Pi 5).
+- 2026-01 : Expo, premier build Android ; TFLite.
 - 2026-02 : FastAPI, programmes, lien SMS ; Julien crée son premier programme en 11 minutes.
 - 2026-03-07 : démo au cabinet à Julien et Marion. Marion fait un squat de profil : le squelette saute sur le genou, elle arrête à 40 secondes, « je ne peux pas donner ça à un patient ». Julien trouve l'app « lente ».
-- 2026-03-14 : abandon du boîtier (personne ne veut d'un matériel, 94 € de pièces, et le problème d'angle est le même) ; angle 45° imposé.
+- 2026-03-14 : angle 45° imposé et vérifié avant la séance, suite à la démo du 7 mars.
 - 2026-04 : modèle full, saut d'images, hystérésis ; 120 répétitions filmées avec Julien un samedi ; 18 % → 4 %.
 - 2026-05-12 : pilote 1 lancé, 5 patients. 2026-05-26 : 3 sur 5 ont fait une séance ; retour d'une patiente : « je ne sais pas si je le fais bien ».
 - 2026-06-02 : décision vidéo. 2026-06-21 : feedback couleur. 2026-06-28 : premier message d'un patient à Julien : « c'est la première fois que je fais mes exercices toute la semaine ».

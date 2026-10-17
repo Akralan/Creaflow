@@ -49,11 +49,11 @@ export function decideAccountResolution(input: {
     // Mode « brancher une source » : l'email du compte tiers n'a pas à correspondre — la personne
     // prouve les deux comptes en étant connectée aux deux à la fois.
     if (input.identityUserId && input.identityUserId !== input.sessionUserId) {
-      return { action: "reject", reason: `This ${label} account is already used by another Buildloud account.` };
+      return { action: "reject", reason: `This ${label} account is already used by another Tellovo account.` };
     }
     if (input.identityUserId) return { action: "login", userId: input.sessionUserId };
     if (input.sessionUserHasOtherIdentity) {
-      return { action: "reject", reason: `Your Buildloud account is already linked to another ${label} account.` };
+      return { action: "reject", reason: `Your Tellovo account is already linked to another ${label} account.` };
     }
     return { action: "link", userId: input.sessionUserId };
   }

@@ -6,6 +6,7 @@ import { heading1Style } from "@/components/ui/TextField";
 import SeriesEditModal from "@/components/SeriesEditModal";
 import SeriesDetail from "@/components/SeriesDetail";
 import SeriesSelection from "@/components/SeriesSelection";
+import GenerationPanel from "@/components/GenerationPanel";
 import Link from "next/link";
 import { highlightNav } from "@/lib/navHighlight";
 import { api, ApiClientError, type ContentSeries, type SeriesSlotChange } from "@/lib/apiClient";
@@ -169,6 +170,13 @@ export default function DirectionPage() {
 
   if (!loaded) return null;
 
+  if (generating) {
+    return <GenerationPanel fill title="Drawing your series" subtitle="Tellovo is looking at what you're building." output={{ kind: "series" }} />;
+  }
+  if (confirming) {
+    return <GenerationPanel fill title="Planning your calendar" subtitle="Your publishing days are spread across your series." output={{ kind: "plan" }} />;
+  }
+
   if (selectionMode) {
     return (
       <div style={{ padding: "32px 36px" }}>
@@ -242,7 +250,7 @@ export default function DirectionPage() {
         >
           <span style={{ flex: 1, minWidth: 220, fontSize: 14, color: color.text2 }}>
             <strong style={{ color: color.text }}>Your first posts are scheduled.</strong> They&apos;re waiting on your
-            publishing days: open the first one and Buildloud writes it.
+            publishing days: open the first one and Tellovo writes it.
           </span>
           <Link
             href="/calendar"

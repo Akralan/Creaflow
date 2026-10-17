@@ -105,7 +105,7 @@ export default function OnboardingWelcome({
   return (
     <div>
       <StepHeading title="Let's start with you">
-        Connect what you&apos;re already working on. Buildloud reads it and turns it into your posts.
+        Connect what you&apos;re already working on. Tellovo reads it and turns it into your posts.
       </StepHeading>
 
       <TextField

@@ -10,7 +10,7 @@ import { storyboardStepSchema } from "./scriptSchema";
  * stays a short, constrained text LLM call, never a regeneration of the whole structure.
  */
 
-export const REWRITE_SELECTION_SYSTEM_PROMPT = `You are a writer who edits existing text on request, for Buildloud.
+export const REWRITE_SELECTION_SYSTEM_PROMPT = `You are a writer who edits existing text on request, for Tellovo.
 
 Rules:
 - You rewrite ONLY the selected passage, provided below — never the rest of the script.

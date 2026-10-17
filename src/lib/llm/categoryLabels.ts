@@ -75,7 +75,7 @@ export interface CategoryLabelsContext {
 export async function suggestContentCategories(context: CategoryLabelsContext): Promise<CategoryEntry[]> {
   const lines = [
     `Brand: ${context.brandName} (${context.activityType})`,
-    context.expectations ? `What the author expects from Buildloud: ${context.expectations}` : null,
+    context.expectations ? `What the author expects from Tellovo: ${context.expectations}` : null,
     context.products.length > 0
       ? `Products/projects: ${context.products.map((p) => p.name + (p.description ? ` — ${p.description}` : "")).join("; ")}`
       : "No product registered.",

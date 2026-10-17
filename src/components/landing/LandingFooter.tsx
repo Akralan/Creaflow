@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import Link from "next/link";
 import { accentText, text } from "@/components/landing/theme";
 import { hoverHandlers } from "@/components/landing/hoverStyle";
-import BrandMark from "@/components/BrandMark";
+import Wordmark from "@/components/Wordmark";
 import { getContactEmail } from "@/lib/legal/publisher";
 
 const linkStyle: CSSProperties = { fontSize: 14, color: text.muted };
@@ -28,8 +28,8 @@ export default function LandingFooter() {
         }}
       >
         <span style={{ display: "inline-flex", alignItems: "center", gap: 10, fontSize: 14, color: text.faint }}>
-          <BrandMark size={22} />
-          © 2026 Buildloud. All rights reserved.
+          <Wordmark size={19} />
+          © 2026 Tellovo. All rights reserved.
         </span>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 22 }}>
           {/* The source design points to dummy anchors (#cgu/#confidentialite/#mentions) —

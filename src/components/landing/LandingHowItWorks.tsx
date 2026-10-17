@@ -38,7 +38,7 @@ const steps: Array<{ title: string; description: string; visual: ReactNode }> = 
   {
     title: "Connect what you already have",
     description:
-      "GitHub, Notion or Linear in one click, or your pasted notes. Buildloud reads the files, the pages, the history, the closed issues. That's your material, nothing else.",
+      "GitHub, Notion or Linear in one click, or your pasted notes. Tellovo reads the files, the pages, the history, the closed issues. That's your material, nothing else.",
     visual: (
       <div className={styles.howVisual} aria-hidden="true">
         <span style={smallPill}><SourceIcon kind="github" style={{ color: text.secondary }} />GitHub</span>
@@ -133,7 +133,7 @@ export default function LandingHowItWorks() {
             data-delay={120}
             style={{ margin: "14px auto 0", fontSize: "1.02rem", lineHeight: 1.6, color: text.secondary, maxWidth: "46ch", textWrap: "pretty" }}
           >
-            No brief to write, no prompt to master. You keep working, Buildloud follows what you
+            No brief to write, no prompt to master. You keep working, Tellovo follows what you
             document.
           </p>
         </div>

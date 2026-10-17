@@ -8,7 +8,7 @@ import Button from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { api, ApiClientError } from "@/lib/apiClient";
 import { color, fontHeading } from "@/lib/design/tokens";
-import BrandMark from "@/components/BrandMark";
+import Wordmark from "@/components/Wordmark";
 
 // Landing page for the link received by email (docs/SPEC_LEGAL_EMAIL_RGPD.md §3.3). Same look
 // as /login: the user arrives signed out, without the app menu.
@@ -56,8 +56,7 @@ function ResetContent() {
     >
       <div style={{ width: "100%", maxWidth: 400 }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 11, fontFamily: fontHeading, fontWeight: 700, fontSize: 22, letterSpacing: "-0.02em", color: color.text, textDecoration: "none" }}>
-          <BrandMark size={38} />
-          Buildloud
+          <Wordmark size={30} />
         </Link>
         <Card style={{ borderRadius: 20, padding: 32, marginTop: 24, boxShadow: "0 20px 40px -24px rgba(40,30,60,0.2)" }}>
           <h1 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 26, margin: "0 0 6px", letterSpacing: "-0.02em" }}>

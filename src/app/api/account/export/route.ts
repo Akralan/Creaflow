@@ -14,7 +14,7 @@ export async function GET() {
     await enforceRateLimit("account-export", userId, 3, 60 * 60);
 
     const data = await exportAccountData(userId);
-    const filename = `buildloud-export-${new Date().toISOString().slice(0, 10)}.json`;
+    const filename = `tellovo-export-${new Date().toISOString().slice(0, 10)}.json`;
     return new NextResponse(JSON.stringify(data, null, 2), {
       headers: {
         "content-type": "application/json; charset=utf-8",

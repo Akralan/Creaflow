@@ -58,7 +58,7 @@ export const PUBLISHER: PublisherIdentity = {
 };
 
 /** Service name as it appears in documents and emails. */
-export const SERVICE_NAME = "Buildloud";
+export const SERVICE_NAME = "Tellovo";
 
 /** True for a value still to be filled in: empty, or wrapped in square brackets. */
 export function isPlaceholder(value: string): boolean {

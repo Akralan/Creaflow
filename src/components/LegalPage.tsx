@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { color, fontBody, fontHeading } from "@/lib/design/tokens";
-import BrandMark from "@/components/BrandMark";
+import Wordmark from "@/components/Wordmark";
 import { heading1Style } from "@/components/ui/TextField";
 import { isPublisherComplete } from "@/lib/legal/publisher";
 
@@ -37,8 +37,7 @@ export default function LegalPage({
     <div style={{ background: color.pageBg, minHeight: "100vh", fontFamily: fontBody, color: color.text2 }}>
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "56px 24px 80px" }}>
         <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: 10, fontFamily: fontHeading, fontWeight: 700, fontSize: 18, color: color.text, textDecoration: "none" }}>
-          <BrandMark size={28} />
-          Buildloud
+          <Wordmark size={24} />
         </Link>
 
         <h1 style={{ ...heading1Style, marginTop: 28, marginBottom: 6 }}>{title}</h1>

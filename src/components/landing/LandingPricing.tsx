@@ -152,7 +152,7 @@ export default function LandingPricing({ onBack }: Props) {
           <div>
             <p style={planName}>Free trial</p>
             <p style={priceStyle}>$0</p>
-            <p style={planDescription}>See what Buildloud writes in your voice.</p>
+            <p style={planDescription}>See what Tellovo writes in your voice.</p>
           </div>
           <ul style={featureList}>
             <li style={featureItem}><Check />5 free scripts, for life</li>

@@ -6,7 +6,7 @@ vi.mock("./provider", () => ({ callStructured: callStructuredMock }));
 import { buildExtractionMessage, extractProfileFromMaterial, normalizeSubjects } from "./profileExtraction";
 
 const items = [
-  { key: "source:gh", kind: "GitHub", label: "akralan/creaflow", excerpt: "README de Buildloud" },
+  { key: "source:gh", kind: "GitHub", label: "akralan/creaflow", excerpt: "README de Tellovo" },
   { key: "source:notion", kind: "Notion", label: "Logbook", excerpt: "Product decisions" },
   { key: "source:linear", kind: "Linear", label: "Autre projet", excerpt: "Tâches" },
   { key: "note:n1", kind: "Pasted notes", label: "My notes", excerpt: "Ideas" },
@@ -17,11 +17,11 @@ beforeEach(() => callStructuredMock.mockReset());
 describe("normalizeSubjects", () => {
   it("garde les regroupements du modèle", () => {
     const result = normalizeSubjects(
-      [{ name: "Buildloud", description: "Tool", targetAudience: "Indie devs", keys: ["source:gh", "source:notion", "note:n1"] }, { name: "Autre", description: "", targetAudience: "", keys: ["source:linear"] }],
+      [{ name: "Tellovo", description: "Tool", targetAudience: "Indie devs", keys: ["source:gh", "source:notion", "note:n1"] }, { name: "Autre", description: "", targetAudience: "", keys: ["source:linear"] }],
       items
     );
     expect(result).toEqual([
-      { name: "Buildloud", description: "Tool", targetAudience: "Indie devs", keys: ["source:gh", "source:notion", "note:n1"] },
+      { name: "Tellovo", description: "Tool", targetAudience: "Indie devs", keys: ["source:gh", "source:notion", "note:n1"] },
       { name: "Autre", description: "", targetAudience: "", keys: ["source:linear"] },
     ]);
   });
@@ -38,7 +38,7 @@ describe("normalizeSubjects", () => {
   });
 
   it("range une source oubliée dans son propre sujet, une note oubliée dans le premier", () => {
-    const result = normalizeSubjects([{ name: "Buildloud", description: "", targetAudience: "", keys: ["source:gh"] }], items);
+    const result = normalizeSubjects([{ name: "Tellovo", description: "", targetAudience: "", keys: ["source:gh"] }], items);
     expect(result.map((s) => s.keys)).toEqual([["source:gh", "note:n1"], ["source:notion"], ["source:linear"]]);
     expect(result[1].name).toBe("Logbook");
   });
@@ -51,9 +51,9 @@ describe("normalizeSubjects", () => {
 describe("extractProfileFromMaterial", () => {
   it("transmet identité et matière, et normalise la réponse", async () => {
     callStructuredMock.mockResolvedValue({
-      activityType: " You build Buildloud. ",
+      activityType: " You build Tellovo. ",
       targetAudience: "Developers",
-      subjects: [{ name: "Buildloud", description: "Tool", targetAudience: "", keys: ["source:gh"] }],
+      subjects: [{ name: "Tellovo", description: "Tool", targetAudience: "", keys: ["source:gh"] }],
     });
     const result = await extractProfileFromMaterial({
       name: "Alix",
@@ -63,7 +63,7 @@ describe("extractProfileFromMaterial", () => {
     const message: string = callStructuredMock.mock.calls[0][0].userMessage;
     expect(message).toContain("GitHub account: akralan, display name \"Alix\", bio \"I build tools\"");
     expect(message).toContain("--- [source:notion] Notion · Logbook ---");
-    expect(result.activityType).toBe("You build Buildloud.");
+    expect(result.activityType).toBe("You build Tellovo.");
     expect(result.subjects.map((s) => s.keys)).toEqual([["source:gh"], ["source:notion"]]);
   });
 });

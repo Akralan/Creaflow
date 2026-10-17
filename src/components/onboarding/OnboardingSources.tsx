@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Button from "@/components/ui/Button";
 import { TextAreaField } from "@/components/ui/TextField";
 import StepHeading from "@/components/onboarding/StepHeading";
@@ -9,7 +9,11 @@ import SourcePicker from "@/components/SourcePicker";
 import { PROVIDER_ICONS } from "@/components/OAuthProviderButtons";
 import { oauthStartUrl } from "@/components/onboarding/OnboardingWelcome";
 import { api, ApiClientError, type OnboardingState } from "@/lib/apiClient";
-import { color } from "@/lib/design/tokens";
+import { accent, accentAlpha, color } from "@/lib/design/tokens";
+
+const TEXT_FILE = /\.(md|markdown|txt)$/i;
+/** Same ceiling as the notes route (src/app/api/onboarding/notes/route.ts). */
+const MAX_NOTE_CHARS = 100_000;
 
 type SignedInState = Extract<OnboardingState, { signedIn: true }>;
 
@@ -49,6 +53,8 @@ export default function OnboardingSources({
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const connected = state.connectedProviders.map((p) => p.id);
   const missing = configuredProviderIds.filter((id) => !connected.includes(id));
@@ -62,6 +68,31 @@ export default function OnboardingSources({
       onChanged();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Couldn't save your notes.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  /** Each dropped text file becomes one note block, in drop order. */
+  async function addFiles(files: File[]) {
+    const accepted = files.filter((f) => TEXT_FILE.test(f.name) || f.type.startsWith("text/"));
+    if (accepted.length === 0) {
+      setError("Drop .md or .txt files.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      for (const file of accepted) {
+        const text = await file.text();
+        if (!text.trim()) continue;
+        if (text.length > MAX_NOTE_CHARS) throw new Error(`${file.name} is too long (100,000 characters at most).`);
+        await api.addOnboardingNotes(text);
+        onChanged();
+      }
+      if (accepted.length < files.length) setError("Only .md and .txt files were added.");
+    } catch (err) {
+      setError(err instanceof ApiClientError || err instanceof Error ? err.message : "Couldn't save your notes.");
     } finally {
       setSaving(false);
     }
@@ -112,6 +143,52 @@ export default function OnboardingSources({
             {note.excerpt.length >= 160 ? "…" : ""}&rdquo;
           </p>
         ))}
+        <div
+          data-testid="notes-dropzone"
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+            void addFiles(Array.from(e.dataTransfer.files));
+          }}
+          onClick={() => fileInput.current?.click()}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 4,
+            padding: "22px 16px",
+            marginBottom: 14,
+            borderRadius: 14,
+            border: `2px dashed ${dragOver ? accent : color.border}`,
+            background: dragOver ? accentAlpha(0.06) : color.cardBg,
+            color: color.textMuted,
+            fontSize: 14,
+            textAlign: "center",
+            cursor: "pointer",
+            transition: "border-color .15s, background .15s",
+          }}
+        >
+          <strong style={{ color: color.textSecondary, fontSize: 15 }}>
+            {saving ? "Adding…" : dragOver ? "Drop to add" : "Drop your notes here"}
+          </strong>
+          <span>.md or .txt files — or click to browse</span>
+          <input
+            ref={fileInput}
+            type="file"
+            multiple
+            accept=".md,.markdown,.txt,text/*"
+            hidden
+            onChange={(e) => {
+              void addFiles(Array.from(e.target.files ?? []));
+              e.target.value = "";
+            }}
+          />
+        </div>
         {notesOpen ? (
           <div style={{ display: "grid", gap: 10 }}>
             <TextAreaField

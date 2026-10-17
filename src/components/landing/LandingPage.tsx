@@ -3,7 +3,6 @@ import { bg, text } from "@/components/landing/theme";
 import LandingScrollEffects from "@/components/landing/LandingScrollEffects";
 import LandingHeader from "@/components/landing/LandingHeader";
 import LandingHero from "@/components/landing/LandingHero";
-import LandingSources from "@/components/landing/LandingSources";
 import LandingSocialProofSlot from "@/components/landing/LandingSocialProofSlot";
 import LandingOutcomes from "@/components/landing/LandingOutcomes";
 import LandingHowItWorks from "@/components/landing/LandingHowItWorks";
@@ -61,7 +60,6 @@ export default function LandingPage() {
       <div className={styles.stack}>
         <Panel index={0}>
           <LandingHero />
-          <LandingSources />
           {/* Testimonials / logos: hidden until there is something real to show. */}
           <LandingSocialProofSlot />
         </Panel>

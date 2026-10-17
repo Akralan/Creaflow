@@ -7,6 +7,7 @@ import Card from "@/components/ui/Card";
 import { PlatformBadge, CategoryPill } from "@/components/ui/Badge";
 import { api, ApiClientError, type CalendarEntry, type ContentType, type Product, type VisualFormatFields } from "@/lib/apiClient";
 import VisualFormatPicker from "@/components/VisualFormatPicker";
+import GenerationPanel from "@/components/GenerationPanel";
 import { color, fontHeading, platformMeta } from "@/lib/design/tokens";
 import { defaultContentTypeForPlatform } from "@/lib/llm/prompts";
 
@@ -110,6 +111,11 @@ function NewScriptContent() {
         </Button>
       </div>
     );
+  }
+
+  if (generating) {
+    const visualPost = (contentTypeParam ?? defaultContentTypeForPlatform(entry.platform)) === "visual";
+    return <GenerationPanel fill title="Tellovo is writing your post" output={visualPost ? { kind: "images", count: 1 } : { kind: "text" }} />;
   }
 
   return (

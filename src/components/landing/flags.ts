@@ -5,7 +5,7 @@
  */
 
 /**
- * "What Buildloud does" section (feature grid) hidden since 2026-10-15:
+ * "What Tellovo does" section (feature grid) hidden since 2026-10-15:
  * its points are taken up, rephrased as benefits, by "What changes for you", and the
  * hero already shows provenance. The component stays in place to compare both
  * versions: switching to `true` shows the section, its panel and the header link again.

@@ -47,9 +47,9 @@ export const personas: Persona[] = [
   {
     id: "dev",
     badge: "For developers who build in public",
-    windowTitle: "buildloud — build in public",
+    windowTitle: "tellovo — build in public",
     sources: [
-      { kind: "github", name: "akralan/buildloud", detail: "4 commits" },
+      { kind: "github", name: "akralan/tellovo", detail: "4 commits" },
       { kind: "notion", name: "Dev log", detail: "2 pages" },
     ],
     schedule: [
@@ -66,7 +66,7 @@ export const personas: Persona[] = [
         { kind: "notion", label: "Decisions.md" },
       ],
     },
-    reading: "Buildloud is reading your 4 new commits…",
+    reading: "Tellovo is reading your 4 new commits…",
     proof: {
       sources: [
         { kind: "github", meta: "commit 3f2a1c · yesterday", text: "refactor: remove homegrown cache (-1,200 lines), Postgres is enough" },
@@ -85,7 +85,7 @@ export const personas: Persona[] = [
   {
     id: "fondateur",
     badge: "For founders who share their journey",
-    windowTitle: "buildloud — v2 launch",
+    windowTitle: "tellovo — v2 launch",
     sources: [
       { kind: "notion", name: "Dev log", detail: "3 pages" },
       { kind: "linear", name: "v2 launch", detail: "5 issues" },
@@ -104,7 +104,7 @@ export const personas: Persona[] = [
         { kind: "linear", label: "issue #214" },
       ],
     },
-    reading: "Buildloud is reading your 3 new pages…",
+    reading: "Tellovo is reading your 3 new pages…",
     proof: {
       sources: [
         { kind: "notion", meta: "Dev log · Monday", text: "Declined the custom proposal: $40k, but six months for a single account." },
@@ -123,7 +123,7 @@ export const personas: Persona[] = [
   {
     id: "independant",
     badge: "For freelancers who keep notes",
-    windowTitle: "buildloud — 2026 projects",
+    windowTitle: "tellovo — 2026 projects",
     sources: [
       { kind: "notion", name: "Meeting notes", detail: "6 pages" },
       { kind: "file", name: "notes-mission.md", detail: "pasted" },
@@ -142,7 +142,7 @@ export const personas: Persona[] = [
         { kind: "notion", label: "Notes · Oct 3" },
       ],
     },
-    reading: "Buildloud is reading your 2 new meeting notes…",
+    reading: "Tellovo is reading your 2 new meeting notes…",
     proof: {
       sources: [
         { kind: "file", meta: "notes-mission.md · yesterday", text: "15% discount request. Declined, proposal unchanged. Signed the next day." },

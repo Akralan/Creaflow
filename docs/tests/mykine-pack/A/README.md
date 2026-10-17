@@ -15,7 +15,6 @@ Monorepo, trois applications :
 | `apps/patient` | Application patient (Android, iOS, repli web) | Expo / React Native, TypeScript, MediaPipe Pose (TFLite) |
 | `apps/dashboard` | Dashboard kiné | Next.js 15, TypeScript, Tailwind |
 | `services/api` | API et persistance | Python 3.12, FastAPI, SQLAlchemy, PostgreSQL 16 |
-| `hardware/boitier` | Spec du boîtier (statut : abandonné) | — |
 | `docs/` | Documentation technique | — |
 
 ## Prérequis

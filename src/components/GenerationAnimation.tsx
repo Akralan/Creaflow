@@ -5,7 +5,16 @@ import { PROVIDER_ICONS } from "@/components/OAuthProviderButtons";
 import { api } from "@/lib/apiClient";
 import styles from "./generation.module.css";
 
-export type GenerationOutput = { kind: "text" } | { kind: "images"; count: number } | { kind: "animation" };
+export type GenerationOutput =
+  | { kind: "text" }
+  | { kind: "images"; count: number }
+  | { kind: "animation" }
+  /** Onboarding: the profile and subjects read from the material. */
+  | { kind: "profile" }
+  /** The suggested series, stacked. */
+  | { kind: "series" }
+  /** The calendar filling with the publishing days. */
+  | { kind: "plan" };
 
 const NOTES_ICON = (
   <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
@@ -32,6 +41,15 @@ const FAN_COLORS = [
 ];
 
 function captionsFor(output: GenerationOutput): string[] {
+  if (output.kind === "profile") {
+    return ["Reading your material…", "Grouping what belongs to the same project…", "Spotting who you write for…", "Drawing your profile…"];
+  }
+  if (output.kind === "series") {
+    return ["Reading your material…", "Looking at what you're building…", "Finding the slots that come back…", "Naming your series…"];
+  }
+  if (output.kind === "plan") {
+    return ["Spreading your publishing days…", "Matching posts to your series…", "Filling your calendar…"];
+  }
   const last =
     output.kind === "text"
       ? "Writing your post…"
@@ -48,20 +66,23 @@ function captionsFor(output: GenerationOutput): string[] {
  * the spinning "mixer", and comes out as the chosen post — a text being written,
  * images fanning out, or an animation. Purely decorative: no real data passes through.
  */
-export default function GenerationAnimation({ output }: { output: GenerationOutput }) {
-  const [providers, setProviders] = useState<string[]>(["github", "notion"]);
+export default function GenerationAnimation({ output, providers: given }: { output: GenerationOutput; providers?: string[] }) {
+  const [fetched, setFetched] = useState<string[]>(["github", "notion"]);
+  // The caller knows better than the profile when there isn't one yet (onboarding).
+  const providers = given && given.length > 0 ? given.filter((id) => id in CHIPS).slice(0, 3) : fetched;
   const [step, setStep] = useState(0);
   const captions = captionsFor(output);
 
   useEffect(() => {
+    if (given && given.length > 0) return;
     api
       .getProfile()
       .then(({ connectedProviders }) => {
         const ids = connectedProviders.map((p) => p.id).filter((id) => id in CHIPS);
-        setProviders(ids.length > 0 ? ids.slice(0, 3) : ["notes"]);
+        setFetched(ids.length > 0 ? ids.slice(0, 3) : ["notes"]);
       })
       .catch(() => {});
-  }, []);
+  }, [given]);
 
   useEffect(() => {
     // The last phrase stays displayed: it's the longest step.
@@ -152,6 +173,60 @@ export default function GenerationAnimation({ output }: { output: GenerationOutp
               );
             })}
 
+          {output.kind === "profile" && (
+            <div className={styles.textCard}>
+              <div className={styles.avatarRow}>
+                <span className={styles.avatar} />
+                <span className={styles.line} style={{ "--w": "55%", animationDelay: "0s" } as React.CSSProperties} />
+              </div>
+              <span className={`${styles.line} ${styles.lineStrong}`} style={{ "--w": "90%", animationDelay: "0.3s" } as React.CSSProperties} />
+              <span className={styles.line} style={{ "--w": "80%", animationDelay: "0.55s" } as React.CSSProperties} />
+              <span className={styles.line} style={{ "--w": "62%", animationDelay: "0.8s" } as React.CSSProperties} />
+              <div className={styles.subjectChips}>
+                {["subject", "audience", "voice"].map((label, i) => (
+                  <span key={label} className={styles.subjectChip} style={{ animationDelay: `${0.6 + i * 0.35}s` }}>
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {output.kind === "series" &&
+            [0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className={styles.seriesCard}
+                style={{ top: i * 58, animationDelay: `${i * 0.35}s`, "--tint": FAN_COLORS[i % FAN_COLORS.length].match(/oklch\([^)]*\)/)?.[0] } as React.CSSProperties}
+              >
+                <span className={`${styles.seriesBar} ${styles.seriesBarStrong}`} style={{ "--w": `${78 - i * 12}%` } as React.CSSProperties} />
+                <span className={styles.seriesBar} style={{ "--w": `${92 - i * 14}%` } as React.CSSProperties} />
+              </span>
+            ))}
+
+          {output.kind === "plan" && (
+            <div className={styles.textCard}>
+              <div className={styles.avatarRow}>
+                <span className={styles.avatar} />
+                <span className={styles.line} style={{ "--w": "45%", animationDelay: "0s" } as React.CSSProperties} />
+              </div>
+              <div className={styles.planGrid}>
+                {Array.from({ length: 28 }, (_, i) => {
+                  const col = i % 7;
+                  const row = Math.floor(i / 7);
+                  const on = col === 0 || col === 2 || col === 4;
+                  return (
+                    <span
+                      key={i}
+                      className={`${styles.planCell} ${on ? styles.planCellOn : ""}`}
+                      style={on ? { animationDelay: `${(row * 0.55 + col * 0.12).toFixed(2)}s` } : undefined}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {output.kind === "animation" && (
             <div className={styles.motionCard}>
               <span className={styles.motionBlob} />
@@ -169,5 +244,17 @@ export default function GenerationAnimation({ output }: { output: GenerationOutp
         {captions[step]}
       </p>
     </div>
+  );
+}
+
+/** The spinning core on its own, for small waits (a panel computing something). */
+export function GenerationOrb({ size = 28 }: { size?: number }) {
+  return (
+    <span className={styles.orb} style={{ width: size, height: size, "--s": size / 112 } as React.CSSProperties} aria-hidden>
+      <span className={styles.pot}>
+        <span className={styles.ring} />
+        <span className={styles.core} />
+      </span>
+    </span>
   );
 }

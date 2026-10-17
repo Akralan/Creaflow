@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Terms of Use and Sale",
-  description: "Terms for using the Buildloud service and subscribing to paid plans.",
+  description: "Terms for using the Tellovo service and subscribing to paid plans.",
   alternates: { canonical: "/legal/cgu" },
 };
 

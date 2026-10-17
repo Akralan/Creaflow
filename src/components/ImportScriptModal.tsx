@@ -26,7 +26,7 @@ export default function ImportScriptModal({
         <div>
           <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 20 }}>Import a script</div>
           <p style={{ margin: "6px 0 0", color: color.textMuted, fontSize: 14 }}>
-            A text already written elsewhere — Buildloud just tracks it.
+            A text already written elsewhere — Tellovo just tracks it.
           </p>
         </div>
         <IconActionButton icon={X} variant="neutral" title="Close" onClick={onClose} size={32} />

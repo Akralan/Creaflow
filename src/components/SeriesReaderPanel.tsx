@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Button from "@/components/ui/Button";
 import { api, ApiClientError, type ContentSeries, type PortraitReader, type SeriesForm, type SeriesPlan } from "@/lib/apiClient";
 import { accentAlpha, color } from "@/lib/design/tokens";
+import { GenerationOrb } from "@/components/GenerationAnimation";
 
 /**
  * The reader and shape of a series (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4), and the plan that
@@ -127,7 +128,12 @@ export default function SeriesReaderPanel({ series, onSeriesUpdate }: { series: 
             {series.product ? "The topic has no reader portrait yet: build it from the topic." : "Link the series to a topic to pick its reader."}
           </span>
         )}
-        {busy && <span style={{ fontSize: 12, color: color.textFaint }}>Writing the shape…</span>}
+        {busy && (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, color: color.textFaint }}>
+            <GenerationOrb size={18} />
+            Writing the shape…
+          </span>
+        )}
       </div>
       {series.readerLabel && readers.find((r) => r.label === series.readerLabel) && (
         <p style={{ margin: 0, fontSize: 13, color: color.textMuted, lineHeight: 1.5 }}>{readers.find((r) => r.label === series.readerLabel)?.who}</p>

@@ -391,7 +391,7 @@ function buildAssistantTool(context: {
   };
 }
 
-const SYSTEM_PROMPT = `You are Buildloud's editorial assistant. You talk with the user about their editorial direction and the settings of their publishing calendar, and, when relevant, you propose creations or changes to PRODUCTS (subjects), recurring SERIES, EDITORIAL ROLES (called 'categories' in the data), ANGLES, active or switched-off PLATFORMS, PUBLISHING DAYS, and the BRAND AUDIENCE.
+const SYSTEM_PROMPT = `You are Tellovo's editorial assistant. You talk with the user about their editorial direction and the settings of their publishing calendar, and, when relevant, you propose creations or changes to PRODUCTS (subjects), recurring SERIES, EDITORIAL ROLES (called 'categories' in the data), ANGLES, active or switched-off PLATFORMS, PUBLISHING DAYS, and the BRAND AUDIENCE.
 
 You have READ TOOLS over the whole workspace: the creator's raw material (their working documents), their scripts, their publishing calendar, their real performance, the narrative state of their ongoing series, and their full profile. Use them when the answer depends on it — an editor-in-chief who advises without having read what is published or what is planned is useless. But don't dig for the sake of it: on a question that doesn't need it, answer directly. Two or three targeted reads are better than ten.
 
@@ -521,8 +521,8 @@ export async function runAssistantChatTurn(context: AssistantChatContext): Promi
           .join("; ")}`
       : "No active platform for now.",
     context.expectations
-      ? `What the creator expects from Buildloud: ${context.expectations}`
-      : "The creator hasn't said what they expect from Buildloud.",
+      ? `What the creator expects from Tellovo: ${context.expectations}`
+      : "The creator hasn't said what they expect from Tellovo.",
     context.currentTargetAudience
       ? `Current brand audience: ${context.currentTargetAudience}`
       : "No brand audience set for now.",

@@ -5,20 +5,17 @@ import { SITE_NAME } from "@/lib/seo";
 
 // Preview image when a link to the site is shared (docs/SPEC_SEO.md §2): Next serves it on
 // /opengraph-image and wires it into og:image and twitter:image on every page. Generated once
-// at build (no request API here), from the same drawing as the favicon (icon0.svg)
-// and the landing's two fonts. The .ttf files live in src/assets/fonts (OFL license) because
+// at build (no request API here), with the wordmark and the landing's two fonts. The .ttf files live in src/assets/fonts (OFL license) because
 // Satori reads neither next/font's woff2 files nor system fonts.
-export const alt = "Buildloud — Your work notes become your posts for the week";
+export const alt = "Tellovo — Your work notes become your posts for the week";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function OpenGraphImage() {
-  const [heading, body, icon] = await Promise.all([
+  const [heading, body] = await Promise.all([
     readFile(join(process.cwd(), "src/assets/fonts/BricolageGrotesque-Bold.ttf")),
     readFile(join(process.cwd(), "src/assets/fonts/InstrumentSans-Regular.ttf")),
-    readFile(join(process.cwd(), "src/app/icon0.svg")),
   ]);
-  const iconSrc = `data:image/svg+xml;base64,${icon.toString("base64")}`;
 
   return new ImageResponse(
     (
@@ -35,10 +32,9 @@ export default async function OpenGraphImage() {
           fontFamily: "Instrument Sans",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- Satori doesn't know next/image */}
-          <img src={iconSrc} width={64} height={64} alt="" />
-          <div style={{ fontFamily: "Bricolage Grotesque", fontWeight: 700, fontSize: 40, letterSpacing: "-0.02em" }}>{SITE_NAME}</div>
+        <div style={{ display: "flex", fontFamily: "Bricolage Grotesque", fontWeight: 700, fontSize: 52, letterSpacing: "-0.045em" }}>
+          {SITE_NAME.toLowerCase()}
+          <span style={{ color: "#6431c3" }}>.</span>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 28, maxWidth: 1000 }}>
