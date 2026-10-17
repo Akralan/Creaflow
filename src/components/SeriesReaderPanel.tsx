@@ -11,11 +11,12 @@ import { accentAlpha, color } from "@/lib/design/tokens";
  * réécrit la forme ; la forme se corrige à la main.
  */
 
-const FORM_FIELDS: Array<{ key: "wants" | "episodeShape" | "avoid" | "register"; label: string; rows: number }> = [
+const FORM_FIELDS: Array<{ key: "wants" | "episodeShape" | "avoid" | "register" | "signature"; label: string; rows: number }> = [
   { key: "wants", label: "Ce qu'il vient chercher", rows: 2 },
   { key: "episodeShape", label: "De quoi est fait un bon épisode", rows: 4 },
   { key: "avoid", label: "Ce qui le fait partir", rows: 2 },
   { key: "register", label: "Longueur et registre", rows: 2 },
+  { key: "signature", label: "Signature (ce qui revient à chaque épisode)", rows: 1 },
 ];
 
 function formatDate(date: string | null, precision: string): string {
@@ -73,6 +74,7 @@ export default function SeriesReaderPanel({ series, onSeriesUpdate }: { series: 
         episodeShape: editing.episodeShape,
         avoid: editing.avoid,
         register: editing.register,
+        signature: editing.signature ?? "",
         words: editing.words,
         jargon: editing.jargon,
       });
@@ -158,7 +160,7 @@ export default function SeriesReaderPanel({ series, onSeriesUpdate }: { series: 
               {editing ? (
                 <textarea value={editing[f.key]} onChange={(e) => setEditing({ ...editing, [f.key]: e.target.value })} rows={f.rows} style={fieldStyle} />
               ) : (
-                <div style={{ fontSize: 13, color: color.text2, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{form[f.key]}</div>
+                <div style={{ fontSize: 13, color: color.text2, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{form[f.key] || (f.key === "signature" ? "Aucune" : "")}</div>
               )}
             </div>
           ))}

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import SeriesFramingPanel from "@/components/SeriesFramingPanel";
 import SeriesReaderPanel from "@/components/SeriesReaderPanel";
 import { PlatformBadge } from "@/components/ui/Badge";
 import { api, ApiClientError, type ContentSeries, type Product, type Script } from "@/lib/apiClient";
@@ -10,8 +9,8 @@ import { color, fontHeading, statusMeta } from "@/lib/design/tokens";
 
 /**
  * Panneau de droite de l'écran Direction : le sujet lié, le lecteur et la forme de la série avec
- * ses prochains épisodes (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4), le cadrage, et les scripts de
- * la série. Le plan en épisodes du rédacteur en chef a disparu avec lui (Lot 4) : le plan d'une
+ * ses prochains épisodes (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4), et les scripts de la série.
+ * Le cadrage par choix (docs/SPEC_CADRAGE_SERIE.md) a été retiré : la forme le remplace, signature comprise. Le plan en épisodes du rédacteur en chef a disparu avec lui (Lot 4) : le plan d'une
  * série, c'est la ligne de temps de son sujet vue par son lecteur.
  */
 
@@ -128,8 +127,6 @@ export default function SeriesDetail({
       {/* Le lecteur, la forme et les prochains épisodes tirés de la ligne de temps (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4). */}
       <SeriesReaderPanel series={series} onSeriesUpdate={onSeriesUpdate} />
 
-      {/* Cadrage de la série par des choix (docs/SPEC_CADRAGE_SERIE.md §5). */}
-      <SeriesFramingPanel series={series} onSeriesUpdate={onSeriesUpdate} />
 
       {scripts.length > 0 && (
         <div style={{ ...cardStyle, marginTop: 14 }}>

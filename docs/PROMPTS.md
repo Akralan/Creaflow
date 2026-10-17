@@ -982,6 +982,8 @@ matchedProductName : Nom exact du produit du catalogue (fourni dans le contexte)
 
 ## 20. Cadrage d'une série
 
+> **Retiré le 2026-10-17** : code supprimé avec le retrait du rédacteur en chef (`docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md`). La forme de la série (prompt 22) le remplace, avec un champ `signature`. Conservé ici pour mémoire.
+
 - **Où** : `src/lib/llm/seriesFraming.ts` (catalogue `FRAMING_CATALOG`, trois prompts : `pickFramingMoment`, `proposeFramingOptions` avec l'outil `propose_framing_options`, `proposeSignature` avec l'outil `propose_signature`) ; `src/lib/services/seriesFramingService.ts` ; routes `/api/series/[id]/framing*` ; panneau `src/components/SeriesFramingPanel.tsx`.
 - **À quoi il sert** : faire choisir à l'auteur, devant trois extraits écrits sur un même vrai moment de sa matière, la posture, la voix et le récit d'une série, puis lui proposer une signature. Le résultat entre dans le prompt 1 (bloc `<cadrage>`, voix en tête de `<style>`).
 - **Quand** : à la demande, depuis « Cadrer la série » ou « Recadrer » en haut du détail d'une série (Direction). Un appel par étape, plus un pour choisir le moment au début du parcours.

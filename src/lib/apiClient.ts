@@ -318,8 +318,6 @@ export interface ContentSeries {
   /** Sujet dont cette série tire sa matière (sélecteur de sujet, docs/SPEC_REDACTEUR_EN_CHEF.md) —
    *  null si la série n'est rattachée à aucun sujet précis (matière de niveau marque). */
   product: { id: string; name: string } | null;
-  /** Cadrage choisi par l'auteur (docs/SPEC_CADRAGE_SERIE.md) — null si la série n'est pas cadrée. */
-  framing: SeriesFraming | null;
   /** Jours de publication de la série (docs/SPEC_RYTHME_DES_SERIES.md) — null = pas de rythme,
    *  la série ne pose aucun créneau. */
   rhythm: SeriesRhythm | null;
@@ -338,6 +336,8 @@ export interface SeriesForm {
   words: string[];
   jargon: string[];
   register: string;
+  /** Ce qui revient à chaque épisode (une phrase, un geste) — chaîne vide si rien. */
+  signature: string;
   generatedAt: string | null;
   editedByUser: boolean;
 }
@@ -367,39 +367,6 @@ export interface SeriesSlotChange {
   created: number;
   removed: number;
   until: string;
-}
-
-export type FramingDimension = "posture" | "voice" | "story";
-
-export interface FramingChoice {
-  id: string;
-  label: string;
-  rule: string;
-  sample: string;
-}
-
-export interface ProposedFramingOption {
-  id: string;
-  label: string;
-  description: string;
-  rule: string;
-  sample: string;
-}
-
-export interface FramingSignature {
-  text: string;
-  placement: "ouverture" | "fin" | "titre";
-}
-
-export interface SeriesFraming {
-  moment: { title: string; docIds: string[] };
-  posture: FramingChoice;
-  voice: FramingChoice | null;
-  story: FramingChoice;
-  signature: FramingSignature | null;
-  rejected: Array<{ dimension: FramingDimension; id: string; label: string; sample: string }>;
-  remarks: string[];
-  completedAt: string | null;
 }
 
 export interface StoryboardStep {
@@ -861,37 +828,6 @@ export const api = {
       body: JSON.stringify(form),
     }),
   getSeriesPlan: (seriesId: string) => apiFetch<{ plan: SeriesPlan }>(`/api/series/${seriesId}/plan`),
-  getFramingOptions: (
-    seriesId: string,
-    data: {
-      dimension: FramingDimension;
-      chosen: { posture?: { id: string; sample: string } | null; voice?: { id: string; sample: string } | null };
-      excludeIds?: string[];
-      remark?: string;
-      moment?: { title: string; docIds: string[] };
-    }
-  ) =>
-    post<{
-      moment: { title: string; docIds: string[]; hasMaterial: boolean };
-      options: ProposedFramingOption[];
-      accountVoice: (FramingChoice & { chosenAt: string | null }) | null;
-    }>(`/api/series/${seriesId}/framing/options`, data),
-  getFramingSignature: (
-    seriesId: string,
-    data: { posture: { id: string; sample: string }; voice: { id: string; sample: string } | null; story: { id: string; sample: string } }
-  ) => post<FramingSignature & { why: string }>(`/api/series/${seriesId}/framing/signature`, data),
-  saveFraming: (
-    seriesId: string,
-    data: {
-      moment: { title: string; docIds: string[] };
-      posture: { id: string; sample: string };
-      voice: { id: string; sample: string } | null;
-      story: { id: string; sample: string };
-      signature: FramingSignature | null;
-      rejected: Array<{ dimension: FramingDimension; id: string; sample: string }>;
-      remarks: string[];
-    }
-  ) => put<{ series: ContentSeries }>(`/api/series/${seriesId}/framing`, data),
   generateContentSeries: () => post<{ series: ContentSeries[] }>("/api/series"),
   saveContentSeries: (
     series: Array<{

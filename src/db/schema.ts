@@ -228,6 +228,7 @@ export const creatorProfiles = pgTable("creator_profiles", {
   styleProfile: jsonb("style_profile"),
   // Voix choisie au premier cadrage de série (docs/SPEC_CADRAGE_SERIE.md §1) : point de départ du
   // style avant que l'apprentissage par les corrections ait de quoi travailler.
+  // RETIRÉ le 2026-10-17 (le cadrage par choix est remplacé par la forme de la série, signature comprise — docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md). Colonne conservée, plus lue.
   chosenVoice: jsonb("chosen_voice"),
   styleProfileUpdatedAt: timestamp("style_profile_updated_at"),
   // Identité de marque pour les maquettes (docs/SPEC_DESIGN_HTML_SUR_IMAGE.md §2) :
@@ -283,6 +284,7 @@ export const contentSeries = pgTable("content_series", {
   productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
   // Cadrage choisi par l'auteur avant le premier épisode (docs/SPEC_CADRAGE_SERIE.md §2) : posture,
   // voix propre à la série, récit, signature, extraits choisis et écartés. Null = série pas cadrée.
+  // RETIRÉ le 2026-10-17 (le cadrage par choix est remplacé par la forme de la série, signature comprise — docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md). Colonne conservée, plus lue.
   framing: jsonb("framing"),
   // Le lecteur unique de la série (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4) : un label du portrait
   // des lecteurs du sujet (products.readerPortrait). Null = pas encore choisi.

@@ -92,7 +92,7 @@ CreatorProfile (1:1 avec User)
   + corrections apprises `rules[{text, platform|null}]` (≤ 12), `avoid[]`, `prefer[]`, `evidence{scriptCount, learnedAt}`.
   Un profil antérieur au chantier n'a que la voix : lecture tolérante par `parseStoredStyleProfile`, listes vides par défaut.)
 - styleProfileUpdatedAt
-- chosenVoice (jsonb, nullable — `docs/SPEC_CADRAGE_SERIE.md` : voix choisie parmi trois extraits au
+- chosenVoice (jsonb, nullable — **retiré le 2026-10-17 avec le cadrage de série, plus lu** ; `docs/SPEC_CADRAGE_SERIE.md` : voix choisie parmi trois extraits au
   premier cadrage de série `{id, label, rule, sample, chosenAt}`, une fois pour le compte ; injectée en
   tête du bloc `<style>`. Migration `0041`)
 
@@ -123,7 +123,7 @@ ContentSeries ("Direction" — format récurrent nommé, ex: "Le mythe du mercre
 - archived (bool)
 - productId (FK nullable — sujet dont la série tire sa matière ; posé d'office à la génération IA
   quand le compte n'a qu'un sujet)
-- framing (jsonb, nullable — cadrage choisi par l'auteur, `docs/SPEC_CADRAGE_SERIE.md` §2 : moment
+- framing (jsonb, nullable — **retiré le 2026-10-17, plus lu** : la forme de la série (`form`, signature comprise) le remplace ; `docs/SPEC_CADRAGE_SERIE.md` §2 : moment
   raconté, posture, voix propre à la série (null = voix du compte), récit, signature, extraits écartés,
   remarques. Migration `0041`)
 - createdAt
@@ -522,10 +522,10 @@ Injection : `buildStyleBlock(profile, platform)` produit un bloc `=== STYLE ===`
 
 Les trois reçoivent `expectations` (« Ce que l'auteur attend de CreaFlow : … ») à la place de l'ancien ton/valeurs/matériel/temps. Ces trois générations sont déclenchées automatiquement à la fin de l'onboarding (`completeOnboarding`, dans cet ordre : catégories → angles → séries, les séries dépendant des catégories) et peuvent être régénérées manuellement depuis l'écran Direction (l'ancien jeu actif est archivé, pas supprimé).
 
-### 5.15 Portrait des lecteurs, veille d'inspiration, cadrage de série
+### 5.15 Portrait des lecteurs, veille d'inspiration (le cadrage de série est retiré)
 - `src/lib/llm/readerPortrait.ts` — 1 à 3 publics par sujet, tirés de l'audience et de la matière du sujet. Le rédacteur en chef choisit chaque jour le public visé (`readerLabel`), en évitant celui des derniers posts.
 - `src/lib/llm/inspirationResearch.ts` — deux appels : une recherche web (`callWebResearch`, outil `web_search` d'OpenAI avec `tool_choice: "required"`, sinon le modèle répond de mémoire), puis une mise en fiches. Seules les URL réellement consultées (annotations `url_citation`) sont gardées.
-- `src/lib/llm/seriesFraming.ts` — catalogue fixe de 6 options par dimension (posture, voix, récit) ; le modèle en retient 3 et écrit pour chacune un extrait de 80 mots au plus sur un même vrai moment de la matière (choisi par `pickFramingMoment` sur les résumés, hors documents d'installation), puis propose une signature.
+- Le cadrage de série (`seriesFraming.ts`, `seriesFramingService.ts`, routes `/api/series/[id]/framing*`, panneau) est **retiré le 2026-10-17** : il n'était lu que par le prompt V3, et la forme de la série (5.16) couvre ce qu'il faisait, avec un champ `signature` pour ce qui revient à chaque épisode.
 
 ### 5.16 Le rédacteur par événements — `eventReader.ts`, `seriesForm.ts`, `eventWriter.ts` (`docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md`)
 
