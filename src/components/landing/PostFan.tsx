@@ -9,7 +9,7 @@ import styles from "@/components/landing/landing.module.css";
 /**
  * Three posts fanned out like playing cards, which pop up when the final section
  * scrolls into view: a photo (Instagram), a looping motion design (TikTok), a text post
- * (LinkedIn). Three formats Buildloud produces — and something to dress up the top of the section.
+ * (LinkedIn). Three formats Tellovo produces — and something to dress up the top of the section.
  * Photo: Lorem Picsum #180 (Unsplash license), stored in public/landing/.
  */
 export default function PostFan() {

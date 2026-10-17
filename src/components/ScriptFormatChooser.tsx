@@ -180,7 +180,7 @@ export default function ScriptFormatChooser({
   return (
     <Modal open={entry !== null} onClose={() => !generating && onClose()} width={640}>
       <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 20, margin: "0 0 4px" }}>
-        {generating ? "Buildloud is writing your post" : "Which format?"}
+        {generating ? "Tellovo is writing your post" : "Which format?"}
       </h2>
       <p style={{ margin: "0 0 20px", fontSize: 14, color: color.textMuted }}>
         {entry?.series ? entry.series.label : "Free post"}

@@ -5,9 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { TextAreaField, TextField } from "@/components/ui/TextField";
-import BrandMark from "@/components/BrandMark";
+import Wordmark from "@/components/Wordmark";
 import StepHeading from "@/components/onboarding/StepHeading";
 import OnboardingWelcome from "@/components/onboarding/OnboardingWelcome";
+import GenerationPanel from "@/components/GenerationPanel";
 import OnboardingSources from "@/components/onboarding/OnboardingSources";
 import SubjectsEditor, { type SubjectItem } from "@/components/onboarding/SubjectsEditor";
 import PublishingDaysPicker from "@/components/PublishingDaysPicker";
@@ -59,28 +60,23 @@ const RETRY_DELAY_MS = 4000;
  * réessayer et remplir à la main (à partir des sujets de repli renvoyés par le serveur).
  */
 function ReadingStep({
-  lines,
+  providers,
   load,
   onSuccess,
   onManual,
   onBack,
 }: {
-  lines: string[];
+  /** Sources feeding the scene: the connected accounts, plus "notes" when notes were added. */
+  providers: string[];
   load: () => Promise<OnboardingDraft>;
   onSuccess: (draft: OnboardingDraft) => void;
   onManual: (fallback: OnboardingDraft | null) => void;
   onBack: () => void;
 }) {
-  const [index, setIndex] = useState(0);
   const [attempt, setAttempt] = useState(1);
   const [failure, setFailure] = useState<string | null>(null);
   const [gaveUp, setGaveUp] = useState(false);
   const fallback = useRef<OnboardingDraft | null>(null);
-
-  useEffect(() => {
-    const timer = setInterval(() => setIndex((i) => i + 1), 1400);
-    return () => clearInterval(timer);
-  }, []);
 
   // Un essai par valeur de `attempt` — la garde évite le double appel quand React rejoue l'effet
   // en développement.
@@ -116,31 +112,12 @@ function ReadingStep({
     setAttempt(1);
   }
 
-  const current = lines.length > 0 ? lines[index % lines.length] : "Reading your material…";
   return (
-    <div style={{ textAlign: "center", padding: "36px 0 20px" }}>
-      {!gaveUp && (
-        <div
-          aria-hidden
-          style={{
-            width: 54,
-            height: 54,
-            margin: "0 auto 22px",
-            borderRadius: "50%",
-            border: `4px solid ${accentAlpha(0.15)}`,
-            borderTopColor: accent,
-            animation: "cf-onboarding-spin 0.9s linear infinite",
-          }}
-        />
-      )}
-      <style>{"@keyframes cf-onboarding-spin{to{transform:rotate(360deg)}} @keyframes cf-onboarding-fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}"}</style>
-      <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 22, margin: "0 0 10px" }}>
-        {gaveUp ? "Reading didn't work out" : "Getting to know what you do"}
-      </h2>
-      {!gaveUp && (
-        <p key={index} style={{ margin: 0, color: color.textMuted, fontSize: 15, animation: "cf-onboarding-fade .4s ease both" }}>
-          {current}
-        </p>
+    <div style={{ textAlign: "center", padding: gaveUp ? "36px 0 20px" : "8px 0 0" }}>
+      {gaveUp ? (
+        <h2 style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 22, margin: "0 0 10px" }}>Reading didn&apos;t work out</h2>
+      ) : (
+        <GenerationPanel title="Getting to know what you do" output={{ kind: "profile" }} providers={providers} />
       )}
       {failure && (
         <div
@@ -231,12 +208,8 @@ function OnboardingContent() {
     return map;
   }, [signedIn]);
 
-  const readingLines = useMemo(
-    () => [
-      ...(signedIn?.sources ?? []).map((s) => `Reading ${s.label} on ${s.providerLabel}…`),
-      ...((signedIn?.notes.length ?? 0) > 0 ? ["Reading your notes…"] : []),
-      "Grouping what belongs to the same project…",
-    ],
+  const readingProviders = useMemo(
+    () => [...new Set([...(signedIn?.sources ?? []).map((s) => s.provider), ...((signedIn?.notes.length ?? 0) > 0 ? ["notes"] : [])])],
     [signedIn]
   );
 
@@ -313,13 +286,12 @@ function OnboardingContent() {
   if (!state) return null;
 
   const stepIndex = STEPS.indexOf(step);
-  const showFooter = step !== "welcome" && step !== "reading";
+  const showFooter = step !== "welcome" && step !== "reading" && !busy;
 
   return (
     <div style={{ height: "100vh", width: "100%", overflow: "auto", display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "22px 40px", display: "flex", alignItems: "center", gap: 10, borderBottom: `1px solid ${color.border}`, background: color.cardBg }}>
-        <BrandMark size={32} />
-        <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18, letterSpacing: "-0.02em" }}>Buildloud</span>
+        <Wordmark size={26} />
       </div>
 
       <div style={{ maxWidth: 680, width: "100%", margin: "0 auto", padding: "36px 20px 64px" }}>
@@ -356,7 +328,7 @@ function OnboardingContent() {
           )}
 
           {step === "reading" && (
-            <ReadingStep lines={readingLines} load={loadDraft} onSuccess={applyDraft} onManual={applyDraft} onBack={() => setStep("sources")} />
+            <ReadingStep providers={readingProviders} load={loadDraft} onSuccess={applyDraft} onManual={applyDraft} onBack={() => setStep("sources")} />
           )}
 
           {step === "profile" && (
@@ -378,7 +350,7 @@ function OnboardingContent() {
           {step === "expectations" && (
             <div>
               <StepHeading title="What do you expect from us?">
-                Say it in your own words: what you want Buildloud to help you do. We&apos;ll use it for every post.
+                Say it in your own words: what you want Tellovo to help you do. We&apos;ll use it for every post.
               </StepHeading>
               <TextAreaField
                 value={expectations}
@@ -389,7 +361,11 @@ function OnboardingContent() {
             </div>
           )}
 
-          {step === "days" && (
+          {step === "days" && busy && (
+            <GenerationPanel title="Setting up your series" subtitle="Tellovo is saving your profile, then drawing your series." output={{ kind: "series" }} providers={readingProviders} />
+          )}
+
+          {step === "days" && !busy && (
             <div>
               <StepHeading title="Your publishing days">
                 The days you can publish. We spread them across your series, and you can change each series&apos; days whenever you want.

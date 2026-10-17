@@ -1,4 +1,4 @@
-# Buildloud
+# Tellovo
 
 Next.js editorial production app for social networks: onboarding captures the brand and its topics,
 an "editor-in-chief" plans content series, and the app generates the scripts and places them in a
@@ -83,7 +83,7 @@ The documents in `docs/` are written in French.
 
 ## License
 
-Buildloud is distributed under the [Elastic License 2.0](LICENSE).
+Tellovo is distributed under the [Elastic License 2.0](LICENSE).
 
 In short:
 
@@ -95,4 +95,4 @@ In short:
 This summary has no legal value, only the `LICENSE` file is authoritative. For commercial use
 as a service, contact alix.chagotpro@gmail.com.
 
-Copyright © 2026 Alix Chagot. "Buildloud" is a trademark of Alix Chagot.
+Copyright © 2026 Alix Chagot. "Tellovo" is a trademark of Alix Chagot.

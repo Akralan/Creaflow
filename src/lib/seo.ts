@@ -9,8 +9,8 @@ import type { Metadata } from "next";
  * passing as `build.args` in docker-compose.prod.yml, and not only in `env_file`.
  */
 
-export const SITE_NAME = "Buildloud";
-export const SITE_TITLE = "Buildloud — Your work notes become your posts";
+export const SITE_NAME = "Tellovo";
+export const SITE_TITLE = "Tellovo — Your work notes become your posts";
 export const SITE_DESCRIPTION =
   "Your work notes become your posts for the week. An AI editor-in-chief for freelancers, founders and developers who already document what they do.";
 

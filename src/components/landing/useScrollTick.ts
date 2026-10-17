@@ -31,7 +31,7 @@ export function useScrollTick() {
       if (header) {
         const on = y > 12;
         header.style.borderBottomColor = on ? "rgba(34,29,25,0.09)" : "rgba(34,29,25,0)";
-        header.style.background = on ? "rgba(247,244,239,0.9)" : "rgba(247,244,239,0.72)";
+        header.style.background = on ? "rgba(250,249,245,0.9)" : "rgba(250,249,245,0.72)";
       }
 
       if (!motionEnabled) return;

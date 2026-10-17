@@ -5,53 +5,95 @@
  */
 
 /* ---------- Hero ---------- */
-.heroGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: clamp(40px, 6vw, 64px);
+/* The hero fills the window under the sticky header (73px): nothing of the next section shows. */
+.heroSection {
+  position: relative;
+  overflow: hidden;
+  display: flex;
   align-items: center;
+  min-height: calc(100vh - 73px);
+  min-height: calc(100svh - 73px);
 }
 .heroTitle {
-  font-size: clamp(2.55rem, 8vw, 4.4rem);
+  font-size: clamp(2.5rem, min(9.4vw, 11.5vh), 5.8rem);
 }
 .heroLine {
   display: block;
 }
-@media (max-width: 639px) {
-  /* Sur téléphone, les trois lignes forcées donnent cinq lignes : on laisse le texte couler. */
-  .heroLine {
-    display: inline;
-  }
-  .heroTitle {
-    font-size: clamp(2.2rem, 10vw, 2.7rem);
-    max-width: none;
-  }
-}
-.heroDemoOuter {
+/* « your audience. » : underlined by a bar in the accent color that draws itself. */
+.heroUnderlined {
   position: relative;
+  display: inline-block;
+  white-space: nowrap;
+}
+.heroUnderline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.06em;
+  height: max(4px, 0.07em);
+  border-radius: 4px;
+  background: currentColor;
+  transform-origin: left center;
+  animation: heroUnderlineDraw 0.9s cubic-bezier(0.2, 0.75, 0.2, 1) 0.7s both;
+}
+@keyframes heroUnderlineDraw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.heroSteps {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 28px;
+  max-width: 920px;
+  margin: clamp(28px, 7vh, 88px) auto 0;
+}
+.heroStep {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.heroStepArrow {
+  display: none;
+  color: #8a7f74;
+}
+@media (min-width: 760px) {
+  .heroSteps {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: start;
+    gap: 18px;
+  }
+  .heroStepArrow {
+    display: block;
+    margin-top: 15px;
+  }
+}
+.heroForm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 500px;
   margin: 0 auto;
-  width: 100%;
-  max-width: 640px;
+  padding: 6px 6px 6px 16px;
+  border-radius: 16px;
+  text-align: left;
 }
-.heroDemoTilt {
-  transition: transform 0.6s cubic-bezier(0.2, 0.75, 0.2, 1);
-}
-@media (min-width: 980px) {
-  .heroGrid {
-    grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
-    gap: clamp(36px, 4.5vw, 72px);
+@media (max-width: 520px) {
+  .heroForm {
+    flex-wrap: wrap;
+    padding: 12px;
   }
-  .heroTitle {
-    font-size: clamp(2.9rem, 4.5vw, 4.3rem);
+  .heroForm input {
+    flex: 1 1 calc(100% - 34px);
   }
-  .heroDemoOuter {
-    max-width: none;
-  }
-  .heroDemoTilt {
-    transform: perspective(1800px) rotateY(-6deg) rotateX(2deg);
-  }
-  .heroDemoOuter:hover .heroDemoTilt {
-    transform: perspective(1800px) rotateY(-2deg) rotateX(0.5deg) translateY(-4px);
+  .heroForm button {
+    width: 100%;
   }
 }
 
@@ -334,9 +376,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .heroDemoTilt {
-    transition: none;
-  }
   .fadeIn,
   .fadeOut,
   .swapIn,

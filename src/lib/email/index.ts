@@ -4,7 +4,7 @@ import type { EmailMessage, EmailSender, EmailSenderIdentity } from "./types";
 
 export type { EmailMessage, EmailSender } from "./types";
 
-const DEFAULT_FROM: EmailSenderIdentity = { name: "Buildloud", email: "no-reply@localhost" };
+const DEFAULT_FROM: EmailSenderIdentity = { name: "Tellovo", email: "no-reply@localhost" };
 
 /**
  * `EMAIL_FROM` accepts "Name <address>" or a bare address. Returns null if the value is missing

@@ -103,7 +103,7 @@ export const notionConnector: SourceConnector<NotionCandidateMeta> = {
 
   picker: {
     emptyMessage:
-      "No Notion page shared with Buildloud. In Notion, open the page you want, click \"Share\" and invite the Buildloud integration — it only sees what you share with it.",
+      "No Notion page shared with Tellovo. In Notion, open the page you want, click \"Share\" and invite the Tellovo integration — it only sees what you share with it.",
     footnote: "We pull the text of the page and its subpages.",
   },
 

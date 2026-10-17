@@ -17,7 +17,7 @@ export const accentHover = "oklch(0.49 0.19 292)";
 export const accentText = "#4d3778";
 
 export const bg = {
-  page: "#f7f4ef",
+  page: "#faf9f5",
   card: "#fffdfa",
   soft1: "#f4f0e9",
   soft2: "#f3efe8",

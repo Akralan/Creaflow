@@ -8,7 +8,7 @@ import { TextField } from "@/components/ui/TextField";
 import OAuthProviderButtons from "@/components/OAuthProviderButtons";
 import { api, ApiClientError } from "@/lib/apiClient";
 import { color, fontHeading } from "@/lib/design/tokens";
-import BrandMark from "@/components/BrandMark";
+import Wordmark from "@/components/Wordmark";
 
 // Sign-up is no longer here: it happens on the first onboarding screen, by connecting your
 // material (docs/SPEC_ONBOARDING_MVP.md §2). `/login?mode=signup`, still linked from the landing,
@@ -88,10 +88,7 @@ function LoginContent() {
     >
       <div style={{ width: "100%", maxWidth: 400 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 32 }}>
-          <BrandMark size={38} />
-          <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 22, letterSpacing: "-0.02em" }}>
-            Buildloud
-          </span>
+          <Wordmark size={30} />
         </div>
 
         <Card style={{ borderRadius: 20, padding: 32, boxShadow: "0 20px 40px -24px rgba(40,30,60,0.2)" }}>

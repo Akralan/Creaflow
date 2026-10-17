@@ -106,7 +106,7 @@ function IdentityTab() {
       />
       {/* Tone is no longer asked for: it is learned from edits (docs/SPEC_ONBOARDING_MVP.md §1). */}
       <TextAreaField
-        label="What you expect from Buildloud"
+        label="What you expect from Tellovo"
         value={expectations}
         onChange={(e) => setExpectations(e.target.value)}
         placeholder="I want to publish every week without spending my evenings on it, and have people follow my product being built all the way to launch."

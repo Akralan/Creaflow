@@ -18,7 +18,7 @@ const CYCLE_MS = 4200;
 const outcomes: Array<{ title: string; description: string }> = [
   {
     title: "Nothing to write",
-    description: "Buildloud reads what you're already building (commits, notes, Notion) and drafts the posts for you.",
+    description: "Tellovo reads what you're already building (commits, notes, Notion) and drafts the posts for you.",
   },
   {
     title: "You post every week",
@@ -97,7 +97,7 @@ function Sparkline({ points }: { points: number[] }) {
 
 /**
  * "What changes": the problem and its answer on a single screen, right after the hero.
- * You build your products, Buildloud builds your audience. On the left three short points (the
+ * You build your products, Tellovo builds your audience. On the left three short points (the
  * one in front rotates on its own, or on hover); on the right a collage of floating cards whose
  * examples rotate with the profile, like the hero.
  */
@@ -179,7 +179,7 @@ export default function LandingOutcomes() {
             data-delay={80}
             style={{ margin: "20px 0 0", fontSize: "1.1rem", lineHeight: 1.55, color: text.secondary, maxWidth: "40ch", textWrap: "pretty" }}
           >
-            A great product with no audience doesn&apos;t sell. Buildloud turns what you&apos;re already building into posts,
+            A great product with no audience doesn&apos;t sell. Tellovo turns what you&apos;re already building into posts,
             every week.
           </p>
 

@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Legal Notice",
-  description: "Publisher, hosting and contact details of the Buildloud service.",
+  description: "Publisher, hosting and contact details of the Tellovo service.",
   alternates: { canonical: "/legal/mentions-legales" },
 };
 

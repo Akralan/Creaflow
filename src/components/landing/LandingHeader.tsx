@@ -2,10 +2,10 @@
 
 import type { CSSProperties } from "react";
 import Link from "next/link";
-import { fontHeading } from "@/lib/design/tokens";
-import { text, ink } from "@/components/landing/theme";
+import { ArrowRight } from "lucide-react";
+import { accent, accentAlpha, accentHover, text, ink } from "@/components/landing/theme";
 import { hoverHandlers } from "@/components/landing/hoverStyle";
-import BrandMark from "@/components/BrandMark";
+import Wordmark from "@/components/Wordmark";
 import { OPEN_PRICING_EVENT, PRICING_ENABLED } from "@/components/landing/LandingOffer";
 import { FEATURES_ENABLED } from "@/components/landing/flags";
 
@@ -19,15 +19,19 @@ const tarifsLinkStyle: CSSProperties = { fontSize: 15, fontWeight: 500, color: t
 const tarifsLinkHover: CSSProperties = { color: text.body };
 
 const ctaLinkStyle: CSSProperties = {
-  fontSize: 15,
-  fontWeight: 500,
-  color: text.body,
-  padding: "9px 17px",
-  borderRadius: 999,
-  border: `1px solid ${ink(0.15)}`,
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  fontSize: 14.5,
+  fontWeight: 600,
+  color: "#fffdfa",
+  padding: "10px 16px",
+  borderRadius: 11,
+  background: accent,
+  boxShadow: `0 10px 22px -14px ${accentAlpha(0.9)}`,
   transition: "background .25s ease, transform .25s ease",
 };
-const ctaLinkHover: CSSProperties = { background: ink(0.06), color: text.body, transform: "translateY(-1px)" };
+const ctaLinkHover: CSSProperties = { background: accentHover, color: "#fffdfa", transform: "translateY(-1px)" };
 
 export default function LandingHeader() {
   return (
@@ -37,7 +41,7 @@ export default function LandingHeader() {
         position: "sticky",
         top: 0,
         zIndex: 50,
-        background: "rgba(247,244,239,0.72)",
+        background: "rgba(250,249,245,0.72)",
         backdropFilter: "blur(14px)",
         borderBottom: `1px solid ${ink(0)}`,
         transition: "border-color .35s ease, background .35s ease",
@@ -55,10 +59,7 @@ export default function LandingHeader() {
         }}
       >
         <Link href="#top" style={logoLinkStyle} {...hoverHandlers(logoLinkStyle, logoLinkHover)}>
-          <BrandMark size={30} />
-          <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 20.5, letterSpacing: "-0.025em" }}>
-            Buildloud
-          </span>
+          <Wordmark size={27} />
         </Link>
         <nav style={{ display: "flex", alignItems: "center", gap: "clamp(8px, 1.6vw, 26px)" }}>
           {FEATURES_ENABLED ? (
@@ -81,8 +82,12 @@ export default function LandingHeader() {
               Pricing
             </Link>
           )}
-          <Link href="/login" style={ctaLinkStyle} {...hoverHandlers(ctaLinkStyle, ctaLinkHover)}>
+          <Link href="/login" style={tarifsLinkStyle} {...hoverHandlers(tarifsLinkStyle, tarifsLinkHover)}>
             Log in
+          </Link>
+          <Link href="/onboarding" style={ctaLinkStyle} {...hoverHandlers(ctaLinkStyle, ctaLinkHover)}>
+            Generate my week
+            <ArrowRight size={16} strokeWidth={2.2} aria-hidden="true" />
           </Link>
         </nav>
       </div>

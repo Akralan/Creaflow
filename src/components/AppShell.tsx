@@ -6,8 +6,8 @@ import Link from "next/link";
 import { clearNavHighlight, NAV_HIGHLIGHT_EVENT, readNavHighlight } from "@/lib/navHighlight";
 import { CalendarDays, Compass, Settings, Sparkles, TrendingUp } from "lucide-react";
 import { api, type ContentCategory, type ContentSeries, type CreatorProfile, type User } from "@/lib/apiClient";
-import { accent, accentAlpha, color, fontHeading } from "@/lib/design/tokens";
-import BrandMark from "@/components/BrandMark";
+import { accent, accentAlpha, color } from "@/lib/design/tokens";
+import Wordmark from "@/components/Wordmark";
 import { CategoryLabelsContext } from "@/contexts/CategoryLabelsContext";
 import { SeriesContext } from "@/contexts/SeriesContext";
 
@@ -89,10 +89,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 8px 24px" }}>
-          <BrandMark size={34} />
-          <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 19, letterSpacing: "-0.02em" }}>
-            Buildloud
-          </span>
+          <Wordmark size={26} />
         </div>
 
         <style>{`@keyframes cf-nav-glow{0%,100%{box-shadow:0 0 0 0 ${accentAlpha(0)}}50%{box-shadow:0 0 0 4px ${accentAlpha(0.14)}}}`}</style>

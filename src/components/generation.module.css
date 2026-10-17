@@ -349,6 +349,140 @@
   }
 }
 
+/* --- Sortie : profil lu dans la matière (onboarding) --- */
+.subjectChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+.subjectChip {
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #4d3778;
+  background: oklch(0.55 0.2 292 / 0.12);
+  opacity: 0;
+  animation: chipPop 3.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) infinite;
+}
+@keyframes chipPop {
+  0%,
+  25% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  40%,
+  85% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* --- Sortie : séries proposées, empilées --- */
+.seriesCard {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50px;
+  padding: 9px 10px 9px 14px;
+  border-radius: 12px;
+  background: #fffdfa;
+  box-shadow: 0 16px 28px -18px rgba(34, 29, 25, 0.5), inset 0 0 0 1px rgba(34, 29, 25, 0.07);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  overflow: hidden;
+  opacity: 0;
+  animation: seriesIn 3.6s cubic-bezier(0.22, 1.1, 0.36, 1) infinite;
+}
+.seriesCard::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--tint, oklch(0.55 0.2 292));
+}
+.seriesBar {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(34, 29, 25, 0.14);
+  width: var(--w, 80%);
+}
+.seriesBarStrong {
+  height: 8px;
+  background: rgba(34, 29, 25, 0.75);
+}
+@keyframes seriesIn {
+  0% {
+    transform: translateY(18px) scale(0.94);
+    opacity: 0;
+  }
+  25%,
+  85% {
+    transform: none;
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    opacity: 0;
+  }
+}
+
+/* --- Sortie : calendrier qui se remplit --- */
+.planGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin-top: 6px;
+}
+.planCell {
+  aspect-ratio: 1;
+  border-radius: 5px;
+  background: rgba(34, 29, 25, 0.08);
+}
+.planCellOn {
+  animation: cellOn 3.6s ease-in-out infinite;
+}
+@keyframes cellOn {
+  0%,
+  8% {
+    background: rgba(34, 29, 25, 0.08);
+    transform: scale(1);
+  }
+  22% {
+    background: oklch(0.62 0.19 292);
+    transform: scale(1.18);
+  }
+  32%,
+  85% {
+    background: oklch(0.62 0.19 292);
+    transform: scale(1);
+  }
+  100% {
+    background: rgba(34, 29, 25, 0.08);
+  }
+}
+
+/* --- Le noyau seul, réutilisable en petit (voir GenerationOrb) --- */
+.orb {
+  position: relative;
+  flex-shrink: 0;
+}
+.orb .pot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: scale(var(--s, 0.25));
+  transform-origin: top left;
+}
+
 .caption {
   text-align: center;
   font-size: 14px;

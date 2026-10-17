@@ -290,7 +290,7 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
   const sections: string[] = [buildReadersBlock(context)];
 
   const brandLines = [`Author: ${creatorProfile.brandName} — ${creatorProfile.activityType}`];
-  if (creatorProfile.expectations) brandLines.push(`What the author expects from Buildloud: ${creatorProfile.expectations}`);
+  if (creatorProfile.expectations) brandLines.push(`What the author expects from Tellovo: ${creatorProfile.expectations}`);
   sections.push(tag("brand", brandLines));
 
   // Voice + rules learned from the author's corrections (docs/SPEC_APPRENTISSAGE_STYLE.md §5.4),

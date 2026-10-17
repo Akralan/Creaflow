@@ -6,6 +6,7 @@ import { api, ApiClientError, type AssistantProposal, type StyleLearningStatus, 
 import { accentAlpha, color } from "@/lib/design/tokens";
 import { KNOWN_PLATFORMS, platformLabel } from "@/lib/social/types";
 import AssistantProposalsPanel from "@/components/AssistantProposalsPanel";
+import { GenerationOrb } from "@/components/GenerationAnimation";
 
 /** Threshold for showing the suggestion — same value as STYLE_LEARNING_SUGGESTION_THRESHOLD on the server. */
 const SUGGESTION_THRESHOLD = 5;
@@ -135,7 +136,8 @@ export default function StyleAnalysisPanel() {
               Re-analyze everything
             </button>
           )}
-          <button onClick={() => runAnalysis(false)} disabled={loading} style={smallButton}>
+          <button onClick={() => runAnalysis(false)} disabled={loading} style={{ ...smallButton, display: "inline-flex", alignItems: "center", gap: 7 }}>
+            {loading && <GenerationOrb size={14} />}
             {loading ? "Analyzing..." : profile ? "Analyze edits" : "Analyze my style"}
           </button>
         </div>

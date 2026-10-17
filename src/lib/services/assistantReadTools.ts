@@ -136,7 +136,7 @@ export const ASSISTANT_READ_TOOLS: LlmToolDefinition[] = [
   {
     name: "read_profile",
     description:
-      "Full profile of the creator: brand, activity, what they expect from Buildloud, publishing days, brand audience, style profile (voice + learned rules) if computed, and styleLearning.pendingScripts = number of finalized scripts whose corrections haven't been analyzed yet (from 5, suggest to the user to run the analysis from Settings — you cannot run it yourself).",
+      "Full profile of the creator: brand, activity, what they expect from Tellovo, publishing days, brand audience, style profile (voice + learned rules) if computed, and styleLearning.pendingScripts = number of finalized scripts whose corrections haven't been analyzed yet (from 5, suggest to the user to run the analysis from Settings — you cannot run it yourself).",
     input_schema: { type: "object", properties: {}, required: [] },
   },
 ];

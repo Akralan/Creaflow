@@ -82,7 +82,7 @@ export default function LandingFeatures() {
             data-reveal=""
             style={{ margin: "0 0 12px", fontFamily: fontMono, fontSize: 12, letterSpacing: "0.14em", textTransform: "uppercase", color: text.faint }}
           >
-            What Buildloud does
+            What Tellovo does
           </p>
           <h2
             data-reveal=""
@@ -166,7 +166,7 @@ export default function LandingFeatures() {
           <span style={eyebrow}>02</span>
           <h3 style={cardTitle}>Never the same angle twice</h3>
           <p style={cardDescription}>
-            Buildloud remembers everything you&apos;ve published and forces a fresh angle on every generation.
+            Tellovo remembers everything you&apos;ve published and forces a fresh angle on every generation.
           </p>
           <div style={cardVisual}>
             <AngleRotator />
@@ -195,7 +195,7 @@ export default function LandingFeatures() {
           <span style={eyebrow}>04</span>
           <h3 style={cardTitle}>What works guides what&apos;s next</h3>
           <p style={cardDescription}>
-            Views and reactions come back automatically. Buildloud suggests rebalancing your line, and you approve or
+            Views and reactions come back automatically. Tellovo suggests rebalancing your line, and you approve or
             not.
           </p>
           <div style={cardVisual} aria-hidden="true">
@@ -220,7 +220,7 @@ export default function LandingFeatures() {
           <span style={eyebrow}>05</span>
           <h3 style={cardTitle}>Your style, learned from your edits</h3>
           <p style={cardDescription}>
-            Every sentence you tweak becomes a rule, offered for your approval, that Buildloud then follows
+            Every sentence you tweak becomes a rule, offered for your approval, that Tellovo then follows
             everywhere it writes.
           </p>
           <div style={cardVisual} aria-hidden="true">

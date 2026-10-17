@@ -151,7 +151,7 @@ function ExportBlock() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `buildloud-export-${new Date().toISOString().slice(0, 10)}.json`;
+      link.download = `tellovo-export-${new Date().toISOString().slice(0, 10)}.json`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -165,7 +165,7 @@ function ExportBlock() {
     <Card style={{ padding: 28 }}>
       <h2 style={blockTitle}>Your data</h2>
       <p style={blockHint}>
-        A JSON file with everything Buildloud keeps about you: profile, topics, material, series,
+        A JSON file with everything Tellovo keeps about you: profile, topics, material, series,
         scripts, calendar, connections (without their access tokens) and subscription. Images are
         referenced in it by their address.
       </p>

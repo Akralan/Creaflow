@@ -5,7 +5,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "What data Buildloud processes, why, with which processors, and your rights.",
+  description: "What data Tellovo processes, why, with which processors, and your rights.",
   alternates: { canonical: "/legal/confidentialite" },
 };
 import { PUBLISHER, SERVICE_NAME } from "@/lib/legal/publisher";
