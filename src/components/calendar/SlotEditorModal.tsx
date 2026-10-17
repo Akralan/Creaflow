@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Check, Trash2, X } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import IconActionButton from "@/components/ui/IconActionButton";
@@ -24,8 +25,10 @@ const chip = (active: boolean): React.CSSProperties => ({
 });
 
 /**
- * Édition d'un créneau encore vide : série (qui impose son rôle) ou post libre avec son rôle, ou
- * suppression (docs/SPEC_SERIES_ET_ROLES.md §5.4).
+ * Édition d'un créneau encore vide. Un créneau de série suit le rythme de sa série
+ * (docs/SPEC_RYTHME_DES_SERIES.md) : on peut seulement sauter ce jour-là, ou aller changer le
+ * rythme ; le passer dans une autre série serait défait au recalcul suivant. Un post placé à la
+ * main hors série garde le choix de son rôle (docs/SPEC_SERIES_ET_ROLES.md §5.4).
  */
 export default function SlotEditorModal({
   entry,
@@ -64,6 +67,37 @@ export default function SlotEditorModal({
   }
 
   const unchanged = categoryId === entry.contentCategory.id && seriesId === (entry.series?.id ?? "");
+
+  if (entry.series) {
+    return (
+      <Modal open onClose={() => !saving && onClose()} width={420}>
+        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4 }}>
+          <PlatformLogo platform={entry.platform} size={20} />
+          <span style={{ fontFamily: fontHeading, fontWeight: 700, fontSize: 18 }}>
+            {entry.series.label} · {new Date(entry.scheduledDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long", timeZone: "UTC" })}
+          </span>
+        </div>
+        <p style={{ margin: "0 0 18px", fontSize: 13, color: color.textMuted, lineHeight: 1.5 }}>
+          Pas encore de post. Ce jour vient du rythme de la série : tu peux le sauter, ou{" "}
+          <Link href={`/direction?series=${entry.series.id}&edit=1`}>changer le rythme</Link>.
+        </p>
+        {error && <p style={{ color: color.danger, fontSize: 13, margin: "0 0 14px" }}>{error}</p>}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => run(() => api.deleteCalendarEntry(entry.id))}
+            disabled={saving}
+            style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: color.danger, background: "none", border: "none", cursor: "pointer", padding: "8px 4px" }}
+          >
+            <Trash2 size={15} strokeWidth={2} />
+            {saving ? "…" : "Sauter ce jour"}
+          </button>
+          <div style={{ flex: 1 }} />
+          <IconActionButton icon={X} variant="neutral" title="Fermer" onClick={onClose} disabled={saving} />
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal open onClose={() => !saving && onClose()} width={420}>

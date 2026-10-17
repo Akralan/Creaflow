@@ -5,7 +5,6 @@ import { callStructured } from "./provider";
 export const seriesEntrySchema = z.object({
   label: z.string().min(1),
   description: z.string().min(1),
-  weight: z.number().int().min(0).max(60),
   // Un rôle unique par série (docs/SPEC_SERIES_ET_ROLES.md §1) — libellé exact d'un rôle actif.
   categoryLabel: z.string().min(1),
   // docs/SPEC_REDACTEUR_EN_CHEF.md §4.5, Annexe B.8 — inférence à la création, éditable ensuite.
@@ -36,7 +35,7 @@ function buildSuggestContentSeriesTool(categoryLabels: string[], subjectNames: s
         series: {
           type: "array",
           description:
-            "Liste de 0 à 5 séries récurrentes (ex: \"Le mythe du mercredi\", \"Behind the scenes du vendredi\", \"Témoignage client\"). Si le métier ne s'y prête vraiment pas, renvoie une liste vide plutôt que d'inventer une série artificielle.",
+            "Liste de 0 à 5 séries récurrentes (ex: \"Le mythe du mercredi\", \"Behind the scenes du vendredi\", \"Témoignage client\"), de la plus importante à la moins importante pour ce créateur. Si le métier ne s'y prête vraiment pas, renvoie une liste vide plutôt que d'inventer une série artificielle.",
           minItems: 0,
           maxItems: 5,
           items: {
@@ -46,10 +45,6 @@ function buildSuggestContentSeriesTool(categoryLabels: string[], subjectNames: s
               description: {
                 type: "string",
                 description: "Identité de la série en une ou deux phrases : angle, ton, structure à respecter à chaque script de cette série.",
-              },
-              weight: {
-                type: "integer",
-                description: "Pourcentage approximatif des créneaux mensuels que cette série devrait occuper (0 à 60, pas besoin de sommer à 100 avec les autres séries).",
               },
               categoryLabel: {
                 type: "string",
@@ -69,7 +64,7 @@ function buildSuggestContentSeriesTool(categoryLabels: string[], subjectNames: s
                   "Le projet dont la série raconte l'avancement ou tire sa matière, recopié parmi ceux fournis. Chaîne vide seulement si la série porte sur l'activité en général et sur aucun projet précis.",
               },
             },
-            required: ["label", "description", "weight", "categoryLabel", "mode", "subjectName"],
+            required: ["label", "description", "categoryLabel", "mode", "subjectName"],
           },
         },
       },
@@ -80,7 +75,7 @@ function buildSuggestContentSeriesTool(categoryLabels: string[], subjectNames: s
 
 const SYSTEM_PROMPT = `Tu conçois la direction éditoriale d'un créateur ou d'une entreprise, adaptée précisément à son activité.
 
-Propose entre 0 et 5 "séries" : des formats de contenu récurrents et nommés (ex: pour un coach sportif : "Le mythe du mercredi" en éducatif, "Transformation du mois" en témoignage ; pour un freelance produit web : "Build in public hebdo" en coulisses). Une série donne une identité reconnaissable (même angle, même structure, même ton à chaque publication) et sert UN SEUL rôle éditorial parmi ceux déjà définis pour l'utilisateur — utilise leur libellé EXACT tel que fourni. Si une idée de série hésite entre deux rôles, c'est qu'il y a deux séries : découpe-la. N'invente pas de série artificielle si le métier ne s'y prête pas : une liste vide est un résultat parfaitement valide. Le poids de chaque série est un pourcentage approximatif des créneaux mensuels (0 à 60), sans obligation de sommer à 100 — une partie du calendrier reste hors série.`;
+Propose entre 0 et 5 "séries" : des formats de contenu récurrents et nommés (ex: pour un coach sportif : "Le mythe du mercredi" en éducatif, "Transformation du mois" en témoignage ; pour un freelance produit web : "Build in public hebdo" en coulisses). Une série donne une identité reconnaissable (même angle, même structure, même ton à chaque publication) et sert UN SEUL rôle éditorial parmi ceux déjà définis pour l'utilisateur — utilise leur libellé EXACT tel que fourni. Si une idée de série hésite entre deux rôles, c'est qu'il y a deux séries : découpe-la. N'invente pas de série artificielle si le métier ne s'y prête pas : une liste vide est un résultat parfaitement valide. Range les séries de la plus importante à la moins importante : les jours de publication de l'auteur leur sont répartis dans cet ordre.`;
 
 export interface SeriesLabelsContext {
   brandName: string;

@@ -4,8 +4,8 @@ import { contentSeries, contentSeriesCategories, contentSeriesPlatforms, creator
 import { suggestContentSeries } from "@/lib/llm/seriesLabels";
 import { listActiveCategoriesForUser, resolveCategoryLabelToId } from "@/lib/services/categoryLabelsService";
 import { findNarrativeStatesForSeries } from "@/lib/services/narrativeDirector";
-// Import circulaire assumé (seriesSlotRelease relit les séries actives) : aucun usage au chargement.
-import { releaseSlotsOfArchivedSeries } from "@/lib/services/seriesSlotRelease";
+import { syncSeriesSlots } from "@/lib/services/seriesSlotSync";
+import { distributeDays, parseStoredRhythm, type SeriesRhythm } from "@/lib/seriesRhythm";
 import { ApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
 
@@ -39,6 +39,7 @@ export async function listActiveSeriesForUser(userId: string) {
     ...s,
     category: joins[0]?.category ?? null,
     platforms: platformJoins.map((j) => j.platform),
+    rhythm: parseStoredRhythm(s.rhythm),
     narrativeState: narrativeStates.get(s.id) ?? null,
   }));
 }
@@ -128,7 +129,7 @@ export async function archiveSeriesForUser(userId: string, seriesId: string) {
   if (!archived) {
     throw new ApiError(404, "Série introuvable.");
   }
-  await releaseSlotsOfArchivedSeries(userId);
+  await syncSeriesSlots(userId);
   return archived;
 }
 
@@ -147,8 +148,18 @@ export async function keepOnlySeries(userId: string, keptIds: string[]) {
       .update(contentSeries)
       .set({ archived: true })
       .where(and(eq(contentSeries.userId, userId), inArray(contentSeries.id, toArchive)));
-    await releaseSlotsOfArchivedSeries(userId);
   }
+  // Les jours où l'auteur peut publier, répartis entre les séries gardées de la plus lourde à la
+  // plus légère (docs/SPEC_RYTHME_DES_SERIES.md §5) ; il les ajuste ensuite dans Direction. Écrase
+  // volontairement les rythmes : la sélection n'a lieu qu'en sortie d'onboarding, sur des séries
+  // fraîchement générées dont les jours avaient été répartis entre TOUTES les proposées.
+  const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId), columns: { publishingDays: true } });
+  const kept = active.filter((s) => keptIds.includes(s.id));
+  const days = distributeDays(profile?.publishingDays ?? [], kept.length);
+  for (const [i, s] of kept.entries()) {
+    await db.update(contentSeries).set({ rhythm: { days: days[i], every: 1, anchor: null } }).where(eq(contentSeries.id, s.id));
+  }
+  await syncSeriesSlots(userId);
   return listActiveSeriesForUser(userId);
 }
 
@@ -181,9 +192,18 @@ export async function generateSeriesForUser(userId: string) {
   // série sans sujet n'a ni matière ni portrait des lecteurs (constaté en réel le 2026-10-17).
   const productIdFor = (subjectName: string): string | null =>
     productList.find((p) => p.name === subjectName)?.id ?? (productList.length === 1 ? productList[0].id : null);
-  const resolved = suggested
+  const resolvedAll = suggested
     .map((s) => ({ ...s, categoryId: resolveCategoryLabelToId(s.categoryLabel, activeCategories), productId: productIdFor(s.subjectName) }))
     .filter((s): s is typeof s & { categoryId: string } => s.categoryId !== null);
+  // Le modèle range ses séries de la plus importante à la moins importante : le poids ne sert plus
+  // qu'à cet ordre, et les jours où l'auteur peut publier sont répartis dans le même ordre
+  // (docs/SPEC_RYTHME_DES_SERIES.md §2).
+  const days = distributeDays(profile.publishingDays ?? [], resolvedAll.length);
+  const resolved = resolvedAll.map((s, i) => ({
+    ...s,
+    weight: Math.max(10, 50 - i * 10),
+    rhythm: { days: days[i], every: 1 as const, anchor: null },
+  }));
 
   const generated = await db.transaction(async (tx) => {
     await tx
@@ -195,7 +215,7 @@ export async function generateSeriesForUser(userId: string) {
 
     const inserted = await tx
       .insert(contentSeries)
-      .values(resolved.map((s) => ({ userId, label: s.label, description: s.description, weight: s.weight, mode: s.mode, productId: s.productId })))
+      .values(resolved.map((s) => ({ userId, label: s.label, description: s.description, weight: s.weight, mode: s.mode, productId: s.productId, rhythm: s.rhythm })))
       .returning();
 
     await tx.insert(contentSeriesCategories).values(inserted.map((series, i) => ({ seriesId: series.id, categoryId: resolved[i].categoryId })));
@@ -209,6 +229,7 @@ export async function generateSeriesForUser(userId: string) {
         // "aucune ligne ContentSeriesPlatforms" (visible sur tous les réseaux), pour que la forme
         // renvoyée reste identique à listActiveSeriesForUser/saveSeriesForUser.
         platforms: [] as string[],
+        rhythm: resolved[i].rhythm as SeriesRhythm,
         // Toujours null : ce sont des lignes fraîchement insérées, un état narratif ne peut exister
         // que pour un seriesId déjà connu.
         narrativeState: null,
@@ -219,8 +240,8 @@ export async function generateSeriesForUser(userId: string) {
       };
     });
   });
-  // L'ancien jeu vient d'être archivé : ses créneaux à venir passent au nouveau.
-  await releaseSlotsOfArchivedSeries(userId);
+  // L'ancien jeu vient d'être archivé : ses créneaux à venir sortent, le nouveau pose les siens.
+  await syncSeriesSlots(userId);
   return generated;
 }
 
@@ -228,9 +249,13 @@ interface SeriesInput {
   id?: string;
   label: string;
   description: string;
-  weight: number;
+  /** Ordre d'affichage seulement depuis docs/SPEC_RYTHME_DES_SERIES.md — `undefined` le laisse
+   *  inchangé (50 à la création). */
+  weight?: number;
   categoryId: string;
   platforms: string[];
+  /** `undefined` laisse le rythme inchangé ; null = pas de rythme (aucun créneau). */
+  rhythm?: SeriesRhythm | null;
   /** docs/SPEC_REDACTEUR_EN_CHEF.md §4.5 — `undefined` laisse le mode inchangé (défaut base
    *  "rendez_vous" à la création) : l'édition manuelle de l'écran Direction ne le passe pas. */
   mode?: (typeof contentSeries.$inferInsert)["mode"];
@@ -251,7 +276,8 @@ export async function upsertSeriesItem(tx: Tx, userId: string, item: SeriesInput
       .set({
         label: item.label,
         description: item.description,
-        weight: item.weight,
+        ...(item.weight !== undefined && { weight: item.weight }),
+        ...(item.rhythm !== undefined && { rhythm: item.rhythm }),
         ...(item.mode !== undefined && { mode: item.mode }),
         ...(item.productId !== undefined && { productId: item.productId }),
       })
@@ -268,7 +294,8 @@ export async function upsertSeriesItem(tx: Tx, userId: string, item: SeriesInput
         userId,
         label: item.label,
         description: item.description,
-        weight: item.weight,
+        weight: item.weight ?? 50,
+        rhythm: item.rhythm ?? null,
         ...(item.mode !== undefined && { mode: item.mode }),
         ...(item.productId !== undefined && { productId: item.productId }),
       })
@@ -283,7 +310,8 @@ export async function upsertSeriesItem(tx: Tx, userId: string, item: SeriesInput
 }
 
 /** Enregistrement manuel : diffe contre le jeu actif (même logique que saveCategoriesForUser),
- *  et resynchronise le rôle à chaque mise à jour. */
+ *  et resynchronise le rôle à chaque mise à jour. Renvoie aussi ce que le recalcul du calendrier a
+ *  changé par série, pour dire à l'auteur où sa série s'est remplie. */
 export async function saveSeriesForUser(userId: string, items: SeriesInput[]) {
   const active = await listActiveSeriesForUser(userId);
   const keptIds = new Set(items.filter((s) => s.id).map((s) => s.id as string));
@@ -298,7 +326,8 @@ export async function saveSeriesForUser(userId: string, items: SeriesInput[]) {
       await upsertSeriesItem(tx, userId, item);
     }
   });
-  await releaseSlotsOfArchivedSeries(userId);
+  const slotChanges = await syncSeriesSlots(userId);
 
-  return listActiveSeriesForUser(userId); // relit pour renvoyer la forme jointe à jour
+  // relit pour renvoyer la forme jointe à jour
+  return { series: await listActiveSeriesForUser(userId), slotChanges: Object.fromEntries(slotChanges) };
 }

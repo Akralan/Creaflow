@@ -122,14 +122,13 @@ Chaque génération est contrainte par :
 Jamais implémentée, abandonnée avec la vidéo. Voir §2.4.
 
 ### Module D : Le Calendrier Intelligent & Auto-Remplissage
-- **Jours de publication :** un post par jour coché et par réseau actif, aux dates exactes de ces jours ; jours et réseaux se changent dans Paramètres (plus de nombre de posts par semaine à régler).
-- **Génération automatique du mois :** mix de contenus dont les proportions sont **personnalisées par IA et par utilisateur** (plus de triptyque fixe 30/50/20) :
-  - défini par les **rôles éditoriaux actifs**, chacun avec un poids en % normalisé à 100 sur l'ensemble ;
-  - les **séries récurrentes** actives peuvent en plus s'imposer sur une partie des créneaux (poids indépendant, non normalisé) ;
-  - rôles et séries peuvent être **ciblés par plateforme** (sans ciblage explicite, ils s'appliquent à toutes les plateformes suivies).
-- **Cycle du créneau :** le calendrier crée des créneaux typés (une série, ou un "post libre" portant seulement un rôle) sans script ; l'utilisateur déclenche la génération du script depuis le créneau. Script et créneau ont chacun un statut, modifiable manuellement pour suivre l'avancement.
+- **Chaque série a son rythme** (`docs/SPEC_RYTHME_DES_SERIES.md`) : ses jours de la semaine, chaque semaine ou une semaine sur deux. Le calendrier se remplit tout de suite et en continu, sur les quatre semaines qui viennent, un post par jour du rythme et par réseau actif de la série. Deux séries peuvent publier le même jour. Créer une série ou changer ses jours met le calendrier à jour aussitôt (« 8 posts ajoutés d'ici le 14 novembre »). Un jour peut être sauté depuis le calendrier sans toucher au rythme.
+- **Jours où tu peux publier** (Paramètres, onboarding) : ils ne placent plus les posts ; ils sont répartis entre les séries en fin d'onboarding et proposés quand on crée une série.
+- **Plus de posts libres générés :** tout créneau automatique appartient à une série. Un post ponctuel se place à la main (script placé sur une date, import).
+- **Une ligne par série :** avec plusieurs séries, le calendrier montre chaque série sur sa ligne, l'une sous l'autre, ses posts de gauche à droite, avec au moins son prochain post même au-delà de la semaine. Avec une seule série, une seule bande.
+- **Cycle du créneau :** l'utilisateur déclenche la génération du script depuis le créneau. Script et créneau ont chacun un statut, modifiable manuellement pour suivre l'avancement.
 - **Suivi de performance :** vues/likes/commentaires/partages, saisis manuellement ou récupérés automatiquement (Instagram Creator — écran "Performance", synchronisation lazy à l'ouverture, pas de cron) via un rattachement post↔script par heuristique + confirmation utilisateur unique. Historique daté conservé (`PostMetricsSnapshot`), réinjecté en résumé dans les générations suivantes.
-- **Rééquilibrage éditorial automatique :** à partir des métriques récupérées automatiquement (jamais de la saisie manuelle), le poids des rôles éditoriaux actifs peut être ré-ajusté — normalisé par plateforme, plafonné et amorti par cycle pour éviter sur-réaction et emballement (`docs/SPEC_METRIQUES_AUTO.md` §6). Jamais appliqué seul : passe systématiquement par une proposition (`AssistantProposal`, voir Module E) que l'utilisateur valide, édite ou rejette. Limité aux rôles pour cette itération ; angles et séries non concernés.
+- **Rééquilibrage éditorial automatique — suspendu :** il ajustait le poids des rôles d'après les métriques, mais ce poids ne choisissait que le rôle des posts libres, qui ne sont plus générés. La suite prévue est de proposer un changement de rythme de série (« le devlog marche deux fois mieux : passer à deux jours ? »), un chantier à venir.
 - **Rappels & Notifications :** non implémentés à ce stade.
 
 ### Module E : Direction éditoriale & Assistant IA — *ajouté au périmètre, non prévu au cadrage initial*

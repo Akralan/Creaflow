@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { creatorProfiles, postingGoals } from "@/db/schema";
 import { DEFAULT_PUBLISHING_DAYS, platformSchema } from "@/lib/validation";
+import { syncSeriesSlots } from "@/lib/services/seriesSlotSync";
 
 // Une plateforme est active ou coupée : le nombre de posts par semaine n'est plus réglé à la main.
 export const postingGoalPayloadSchema = z.object({
@@ -41,11 +42,13 @@ export async function savePostingGoalForUser(userId: string, platform: string, t
 
 /**
  * Active (objectif = nombre de jours de publication du profil, jours par défaut sans profil) ou
- * coupe (objectif = 0) une plateforme.
+ * coupe (objectif = 0) une plateforme. Le calendrier suit aussitôt : les séries posent leurs
+ * créneaux sur un réseau activé, et retirent les vides d'un réseau coupé (docs/SPEC_RYTHME_DES_SERIES.md §3).
  */
 export async function setPlatformActiveForUser(userId: string, platform: string, active: boolean) {
-  if (!active) return savePostingGoalForUser(userId, platform, 0);
-  const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
+  const profile = active ? await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) }) : null;
   const days = profile?.publishingDays ?? DEFAULT_PUBLISHING_DAYS;
-  return savePostingGoalForUser(userId, platform, days.length);
+  const goal = await savePostingGoalForUser(userId, platform, active ? days.length : 0);
+  await syncSeriesSlots(userId);
+  return goal;
 }

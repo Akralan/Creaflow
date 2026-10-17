@@ -392,11 +392,12 @@ function OnboardingContent() {
           {step === "days" && (
             <div>
               <StepHeading title="Tes jours de publication">
-                Un jour coché, un post ce jour-là. Tu pourras changer ça quand tu veux.
+                Les jours où tu peux publier. On les répartit entre tes séries, et tu pourras changer les jours de
+                chacune quand tu veux.
               </StepHeading>
               <PublishingDaysPicker value={publishingDays} onChange={setPublishingDays} />
               <p style={{ fontSize: 14, color: color.textMuted, margin: "14px 0 26px" }}>
-                Un post chaque {publishingDaysLabel(publishingDays)}.
+                Tes séries publieront le {publishingDaysLabel(publishingDays)}.
               </p>
               <div style={{ fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 10 }}>Où tu publies</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>

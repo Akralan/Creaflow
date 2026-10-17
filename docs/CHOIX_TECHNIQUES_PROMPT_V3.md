@@ -153,6 +153,26 @@ Le message de confirmation de la fenêtre de série promettait déjà ce comport
 
 ---
 
+## 8 bis. Le rythme des séries
+
+Spec : `docs/SPEC_RYTHME_DES_SERIES.md`.
+
+**Le constat.** Une série créée avec un poids de 50 % n'avait obtenu aucun créneau. Le calendrier était tiré au sort une fois par mois selon des pourcentages, et ne bougeait plus ensuite. L'auteur ne savait pas où vivait sa série.
+
+**Les choix.**
+- **Un rythme plutôt qu'un pourcentage.** Les jours de la semaine, chaque semaine ou une semaine sur deux (ancre = un lundi), dans `content_series.rhythm`. C'est la façon dont un auteur pense (« le devlog, c'est le mercredi ») et le code le calcule sans tirage au sort. Le poids reste en base, ignoré, pour éviter une migration destructive.
+- **Un recalcul continu plutôt qu'une génération mensuelle.** `syncSeriesSlots` est idempotent : il compare ce qui existe à ce que le rythme demande sur 28 jours, puis crée ou retire. On peut donc l'appeler partout (enregistrement d'une série, réseau activé, lecture du calendrier) sans risque, et l'horizon avance sans cron. Le calcul est une fonction pure (`planSeriesSlots`), testée sans base.
+- **Rien de rédigé ne bouge.** Un créneau rédigé ou publié est « verrouillé » : il compte comme présent et n'est jamais supprimé, même hors rythme. Seuls les créneaux vides à venir s'ajustent.
+- **Un verrou par utilisateur.** Le recalcul tourne à chaque ouverture du calendrier, et deux onglets pourraient créer deux fois le même créneau. `pg_advisory_xact_lock(hashtext('calendar-sync:<userId>'))` sérialise les recalculs d'un même compte sans table de verrou.
+- **Les jours sautés retenus par série.** Comme le recalcul recrée ce qui manque, supprimer un créneau ne tenait pas. Chaque série garde `skipped_slots` (`YYYY-MM-DD|plateforme`). Pour la même raison, un créneau de série ne change plus de série depuis le calendrier : on saute le jour, ou on change le rythme.
+- **Deux séries le même jour.** C'est le choix de l'auteur : deux posts ce jour-là. Le sélecteur montre seulement qui occupe chaque jour.
+- **Plus de posts libres générés.** Ils n'avaient de sens qu'avec les pourcentages. En conséquence, le poids des rôles ne place plus rien et le rééquilibrage par la performance est suspendu.
+- **La reprise des données en SQL** dans la migration : les jours du profil sont répartis entre les séries, la plus lourde d'abord, avec la même règle que `distributeDays` côté code. Les créneaux libres vides à venir sont supprimés.
+
+**Changé au premier essai réel.** L'ancien calendrier avait posé des créneaux jusqu'à fin novembre, au-delà des 28 jours. Le premier recalcul ne retirait les vides hors rythme que dans l'horizon. Il les retire maintenant sur tout l'avenir, et ne crée que dans l'horizon.
+
+---
+
 ## 9. Autres choix plus petits
 
 - **Une note de relance générique** (`TOOL_CALL_RETRY_NOTE`). L'ancienne parlait d'un champ `assistantReply`, qui n'existe que dans l'interview.

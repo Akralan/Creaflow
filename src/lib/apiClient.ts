@@ -1,4 +1,5 @@
 import type { Platform, ScriptStatus, CalendarStatus } from "@/lib/design/tokens";
+import type { SeriesRhythm } from "@/lib/seriesRhythm";
 
 export class ApiClientError extends Error {
   constructor(
@@ -358,6 +359,16 @@ export interface ContentSeries {
   product: { id: string; name: string } | null;
   /** Cadrage choisi par l'auteur (docs/SPEC_CADRAGE_SERIE.md) — null si la série n'est pas cadrée. */
   framing: SeriesFraming | null;
+  /** Jours de publication de la série (docs/SPEC_RYTHME_DES_SERIES.md) — null = pas de rythme,
+   *  la série ne pose aucun créneau. */
+  rhythm: SeriesRhythm | null;
+}
+
+/** Ce que l'enregistrement a changé au calendrier pour une série (docs/SPEC_RYTHME_DES_SERIES.md §4). */
+export interface SeriesSlotChange {
+  created: number;
+  removed: number;
+  until: string;
 }
 
 export type FramingDimension = "posture" | "voice" | "story";
@@ -682,6 +693,15 @@ export interface GoogleDriveConnection {
   connectedAt: string | null;
 }
 
+/** Écran /admin/quotas (docs/SPEC_QUOTAS_ADMIN.md). `custom` null = limite normale. */
+export interface AdminAccountQuotas {
+  userId: string;
+  email: string;
+  subscription: { plan: string; status: string } | null;
+  scripts: { used: number; limit: number; planName: string; custom: number | null };
+  microEdits: { used: number; limit: number; planName: string; custom: number | null };
+}
+
 export const api = {
   signup: (email: string, password: string) => post<{ user: User }>("/api/auth/signup", { email, password }),
   login: (email: string, password: string) => post<{ user: User }>("/api/auth/login", { email, password }),
@@ -840,13 +860,15 @@ export const api = {
       id?: string;
       label: string;
       description: string;
-      weight: number;
+      weight?: number;
       categoryId: string;
       platforms: string[];
+      rhythm?: SeriesRhythm | null;
     }>
-  ) => post<{ series: ContentSeries[] }>("/api/series", { series }),
-  /** Validation des séries après l'onboarding : garde celles cochées, recalcule les pourcentages et
-   *  planifie la série principale. `planError` : la sélection est faite, seul le plan a échoué. */
+  ) => post<{ series: ContentSeries[]; slotChanges: Record<string, SeriesSlotChange> }>("/api/series", { series }),
+  /** Validation des séries après l'onboarding : garde celles cochées, leur répartit les jours de
+   *  publication, remplit le calendrier et planifie la série principale. `planError` : la sélection
+   *  est faite, seul le plan a échoué. */
   confirmSeriesSelection: (keptIds: string[]) =>
     post<{ plannedSeriesId: string | null; planError: string | null }>("/api/series/selection", { keptIds }),
   /** Bascule de mode et/ou sujet lié (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — endpoint dédié plutôt que
@@ -914,13 +936,10 @@ export const api = {
       hasLogo: boolean;
       /** Premier créneau vide à venir hors de la bande affichée : la carte « post suivant ». */
       nextSlot: WeekEntry | null;
-      /** Plus rien de vide à venir : le mois à planifier pour trouver la suite. */
-      monthToPlan: string | null;
     }>(
       `/api/calendar?from=${from}&to=${to}`
     ),
   getCalendarEntry: (id: string) => apiFetch<{ entry: CalendarEntry }>(`/api/calendar/${id}`),
-  generateCalendar: (month: string) => post<{ entries: CalendarEntry[] }>("/api/calendar/generate", { month }),
   placeScript: (scriptId: string, scheduledDate: string) =>
     post<{ entry: CalendarEntry }>("/api/calendar", { scriptId, scheduledDate }),
   updateCalendarEntryStatus: (id: string, status: CalendarStatus) =>
@@ -928,6 +947,11 @@ export const api = {
   updateCalendarEntry: (id: string, data: { contentCategoryId?: string; seriesId?: string | null }) =>
     patch<{ entry: CalendarEntry }>(`/api/calendar/${id}`, data),
   deleteCalendarEntry: (id: string) => del<{ ok: true }>(`/api/calendar/${id}`),
+
+  getAdminQuotas: (email: string) =>
+    apiFetch<{ account: AdminAccountQuotas }>(`/api/admin/quotas?email=${encodeURIComponent(email)}`),
+  setAdminQuotas: (data: { userId: string; scriptLimit: number | null; microEditLimit: number | null }) =>
+    put<{ account: AdminAccountQuotas }>("/api/admin/quotas", data),
 
   generateScriptForEntry: (calendarEntryId: string, contentType?: ContentType, productId?: string, directive?: string, visual?: VisualFormatFields) =>
     post<{ script: Script }>("/api/scripts/generate", { calendarEntryId, contentType, productId, directive, ...visual }),

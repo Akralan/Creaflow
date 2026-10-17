@@ -133,6 +133,10 @@ export const users = pgTable("users", {
   // resterait connecté 7 jours après que l'utilisateur a changé son mot de passe pour l'évincer.
   sessionsInvalidatedBefore: timestamp("sessions_invalidated_before"),
   vertical: verticalEnum("vertical").notNull().default("creator"),
+  // Quotas propres au compte, réglés depuis /admin/quotas (docs/SPEC_QUOTAS_ADMIN.md) : remplacent
+  // la limite de l'essai ou du plan. Null = limite normale.
+  scriptLimit: integer("script_limit"),
+  microEditLimit: integer("micro_edit_limit"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -206,8 +210,9 @@ export const creatorProfiles = pgTable("creator_profiles", {
   // l'onboarding, éditable en paramètres. Remplace ton, valeurs, matériel et temps disponible : le
   // ton s'apprend aux retouches (styleProfile), le rythme se lit dans publishingDays.
   expectations: text("expectations"),
-  // Jours de publication, ISO : 1 = lundi … 7 = dimanche. Un créneau par jour coché et par
-  // plateforme active (api/calendar/generate). Jamais vide : le service refuse le dernier décoché.
+  // Jours où l'auteur peut publier, ISO : 1 = lundi … 7 = dimanche. Ne placent plus les posts
+  // (docs/SPEC_RYTHME_DES_SERIES.md) : répartis entre les séries à l'onboarding, proposés à la
+  // création d'une série. Jamais vide : le service refuse le dernier décoché.
   publishingDays: integer("publishing_days").array().notNull().default([3, 6]),
   // Audience de marque (docs/SPEC_PROMPT_GENERATION_TECH.md §2/§5) — qui lit/achète, ce qui
   // l'intéresse, ce qu'il doit retenir ou faire ; texte libre, extrait de l'onboarding ou édité en
@@ -253,9 +258,14 @@ export const contentSeries = pgTable("content_series", {
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   label: text("label").notNull(),
   description: text("description").notNull(),
-  // Pourcentage cible ABSOLU de créneaux, PAS normalisé à 100 comme contentCategories.weight —
-  // la couverture série n'est jamais forcée à 100%.
+  // Ancien pourcentage de créneaux : plus lu depuis docs/SPEC_RYTHME_DES_SERIES.md (le rythme le
+  // remplace), gardé en base pour ne pas faire de migration destructive. Sert encore d'ordre d'affichage.
   weight: integer("weight").notNull(),
+  // Rythme de publication `{ days, every, anchor }` (docs/SPEC_RYTHME_DES_SERIES.md §2) — lu par
+  // parseStoredRhythm. Null = pas encore de rythme : la série ne crée aucun créneau.
+  rhythm: jsonb("rhythm"),
+  // Créneaux du rythme retirés à la main (`YYYY-MM-DD|plateforme`) : le recalcul ne les recrée pas.
+  skippedSlots: jsonb("skipped_slots").$type<string[]>().notNull().default([]),
   archived: boolean("archived").notNull().default(false),
   // Lot B2 : colonne + toggle manuel. L'inférence LLM à la création (Annexe B.8) arrive au Lot B3.
   mode: contentSeriesModeEnum("mode").notNull().default("rendez_vous"),
@@ -754,20 +764,23 @@ export const postMatchCandidates = pgTable(
 // bouge jamais sur une régénération (updateScriptRecord fait un UPDATE en place sur la même ligne).
 // C'est cette table, pas `scripts`, que billingService.ts compte pour le quota mensuel : le coût
 // LLM (donc le quota) est déclenché à chaque génération, régénération comprise.
+// `scriptId` passe à null quand le script est supprimé, l'événement reste compté : en cascade,
+// supprimer ses scripts remettait le compteur à zéro (docs/SPEC_QUOTAS_ADMIN.md).
 export const scriptGenerationEvents = pgTable("script_generation_events", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  scriptId: uuid("script_id").notNull().references(() => scripts.id, { onDelete: "cascade" }),
+  scriptId: uuid("script_id").references(() => scripts.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Micro-retouches dans l'éditeur (docs/SPEC_MATIERE_EDITEUR.md §4.6) — comptées à part du quota de
 // génération complète (scriptGenerationEvents) : un pool distinct, plus généreux, sans quoi le
-// comptage plein tarif tuerait l'itération qui est tout le but de l'éditeur.
+// comptage plein tarif tuerait l'itération qui est tout le but de l'éditeur. Même règle que
+// scriptGenerationEvents : supprimer le script ne rend pas les retouches déjà faites.
 export const scriptMicroEditEvents = pgTable("script_micro_edit_events", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  scriptId: uuid("script_id").notNull().references(() => scripts.id, { onDelete: "cascade" }),
+  scriptId: uuid("script_id").references(() => scripts.id, { onDelete: "set null" }),
   kind: scriptMicroEditKindEnum("kind").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

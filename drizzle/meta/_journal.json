@@ -295,6 +295,20 @@
       "when": 1792199874835,
       "tag": "0041_cadrage_serie",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1792230881722,
+      "tag": "0042_rythme_des_series",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1792232394819,
+      "tag": "0043_quotas_admin",
+      "breakpoints": true
     }
   ]
 }

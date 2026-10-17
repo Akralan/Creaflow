@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
-import { api, ApiClientError, type ContentSeries } from "@/lib/apiClient";
+import RhythmPicker, { daysTakenBy } from "@/components/RhythmPicker";
+import { api, ApiClientError, type ContentSeries, type SeriesSlotChange } from "@/lib/apiClient";
+import { suggestDays, type SeriesRhythm } from "@/lib/seriesRhythm";
 import { accentAlpha, color, fontHeading } from "@/lib/design/tokens";
 import { useContentCategories } from "@/contexts/CategoryLabelsContext";
 import { KNOWN_PLATFORMS } from "@/lib/social/types";
@@ -29,26 +31,52 @@ export default function SeriesEditModal({
   series: ContentSeries | null;
   allSeries: ContentSeries[];
   onClose: () => void;
-  onSaved: (series: ContentSeries[], removedId?: string) => void;
+  /** `slotChange` : ce que l'enregistrement a changé au calendrier pour la série éditée. */
+  onSaved: (series: ContentSeries[], removedId?: string, slotChange?: SeriesSlotChange & { seriesId: string }) => void;
 }) {
   const categories = useContentCategories();
   const [label, setLabel] = useState(series?.label ?? "");
   const [description, setDescription] = useState(series?.description ?? "");
-  const [weight, setWeight] = useState(series?.weight ?? 10);
+  const takenBy = daysTakenBy(allSeries, series?.id);
+  // Une série sans rythme (données d'avant) ou nouvelle part d'un mercredi, remplacé dès que les
+  // jours où l'auteur peut publier sont connus.
+  const [rhythm, setRhythm] = useState<SeriesRhythm>(series?.rhythm ?? { days: [3], every: 1, anchor: null });
+  // Une ref, pas un état : la réponse du profil, qui arrive après coup, doit voir un geste fait entre-temps.
+  const rhythmTouched = useRef(Boolean(series?.rhythm));
   const [categoryId, setCategoryId] = useState(series?.category?.id ?? "");
   const [platforms, setPlatforms] = useState<string[]>(series?.platforms ?? []);
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /** Forme attendue par `POST /api/series` — `id` absent = création. */
+  // Nouvelle série : on précoche les jours où l'auteur peut publier qu'aucune autre série n'occupe
+  // (docs/SPEC_RYTHME_DES_SERIES.md §4).
+  useEffect(() => {
+    if (rhythmTouched.current) return;
+    let cancelled = false;
+    api
+      .getProfile()
+      .then(({ profile }) => {
+        if (cancelled || !profile || rhythmTouched.current) return;
+        setRhythm((r) => ({ ...r, days: suggestDays(profile.publishingDays, Object.keys(takenBy).map(Number)) }));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // Une seule fois à l'ouverture.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Forme attendue par `POST /api/series` — `id` absent = création. Le rythme des autres
+   *  séries est omis : le serveur le laisse inchangé. */
   type SeriesDraft = {
     id?: string;
     label: string;
     description: string;
-    weight: number;
     categoryId: string;
     platforms: string[];
+    rhythm?: SeriesRhythm;
   };
 
   function toDraft(s: ContentSeries): SeriesDraft {
@@ -56,7 +84,6 @@ export default function SeriesEditModal({
       id: s.id,
       label: s.label,
       description: s.description,
-      weight: s.weight,
       categoryId: s.category?.id ?? "",
       platforms: s.platforms,
     };
@@ -70,8 +97,12 @@ export default function SeriesEditModal({
     setSaving(true);
     setError(null);
     try {
-      const { series: saved } = await api.saveContentSeries(payload);
-      onSaved(saved, removedId);
+      const { series: saved, slotChanges } = await api.saveContentSeries(payload);
+      // La série éditée : l'existante, ou à la création celle qui n'était pas là avant.
+      const before = new Set(allSeries.map((s) => s.id));
+      const editedId = series?.id ?? saved.find((s) => !before.has(s.id))?.id;
+      const change = editedId ? slotChanges[editedId] : undefined;
+      onSaved(saved, removedId, change && editedId ? { ...change, seriesId: editedId } : undefined);
       onClose();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Erreur lors de l'enregistrement.");
@@ -89,7 +120,7 @@ export default function SeriesEditModal({
       setError("Chaque série doit avoir un rôle.");
       return;
     }
-    const edited = { id: series?.id, label: label.trim(), description: description.trim() || label.trim(), weight, categoryId, platforms };
+    const edited = { id: series?.id, label: label.trim(), description: description.trim() || label.trim(), categoryId, platforms, rhythm };
     const payload = series
       ? allSeries.map((s) => (s.id === series.id ? edited : toDraft(s)))
       : [...allSeries.map(toDraft), edited];
@@ -120,8 +151,8 @@ export default function SeriesEditModal({
         {series ? "Modifier la série" : "Nouvelle série"}
       </div>
       <p style={{ margin: "0 0 20px", fontSize: 13, color: color.textMuted, lineHeight: 1.5 }}>
-        Un format récurrent et nommé, avec sa propre identité, qui sert un rôle de ton mix. Une partie du calendrier reste
-        hors série (posts libres).
+        Un format récurrent et nommé, avec sa propre identité, qui sert un rôle de ton mix. Elle publie sur ses jours :
+        ses posts arrivent dans le calendrier dès l&apos;enregistrement.
       </p>
 
       <div style={{ display: "grid", gap: 16 }}>
@@ -175,23 +206,18 @@ export default function SeriesEditModal({
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 16, alignItems: "flex-end" }}>
-          <div>
-            <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 6 }}>
-              Poids
-            </label>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                value={weight}
-                onChange={(e) => setWeight(Number(e.target.value))}
-                style={{ ...fieldStyle, width: 80 }}
-              />
-              <span style={{ fontSize: 13, color: color.textFaint }}>% des créneaux</span>
-            </div>
-          </div>
+        <div>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 6 }}>
+            Rythme <span style={{ fontWeight: 400, color: color.textFaint }}>— les jours où cette série publie</span>
+          </label>
+          <RhythmPicker
+            value={rhythm}
+            takenBy={takenBy}
+            onChange={(next) => {
+              rhythmTouched.current = true;
+              setRhythm(next);
+            }}
+          />
         </div>
 
         <div>

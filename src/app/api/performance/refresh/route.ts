@@ -5,7 +5,6 @@ import { socialConnections } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
 import { hasMetricsFetch } from "@/lib/social";
 import { fetchAndMatchPostsForUser } from "@/lib/services/postMetricsFetchService";
-import { maybeGenerateCategoryReweightProposal } from "@/lib/services/categoryReweightService";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 
 /**
@@ -40,7 +39,9 @@ export async function POST() {
           : null,
     }));
 
-    await maybeGenerateCategoryReweightProposal(userId);
+    // Plus de rééquilibrage des rôles : leur poids ne plaçait que les posts libres, qui n'existent
+    // plus depuis docs/SPEC_RYTHME_DES_SERIES.md (§7 : proposer un changement de rythme de série,
+    // chantier à venir).
 
     return NextResponse.json({ results });
   } catch (error) {

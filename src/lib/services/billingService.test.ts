@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveQuotaStatus, toDbSubscriptionStatus } from "./billingService";
+import { CUSTOM_QUOTA_NAME, effectiveLimit, resolveQuotaStatus, toDbSubscriptionStatus } from "./billingService";
 
 describe("resolveQuotaStatus", () => {
   it("autorise tant que le nombre utilisé est strictement inférieur à la limite", () => {
@@ -34,5 +34,14 @@ describe("toDbSubscriptionStatus", () => {
 
   it("fait tomber un statut hors enum (ex. \"paused\", non proposé en v1) sur \"past_due\"", () => {
     expect(toDbSubscriptionStatus("paused")).toBe("past_due");
+  });
+});
+
+describe("effectiveLimit (docs/SPEC_QUOTAS_ADMIN.md)", () => {
+  it("le quota propre au compte remplace la limite normale ; null la laisse", () => {
+    const normal = { limit: 5, planName: "Essai gratuit" };
+    expect(effectiveLimit(normal, null)).toEqual(normal);
+    expect(effectiveLimit(normal, 100)).toEqual({ limit: 100, planName: CUSTOM_QUOTA_NAME });
+    expect(effectiveLimit(normal, 0)).toEqual({ limit: 0, planName: CUSTOM_QUOTA_NAME });
   });
 });

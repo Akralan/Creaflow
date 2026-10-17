@@ -6,6 +6,7 @@ import { calendarEntries, calendarStatusEnum, contentCategories } from "@/db/sch
 import { requireUserId } from "@/lib/auth/session";
 import { contentCategorySchema } from "@/lib/validation";
 import { resolveCategoryForGeneration } from "@/lib/services/seriesService";
+import { skipSeriesSlot } from "@/lib/services/seriesSlotSync";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 
 const patchSchema = z
@@ -118,7 +119,13 @@ export async function DELETE(
       throw new ApiError(409, "Ce créneau a déjà un script généré, impossible de le supprimer.");
     }
 
-    await db.delete(calendarEntries).where(and(eq(calendarEntries.id, id), eq(calendarEntries.userId, userId)));
+    // Créneau d'une série : noté comme sauté, sinon le rythme le recréerait au prochain recalcul
+    // (docs/SPEC_RYTHME_DES_SERIES.md §3).
+    if (existing.seriesId) {
+      await skipSeriesSlot(userId, { id: existing.id, seriesId: existing.seriesId, platform: existing.platform, scheduledDate: existing.scheduledDate });
+    } else {
+      await db.delete(calendarEntries).where(and(eq(calendarEntries.id, id), eq(calendarEntries.userId, userId)));
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error) {

@@ -1,108 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  adjustCategoryWeightsForMaterialScarcity,
-  categoryWeightsFromCategories,
-  datesForWeekdays,
-  distributeCategories,
-  distributeSeriesOverrides,
-  filterByPlatform,
-  parseMonth,
-  publishingDaysLabel,
-  renormalizeCategoryWeights,
-  seriesWeightsFromSeries,
-  type CategoryWeight,
-  type SeriesWeight,
-} from "./calendarService";
-
-const SAMPLE_WEIGHTS: CategoryWeight[] = [
-  { id: "coulisses", weight: 0.5 },
-  { id: "vente", weight: 0.3 },
-  { id: "educatif", weight: 0.2 },
-];
-
-describe("categoryWeightsFromCategories", () => {
-  it("convertit des poids 0-100 en fractions", () => {
-    expect(categoryWeightsFromCategories([{ id: "a", weight: 40 }, { id: "b", weight: 60 }])).toEqual([
-      { id: "a", weight: 0.4 },
-      { id: "b", weight: 0.6 },
-    ]);
-  });
-});
-
-describe("distributeCategories", () => {
-  it("renvoie un tableau vide pour n <= 0", () => {
-    expect(distributeCategories(0, SAMPLE_WEIGHTS)).toEqual([]);
-    expect(distributeCategories(-3, SAMPLE_WEIGHTS)).toEqual([]);
-  });
-
-  it("renvoie un tableau vide si aucune catégorie n'est fournie", () => {
-    expect(distributeCategories(5, [])).toEqual([]);
-  });
-
-  it("renvoie exactement n catégories, jamais null", () => {
-    for (const n of [1, 2, 3, 5, 7, 10, 13, 20]) {
-      const result = distributeCategories(n, SAMPLE_WEIGHTS);
-      expect(result).toHaveLength(n);
-      expect(result.every((c) => c !== null && c !== undefined)).toBe(true);
-    }
-  });
-
-  it("respecte approximativement le mix de poids fourni sur un grand échantillon", () => {
-    const n = 100;
-    const result = distributeCategories(n, SAMPLE_WEIGHTS);
-    const counts: Record<string, number> = { vente: 0, coulisses: 0, educatif: 0 };
-    for (const id of result) counts[id]++;
-
-    expect(counts.coulisses).toBeGreaterThanOrEqual(45);
-    expect(counts.coulisses).toBeLessThanOrEqual(55);
-    expect(counts.vente).toBeGreaterThanOrEqual(25);
-    expect(counts.vente).toBeLessThanOrEqual(35);
-    expect(counts.educatif).toBeGreaterThanOrEqual(15);
-    expect(counts.educatif).toBeLessThanOrEqual(25);
-  });
-
-  it("fonctionne avec un nombre de catégories différent de 3 (généralisation)", () => {
-    const weights: CategoryWeight[] = [
-      { id: "a", weight: 0.4 },
-      { id: "b", weight: 0.4 },
-      { id: "c", weight: 0.1 },
-      { id: "d", weight: 0.1 },
-    ];
-    const result = distributeCategories(20, weights);
-    expect(result).toHaveLength(20);
-    expect(new Set(result).size).toBeGreaterThan(1);
-  });
-
-  it("ne regroupe pas systématiquement une catégorie au début (répartition étalée)", () => {
-    const result = distributeCategories(10, SAMPLE_WEIGHTS);
-    const firstHalf = result.slice(0, 5);
-    const uniqueInFirstHalf = new Set(firstHalf);
-    expect(uniqueInFirstHalf.size).toBeGreaterThan(1);
-  });
-});
-
-describe("datesForWeekdays", () => {
-  it("renvoie les mercredis et samedis d'octobre 2026 (le 1er est un jeudi)", () => {
-    expect(datesForWeekdays(2026, 9, [3, 6])).toEqual([3, 7, 10, 14, 17, 21, 24, 28, 31]);
-  });
-
-  it("traite le dimanche comme le jour 7 (ISO)", () => {
-    // 1er février 2026 : un dimanche.
-    expect(datesForWeekdays(2026, 1, [7])).toEqual([1, 8, 15, 22]);
-  });
-
-  it("renvoie tous les jours du mois quand les sept jours sont cochés", () => {
-    expect(datesForWeekdays(2024, 1, [1, 2, 3, 4, 5, 6, 7])).toHaveLength(29);
-  });
-
-  it("renvoie un tableau vide sans jour coché", () => {
-    expect(datesForWeekdays(2026, 9, [])).toEqual([]);
-  });
-
-  it("ne dépend pas de l'ordre ni des doublons des jours fournis", () => {
-    expect(datesForWeekdays(2026, 9, [6, 3, 3])).toEqual(datesForWeekdays(2026, 9, [3, 6]));
-  });
-});
+import { filterByPlatform, parseMonth, planSeriesSlots, publishingDaysLabel } from "./calendarService";
 
 describe("publishingDaysLabel", () => {
   it("écrit les jours en clair, dans l'ordre de la semaine", () => {
@@ -146,106 +43,74 @@ describe("filterByPlatform", () => {
   });
 });
 
-describe("renormalizeCategoryWeights", () => {
-  it("met à l'échelle un sous-ensemble pour qu'il somme à 1", () => {
-    const result = renormalizeCategoryWeights([
-      { id: "a", weight: 0.2 },
-      { id: "b", weight: 0.15 },
-    ]);
-    const total = result.reduce((sum, w) => sum + w.weight, 0);
-    expect(total).toBeCloseTo(1, 5);
-    expect(result[0].weight).toBeCloseTo(0.2 / 0.35, 5);
-    expect(result[1].weight).toBeCloseTo(0.15 / 0.35, 5);
+describe("planSeriesSlots (docs/SPEC_RYTHME_DES_SERIES.md §3)", () => {
+  const d = (day: number) => new Date(Date.UTC(2026, 9, day)); // octobre 2026 : le 21 est un mercredi
+  const series = { id: "s1", rhythm: { days: [3, 6], every: 1 as const, anchor: null }, platforms: [] };
+
+  it("crée les jours du rythme sur chaque réseau actif, sans doublon de l'existant", () => {
+    const { toCreate, toDelete } = planSeriesSlots({
+      series,
+      activePlatforms: ["linkedin", "x"],
+      existing: [{ id: "e1", seriesId: "s1", platform: "linkedin", scheduledDate: d(21), locked: false }],
+      from: d(19),
+      to: d(25),
+    });
+    expect(toCreate.map((c) => `${c.scheduledDate.getUTCDate()}-${c.platform}`)).toEqual(["21-x", "24-linkedin", "24-x"]);
+    expect(toDelete).toEqual([]);
   });
 
-  it("ne change rien si l'ensemble somme déjà à 1", () => {
-    expect(renormalizeCategoryWeights(SAMPLE_WEIGHTS)).toEqual(SAMPLE_WEIGHTS);
+  it("supprime les créneaux vides hors rythme, jamais un créneau verrouillé ni celui d'une autre série", () => {
+    const { toDelete } = planSeriesSlots({
+      series,
+      activePlatforms: ["linkedin"],
+      existing: [
+        { id: "vide-jeudi", seriesId: "s1", platform: "linkedin", scheduledDate: d(22), locked: false },
+        { id: "redige-jeudi", seriesId: "s1", platform: "linkedin", scheduledDate: d(22), locked: true },
+        { id: "autre-serie", seriesId: "s2", platform: "linkedin", scheduledDate: d(22), locked: false },
+        { id: "reseau-coupe", seriesId: "s1", platform: "x", scheduledDate: d(21), locked: false },
+      ],
+      from: d(19),
+      to: d(25),
+    });
+    expect(toDelete).toEqual(["vide-jeudi", "reseau-coupe"]);
   });
 
-  it("renvoie l'entrée telle quelle sans diviser par zéro si elle est vide", () => {
-    expect(renormalizeCategoryWeights([])).toEqual([]);
-  });
-});
-
-describe("seriesWeightsFromSeries", () => {
-  it("convertit des poids 0-100 en fractions", () => {
-    expect(seriesWeightsFromSeries([{ id: "a", weight: 20, categoryId: "cat1" }])).toEqual([
-      { id: "a", weight: 0.2, categoryId: "cat1" },
-    ]);
-  });
-
-  it("écarte les séries sans rôle lié", () => {
-    expect(seriesWeightsFromSeries([{ id: "a", weight: 20, categoryId: null }])).toEqual([]);
-  });
-});
-
-describe("distributeSeriesOverrides", () => {
-  const ONE_SERIES: SeriesWeight[] = [{ id: "serie-a", weight: 0.3, categoryId: "cat1" }];
-
-  it("renvoie une Map vide pour n <= 0", () => {
-    expect(distributeSeriesOverrides(0, ONE_SERIES).size).toBe(0);
-    expect(distributeSeriesOverrides(-3, ONE_SERIES).size).toBe(0);
-  });
-
-  it("renvoie une Map vide si aucune série n'est fournie", () => {
-    expect(distributeSeriesOverrides(10, []).size).toBe(0);
-  });
-
-  it("ne force jamais 100% de couverture : des poids sommant à moins de 1 laissent des créneaux non couverts", () => {
-    const result = distributeSeriesOverrides(20, ONE_SERIES); // 30% de 20 = 6
-    expect(result.size).toBeLessThan(20);
-    expect(result.size).toBeCloseTo(6, 0);
-  });
-
-  it("plafonne à la baisse (jamais à la hausse) quand la somme des poids dépasse 1", () => {
-    const overSubscribed: SeriesWeight[] = [
-      { id: "a", weight: 0.7, categoryId: "cat1" },
-      { id: "b", weight: 0.6, categoryId: "cat2" },
-    ];
-    const result = distributeSeriesOverrides(10, overSubscribed);
-    expect(result.size).toBeLessThanOrEqual(10);
-  });
-
-  it("impose le rôle unique de la série à chaque créneau promu", () => {
-    const result = distributeSeriesOverrides(10, [{ id: "serie-a", weight: 1, categoryId: "cat1" }]);
-    expect(result.size).toBe(10);
-    for (const [, assignment] of result) {
-      expect(assignment.categoryId).toBe("cat1");
-    }
-  });
-
-  it("n'assigne jamais deux séries au même index", () => {
-    const twoSeries: SeriesWeight[] = [
-      { id: "a", weight: 0.5, categoryId: "cat1" },
-      { id: "b", weight: 0.5, categoryId: "cat2" },
-    ];
-    const result = distributeSeriesOverrides(10, twoSeries);
-    expect(result.size).toBeLessThanOrEqual(10);
-    for (const [, assignment] of result) {
-      expect(["a", "b"]).toContain(assignment.seriesId);
-    }
+  it("respecte les réseaux ciblés et ne crée rien sans rythme", () => {
+    const targeted = planSeriesSlots({ series: { ...series, platforms: ["x"] }, activePlatforms: ["linkedin", "x"], existing: [], from: d(19), to: d(25) });
+    expect(targeted.toCreate.every((c) => c.platform === "x")).toBe(true);
+    expect(planSeriesSlots({ series: { ...series, rhythm: null }, activePlatforms: ["linkedin"], existing: [], from: d(19), to: d(25) }).toCreate).toEqual([]);
   });
 });
 
-describe("adjustCategoryWeightsForMaterialScarcity", () => {
-  it("ne touche rien si la matière est suffisante", () => {
-    expect(adjustCategoryWeightsForMaterialScarcity(SAMPLE_WEIGHTS, new Set(["coulisses"]), true)).toEqual(SAMPLE_WEIGHTS);
+describe("planSeriesSlots — créneaux retirés à la main", () => {
+  it("ne recrée pas un créneau retiré, et supprime un vide qui y serait encore", () => {
+    const d = (day: number) => new Date(Date.UTC(2026, 9, day));
+    const { toCreate, toDelete } = planSeriesSlots({
+      series: { id: "s1", rhythm: { days: [3, 6], every: 1, anchor: null }, platforms: [], skippedSlots: ["2026-10-24|linkedin"] },
+      activePlatforms: ["linkedin"],
+      existing: [{ id: "reste", seriesId: "s1", platform: "linkedin", scheduledDate: d(24), locked: false }],
+      from: d(19),
+      to: d(25),
+    });
+    expect(toCreate.map((c) => c.scheduledDate.getUTCDate())).toEqual([21]);
+    expect(toDelete).toEqual(["reste"]);
   });
+});
 
-  it("ne touche rien si aucune catégorie n'est gourmande", () => {
-    expect(adjustCategoryWeightsForMaterialScarcity(SAMPLE_WEIGHTS, new Set(), false)).toEqual(SAMPLE_WEIGHTS);
-  });
-
-  it("ramène à 0 le poids des catégories gourmandes et redistribue le reste quand le corpus est sec", () => {
-    const result = adjustCategoryWeightsForMaterialScarcity(SAMPLE_WEIGHTS, new Set(["coulisses"]), false);
-    expect(result.find((w) => w.id === "coulisses")?.weight).toBe(0);
-    // vente (0.3) et educatif (0.2) totalisaient 0.5 → renormalisés à 1 en gardant leur proportion (3:2).
-    expect(result.find((w) => w.id === "vente")?.weight).toBeCloseTo(0.6);
-    expect(result.find((w) => w.id === "educatif")?.weight).toBeCloseTo(0.4);
-  });
-
-  it("laisse les poids inchangés si toutes les catégories sont gourmandes (mieux vaut un calendrier normal que vide)", () => {
-    const allHungry = new Set(SAMPLE_WEIGHTS.map((w) => w.id));
-    expect(adjustCategoryWeightsForMaterialScarcity(SAMPLE_WEIGHTS, allHungry, false)).toEqual(SAMPLE_WEIGHTS);
+describe("planSeriesSlots — au-delà de l'horizon", () => {
+  it("supprime un vide hors rythme posé plus loin par l'ancien calendrier, sans rien créer après l'horizon", () => {
+    const d = (day: number) => new Date(Date.UTC(2026, 10, day)); // novembre 2026 : le 18 est un mercredi
+    const { toCreate, toDelete } = planSeriesSlots({
+      series: { id: "s1", rhythm: { days: [6], every: 1, anchor: null }, platforms: [] },
+      activePlatforms: ["linkedin"],
+      existing: [
+        { id: "mercredi-loin", seriesId: "s1", platform: "linkedin", scheduledDate: d(18), locked: false },
+        { id: "samedi-loin", seriesId: "s1", platform: "linkedin", scheduledDate: d(21), locked: false },
+      ],
+      from: d(2),
+      to: d(8),
+    });
+    expect(toDelete).toEqual(["mercredi-loin"]);
+    expect(toCreate.map((c) => c.scheduledDate.getUTCDate())).toEqual([7]);
   });
 });
