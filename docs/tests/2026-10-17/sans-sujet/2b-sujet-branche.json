@@ -1,0 +1,887 @@
+{
+  "createdAt": "2026-10-17T00:34:54.851Z",
+  "baseline": false,
+  "forcedProductId": "a56a844d-a1c6-4f84-ad5c-1389263ca73b",
+  "entries": [
+    {
+      "scriptId": "4b4ee15f-0b57-455c-a079-d07581c60adc",
+      "platform": "linkedin",
+      "contentType": "visual",
+      "visualFormat": "animation",
+      "durationMs": 8000,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Prompt en duel",
+        "beatId": "presentation-creaflow",
+        "episode": null,
+        "direction": null,
+        "readers": [
+          "Développeurs d’outils IA",
+          "Indépendants outillés par l’IA",
+          "Curieux des méthodes LLM"
+        ],
+        "recentPosts": 0,
+        "inspirations": 8,
+        "materialDocuments": 39
+      },
+      "post": {
+        "contentType": "visual",
+        "concept": "Montrer aux développeurs d’outils IA que le duel utile n’oppose pas deux modèles : il oppose un brief qui hiérarchise la matière et les critères à un brief qui demande simplement un post. Le lecteur doit retenir de comparer les sorties sur la fidélité factuelle et la spécificité, pas sur une impression globale.",
+        "title": "Le brief qui gagne le duel",
+        "caption": "Le duel de prompts le plus utile ne compare pas deux modèles. Il compare deux niveaux de brief.\n\nPour CreaFlow, je peux donner le même besoin au même modèle avec deux briefs :\n\n— Brief A : « écris un post sur ce sujet ».\n— Brief B : matière disponible, rôle du post, angle imposé et critère de réussite.\n\nLa différence ne se mesure pas à l’impression générale laissée par la sortie.\n\nJe regarde d’abord si elle reste fidèle à la matière fournie. Ensuite, si elle porte une idée identifiable. Enfin, si elle contient un détail spécifique et vérifiable — quelque chose qu’un concurrent ne pourrait pas publier tel quel.\n\nC’est aussi ce qui m’a fait revoir le traitement de la matière dans CreaFlow. Un journal de développement complet produit une suite de posts cohérente. Une sélection de fragments sans lien thématique produit un texte pauvre et décousu.\n\nLe test n’est donc pas « quel prompt écrit le plus joliment ? »\n\nC’est : « quel brief permet de comparer deux sorties sur des critères que l’on peut relire après coup ? »\n\nPour un outil de génération, le brief devient alors une spécification de test, pas seulement une consigne adressée au modèle.\n\n#LLMEvals #PromptEngineering",
+        "hashtags": [
+          "#LLMEvals",
+          "#PromptEngineering"
+        ],
+        "usedExcerpts": [
+          "Le premier script généré pour un profil personal branding (posts texte LinkedIn/X) : générique, imprécis, avec des informations inventées. Décrochage immédiat — dès le premier script.",
+          "Expérience faite à la main, hors produit : le journal de développement complet d'un projet perso (~37 runs documentés — bugs, réglages, décisions techniques) collé dans un LLM généraliste, avec une conversation minimale. Résultat : une **série d'environ 5 posts qui se suivent, avec une conclusion**, de qualité quasi finale — quelques retouches à la main, une seule demande de reformulation d'une phrase.",
+          "envoyer le texte brut complet d'un journal de bord à Claude produisait un excellent post, tandis que l'app, alimentée par 6 unités choisies par rotation sans notion de pertinence, produisait un post pauvre et décousu — le découpage perdait la richesse narrative du texte source, et la sélection assemblait des fragments sans lien thématique entre eux —"
+        ],
+        "promisesMade": [],
+        "hookVisual": "Une seule slide sombre en split-screen : à gauche « Brief A : écris un post », à droite « Brief B : matière · angle · critère ». Au centre, le même badge « même sujet / même modèle », puis un curseur qui se fixe du côté du Brief B.",
+        "storyboard": [
+          {
+            "planNumber": 1,
+            "description": "Slide unique, split-screen. Texte affiché : « Même modèle. Deux briefs. » puis en sous-texte « Le duel utile commence ici. »"
+          },
+          {
+            "planNumber": 2,
+            "description": "Le côté gauche s'affiche en gris : « Brief A : écris un post ». Le côté droit reste vide une fraction de seconde."
+          },
+          {
+            "planNumber": 3,
+            "description": "Le côté droit s'affiche avec trois repères : « matière », « angle », « critère de réussite ». Texte court : « Le brief devient testable. »"
+          },
+          {
+            "planNumber": 4,
+            "description": "Les deux sorties apparaissent sous forme de deux cartes : « générique / plausible » contre « spécifique / vérifiable ». Texte final : « Compare la fidélité avant le style. »"
+          }
+        ]
+      },
+      "design": {
+        "width": 1080,
+        "height": 1920,
+        "durationMs": 8000,
+        "slides": [
+          {
+            "planNumber": 1,
+            "html": "<div style=\"position:relative;width:1080px;height:1920px;overflow:hidden;background:#111318\"><div data-layer=\"l1\" data-type=\"shape\" style=\"position:absolute;top:0px;left:0px;width:1080px;height:1920px;background:#111318\"></div><div data-layer=\"l2\" data-type=\"shape\" style=\"position:absolute;top:260px;left:540px;width:2px;height:1220px;background:#7C8CFF\"></div><div data-layer=\"l3\" data-type=\"text\" style=\"position:absolute;top:112px;left:72px;width:936px;height:150px;color:#F2F0EA;font-family:Space Grotesk;font-size:64px;line-height:1.05;font-weight:700;letter-spacing:-2px\">Le brief qui gagne<br>le duel</div><div data-layer=\"l4\" data-type=\"text\" style=\"position:absolute;top:292px;left:72px;width:936px;height:45px;color:#B9C0D0;font-family:Inter;font-size:24px;line-height:1.2\">Même modèle. Deux briefs.</div><div data-layer=\"l5\" data-type=\"text\" style=\"position:absolute;top:348px;left:72px;width:936px;height:40px;color:#7C8CFF;font-family:Inter;font-size:22px;line-height:1.2\">Le duel utile commence ici.</div><div data-layer=\"l6\" data-type=\"shape\" style=\"position:absolute;top:438px;left:405px;width:270px;height:54px;border-radius:27px;background:#2A2E38;border:1px solid #7C8CFF;color:#F2F0EA;font-family:Inter;font-size:18px;text-align:center;line-height:54px\">même sujet / même modèle</div><div data-layer=\"l7\" data-type=\"text\" style=\"position:absolute;top:570px;left:72px;width:390px;height:130px;color:#B9C0D0;font-family:Inter;font-size:30px;line-height:1.25;font-weight:600\">Brief A :<br>écris un post</div><div data-layer=\"l8\" data-type=\"text\" style=\"position:absolute;top:570px;left:618px;width:390px;height:220px;color:#F2F0EA;font-family:Inter;font-size:30px;line-height:1.45;font-weight:600\">matière<br>angle<br>critère de réussite</div><div data-layer=\"l9\" data-type=\"text\" style=\"position:absolute;top:840px;left:618px;width:390px;height:50px;color:#7C8CFF;font-family:Inter;font-size:22px;line-height:1.2\">Le brief devient testable.</div><div data-layer=\"l10\" data-type=\"shape\" style=\"position:absolute;top:1000px;left:72px;width:390px;height:220px;border-radius:20px;background:#2A2E38;border:1px solid #555B68;padding:34px;box-sizing:border-box\"><div style=\"color:#B9C0D0;font-family:Inter;font-size:28px;line-height:1.3;font-weight:600\">générique<br>/ plausible</div></div><div data-layer=\"l11\" data-type=\"shape\" style=\"position:absolute;top:1000px;left:618px;width:390px;height:220px;border-radius:20px;background:#7C8CFF;padding:34px;box-sizing:border-box\"><div style=\"color:#111318;font-family:Inter;font-size:28px;line-height:1.3;font-weight:700\">spécifique<br>/ vérifiable</div></div><div data-layer=\"l12\" data-type=\"text\" style=\"position:absolute;top:1335px;left:72px;width:936px;height:80px;color:#F2F0EA;font-family:Space Grotesk;font-size:34px;line-height:1.2;font-weight:600\">Compare la fidélité avant le style.</div></div>"
+          }
+        ],
+        "timeline": [
+          {
+            "layerId": "l3",
+            "enter": "fade",
+            "startMs": 0,
+            "enterMs": 500,
+            "exit": null,
+            "exitAtMs": null
+          },
+          {
+            "layerId": "l4",
+            "enter": "fade",
+            "startMs": 0,
+            "enterMs": 500,
+            "exit": null,
+            "exitAtMs": null
+          },
+          {
+            "layerId": "l5",
+            "enter": "fade",
+            "startMs": 0,
+            "enterMs": 500,
+            "exit": null,
+            "exitAtMs": null
+          },
+          {
+            "layerId": "l6",
+            "enter": "zoom-in",
+            "startMs": 450,
+            "enterMs": 450,
+            "exit": null,
+            "exitAtMs": null
+          },
+          {
+            "layerId": "l7",
+            "enter": "slide-left",
+            "startMs": 1000,
+            "enterMs": 500,
+            "exit": "fade",
+            "exitAtMs": 3000
+          },
+          {
+            "layerId": "l8",
+            "enter": "slide-left",
+            "startMs": 3000,
+            "enterMs": 600,
+            "exit": null,
+            "exitAtMs": null
+          },
+          {
+            "layerId": "l9",
+            "enter": "fade",
+            "startMs": 3600,
+            "enterMs": 400,
+            "exit": null,
+            "exitAtMs": null
+          },
+          {
+            "layerId": "l10",
+            "enter": "slide-up",
+            "startMs": 5000,
+            "enterMs": 500,
+            "exit": null,
+            "exitAtMs": null
+          },
+          {
+            "layerId": "l11",
+            "enter": "slide-up",
+            "startMs": 5500,
+            "enterMs": 500,
+            "exit": null,
+            "exitAtMs": null
+          },
+          {
+            "layerId": "l12",
+            "enter": "fade",
+            "startMs": 6500,
+            "enterMs": 500,
+            "exit": null,
+            "exitAtMs": null
+          }
+        ],
+        "imageUrls": {},
+        "logoUrl": null,
+        "rationale": "La composition oppose visuellement les deux briefs par un split-screen strict, avec le bleu comme signal de précision et de sélection du Brief B. La progression descend du duel vers les sorties comparables, afin de rendre la fidélité mesurable avant toute considération de style."
+      },
+      "trace": {
+        "version": 3,
+        "reader": {
+          "label": "Développeurs d’outils IA",
+          "knows": "Ils connaissent les APIs, les modèles de langage et les prompts, mais cherchent des méthodes solides pour comparer des sorties et fiabiliser les usages.",
+          "wants": "Ils viennent voir un duel de briefs reproductible, avec des critères concrets et une décision réutilisable dans leur propre produit."
+        },
+        "candidateMoments": [
+          {
+            "moment": "Le générateur de CreaFlow est conçu pour comparer des briefs et des sorties selon le niveau de matière fourni, avec un garde-fou contre l’invention.",
+            "excerpt": "CreaFlow — Un projet qui évalue des sorties de modèles de langage pour différents formats de contenus et niveaux de matière, à travers des briefs et des tests de prompts."
+          },
+          {
+            "moment": "Une baseline de génération sans matière montre que le modèle invente un défi, un résultat et une temporalité à partir de seulement 7 heures disponibles et d’une activité générale.",
+            "excerpt": "Le premier script généré pour un profil personal branding (posts texte LinkedIn/X) : générique, imprécis, avec des informations inventées. Décrochage immédiat — dès le premier script."
+          },
+          {
+            "moment": "L’ajout d’un prompt structuré en blocs et d’un champ concept améliore la sortie sur le brief sans matière, mais laisse apparaître une promesse future marquée [à compléter].",
+            "excerpt": "=== PRIORITÉS ===\nEn cas de tension entre les consignes ci-dessus, l'ordre de priorité est :\n1. La vérité factuelle : la matière fournie prime sur tout, rien n'est inventé au-delà.\n2. L'identité de la série et l'angle imposé.\n3. La voix de la marque (style observé, ton, valeurs).\n4. Les codes de la plateforme.\nSi l'angle imposé ne s'applique pas à la matière disponible, garde l'esprit de l'angle et adapte sa structure plutôt que d'inventer des faits.\nDernière vérification avant de répondre : si ce post pouvait être publié tel quel par un concurrent, il est raté — retourne chercher dans la matière le détail qui le rend unique.\n"
+          },
+          {
+            "moment": "Le test fondateur indique qu’un journal de développement complet, collé dans un LLM, produit environ cinq posts qui se suivent avec peu de retouches, alors qu’une matière pauvre produit du générique ou de l’invention.",
+            "excerpt": "Expérience faite à la main, hors produit : le journal de développement complet d'un projet perso (~37 runs documentés — bugs, réglages, décisions techniques) collé dans un LLM généraliste, avec une conversation minimale. Résultat : une **série d'environ 5 posts qui se suivent, avec une conclusion**, de qualité quasi finale — quelques retouches à la main, une seule demande de reformulation d'une phrase."
+          },
+          {
+            "moment": "La matière brute complète remplace une sélection de fragments, car un test comparatif a montré que la rotation d’unités produisait des sorties pauvres et décousues.",
+            "excerpt": "envoyer le texte brut complet d'un journal de bord à Claude produisait un excellent post, tandis que l'app, alimentée par 6 unités choisies par rotation sans notion de pertinence, produisait un post pauvre et décousu — le découpage perdait la richesse narrative du texte source, et la sélection assemblait des fragments sans lien thématique entre eux —"
+          }
+        ],
+        "chosenMoment": {
+          "index": 3,
+          "why": "Il permet un vrai duel de briefs sur le même cas sans inventer un résultat de produit : on peut opposer un brief structuré à un brief pauvre et montrer le critère qui change la sortie."
+        },
+        "hookOptions": [
+          {
+            "kind": "contre-intuitif",
+            "text": "Le duel de prompts le plus utile ne compare pas deux modèles. Il compare deux niveaux de brief."
+          },
+          {
+            "kind": "scène",
+            "text": "Même sujet. Même modèle. Deux briefs. L’un demande un post ; l’autre verrouille la matière, l’angle et le critère de réussite."
+          },
+          {
+            "kind": "aveu",
+            "text": "J’ai d’abord évalué mes sorties comme si une note globale suffisait. Le premier script générique m’a forcé à changer le test."
+          }
+        ],
+        "chosenHook": {
+          "index": 0,
+          "why": "Elle recadre immédiatement le duel sur le vrai objet à évaluer — le brief — et parle directement aux développeurs qui comparent des sorties de modèles."
+        },
+        "inspirationsUsed": [
+          "i1",
+          "i2",
+          "i5",
+          "i6",
+          "i8"
+        ],
+        "inspirationsToDrop": [
+          {
+            "ref": "i3",
+            "why": "Son format de journal d’apprentissage vise surtout les indépendants outillés par l’IA, alors que ce post doit parler à des développeurs d’outils."
+          },
+          {
+            "ref": "i4",
+            "why": "La structure par couches est trop générique pour ce duel précis et ne fournit pas le comparatif de sorties recherché."
+          },
+          {
+            "ref": "i7",
+            "why": "Son opposition entre mauvaise habitude et boucle en étapes ferait dériver le post vers un conseil général de prompting, hors de l’expérience précise de CreaFlow."
+          }
+        ],
+        "selfCheck": {
+          "factsFromMaterial": true,
+          "bannedPhrasesFound": [],
+          "readerTest": "Le duel entre un brief pauvre et un brief spécifié donne immédiatement au lecteur une manière concrète de comparer ses propres sorties.",
+          "authorTest": true
+        },
+        "inspirationsShown": [
+          {
+            "ref": "i1",
+            "id": "53b87c1d-953d-4364-b130-d51a7c43b8de"
+          },
+          {
+            "ref": "i2",
+            "id": "5df5961a-1d05-4d65-841b-9b9e2ab952f1"
+          },
+          {
+            "ref": "i3",
+            "id": "2ff5e921-5de4-499b-bf6c-b5ce6a1a3c45"
+          },
+          {
+            "ref": "i4",
+            "id": "4748e056-9f14-4d42-9248-b067cb406156"
+          },
+          {
+            "ref": "i5",
+            "id": "092eab1a-2ea3-4b1e-bb8a-16715a547154"
+          },
+          {
+            "ref": "i6",
+            "id": "26721c5c-7466-43d1-be1f-245c6c00d424"
+          },
+          {
+            "ref": "i7",
+            "id": "749cc0e1-05d3-4ccb-a8d2-4eb08c78c03b"
+          },
+          {
+            "ref": "i8",
+            "id": "b5824ae0-9109-43ff-8f0b-9d5cd9377df4"
+          }
+        ],
+        "checks": {
+          "failures": [],
+          "retried": false
+        }
+      },
+      "ms": 30238
+    },
+    {
+      "scriptId": "03e8eea3-7d44-42e6-869c-d9a2d8dc5007",
+      "platform": "linkedin",
+      "contentType": "text",
+      "visualFormat": null,
+      "durationMs": null,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Autopsie de sortie",
+        "beatId": "notion-generation-contenus",
+        "episode": null,
+        "direction": null,
+        "readers": [
+          "Développeurs d’outils IA",
+          "Indépendants outillés par l’IA",
+          "Curieux des méthodes LLM"
+        ],
+        "recentPosts": 0,
+        "inspirations": 8,
+        "materialDocuments": 39
+      },
+      "post": {
+        "contentType": "text",
+        "concept": "Je montre pourquoi j'ai comparé les sorties de CreaFlow par lots sur les mêmes briefs au lieu de juger chaque génération isolément. Le lecteur doit retenir qu'un test de prompt utile verrouille la matière et le contexte, puis compare un seul changement à la fois, sans confondre régression de sortie et panne de pipeline.",
+        "title": "Le test qui sépare le prompt du hasard",
+        "caption": "J'ai rejoué les mêmes 5 briefs sur trois lots de prompt pour éviter de juger CreaFlow à l'impression.\n\nLot 0 : prompt initial.\nLot 1 : prompt v2, avec des blocs séparés pour le contexte, le brief et les priorités.\nLot 2 : ajout du champ `concept`, placé avant les autres champs de sortie.\n\nLe protocole est resté simple : mêmes briefs, mêmes identifiants, même modèle. Je ne changeais qu'un élément à la fois, puis je relisais les sorties avec une grille stable.\n\nCette comparaison a rendu visibles deux choses.\n\nD'abord, une sortie peut sembler meilleure tout en restant fragile. Dans le brief sans matière, le lot 2 formule une idée plus nette, mais conserve `[à compléter]` pour le résultat final. C'est préférable à une invention, mais ce n'est pas une preuve que le prompt a résolu le manque de matière.\n\nEnsuite, l'échec peut arriver avant le modèle. Un brief visuel n'a même pas atteint l'appel LLM : la recherche sémantique utilisait `text-embedding-004`, qui renvoyait 404. Évaluer la sortie sans vérifier cette précondition aurait classé une panne d'infrastructure comme un échec de prompt.\n\nDepuis, je sépare donc trois questions :\n\n- le pipeline s'exécute-t-il ?\n- la sortie respecte-t-elle les critères du brief ?\n- le changement de prompt explique-t-il l'écart observé ?\n\nC'est cette séparation qui rend un test de prompt réutilisable, plutôt qu'une collection d'impressions.",
+        "hashtags": [
+          "#LLMEvaluation",
+          "#PromptEngineering"
+        ],
+        "usedExcerpts": [
+          "Mêmes 5 briefs, mêmes ids en base, que docs/baseline/lot0-openai/ — seul le prompt a changé.",
+          "Le brief `03-sparse-visual-serie` échoue systématiquement, **avant même l'appel au LLM de génération** : `buildGenerationContext()` déclenche `findBestBrandAssetForScript()` pour tout `contentType=\"visual\"`, qui appelle `embedText()` (`src/lib/llm/embeddings.ts`) — celui-ci utilise **toujours Gemini** (`text-embedding-004`) pour l'embedding de recherche sémantique, indépendamment de `LLM_PROVIDER`. Ce modèle Gemini renvoie 404 (`models/text-embedding-004 is not found for API version v1beta`).",
+          "\"concept\": \"Je lance un défi public à MarvelousDev : transformer une contrainte de temps très concrète — 7 heures par semaine — en règle de conception pour tester si une idée ludique mérite de devenir un projet. Le lecteur doit retenir qu’un prototype peut commencer par une limite assumée, puis suivre les premières tentatives et le résultat à compléter au fil du projet.\""
+        ],
+        "promisesMade": [],
+        "hookText": "J'ai rejoué les mêmes 5 briefs sur trois lots de prompt pour éviter de juger CreaFlow à l'impression."
+      },
+      "design": null,
+      "trace": {
+        "version": 3,
+        "reader": {
+          "label": "Développeurs d’outils IA",
+          "knows": "Ils connaissent le développement logiciel, les APIs et les modèles de langage, mais cherchent encore des méthodes solides pour cadrer les briefs, comparer les sorties et organiser les tests.",
+          "wants": "Ils viennent voir des cas concrets, des specs, des architectures et des résultats réutilisables pour améliorer leur propre produit ou leur processus de prototypage."
+        },
+        "candidateMoments": [
+          {
+            "moment": "Le premier test sans matière produisait une sortie structurée mais inventait un défi et des étapes à partir de seulement 7 heures disponibles et du type d'activité.",
+            "excerpt": "Le premier script généré pour un profil personal branding (posts texte LinkedIn/X) : générique, imprécis, avec des informations inventées."
+          },
+          {
+            "moment": "Le passage au prompt v2 a imposé une matière prioritaire, l'interdiction d'inventer et le marqueur [à compléter], puis les baselines ont montré une amélioration sur le brief sans matière.",
+            "excerpt": "Le prompt système (`SCRIPT_SYSTEM_PROMPT`) — rôle (\"Directeur Marketing Virtuel de CreaFlow\"), obsession de spécificité explicite (\"un post publiable tel quel par un concurrent est un échec\"), règles de qualité courtes (une seule idée par script formulée dans le champ `concept`, hook = manque jamais annonce, au moins un élément que seul ce créateur peut dire), interpole `EDITORIAL_WRITING_RULES` (constante partagée, anti-clichés/concret > abstrait — également consommée par `microEdit.ts::rewrite_selection` et `materialEpisodes.ts`, cf. §5.11/§5.12), puis interdits durs (anti-invention, `usedExcerpts` obligatoire)."
+          },
+          {
+            "moment": "Les sorties des baselines ont été rejouées sur les mêmes briefs à chaque lot, avec une comparaison explicite entre prompt initial, prompt v2 et ajout du champ concept.",
+            "excerpt": "Mêmes 5 briefs, mêmes ids en base, que docs/baseline/lot0-openai/ — seul le prompt a changé."
+          },
+          {
+            "moment": "Le résultat du lot 2 a introduit un concept décisionnel avant les autres champs, mais a encore laissé apparaître une précision inventée marquée [à compléter].",
+            "excerpt": "\"concept\": \"Je lance un défi public à MarvelousDev : transformer une contrainte de temps très concrète — 7 heures par semaine — en règle de conception pour tester si une idée ludique mérite de devenir un projet. Le lecteur doit retenir qu’un prototype peut commencer par une limite assumée, puis suivre les premières tentatives et le résultat à compléter au fil du projet.\""
+          },
+          {
+            "moment": "La génération visuelle a révélé un bug d'infrastructure avant même l'évaluation du prompt, ce qui montre qu'un benchmark doit distinguer qualité de sortie et préconditions d'exécution.",
+            "excerpt": "Le brief `03-sparse-visual-serie` échoue systématiquement, **avant même l'appel au LLM de génération** : `buildGenerationContext()` déclenche `findBestBrandAssetForScript()` pour tout `contentType=\"visual\"`, qui appelle `embedText()` (`src/lib/llm/embeddings.ts`) — celui-ci utilise **toujours Gemini** (`text-embedding-004`) pour l'embedding de recherche sémantique, indépendamment de `LLM_PROVIDER`. Ce modèle Gemini renvoie 404 (`models/text-embedding-004 is not found for API version v1beta`)."
+          }
+        ],
+        "chosenMoment": {
+          "index": 2,
+          "why": "Pour ce public, la comparaison contrôlée des sorties et des prompts est plus réutilisable qu'une simple anecdote de qualité : elle donne un protocole de test concret."
+        },
+        "hookOptions": [
+          {
+            "kind": "contre-intuitif",
+            "text": "Un prompt peut s'améliorer sans que la sortie mérite encore un “ça marche”."
+          },
+          {
+            "kind": "chiffre",
+            "text": "J'ai rejoué les mêmes 5 briefs sur trois lots de prompt pour éviter de juger CreaFlow à l'impression."
+          },
+          {
+            "kind": "aveu",
+            "text": "J'ai d'abord confondu une meilleure sortie avec un meilleur prompt."
+          }
+        ],
+        "chosenHook": {
+          "index": 1,
+          "why": "Le chiffre et la répétition contrôlée donnent immédiatement un protocole vérifiable aux développeurs qui évaluent des sorties LLM."
+        },
+        "inspirationsUsed": [
+          "i2",
+          "i3",
+          "i5",
+          "i8"
+        ],
+        "inspirationsToDrop": [],
+        "selfCheck": {
+          "factsFromMaterial": true,
+          "bannedPhrasesFound": [],
+          "readerTest": "Le chiffre des 5 briefs et la séparation entre panne de pipeline et évaluation de sortie donnent une méthode concrète aux développeurs qui testent des prompts.",
+          "authorTest": true
+        },
+        "inspirationsShown": [
+          {
+            "ref": "i1",
+            "id": "53b87c1d-953d-4364-b130-d51a7c43b8de"
+          },
+          {
+            "ref": "i2",
+            "id": "5df5961a-1d05-4d65-841b-9b9e2ab952f1"
+          },
+          {
+            "ref": "i3",
+            "id": "2ff5e921-5de4-499b-bf6c-b5ce6a1a3c45"
+          },
+          {
+            "ref": "i4",
+            "id": "4748e056-9f14-4d42-9248-b067cb406156"
+          },
+          {
+            "ref": "i5",
+            "id": "092eab1a-2ea3-4b1e-bb8a-16715a547154"
+          },
+          {
+            "ref": "i6",
+            "id": "26721c5c-7466-43d1-be1f-245c6c00d424"
+          },
+          {
+            "ref": "i7",
+            "id": "749cc0e1-05d3-4ccb-a8d2-4eb08c78c03b"
+          },
+          {
+            "ref": "i8",
+            "id": "b5824ae0-9109-43ff-8f0b-9d5cd9377df4"
+          }
+        ],
+        "checks": {
+          "failures": [],
+          "retried": false
+        }
+      },
+      "ms": 13130
+    },
+    {
+      "scriptId": "9d464b43-9145-4700-be17-948865eee054",
+      "platform": "linkedin",
+      "contentType": "text",
+      "visualFormat": null,
+      "durationMs": null,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Brief vers résultat",
+        "beatId": "contexte-outils-independants",
+        "episode": null,
+        "direction": null,
+        "readers": [
+          "Développeurs d’outils IA",
+          "Indépendants outillés par l’IA",
+          "Curieux des méthodes LLM"
+        ],
+        "recentPosts": 0,
+        "inspirations": 8,
+        "materialDocuments": 39
+      },
+      "post": {
+        "contentType": "text",
+        "concept": "Je montre pourquoi une sortie manquante ne doit pas être classée comme un échec du prompt avant d'avoir vérifié que le modèle a réellement été appelé. Les développeurs d'outils IA doivent retenir une règle de test simple : journaliser le brief assemblé, vérifier le point de défaillance, puis comparer les sorties seulement quand le pipeline a atteint le LLM.",
+        "title": "Le test qui n’a jamais testé le modèle",
+        "caption": "Mon test de prompt a échoué avant même d’atteindre le modèle.\n\nJe comparais plusieurs briefs pour CreaFlow afin d’évaluer des sorties sur différents formats et niveaux de matière.\n\nUn cas visuel ne produisait aucune sortie. Première hypothèse : le prompt ou le modèle gérait mal le brief.\n\nEn remontant la chaîne, l’échec apparaissait avant l’appel de génération. `buildGenerationContext()` lançait la recherche sémantique d’une image de référence. Cette recherche appelait `text-embedding-004` chez Gemini, un modèle qui renvoyait 404.\n\nLe test ne mesurait donc ni le brief, ni le prompt, ni la sortie. Il mesurait une dépendance d’infrastructure retirée.\n\nDepuis, je sépare explicitement trois états :\n\n- le pipeline n’atteint pas le modèle ;\n- le modèle est appelé mais la sortie ne respecte pas le contrat ;\n- la sortie respecte le contrat mais échoue sur un critère éditorial.\n\nCette séparation change la façon de lire une baseline. Une absence de sortie n’est pas encore un résultat.\n\nPour évaluer un prompt, je dois d’abord pouvoir prouver que le prompt a été exécuté.",
+        "hashtags": [
+          "#LLMOps",
+          "#PromptEvaluation"
+        ],
+        "usedExcerpts": [
+          "Le brief `03-sparse-visual-serie` échoue systématiquement, **avant même l'appel au LLM de génération** : `buildGenerationContext()` déclenche `findBestBrandAssetForScript()` pour tout `contentType=\"visual\"`, qui appelle `embedText()` (`src/lib/llm/embeddings.ts`) — celui-ci utilise **toujours Gemini** (`text-embedding-004`) pour l'embedding de recherche sémantique, indépendamment de `LLM_PROVIDER`. Ce modèle Gemini renvoie 404 (`models/text-embedding-004 is not found for API version v1beta`)."
+        ],
+        "promisesMade": [],
+        "hookText": "Mon test de prompt a échoué avant même d’atteindre le modèle."
+      },
+      "design": null,
+      "trace": {
+        "version": 3,
+        "reader": {
+          "label": "Développeurs d’outils IA",
+          "knows": "Ils connaissent le développement logiciel, les APIs et les modèles de langage, mais cherchent encore des méthodes solides pour cadrer les briefs, comparer les sorties et organiser les tests.",
+          "wants": "Ils viennent voir un cas concret de brief reproductible et de comparaison entre sortie brute et résultat après itérations."
+        },
+        "candidateMoments": [
+          {
+            "moment": "Le premier test sans matière produisait une sortie générique et inventait des éléments à partir de la seule contrainte de temps.",
+            "excerpt": "Premier script généré pour un profil personal branding (posts texte LinkedIn/X) : générique, imprécis, avec des informations inventées."
+          },
+          {
+            "moment": "Le prompt a été réorganisé en blocs et priorités pour séparer le contexte, le brief, la variété et les règles de qualité.",
+            "excerpt": "=== CONTEXTE MARQUE ===\nMarque : ${brandName} (${activityType})"
+          },
+          {
+            "moment": "Une baseline a comparé les mêmes briefs avant et après les changements de prompt, mais un cas visuel a échoué avant même l'appel au modèle à cause d'un embedding Gemini retiré.",
+            "excerpt": "Le brief `03-sparse-visual-serie` échoue systématiquement, **avant même l'appel au LLM de génération** : `buildGenerationContext()` déclenche `findBestBrandAssetForScript()` pour tout `contentType=\"visual\"`, qui appelle `embedText()` (`src/lib/llm/embeddings.ts`) — celui-ci utilise **toujours Gemini** (`text-embedding-004`) pour l'embedding de recherche sémantique, indépendamment de `LLM_PROVIDER`. Ce modèle Gemini renvoie 404 (`models/text-embedding-004 is not found for API version v1beta`)."
+          },
+          {
+            "moment": "La matière riche d'un journal de développement a permis de produire une série d'environ cinq posts avec peu de retouches, tandis qu'une phrase seule ne suffisait pas.",
+            "excerpt": "Expérience faite à la main, hors produit : le journal de développement complet d'un projet perso (~37 runs documentés — bugs, réglages, décisions techniques) collé dans un LLM généraliste, avec une conversation minimale. Résultat : une **série d'environ 5 posts qui se suivent, avec une conclusion**, de qualité quasi finale — quelques retouches à la main, une seule demande de reformulation d'une phrase."
+          }
+        ],
+        "chosenMoment": {
+          "index": 2,
+          "why": "Ce cas montre à la fois l'intérêt d'un protocole de test reproductible et la nécessité de distinguer un échec de prompt d'un échec de plomberie avant l'appel au modèle."
+        },
+        "hookOptions": [
+          {
+            "kind": "contre-intuitif",
+            "text": "Mon test de prompt a échoué avant même d’atteindre le modèle."
+          },
+          {
+            "kind": "aveu",
+            "text": "J’ai d’abord pris une erreur d’embedding pour un échec de génération."
+          },
+          {
+            "kind": "avant-après",
+            "text": "Avant de comparer deux sorties de modèle, je vérifie désormais que les deux ont réellement atteint le modèle."
+          }
+        ],
+        "chosenHook": {
+          "index": 0,
+          "why": "Elle crée une tension technique immédiate pour les développeurs : un test censé évaluer une sortie ne teste peut-être même pas le LLM."
+        },
+        "inspirationsUsed": [
+          "i2",
+          "i6",
+          "i8"
+        ],
+        "inspirationsToDrop": [
+          {
+            "ref": "i3",
+            "why": "Son journal d’apprentissage vise un public plus généraliste et ne sert pas l'angle du cas limite dans le pipeline de test."
+          },
+          {
+            "ref": "i4",
+            "why": "La structure par couches est moins adaptée ici qu'un récit de panne localisée avant l'appel au modèle."
+          },
+          {
+            "ref": "i5",
+            "why": "Le tableau comparatif de critères n'est pas nécessaire pour traiter ce cas de défaillance en amont."
+          },
+          {
+            "ref": "i7",
+            "why": "La boucle en étapes et son nom mémorable détournerait le post du diagnostic précis."
+          }
+        ],
+        "selfCheck": {
+          "factsFromMaterial": true,
+          "bannedPhrasesFound": [],
+          "readerTest": "Le lecteur s'arrête parce que le post révèle un cas limite concret : une baseline peut échouer avant tout appel LLM, et propose une séparation réutilisable entre panne de pipeline, erreur de contrat et défaut éditorial.",
+          "authorTest": true
+        },
+        "inspirationsShown": [
+          {
+            "ref": "i1",
+            "id": "53b87c1d-953d-4364-b130-d51a7c43b8de"
+          },
+          {
+            "ref": "i2",
+            "id": "5df5961a-1d05-4d65-841b-9b9e2ab952f1"
+          },
+          {
+            "ref": "i3",
+            "id": "2ff5e921-5de4-499b-bf6c-b5ce6a1a3c45"
+          },
+          {
+            "ref": "i4",
+            "id": "4748e056-9f14-4d42-9248-b067cb406156"
+          },
+          {
+            "ref": "i5",
+            "id": "092eab1a-2ea3-4b1e-bb8a-16715a547154"
+          },
+          {
+            "ref": "i6",
+            "id": "26721c5c-7466-43d1-be1f-245c6c00d424"
+          },
+          {
+            "ref": "i7",
+            "id": "749cc0e1-05d3-4ccb-a8d2-4eb08c78c03b"
+          },
+          {
+            "ref": "i8",
+            "id": "b5824ae0-9109-43ff-8f0b-9d5cd9377df4"
+          }
+        ],
+        "checks": {
+          "failures": [],
+          "retried": false
+        }
+      },
+      "ms": 10707
+    },
+    {
+      "scriptId": "f824a98a-5418-4d4f-af02-78f4f721cbb0",
+      "platform": "linkedin",
+      "contentType": "visual",
+      "visualFormat": "single",
+      "durationMs": null,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Mythe contre test",
+        "beatId": "premier-choix-architecture",
+        "episode": null,
+        "direction": null,
+        "readers": [
+          "Développeurs d’outils IA",
+          "Indépendants outillés par l’IA",
+          "Curieux des méthodes LLM"
+        ],
+        "recentPosts": 0,
+        "inspirations": 8,
+        "materialDocuments": 39
+      },
+      "post": {
+        "contentType": "visual",
+        "concept": "Je montre comment j'ai isolé l'effet d'un changement de prompt dans CreaFlow : cinq briefs identiques, le même provider, et une seule variable modifiée entre les lots. Le lecteur doit retenir qu'une sortie n'est interprétable qu'avec un protocole qui sépare les changements, puis appliquer cette discipline à ses propres tests.",
+        "title": "Le prompt comme variable isolée",
+        "caption": "5 briefs, le même provider, un seul changement : c'est la base du test de prompt que je veux pouvoir rejouer.\n\nDans CreaFlow, j'ai conservé les mêmes briefs entre les lots de baseline. Le provider était OpenAI. Entre le lot 0 et le lot 1, seul le prompt a changé.\n\nCe protocole ne dit pas encore qu'une sortie est « meilleure ». Il permet d'attribuer un écart à une modification précise, au lieu de mélanger un nouveau brief, un autre modèle et une nouvelle consigne dans la même comparaison.\n\nLe cas qui m'intéresse est celui où la sortie paraît convaincante, mais où le test ne permet pas de savoir pourquoi. Pour l'éviter, je sépare les dimensions : matière disponible, brief, provider et prompt. Puis je rejoue les mêmes briefs après chaque changement.\n\nC'est aussi la raison pour laquelle je conserve les sorties brutes des baselines. Elles servent de point de comparaison quand le prompt évolue.\n\nJe construis CreaFlow avec cette contrainte : une évaluation doit être rejouable, sinon elle ressemble vite à une démonstration.\n\nSi tu évalues des prompts, quel est le changement que tu isoles en premier ?",
+        "hashtags": [
+          "#LLMEvaluation",
+          "#PromptEngineering"
+        ],
+        "usedExcerpts": [
+          "Mêmes 5 briefs, mêmes ids en base, que docs/baseline/lot0-openai/ — seul le prompt a changé.",
+          "Provider forcé : OpenAI (`gpt-5.6-luna`). Généré le 2026-08-25T14:02:20.549Z.",
+          "Aucune écriture en base — uniquement des appels LLM en lecture de contexte."
+        ],
+        "promisesMade": [],
+        "hookVisual": "Une image unique en split-screen : à gauche, deux cartes de sortie presque identiques avec les libellés « Lot 0 » et « Lot 1 » ; au centre, un brief verrouillé « 04-sans-matiere-sans-produit » ; à droite, une fiche de protocole avec « 5 briefs », « même provider », « seul le prompt change ». Le contraste visuel doit faire comprendre que l'objet comparé est la méthode, pas une note globale.",
+        "storyboard": [
+          {
+            "planNumber": 1,
+            "description": "Visuel unique : fond clair et sobre de type fiche de test. En haut, accroche très lisible : « 5 briefs. Même provider. Un seul changement. » Sous l'accroche, trois blocs alignés : « Briefs identiques », « OpenAI », « Prompt modifié ». Une flèche relie « Lot 0 » à « Lot 1 ». En bas, une ligne de conclusion : « Sinon, tu ne sais pas ce que tu mesures. » Aucun chiffre ou résultat supplémentaire n'est ajouté au visuel."
+          }
+        ]
+      },
+      "design": {
+        "width": 1080,
+        "height": 1350,
+        "durationMs": null,
+        "slides": [
+          {
+            "planNumber": 1,
+            "html": "<div style=\"position:relative;width:1080px;height:1350px;overflow:hidden;background:#F4F1EA\"><div data-layer=\"l1\" data-type=\"shape\" style=\"position:absolute;left:0px;top:0px;width:1080px;height:1350px;background:#F4F1EA\"></div><div data-layer=\"l2\" data-type=\"text\" style=\"position:absolute;left:70px;top:70px;width:940px;height:150px;color:#17212B;font-family:Space Grotesk;font-size:54px;line-height:1.08;font-weight:700;letter-spacing:-1px\">5 briefs. Même provider.<br>Un seul changement.</div><div data-layer=\"l3\" data-type=\"shape\" style=\"position:absolute;left:70px;top:265px;width:940px;height:2px;background:#D8A24A\"></div><div data-layer=\"l4\" data-type=\"text\" style=\"position:absolute;left:70px;top:310px;width:280px;height:55px;color:#17212B;font-family:Inter;font-size:25px;font-weight:700\">Briefs identiques</div><div data-layer=\"l5\" data-type=\"text\" style=\"position:absolute;left:400px;top:310px;width:280px;height:55px;color:#17212B;font-family:Inter;font-size:25px;font-weight:700\">OpenAI</div><div data-layer=\"l6\" data-type=\"text\" style=\"position:absolute;left:730px;top:310px;width:280px;height:55px;color:#17212B;font-family:Inter;font-size:25px;font-weight:700\">Prompt modifié</div><div data-layer=\"l7\" data-type=\"shape\" style=\"position:absolute;left:70px;top:420px;width:280px;height:330px;border:2px solid #17212B;border-radius:18px;background:#FFFFFF\"></div><div data-layer=\"l8\" data-type=\"text\" style=\"position:absolute;left:100px;top:460px;width:220px;height:220px;color:#17212B;font-family:JetBrains Mono;font-size:29px;line-height:1.7;white-space:pre\">Lot 0\\n\\n04-sans-matiere-\\nsans-produit</div><div data-layer=\"l9\" data-type=\"shape\" style=\"position:absolute;left:730px;top:420px;width:280px;height:330px;border:2px solid #3F6B63;border-radius:18px;background:#FFFFFF\"></div><div data-layer=\"l10\" data-type=\"text\" style=\"position:absolute;left:760px;top:460px;width:220px;height:220px;color:#17212B;font-family:JetBrains Mono;font-size:29px;line-height:1.7;white-space:pre\">Lot 1\\n\\n04-sans-matiere-\\nsans-produit</div><div data-layer=\"l11\" data-type=\"text\" style=\"position:absolute;left:365px;top:545px;width:350px;height:80px;text-align:center;color:#3F6B63;font-family:Space Grotesk;font-size:54px;font-weight:700\">→</div><div data-layer=\"l12\" data-type=\"text\" style=\"position:absolute;left:70px;top:850px;width:940px;height:120px;color:#17212B;font-family:Space Grotesk;font-size:38px;line-height:1.2;font-weight:700\">Sinon, tu ne sais pas ce que tu mesures.</div></div>"
+          }
+        ],
+        "timeline": null,
+        "imageUrls": {},
+        "logoUrl": null,
+        "rationale": "La composition traite le visuel comme une fiche de test : une hiérarchie éditoriale en haut, puis deux cartes Lot 0 / Lot 1 séparées par une flèche pour rendre le changement de méthode immédiatement lisible. Le brief verrouillé est répété dans les deux sorties, tandis que les trois variables de protocole cadrent la comparaison sans introduire de résultat supplémentaire."
+      },
+      "trace": {
+        "version": 3,
+        "reader": {
+          "label": "Développeurs d’outils IA",
+          "knows": "Ils connaissent le développement logiciel, les APIs et les modèles de langage, mais cherchent encore des méthodes solides pour cadrer les briefs, comparer les sorties et organiser les tests.",
+          "wants": "Ils viennent voir un cas concret de test reproductible et une manière de distinguer une sortie simplement séduisante d’une sortie exploitable."
+        },
+        "candidateMoments": [
+          {
+            "moment": "Le premier script généré à partir d'un profil personal branding était générique, imprécis et inventait des informations.",
+            "excerpt": "Premier script généré pour un profil personal branding (posts texte LinkedIn/X) : générique, imprécis, avec des informations inventées. Décrochage immédiat — dès le premier script."
+          },
+          {
+            "moment": "Un test manuel avec le journal complet d'un projet personnel a produit une série d'environ cinq posts de qualité quasi finale.",
+            "excerpt": "Expérience faite à la main, hors produit : le journal de développement complet d'un projet perso (~37 runs documentés — bugs, réglages, décisions techniques) collé dans un LLM généraliste, avec une conversation minimale. Résultat : une **série d'environ 5 posts qui se suivent, avec une conclusion**, de qualité quasi finale — quelques retouches à la main, une seule demande de reformulation d'une phrase."
+          },
+          {
+            "moment": "Le passage d'une matière structurée à six unités choisies par rotation a produit un post pauvre et décousu, contrairement au texte brut complet.",
+            "excerpt": "envoyer le texte brut complet d'un journal de bord à Claude produisait un excellent post, tandis que l'app, alimentée par 6 unités choisies par rotation sans notion de pertinence, produisait un post pauvre et décousu — le découpage perdait la richesse narrative du texte source, et la sélection assemblait des fragments sans lien thématique entre eux."
+          },
+          {
+            "moment": "La matière brute complète a été retenue comme mécanisme définitif, avec des passages utilisés rapportés par le modèle et enregistrés.",
+            "excerpt": "Mécanisme retenu à la place : le texte brut complet des documents du sujet est injecté tel quel à chaque génération (comme le test manuel qui a fonctionné) — pas de pré-sélection, pas de découpage. Le LLM rapporte lui-même, dans sa réponse de génération, les passages qu'il a utilisés comme base factuelle (`usedExcerpts`) ; ils sont retrouvés dans le texte source par recherche approximative (`src/lib/services/citationMatching.ts`) et enregistrés (`source_material_citations`, `src/lib/services/citationService.ts`)."
+          },
+          {
+            "moment": "Les sorties de baseline ont été rejouées sur cinq briefs avec le même provider et seul le prompt a changé entre les lots.",
+            "excerpt": "Mêmes 5 briefs, mêmes ids en base, que docs/baseline/lot0-openai/ — seul le prompt a changé."
+          }
+        ],
+        "chosenMoment": {
+          "index": 4,
+          "why": "Pour ce lecteur, la comparaison contrôlée entre briefs identiques et prompt modifié montre une méthode d'évaluation reproductible, sans réduire le post à une opinion sur une sortie."
+        },
+        "hookOptions": [
+          {
+            "kind": "contre-intuitif",
+            "text": "Une meilleure sortie ne prouve rien si le brief a changé en même temps."
+          },
+          {
+            "kind": "aveu",
+            "text": "J'ai commencé par comparer des sorties de modèles. Ce n'était pas encore un test."
+          },
+          {
+            "kind": "chiffre",
+            "text": "5 briefs, le même provider, un seul changement : c'est la base du test de prompt que je veux pouvoir rejouer."
+          }
+        ],
+        "chosenHook": {
+          "index": 2,
+          "why": "Le chiffre et le protocole arrêtent les développeurs d'outils IA, tout en annonçant immédiatement un critère de test plutôt qu'une promesse de qualité."
+        },
+        "inspirationsUsed": [
+          "i1",
+          "i2",
+          "i5",
+          "i8"
+        ],
+        "inspirationsToDrop": [],
+        "selfCheck": {
+          "factsFromMaterial": true,
+          "bannedPhrasesFound": [],
+          "readerTest": "Le lecteur voit dès les deux premières lignes un protocole concret — cinq briefs identiques, le même provider et une seule variable changée — qu'il peut reprendre pour ses propres évaluations.",
+          "authorTest": true
+        },
+        "inspirationsShown": [
+          {
+            "ref": "i1",
+            "id": "53b87c1d-953d-4364-b130-d51a7c43b8de"
+          },
+          {
+            "ref": "i2",
+            "id": "5df5961a-1d05-4d65-841b-9b9e2ab952f1"
+          },
+          {
+            "ref": "i3",
+            "id": "2ff5e921-5de4-499b-bf6c-b5ce6a1a3c45"
+          },
+          {
+            "ref": "i4",
+            "id": "4748e056-9f14-4d42-9248-b067cb406156"
+          },
+          {
+            "ref": "i5",
+            "id": "092eab1a-2ea3-4b1e-bb8a-16715a547154"
+          },
+          {
+            "ref": "i6",
+            "id": "26721c5c-7466-43d1-be1f-245c6c00d424"
+          },
+          {
+            "ref": "i7",
+            "id": "749cc0e1-05d3-4ccb-a8d2-4eb08c78c03b"
+          },
+          {
+            "ref": "i8",
+            "id": "b5824ae0-9109-43ff-8f0b-9d5cd9377df4"
+          }
+        ],
+        "checks": {
+          "failures": [],
+          "retried": true
+        }
+      },
+      "ms": 42038
+    },
+    {
+      "scriptId": "4ecd3194-ddb0-4acd-9917-b79d38ffe793",
+      "platform": "linkedin",
+      "contentType": "text",
+      "visualFormat": null,
+      "durationMs": null,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Itération en direct",
+        "beatId": "premier-echec-creaflow",
+        "episode": null,
+        "direction": null,
+        "readers": [
+          "Développeurs d’outils IA",
+          "Indépendants outillés par l’IA",
+          "Curieux des méthodes LLM"
+        ],
+        "recentPosts": 0,
+        "inspirations": 8,
+        "materialDocuments": 39
+      },
+      "post": {
+        "contentType": "text",
+        "concept": "Montrer aux développeurs d’outils IA pourquoi j’ai abandonné la sélection automatique de fragments dans CreaFlow : un test comparatif a produit un post pauvre et décousu avec six unités choisies par rotation, alors que le texte brut complet du journal produisait une sortie riche. Ils doivent retenir qu’un pipeline d’évaluation doit comparer le mécanisme de sélection lui-même, pas seulement la qualité apparente du prompt final.",
+        "title": "Le test qui a supprimé la sélection de fragments",
+        "caption": "Le même journal de bord donnait un excellent post quand je l’envoyais entier, puis un texte pauvre quand CreaFlow n’en gardait que six fragments.\n\nJ’avais d’abord implémenté un corpus structuré : découpage en unités typées, puis sélection least-recently-used de six unités à chaque génération.\n\nLe test comparatif a changé la décision.\n\nLe texte brut complet produisait une sortie riche. Les six unités choisies par rotation produisaient un post pauvre et décousu. Le problème ne venait pas du modèle seul : la sélection assemblait des fragments sans lien thématique.\n\nJ’ai donc retiré cette couche. CreaFlow injecte maintenant le texte brut complet des documents du sujet à chaque génération. Le modèle signale les passages utilisés, et CreaFlow les annote ensuite pour encourager la variété sans supprimer de matière.\n\nPour évaluer un pipeline LLM, je compare aussi ses mécanismes d’entrée. Un prompt peut sembler meilleur alors que le vrai changement vient de la matière qu’on lui laisse voir.\n\n#LLMEvals #PromptEngineering",
+        "hashtags": [
+          "#LLMEvals",
+          "#PromptEngineering"
+        ],
+        "usedExcerpts": [
+          "L'amendement post-implémentation. Les §3.4 et §3.5 ci-dessous décrivaient la version *structurée* du\ncorpus : découpage asynchrone en `MaterialUnit` typées + sélection *least-recently-used*. Cette version\na été implémentée, puis abandonnée après un test comparatif direct en usage réel : envoyer le texte\nbrut complet d'un journal de bord à Claude produisait un excellent post, tandis que l'app, alimentée\nde 6 unités choisies par rotation sans notion de pertinence, produisait un post pauvre et décousu — le\ndécoupage perdait la richesse narrative du texte source, et la sélection assemblait des fragments sans\nlien thématique entre eux.\n\n**Mécanisme retenu à la place** : le texte brut complet des documents du sujet est injecté tel quel à\nchaque génération (comme le test manuel qui a fonctionné) — pas de pré-sélection, pas de découpage.",
+          "Ce qu'il faut en retenir :\n\n- **La matière est la variable dominante, pas le pilotage.** Avec une matière riche, il n'y a presque rien à dire au modèle ; avec une phrase, aucun pilotage ne sauve le résultat."
+        ],
+        "promisesMade": [],
+        "hookText": "Le même journal de bord donnait un excellent post quand je l’envoyais entier, puis un texte pauvre quand CreaFlow n’en gardait que six fragments."
+      },
+      "design": null,
+      "trace": {
+        "version": 3,
+        "reader": {
+          "label": "Développeurs d’outils IA",
+          "knows": "Ils connaissent le développement logiciel, les APIs et les modèles de langage, mais cherchent encore des méthodes solides pour cadrer les briefs, comparer les sorties et organiser les tests.",
+          "wants": "Ils viennent voir un cas concret de test de prompt avec des critères vérifiables et une décision réutilisable."
+        },
+        "candidateMoments": [
+          {
+            "moment": "Le prompt de génération de CreaFlow a été repris par lots successifs, avec des baselines rejouées entre les modifications.",
+            "excerpt": "Baseline Lot 0 — sorties brutes (avant modification du prompt)\n\nProvider forcé : OpenAI (`gpt-5.6-luna`). Généré le 2026-08-25T14:02:20.549Z.\n\nAucune écriture en base — uniquement des appels LLM en lecture de contexte.\n\n- [`01-rich-video-serie`](./01-rich-video-serie.md) — Matière riche (23 docs, MyTwin Leaderboard) · vidéo TikTok · série imposée (Coulisses du Vendredi) → **OK**\n- [`02-medium-text-sans-serie`](./02-medium-text-sans-serie.md) — Matière moyenne (6 docs, PPO HotlineMiami) · texte LinkedIn · pas de série → **OK**\n- `03-sparse-visual-serie` — Matière rare (4 docs, PixelPitch) · visuel Instagram · série imposée (Showcase du Lundi) → **ÉCHEC** (voir `03-sparse-visual-serie.ERROR.txt`)\n- [`04-sans-matiere-sans-produit`](./04-sans-matiere-sans-produit.md) — Aucun produit, aucune matière (niveau marque, 0 doc) · texte X · pas de série — teste les garde-fous anti-invention → **OK**\n- [`05-rich-video-autre-format-sans-serie`](./05-rich-video-autre-format-sans-serie.md) — Même matière riche que le brief 1 (MyTwin Leaderboard) mais YouTube, pas de série — compare le rendu du même corpus sur un autre format → **OK**"
+          },
+          {
+            "moment": "L'ajout du concept et des descriptions de champs a changé la sortie sur le cas sans matière, mais la matière reste le garde-fou central.",
+            "excerpt": "## Sortie brute générée (OpenAI)\n\n```json\n{\n  \"contentType\": \"text\",\n  \"title\": \"Le défi des 7 heures\",\n  \"caption\": \"Je me lance un défi pour MarvelousDev.\\n\\nRègle n°1 : je garde la contrainte réelle — 7 h disponibles par semaine.\\nRègle n°2 : je transforme une idée ludique en test jouable, pas en projet interminable.\\nRègle n°3 : je montre aussi les premières tentatives qui ne fonctionnent pas.\\n\\nLe but n’est pas de promettre un produit fini en quelques jours. Le but est de voir si une idée résiste quand on lui retire le temps illimité, les fonctionnalités secondaires et les excuses.\\n\\nJe partagerai :\\n— l’idée de départ ;\\n— les premiers essais ;\\n— ce que je garde ou j’abandonne ;\\n— le résultat final : [à compléter].\\n\\nLe premier test commence cette semaine. Suivez le fil : je publierai l’avancée et le verdict.\",\n  \"hashtags\": [],\n  \"usedExcerpts\": [\n    \"Temps disponible par semaine : 7h\",\n    \"MarvelousDev (développement de produits et projets ludiques)\"\n  ],\n  \"hookText\": \"Si mon prochain projet ne tient pas dans 7 heures par semaine, il ne mérite peut-être pas encore d’exister.\"\n}\n```"
+          },
+          {
+            "moment": "La conclusion de la spec de matière est qu'un texte brut complet donne une meilleure sortie qu'une sélection de fragments structurés.",
+            "excerpt": "L'amendement post-implémentation. Les §3.4 et §3.5 ci-dessous décrivaient la version *structurée* du\ncorpus : découpage asynchrone en `MaterialUnit` typées + sélection *least-recently-used*. Cette version\na été implémentée, puis abandonnée après un test comparatif direct en usage réel : envoyer le texte\nbrut complet d'un journal de bord à Claude produisait un excellent post, tandis que l'app, alimentée\nde 6 unités choisies par rotation sans notion de pertinence, produisait un post pauvre et décousu — le\ndécoupage perdait la richesse narrative du texte source, et la sélection assemblait des fragments sans\nlien thématique entre eux.\n\n**Mécanisme retenu à la place** : le texte brut complet des documents du sujet est injecté tel quel à\nchaque génération (comme le test manuel qui a fonctionné) — pas de pré-sélection, pas de découpage."
+          },
+          {
+            "moment": "Le baseline sans matière montre une sortie plausible, mais le test de comparaison a conduit à traiter la matière comme la variable dominante.",
+            "excerpt": "Ce qu'il faut en retenir :\n\n- **La matière est la variable dominante, pas le pilotage.** Avec une matière riche, il n'y a presque rien à dire au modèle ; avec une phrase, aucun pilotage ne sauve le résultat.\n- La sortie naturelle a été une **série ordonnée** — la structure `ContentSeries` existe déjà en base ; il n'existe simplement aucun pipeline pour la remplir ainsi."
+          },
+          {
+            "moment": "Les baselines comportent cinq briefs différents, couvrant des niveaux de matière et des formats différents.",
+            "excerpt": "- [`01-rich-video-serie`](./01-rich-video-serie.md) — Matière riche (23 docs, MyTwin Leaderboard) · vidéo TikTok · série imposée (Coulisses du Vendredi) → **OK**\n- [`02-medium-text-sans-serie`](./02-medium-text-sans-serie.md) — Matière moyenne (6 docs, PPO HotlineMiami) · texte LinkedIn · pas de série → **OK**\n- `03-sparse-visual-serie` — Matière rare (4 docs, PixelPitch) · visuel Instagram · série imposée (Showcase du Lundi) → **ÉCHEC** (voir `03-sparse-visual-serie.ERROR.txt`)\n- [`04-sans-matiere-sans-produit`](./04-sans-matiere-sans-produit.md) — Aucun produit, aucune matière (niveau marque, 0 doc) · texte X · pas de série — teste les garde-fous anti-invention → **OK**\n- [`05-rich-video-autre-format-sans-serie`](./05-rich-video-autre-format-sans-serie.md) — Même matière riche que le brief 1 (MyTwin Leaderboard) mais YouTube, pas de série → **OK**"
+          }
+        ],
+        "chosenMoment": {
+          "index": 2,
+          "why": "Pour des développeurs d’outils IA, c’est une décision d’architecture directement réutilisable : tester la sélection de fragments contre l’injection du corpus complet, puis garder ce qui produit la meilleure sortie."
+        },
+        "hookOptions": [
+          {
+            "kind": "contre-intuitif",
+            "text": "J’ai retiré une couche de structuration de CreaFlow après l’avoir testée : elle rendait les sorties moins bonnes."
+          },
+          {
+            "kind": "scène",
+            "text": "Le même journal de bord donnait un excellent post quand je l’envoyais entier, puis un texte pauvre quand CreaFlow n’en gardait que six fragments."
+          },
+          {
+            "kind": "question-précise",
+            "text": "Que se passe-t-il quand on remplace un journal complet par six fragments choisis par rotation ?"
+          }
+        ],
+        "chosenHook": {
+          "index": 1,
+          "why": "La comparaison avant/après est immédiatement vérifiable et parle directement aux développeurs qui évaluent des pipelines de génération, sans annoncer abstraitement un sujet."
+        },
+        "inspirationsUsed": [
+          "i3",
+          "i5",
+          "i8"
+        ],
+        "inspirationsToDrop": [],
+        "selfCheck": {
+          "factsFromMaterial": true,
+          "bannedPhrasesFound": [],
+          "readerTest": "La comparaison concrète entre corpus complet et fragments donne une raison technique immédiate de s’arrêter et fournit une décision réutilisable pour évaluer un pipeline LLM.",
+          "authorTest": true
+        },
+        "inspirationsShown": [
+          {
+            "ref": "i1",
+            "id": "53b87c1d-953d-4364-b130-d51a7c43b8de"
+          },
+          {
+            "ref": "i2",
+            "id": "5df5961a-1d05-4d65-841b-9b9e2ab952f1"
+          },
+          {
+            "ref": "i3",
+            "id": "2ff5e921-5de4-499b-bf6c-b5ce6a1a3c45"
+          },
+          {
+            "ref": "i4",
+            "id": "4748e056-9f14-4d42-9248-b067cb406156"
+          },
+          {
+            "ref": "i5",
+            "id": "092eab1a-2ea3-4b1e-bb8a-16715a547154"
+          },
+          {
+            "ref": "i6",
+            "id": "26721c5c-7466-43d1-be1f-245c6c00d424"
+          },
+          {
+            "ref": "i7",
+            "id": "749cc0e1-05d3-4ccb-a8d2-4eb08c78c03b"
+          },
+          {
+            "ref": "i8",
+            "id": "b5824ae0-9109-43ff-8f0b-9d5cd9377df4"
+          }
+        ],
+        "checks": {
+          "failures": [],
+          "retried": false
+        }
+      },
+      "ms": 17348
+    }
+  ]
+}

@@ -177,8 +177,12 @@ export async function generateSeriesForUser(userId: string) {
   logger.debug("Réponse brute LLM (suggestion de séries)", { suggested });
 
   // Résout categoryLabel -> categoryId ; ignore une série suggérée dont le rôle ne matche pas.
+  // Sujet de chaque série : celui choisi par le modèle, ou d'office l'unique sujet du compte — une
+  // série sans sujet n'a ni matière ni portrait des lecteurs (constaté en réel le 2026-10-17).
+  const productIdFor = (subjectName: string): string | null =>
+    productList.find((p) => p.name === subjectName)?.id ?? (productList.length === 1 ? productList[0].id : null);
   const resolved = suggested
-    .map((s) => ({ ...s, categoryId: resolveCategoryLabelToId(s.categoryLabel, activeCategories) }))
+    .map((s) => ({ ...s, categoryId: resolveCategoryLabelToId(s.categoryLabel, activeCategories), productId: productIdFor(s.subjectName) }))
     .filter((s): s is typeof s & { categoryId: string } => s.categoryId !== null);
 
   const generated = await db.transaction(async (tx) => {
@@ -191,7 +195,7 @@ export async function generateSeriesForUser(userId: string) {
 
     const inserted = await tx
       .insert(contentSeries)
-      .values(resolved.map((s) => ({ userId, label: s.label, description: s.description, weight: s.weight, mode: s.mode })))
+      .values(resolved.map((s) => ({ userId, label: s.label, description: s.description, weight: s.weight, mode: s.mode, productId: s.productId })))
       .returning();
 
     await tx.insert(contentSeriesCategories).values(inserted.map((series, i) => ({ seriesId: series.id, categoryId: resolved[i].categoryId })));
@@ -206,9 +210,12 @@ export async function generateSeriesForUser(userId: string) {
         // renvoyée reste identique à listActiveSeriesForUser/saveSeriesForUser.
         platforms: [] as string[],
         // Toujours null : ce sont des lignes fraîchement insérées, un état narratif ne peut exister
-        // que pour un seriesId déjà connu, et la génération IA ne propose pas de sujet lié.
+        // que pour un seriesId déjà connu.
         narrativeState: null,
-        product: null,
+        product: (() => {
+          const product = productList.find((p) => p.id === resolved[i].productId);
+          return product ? { id: product.id, name: product.name } : null;
+        })(),
       };
     });
   });

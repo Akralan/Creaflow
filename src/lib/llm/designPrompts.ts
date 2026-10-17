@@ -38,7 +38,9 @@ export const designResultSchema = z.object({
   images: z.array(z.object({ ref: z.string(), variant: z.string() })).default([]),
   // Animation seulement (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md Annexe A.3) ; vide sinon.
   timeline: z.array(z.unknown()).default([]),
-  rationale: z.string().min(1),
+  // Commentaire, pas un livrable : un modèle qui l'omet ne doit pas faire refuser toute la maquette
+  // (observé en réel sur une animation, 2026-10-17).
+  rationale: z.string().default(""),
 });
 export type DesignResult = z.infer<typeof designResultSchema>;
 
@@ -321,8 +323,16 @@ async function callDesignTool(system: string, userMessage: string, options: Sani
   try {
     return sanitizeResult(first, options);
   } catch (err) {
-    if (!(err instanceof DesignValidationError)) throw err;
-    const retryMessage = `${userMessage}\n\n=== TA PRÉCÉDENTE RÉPONSE A ÉTÉ REFUSÉE ===\n${err.issues.map((i) => `- ${i}`).join("\n")}\nCorrige ces points et renvoie la maquette complète.`;
+    // Une réponse mal formée (slide vide, champ manquant) a droit à la même seconde tentative qu'un
+    // HTML refusé par la liste blanche (observé en réel : une 2e slide vide sur une animation).
+    const issues =
+      err instanceof DesignValidationError
+        ? err.issues
+        : err instanceof z.ZodError
+          ? err.issues.map((i) => `champ ${i.path.join(".") || "racine"} : ${i.message}`)
+          : null;
+    if (!issues) throw err;
+    const retryMessage = `${userMessage}\n\n=== TA PRÉCÉDENTE RÉPONSE A ÉTÉ REFUSÉE ===\n${issues.map((i) => `- ${i}`).join("\n")}\nCorrige ces points et renvoie la maquette complète.`;
     const second = await callStructured({ system, userMessage: retryMessage, tool: designVisualPostTool, maxTokens: 8192 });
     return sanitizeResult(second, options);
   }

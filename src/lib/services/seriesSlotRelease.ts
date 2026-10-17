@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, isNull } from "drizzle-orm";
+import { and, eq, gte, inArray, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { calendarEntries, contentSeries } from "@/db/schema";
 import { listActiveSeriesForUser } from "@/lib/services/seriesService";
@@ -13,10 +13,10 @@ export interface ReplacementSeries {
 }
 
 /**
- * Créneaux vides d'une série retirée → séries restantes. Chaque créneau, dans l'ordre des dates,
+ * Créneaux à venir d'une série retirée → séries restantes. Chaque créneau, dans l'ordre des dates,
  * va à la série compatible avec son réseau la moins servie au regard de son poids (comme le
- * calendrier répartit les créneaux). Sans série compatible : `null`, le créneau devient un post
- * libre et garde son rôle. Pur, pour être testé sans base.
+ * calendrier répartit les créneaux). Sans série compatible : `null`, le créneau disparaît. Pur,
+ * pour être testé sans base.
  */
 export function pickReplacementSeries(
   slots: Array<{ id: string; platform: string; date: Date }>,
@@ -41,10 +41,12 @@ export function pickReplacementSeries(
 }
 
 /**
- * Après le retrait (archivage) d'une ou plusieurs séries : leurs créneaux vides à venir passent aux
- * séries restantes. Sans ça, le calendrier proposait encore comme « post suivant » un épisode d'une
- * série supprimée. Les créneaux déjà rédigés et les créneaux passés ne bougent pas : c'est de
- * l'historique. Jamais bloquant pour l'appelant — journalisé en cas d'échec.
+ * Après le retrait (archivage) d'une ou plusieurs séries, leurs créneaux à venir non publiés
+ * quittent la série : un post déjà rédigé sort du calendrier (le script reste dans les scripts), et
+ * le jour de publication passe, vide, à une série restante — ou disparaît s'il n'en reste aucune.
+ * Avant, les posts rédigés restaient au calendrier sous une série supprimée et les créneaux vides
+ * devenaient des posts libres (constaté en réel le 2026-10-17). Les créneaux passés et publiés ne
+ * bougent pas : c'est de l'historique. Jamais bloquant pour l'appelant — journalisé en cas d'échec.
  */
 export async function releaseSlotsOfArchivedSeries(userId: string): Promise<void> {
   try {
@@ -58,7 +60,7 @@ export async function releaseSlotsOfArchivedSeries(userId: string): Promise<void
     const orphans = await db.query.calendarEntries.findMany({
       where: and(
         eq(calendarEntries.userId, userId),
-        isNull(calendarEntries.scriptId),
+        ne(calendarEntries.status, "published"),
         gte(calendarEntries.scheduledDate, today),
         inArray(
           calendarEntries.seriesId,
@@ -79,10 +81,14 @@ export async function releaseSlotsOfArchivedSeries(userId: string): Promise<void
 
     for (const orphan of orphans) {
       const pick = picks.get(orphan.id) ?? null;
-      await db
-        .update(calendarEntries)
-        .set(pick ? { seriesId: pick.id, contentCategoryId: pick.categoryId } : { seriesId: null })
-        .where(eq(calendarEntries.id, orphan.id));
+      if (pick) {
+        await db
+          .update(calendarEntries)
+          .set({ seriesId: pick.id, contentCategoryId: pick.categoryId, scriptId: null, status: "planned" })
+          .where(eq(calendarEntries.id, orphan.id));
+      } else {
+        await db.delete(calendarEntries).where(eq(calendarEntries.id, orphan.id));
+      }
     }
   } catch (error) {
     logger.error("Réaffectation des créneaux d'une série retirée impossible", error, { userId });

@@ -24,7 +24,7 @@ describe("pickReplacementSeries", () => {
     expect(picks.get("a")).toBeNull();
   });
 
-  it("laisse en post libre quand il ne reste aucune série", () => {
+  it("ne donne le créneau à personne quand il ne reste aucune série", () => {
     expect(pickReplacementSeries([slot("a", 21)], []).get("a")).toBeNull();
   });
 });

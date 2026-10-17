@@ -1,0 +1,774 @@
+{
+  "createdAt": "2026-10-17T00:50:45.185Z",
+  "baseline": false,
+  "forcedProductId": null,
+  "entries": [
+    {
+      "scriptId": "4b4ee15f-0b57-455c-a079-d07581c60adc",
+      "platform": "linkedin",
+      "contentType": "visual",
+      "visualFormat": "animation",
+      "durationMs": 8000,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Prompt en duel",
+        "beatId": "presentation-creaflow",
+        "episode": "Alix présente CreaFlow et le problème qu'il veut résoudre",
+        "direction": "Pour les développeurs d’outils IA, ouvrir le feuilleton en présentant Alix, CreaFlow et le problème fondateur : aider les indépendants à produire à partir de leur propre matière plutôt qu’à générer du contenu générique. L’audience doit retenir le positionnement avant d’entrer dans les choix d’architecture ou les tests.",
+        "readers": [
+          "Développeurs d’outils IA",
+          "Indépendants outillés par l’IA",
+          "Curieux des méthodes LLM"
+        ],
+        "recentPosts": 0,
+        "inspirations": 8,
+        "materialDocuments": 1
+      },
+      "post": {
+        "contentType": "visual",
+        "concept": "Je présente CreaFlow aux développeurs d’outils IA à partir de son problème fondateur : une génération sans matière fiable ne peut produire qu’un contenu générique ou des détails inventés. Ils doivent retenir que le produit commence par organiser la matière réelle avant de générer, puis suivre les prochains épisodes pour voir comment ce garde-fou est construit.",
+        "title": "La matière avant la génération",
+        "caption": "Un générateur de contenu sans matière fiable n’a que deux issues : rester générique ou inventer.\n\nC’est le problème fondateur de CreaFlow.\n\nLes indépendants, fondateurs et créateurs ont souvent déjà la matière : notes de projet, specs, journal de bord, décisions, chiffres. Mais cette matière reste rarement transformée en contenu.\n\nUne simple description du produit ne suffit pas. Elle laisse le modèle produire une sortie générique ou compléter les blancs avec des détails plausibles. Pour un outil qui doit aider à publier, c’est un défaut de conception, pas seulement un problème de prompt.\n\nCreaFlow prend donc le chemin inverse : partir de la matière réelle de l’utilisateur. Elle peut venir d’un texte collé, d’un fichier `.md` ou `.txt`, ou d’une interview menée par le chat. Cette matière alimente ensuite les briefs et les générations de contenus.\n\nLe chantier commence là : construire un rédacteur en chef IA qui transforme ce qui existe déjà, sans déplacer le travail vécu ni inventer ce qui manque.\n\nDans les prochains épisodes, je montrerai comment cette matière devient un garde-fou concret pour les générations.",
+        "hashtags": [
+          "#LLM",
+          " #PromptEngineering",
+          " #AIProduct"
+        ],
+        "usedExcerpts": [
+          "**Invention d'informations :** au-delà de la répétition, un générateur nourri d'une simple description produit n'a que deux options — rester générique ou inventer des détails plausibles.",
+          "**Matière vécue jamais publiée :** beaucoup accumulent déjà de la matière (notes de projet, specs, journal de bord, décisions, chiffres) sans jamais la transformer en contenu, faute de temps ou de réflexe.",
+          "**Alimenter le corpus d'un sujet :** deux portes pour nourrir la génération en matière factuelle (anecdotes, chiffres, décisions, retours...) — coller du texte ou un fichier `.md`/`.txt` pour qui écrit déjà (journal de bord, anciens posts), ou se faire **interviewer par le chat** (une question concrète à la fois) pour qui n'a rien d'écrit."
+        ],
+        "promisesMade": [
+          "Dans les prochains épisodes, je montrerai comment cette matière devient un garde-fou concret pour les générations."
+        ],
+        "hookVisual": "Animation de 8 secondes sur fond sombre de notes, specs et fragments de journal qui restent d’abord hors d’un cadre de génération. Le nom CreaFlow apparaît quand les fragments sont reliés à un brief, puis la phrase finale fixe le garde-fou : « La matière contraint la sortie. »",
+        "storyboard": [
+          {
+            "planNumber": 1,
+            "description": "Fond fixe sombre composé de fragments lisibles de notes, specs et chiffres. Texte à l’écran : « Sans matière fiable »."
+          },
+          {
+            "planNumber": 2,
+            "description": "Un cadre de génération vide apparaît au centre. Texte à l’écran : « Générique ou inventé »."
+          },
+          {
+            "planNumber": 3,
+            "description": "Les fragments se connectent au cadre comme un corpus. Texte à l’écran : « CreaFlow part du réel »."
+          },
+          {
+            "planNumber": 4,
+            "description": "Le cadre devient une fiche de contenu structurée. Texte à l’écran : « La matière contraint la sortie »."
+          }
+        ]
+      },
+      "design": null,
+      "trace": {
+        "version": 3,
+        "reader": {
+          "label": "Développeurs d’outils IA",
+          "knows": "Ils connaissent le développement logiciel, les APIs et les modèles de langage, mais cherchent encore des méthodes solides pour cadrer les briefs, comparer les sorties et organiser les tests.",
+          "wants": "Ils viennent voir des cas concrets, des specs et des décisions réutilisables pour améliorer leur propre produit ou leur processus de prototypage."
+        },
+        "candidateMoments": [
+          {
+            "moment": "CreaFlow est une application web qui agit comme un rédacteur en chef IA pour transformer la matière réelle d’un créateur en contenus.",
+            "excerpt": "Une application web centralisée qui agit comme un **rédacteur en chef IA** : elle n'écrit qu'à partir de ce que l'utilisateur lui a réellement confié"
+          },
+          {
+            "moment": "Le problème fondateur est que beaucoup d’indépendants accumulent déjà des notes, décisions et chiffres sans les transformer en contenu.",
+            "excerpt": "**Matière vécue jamais publiée :** beaucoup accumulent déjà de la matière (notes de projet, specs, journal de bord, décisions, chiffres) sans jamais la transformer en contenu, faute de temps ou de réflexe."
+          },
+          {
+            "moment": "Sans matière factuelle en entrée, un générateur reste générique ou invente des détails plausibles.",
+            "excerpt": "**Invention d'informations :** au-delà de la répétition, un générateur nourri d'une simple description produit n'a que deux options — rester générique ou inventer des détails plausibles."
+          },
+          {
+            "moment": "CreaFlow collecte la matière par collage, fichier ou interview-chat, puis la structure pour la réutiliser dans les générations.",
+            "excerpt": "**Alimenter le corpus d'un sujet :** deux portes pour nourrir la génération en matière factuelle (anecdotes, chiffres, décisions, retours...) — coller du texte ou un fichier `.md`/`.txt` pour qui écrit déjà (journal de bord, anciens posts), ou se faire **interviewer par le chat** (une question concrète à la fois) pour qui n'a rien d'écrit."
+          },
+          {
+            "moment": "La prochaine étape est de valider la cible prioritaire avec des utilisateurs qui ont déjà de la matière écrite.",
+            "excerpt": "Valider la cible prioritaire (§2.1) avec quelques utilisateurs externes qui ont déjà de la matière écrite : mesurer s'ils remplissent le corpus sans accompagnement et à quel point le script généré est publié tel quel ou réécrit."
+          }
+        ],
+        "chosenMoment": {
+          "index": 2,
+          "why": "Pour ouvrir le feuilleton, ce problème rend le positionnement immédiatement vérifiable pour des développeurs : une entrée pauvre force le modèle à rester générique ou à inventer."
+        },
+        "hookOptions": [
+          {
+            "kind": "contre-intuitif",
+            "text": "Un générateur de contenu sans matière fiable n’a que deux issues : rester générique ou inventer."
+          },
+          {
+            "kind": "scène",
+            "text": "Un indépendant a déjà ses notes, ses décisions et ses chiffres. Pourtant, rien ne devient un post."
+          },
+          {
+            "kind": "aveu",
+            "text": "J’ai commencé CreaFlow par un problème moins spectaculaire qu’un nouveau modèle : la matière existe, mais elle ne passe jamais dans le contenu."
+          }
+        ],
+        "chosenHook": {
+          "index": 0,
+          "why": "Elle nomme le cas limite qui intéresse directement les développeurs d’outils IA et pose le critère de conception de CreaFlow avant le « voir plus »."
+        },
+        "inspirationsUsed": [
+          "i3",
+          "i4"
+        ],
+        "inspirationsToDrop": [],
+        "selfCheck": {
+          "factsFromMaterial": true,
+          "bannedPhrasesFound": [],
+          "readerTest": "Le lecteur visé s’arrête parce que la première phrase expose un cas limite central pour un outil de génération : une entrée sans matière fiable produit du générique ou de l’invention.",
+          "authorTest": true
+        },
+        "inspirationsShown": [
+          {
+            "ref": "i1",
+            "id": "53b87c1d-953d-4364-b130-d51a7c43b8de"
+          },
+          {
+            "ref": "i2",
+            "id": "5df5961a-1d05-4d65-841b-9b9e2ab952f1"
+          },
+          {
+            "ref": "i3",
+            "id": "2ff5e921-5de4-499b-bf6c-b5ce6a1a3c45"
+          },
+          {
+            "ref": "i4",
+            "id": "4748e056-9f14-4d42-9248-b067cb406156"
+          },
+          {
+            "ref": "i5",
+            "id": "092eab1a-2ea3-4b1e-bb8a-16715a547154"
+          },
+          {
+            "ref": "i6",
+            "id": "26721c5c-7466-43d1-be1f-245c6c00d424"
+          },
+          {
+            "ref": "i7",
+            "id": "749cc0e1-05d3-4ccb-a8d2-4eb08c78c03b"
+          },
+          {
+            "ref": "i8",
+            "id": "b5824ae0-9109-43ff-8f0b-9d5cd9377df4"
+          }
+        ],
+        "checks": {
+          "failures": [],
+          "retried": false
+        }
+      },
+      "designError": "HTML de slide refusé : ligne de temps : calque « l11 » présent deux fois · ligne de temps : calque « l7 » présent deux fois · ligne de temps : calque « l8 » présent deux fois · ligne de temps : calque « l9 » présent deux fois · ligne de temps : calque « l10 » présent deux fois",
+      "ms": 112538
+    },
+    {
+      "scriptId": "03e8eea3-7d44-42e6-869c-d9a2d8dc5007",
+      "platform": "linkedin",
+      "contentType": "text",
+      "visualFormat": null,
+      "durationMs": null,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Autopsie de sortie",
+        "beatId": "notion-generation-contenus",
+        "episode": "Ce que change réellement un modèle de langage dans un outil de contenu",
+        "direction": "Pour les développeurs d’outils IA, clarifier le rôle réel d’un modèle de langage dans CreaFlow : il ne remplace pas la matière ni les décisions éditoriales, il la transforme sous contraintes explicites. L’audience doit retenir que la fiabilité vient du cadrage — source écrite, garde-fous anti-invention et anti-répétition — avant même de parler de performance de génération.",
+        "readers": [
+          "Développeurs d’outils IA",
+          "Indépendants outillés par l’IA",
+          "Curieux des méthodes LLM"
+        ],
+        "recentPosts": 0,
+        "inspirations": 8,
+        "materialDocuments": 1
+      },
+      "post": {
+        "contentType": "text",
+        "concept": "Pour les développeurs d’outils IA, montrer que le modèle de langage n’est qu’une étape de transformation : la qualité de la sortie commence par une matière écrite comme source, puis par un brief qui verrouille rôle, angle, audience, série et garde-fou anti-invention. Ils doivent évaluer l’ensemble de cette chaîne plutôt que la performance isolée du modèle.",
+        "title": "Le brief avant le modèle",
+        "caption": "Un modèle de langage peut produire une sortie fluide et échouer quand même sur la promesse centrale d’un outil de contenu.\n\nDans CreaFlow, le modèle ne remplace ni la matière ni les décisions éditoriales. Il transforme une source écrite sous contraintes.\n\nLe brief de génération porte donc plusieurs éléments :\n\n- le rôle éditorial du post ;\n- l’angle, choisi par le système anti-répétition ;\n- la série, quand il y en a une ;\n- l’audience visée ;\n- la matière factuelle du sujet ;\n- l’instruction de ne jamais inventer une information absente.\n\nLa matière écrite comme source est le premier garde-fou. Sans elle, le générateur reste générique ou produit des détails plausibles. Dans ce cas, une sortie bien écrite masque un échec de fiabilité.\n\nC’est aussi pour cela que CreaFlow conserve un concept d’intention pour chaque script. Les retouches et les régénérations de blocs modifient les mots, mais restent attachées à l’idée validée.\n\nPour évaluer un outil de contenu, je regarderais donc moins la qualité d’une démo isolée que la chaîne complète : source disponible, contraintes du brief, garde-fous anti-invention, puis sortie.\n\nLe modèle génère. Le système décide ce qu’il a le droit de transformer.",
+        "hashtags": [
+          "#LLM",
+          "#LLMOps",
+          "#AIEngineering"
+        ],
+        "usedExcerpts": [
+          "le corpus de matière factuelle du sujet (unités structurées si le corpus a été traité, texte brut sinon) — base réelle de la génération, avec instruction explicite de ne jamais inventer une information non fournie (marqueur `[à compléter]` en son absence)",
+          "Chaque génération est contrainte par :\n- **le rôle éditorial** visé (`ContentCategory` côté données — personnalisé par IA, voir Module E),\n- **un angle imposé automatiquement** par le système anti-répétition (invisible pour l'utilisateur mais déterminant pour la structure du script),\n- **la série récurrente** le cas échéant (identité de format reconnaissable),\n- **l’audience visée** (celle du sujet si renseignée, sinon celle de la marque),\n- **le corpus de matière factuelle** du sujet (unités structurées si le corpus a été traité, texte brut sinon) — base réelle de la génération, avec instruction explicite de ne jamais inventer une information non fournie (marqueur `[à compléter]` en son absence),\n- les sujets déjà traités récemment et un résumé des performances récentes (métriques saisies manuellement), quand disponibles.",
+          "avant de rédiger quoi que ce soit d'autre, le modèle formule en une ou deux phrases l'intention du post — l'idée unique, à qui elle s'adresse, ce qu'on doit en retenir ou faire. Cette intention (le \"concept\") est conservée avec le script, gelée dès la génération : les micro-retouches et régénérations de bloc s'y tiennent, sans jamais la réécrire.",
+          "À chaque génération, le système impose automatiquement l'angle le moins récemment utilisé dans le rôle visé — l'utilisateur n'a rien à choisir, la variation est garantie côté produit plutôt que laissée au hasard du LLM. La même logique de rotation (least-recently-used) s'applique à la sélection des unités de matière injectées"
+        ],
+        "promisesMade": [],
+        "hookText": "Un modèle de langage peut produire une sortie fluide et échouer quand même sur la promesse centrale d’un outil de contenu."
+      },
+      "design": null,
+      "trace": {
+        "version": 3,
+        "reader": {
+          "label": "Développeurs d’outils IA",
+          "knows": "Ils connaissent le développement logiciel, les APIs et les modèles de langage, mais cherchent encore des méthodes solides pour cadrer les briefs, comparer les sorties et organiser les tests.",
+          "wants": "Ils viennent voir des cas concrets de specs, d’évaluation et de fiabilisation réutilisables dans leur produit ou leur processus de prototypage."
+        },
+        "candidateMoments": [
+          {
+            "moment": "CreaFlow génère à partir d’un corpus de matière factuelle et reçoit l’instruction explicite de ne jamais inventer une information non fournie.",
+            "excerpt": "le corpus de matière factuelle du sujet (unités structurées si le corpus a été traité, texte brut sinon) — base réelle de la génération, avec instruction explicite de ne jamais inventer une information non fournie (marqueur `[à compléter]` en son absence)"
+          },
+          {
+            "moment": "La génération est contrainte par plusieurs éléments du brief, dont le rôle éditorial, l’angle, la série, l’audience et la matière factuelle.",
+            "excerpt": "Chaque génération est contrainte par :\n- **le rôle éditorial** visé (`ContentCategory` côté données — personnalisé par IA, voir Module E),\n- **un angle imposé automatiquement** par le système anti-répétition (invisible pour l'utilisateur mais déterminant pour la structure du script),\n- **la série récurrente** le cas échéant (identité de format reconnaissable),\n- **l’audience visée** (celle du sujet si renseignée, sinon celle de la marque),\n- **le corpus de matière factuelle** du sujet (unités structurées si le corpus a été traité, texte brut sinon) — base réelle de la génération, avec instruction explicite de ne jamais inventer une information non fournie (marqueur `[à compléter]` en son absence),\n- les sujets déjà traités récemment et un résumé des performances récentes (métriques saisies manuellement), quand disponibles."
+          },
+          {
+            "moment": "CreaFlow conserve une intention de post distincte du brief et la gèle pour guider les retouches et régénérations.",
+            "excerpt": "avant de rédiger quoi que ce soit d'autre, le modèle formule en une ou deux phrases l'intention du post — l'idée unique, à qui elle s'adresse, ce qu'on doit en retenir ou faire. Cette intention (le \"concept\") est conservée avec le script, gelée dès la génération : les micro-retouches et régénérations de bloc s'y tiennent, sans jamais la réécrire."
+          },
+          {
+            "moment": "Le système anti-répétition impose automatiquement l’angle le moins récemment utilisé et fait tourner les unités de matière injectées.",
+            "excerpt": "À chaque génération, le système impose automatiquement l'angle le moins récemment utilisé dans le rôle visé — l'utilisateur n'a rien à choisir, la variation est garantie côté produit plutôt que laissée au hasard du LLM. La même logique de rotation (least-recently-used) s'applique à la sélection des unités de matière injectées"
+          },
+          {
+            "moment": "Les deux portes d’entrée de la matière sont le collage d’un texte ou fichier, et l’interview-chat.",
+            "excerpt": "deux portes pour nourrir la génération en matière factuelle (anecdotes, chiffres, décisions, retours...) — coller du texte ou un fichier `.md`/`.txt` pour qui écrit déjà (journal de bord, anciens posts), ou se faire **interviewer par le chat** (une question concrète à la fois) pour qui n'a rien d'écrit."
+          }
+        ],
+        "chosenMoment": {
+          "index": 1,
+          "why": "Il montre concrètement qu’une sortie fiable dépend d’un brief composé de contraintes explicites, pas du modèle seul, ce qui répond directement aux préoccupations d’architecture et d’évaluation de ce lectorat."
+        },
+        "hookOptions": [
+          {
+            "kind": "contre-intuitif",
+            "text": "Un modèle de langage peut produire une sortie fluide et échouer quand même sur la promesse centrale d’un outil de contenu."
+          },
+          {
+            "kind": "aveu",
+            "text": "J’ai dû déplacer le centre de gravité de CreaFlow : la génération ne commence pas avec le modèle, mais avec la matière écrite."
+          },
+          {
+            "kind": "scène",
+            "text": "Dans CreaFlow, le modèle n’ouvre pas une page blanche : il reçoit une matière écrite, un rôle, un angle, une audience et une série."
+          }
+        ],
+        "chosenHook": {
+          "index": 0,
+          "why": "Elle recadre immédiatement la démo de génération vers un critère de fiabilité qui intéresse directement les développeurs : une sortie fluide ne prouve pas que le système tient sa promesse."
+        },
+        "inspirationsUsed": [
+          "i1",
+          "i4",
+          "i6"
+        ],
+        "inspirationsToDrop": [],
+        "selfCheck": {
+          "factsFromMaterial": true,
+          "bannedPhrasesFound": [],
+          "readerTest": "La première phrase recadre une sortie fluide mais non fiable, puis le post donne aux développeurs une structure de brief et des critères concrets à tester.",
+          "authorTest": true
+        },
+        "inspirationsShown": [
+          {
+            "ref": "i1",
+            "id": "53b87c1d-953d-4364-b130-d51a7c43b8de"
+          },
+          {
+            "ref": "i2",
+            "id": "5df5961a-1d05-4d65-841b-9b9e2ab952f1"
+          },
+          {
+            "ref": "i3",
+            "id": "2ff5e921-5de4-499b-bf6c-b5ce6a1a3c45"
+          },
+          {
+            "ref": "i4",
+            "id": "4748e056-9f14-4d42-9248-b067cb406156"
+          },
+          {
+            "ref": "i5",
+            "id": "092eab1a-2ea3-4b1e-bb8a-16715a547154"
+          },
+          {
+            "ref": "i6",
+            "id": "26721c5c-7466-43d1-be1f-245c6c00d424"
+          },
+          {
+            "ref": "i7",
+            "id": "749cc0e1-05d3-4ccb-a8d2-4eb08c78c03b"
+          },
+          {
+            "ref": "i8",
+            "id": "b5824ae0-9109-43ff-8f0b-9d5cd9377df4"
+          }
+        ],
+        "checks": {
+          "failures": [],
+          "retried": false
+        }
+      },
+      "ms": 16000
+    },
+    {
+      "scriptId": "9d464b43-9145-4700-be17-948865eee054",
+      "platform": "linkedin",
+      "contentType": "text",
+      "visualFormat": null,
+      "durationMs": null,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Brief vers résultat",
+        "beatId": "contexte-outils-independants",
+        "episode": "Pourquoi les indépendants ont besoin d'outils conçus pour leur manière de travailler",
+        "direction": "Pour les développeurs d’outils IA, montrer le recentrage de CreaFlow sur les indépendants qui disposent déjà d’une matière écrite : le produit ne cherche plus à générer depuis rien, mais à transformer un corpus existant en contenus factuels et réutilisables. L’épisode doit faire retenir que la matière écrite devient la source de vérité — et que ce choix produit encadre le rôle des modèles de langage.",
+        "readers": [
+          "Développeurs d’outils IA",
+          "Indépendants outillés par l’IA",
+          "Curieux des méthodes LLM"
+        ],
+        "recentPosts": 0,
+        "inspirations": 8,
+        "materialDocuments": 1
+      },
+      "post": {
+        "contentType": "text",
+        "concept": "CreaFlow s’est recentré sur les indépendants qui ont déjà une matière écrite, parce qu’un modèle sans corpus factuel produit soit du générique, soit du plausible inventé. Les développeurs d’outils IA doivent retenir une règle de conception : faire de la matière écrite la source de vérité, puis encadrer le rôle du modèle autour de sa transformation en contenu réutilisable.",
+        "title": "La matière avant le modèle",
+        "caption": "Nous avons voulu aider les indépendants à partir de presque rien. Le premier usage réel a montré que cette promesse cassait avant même l’évaluation du script.\n\nAvec une simple description produit, un générateur n’a que deux issues : rester générique ou inventer des détails plausibles.\n\nLe problème n’était donc pas seulement la qualité du prompt. C’était le brief d’entrée.\n\nCreaFlow se recentre sur les indépendants qui ont déjà une matière écrite : notes de projet, specs, journal de bord, décisions, chiffres ou anciens posts.\n\nCette matière devient la source de vérité. Elle entre dans le corpus par collage ou fichier `.md` / `.txt`, puis peut être structurée en unités réutilisables : anecdote, bug, chiffre, décision ou apprentissage.\n\nLe modèle intervient ensuite dans un cadre plus étroit : transformer ce corpus en contenus adaptés à un rôle, un angle et un format, sans ajouter d’information non fournie. Quand une précision manque, la sortie doit le signaler avec `[à compléter]`.\n\nC’est le choix produit qui change le protocole d’évaluation : je ne cherche plus seulement à comparer des sorties de modèles. Je teste aussi si le brief contient assez de matière pour produire un contenu factuel et réutilisable.\n\nPour un outil de génération, la première question n’est peut-être pas « quel prompt donne la meilleure sortie ? », mais « quelle source de vérité le modèle est-il autorisé à transformer ? »\n\nC’est sur cette frontière que CreaFlow continue d’être construit.",
+        "hashtags": [
+          "#LLM",
+          " #PromptEngineering",
+          " #BuildInPublic"
+        ],
+        "usedExcerpts": [
+          "**Invention d'informations :** au-delà de la répétition, un générateur nourri d'une simple description produit n'a que deux options — rester générique ou inventer des détails plausibles. Diagnostiqué sur un premier usage réel (`docs/SPEC_MATIERE_EDITEUR.md` §1.1) : sans matière factuelle en entrée, le script échoue sur sa promesse centrale avant même la question de l'habitude d'usage.",
+          "**Cible prioritaire — ceux qui ont déjà de la matière écrite :**\n- Freelances et indépendants en personal branding (développeurs, consultants, coachs...)\n- Fondateurs et porteurs de projets qui documentent leur travail (« build in public ») : notes, specs, journal de bord, décisions\n- Créateurs et experts qui tiennent des notes ou ont un historique de publications",
+          "**Alimenter le corpus d'un sujet :** deux portes pour nourrir la génération en matière factuelle (anecdotes, chiffres, décisions, retours...) — coller du texte ou un fichier `.md`/`.txt` pour qui écrit déjà (journal de bord, anciens posts), ou se faire **interviewer par le chat** (une question concrète à la fois) pour qui n'a rien d'écrit. Les deux alimentent le même corpus, structuré en arrière-plan en unités typées (anecdote / bug / chiffre / décision / learning) réutilisées par rotation à chaque génération — voir Module B.",
+          "- le **corpus de matière factuelle** du sujet (unités structurées si le corpus a été traité, texte brut sinon) — base réelle de la génération, avec instruction explicite de ne jamais inventer une information non fournie (marqueur `[à compléter]` en son absence),"
+        ],
+        "promisesMade": [],
+        "hookText": "Nous avons voulu aider les indépendants à partir de presque rien. Le premier usage réel a montré que cette promesse cassait avant même l’évaluation du script."
+      },
+      "design": null,
+      "trace": {
+        "version": 3,
+        "reader": {
+          "label": "Développeurs d’outils IA",
+          "knows": "Ils connaissent le développement logiciel, les APIs et les modèles de langage, mais cherchent encore des méthodes solides pour cadrer les briefs, comparer les sorties et organiser les tests.",
+          "wants": "Ils viennent voir des décisions de conception et des cas concrets réutilisables pour fiabiliser leurs propres outils de génération."
+        },
+        "candidateMoments": [
+          {
+            "moment": "CreaFlow a recentré sa cible prioritaire sur les indépendants qui possèdent déjà un corpus écrit, plutôt que de générer à partir d’une simple description.",
+            "excerpt": "**Cible prioritaire — ceux qui ont déjà de la matière écrite :**\n- Freelances et indépendants en personal branding (développeurs, consultants, coachs...)\n- Fondateurs et porteurs de projets qui documentent leur travail (« build in public ») : notes, specs, journal de bord, décisions\n- Créateurs et experts qui tiennent des notes ou ont un historique de publications"
+          },
+          {
+            "moment": "Le produit a abandonné la génération depuis rien comme promesse centrale après un premier usage réel.",
+            "excerpt": "**Invention d'informations :** au-delà de la répétition, un générateur nourri d'une simple description produit n'a que deux options — rester générique ou inventer des détails plausibles. Diagnostiqué sur un premier usage réel (`docs/SPEC_MATIERE_EDITEUR.md` §1.1) : sans matière factuelle en entrée, le script échoue sur sa promesse centrale avant même la question de l'habitude d'usage."
+          },
+          {
+            "moment": "La matière écrite est traitée comme la base réelle de la génération, avec instruction explicite de ne jamais inventer.",
+            "excerpt": "- le **corpus de matière factuelle** du sujet (unités structurées si le corpus a été traité, texte brut sinon) — base réelle de la génération, avec instruction explicite de ne jamais inventer une information non fournie (marqueur `[à compléter]` en son absence),"
+          },
+          {
+            "moment": "Le corpus peut être alimenté par collage ou fichier pour les personnes qui écrivent déjà, tandis que l’interview-chat sert aux personnes sans matière écrite.",
+            "excerpt": "**Alimenter le corpus d'un sujet :** deux portes pour nourrir la génération en matière factuelle (anecdotes, chiffres, décisions, retours...) — coller du texte ou un fichier `.md`/`.txt` pour qui écrit déjà (journal de bord, anciens posts), ou se faire **interviewer par le chat** (une question concrète à la fois) pour qui n'a rien d'écrit. Les deux alimentent le même corpus, structuré en arrière-plan en unités typées (anecdote / bug / chiffre / décision / learning) réutilisées par rotation à chaque génération — voir Module B."
+          },
+          {
+            "moment": "Le recentrage implique que le modèle transforme un corpus existant en contenus factuels et réutilisables, avec le corpus comme source de vérité.",
+            "excerpt": "Elle collecte l'identité et l'historique du créateur via une conversation guidée, propose et fait évoluer sa direction éditoriale (séries récurrentes, rôles éditoriaux, angles), transforme la matière factuelle de chaque sujet en contenus prêts à filmer ou publier — sans jamais inventer une information non fournie — et organise la diffusion via un calendrier intelligent qui varie délibérément les angles pour éviter la répétition."
+          }
+        ],
+        "chosenMoment": {
+          "index": 1,
+          "why": "Pour ce public, le diagnostic concret explique la décision produit et montre pourquoi le cadrage de la matière doit précéder l'évaluation des sorties."
+        },
+        "hookOptions": [
+          {
+            "kind": "contre-intuitif",
+            "text": "Le recentrage de CreaFlow n’a pas commencé par un meilleur prompt. Il a commencé par une contrainte d’entrée."
+          },
+          {
+            "kind": "aveu",
+            "text": "Nous avons voulu aider les indépendants à partir de presque rien. Le premier usage réel a montré que cette promesse cassait avant même l’évaluation du script."
+          },
+          {
+            "kind": "avant-après",
+            "text": "Avant, CreaFlow pouvait partir d’une description produit. Maintenant, la génération commence par la matière écrite de l’indépendant."
+          }
+        ],
+        "chosenHook": {
+          "index": 1,
+          "why": "Elle ouvre sur un échec de conception vérifiable, directement pertinent pour des développeurs qui testent la robustesse des sorties."
+        },
+        "inspirationsUsed": [
+          "i3",
+          "i6",
+          "i8"
+        ],
+        "inspirationsToDrop": [],
+        "selfCheck": {
+          "factsFromMaterial": true,
+          "bannedPhrasesFound": [],
+          "readerTest": "La première phrase expose un échec de cadrage qui concerne directement les développeurs évaluant des sorties de modèles, puis le post donne une règle de brief réutilisable.",
+          "authorTest": true
+        },
+        "inspirationsShown": [
+          {
+            "ref": "i1",
+            "id": "53b87c1d-953d-4364-b130-d51a7c43b8de"
+          },
+          {
+            "ref": "i2",
+            "id": "5df5961a-1d05-4d65-841b-9b9e2ab952f1"
+          },
+          {
+            "ref": "i3",
+            "id": "2ff5e921-5de4-499b-bf6c-b5ce6a1a3c45"
+          },
+          {
+            "ref": "i4",
+            "id": "4748e056-9f14-4d42-9248-b067cb406156"
+          },
+          {
+            "ref": "i5",
+            "id": "092eab1a-2ea3-4b1e-bb8a-16715a547154"
+          },
+          {
+            "ref": "i6",
+            "id": "26721c5c-7466-43d1-be1f-245c6c00d424"
+          },
+          {
+            "ref": "i7",
+            "id": "749cc0e1-05d3-4ccb-a8d2-4eb08c78c03b"
+          },
+          {
+            "ref": "i8",
+            "id": "b5824ae0-9109-43ff-8f0b-9d5cd9377df4"
+          }
+        ],
+        "checks": {
+          "failures": [],
+          "retried": false
+        }
+      },
+      "ms": 14073
+    },
+    {
+      "scriptId": "f824a98a-5418-4d4f-af02-78f4f721cbb0",
+      "platform": "linkedin",
+      "contentType": "visual",
+      "visualFormat": "single",
+      "durationMs": null,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Mythe contre test",
+        "beatId": "premier-choix-architecture",
+        "episode": "Le premier arbitrage de conception de CreaFlow devient une architecture de connecteurs",
+        "direction": "Pour les développeurs d’outils IA, raconter le premier arbitrage structurant de CreaFlow : choisir une architecture à registre de connecteurs et un onboarding déclaratif pour intégrer de nouvelles sources sans toucher au cœur du produit. L’épisode doit surtout faire retenir qu’un choix conçu pour simplifier l’extension a déplacé la difficulté vers l’identité OAuth et le rafraîchissement des tokens.",
+        "readers": [
+          "Développeurs d’outils IA",
+          "Indépendants outillés par l’IA",
+          "Curieux des méthodes LLM"
+        ],
+        "recentPosts": 0,
+        "inspirations": 8,
+        "materialDocuments": 1
+      },
+      "post": {
+        "contentType": "visual",
+        "concept": "Montrer que le premier arbitrage d'architecture de CreaFlow a tenu pour l'extension des sources et de l'onboarding, tout en déplaçant la difficulté vers l'identité OAuth et le rafraîchissement des tokens. Le lecteur doit retenir qu'un registre de connecteurs simplifie le cœur, mais qu'il faut modéliser séparément source et identité avant d'ajouter des fournisseurs.",
+        "title": "Le registre qui déplace la difficulté",
+        "caption": "Notre architecture de connecteurs a supprimé les modifications du cœur. Elle a surtout rendu l’identité OAuth et l’expiration des tokens incontournables.\n\nLe premier arbitrage des chantiers du CreaFlow était simple : garder un cœur unique, puis brancher les sources dans un registre. Chaque connecteur expose son contrat. Le cœur résout le connecteur depuis `source.type` et garde la synchronisation commune.\n\nLe test concret est arrivé avec Notion et Linear. Les deux connecteurs se sont écrits sans toucher à `syncSource` ni à `createSourcesFromCandidates`.\n\nLa prédiction tenait pour la matière. Elle ne tenait pas pour l’identité.\n\nCes fournisseurs ne sont pas seulement des sources : ils peuvent aussi être des portes d’entrée. Il a donc fallu généraliser `github_accounts` en `oauth_accounts` et ajouter un contrat `OAuthIdentityProvider` à côté de `SourceConnector`.\n\nMême déplacement pour les tokens. GitHub ne périme jamais. Notion et Linear, si — 24 h côté Linear. Le rafraîchissement paresseux est devenu obligatoire.\n\nL’arbitrage des chantiers est là : un registre réduit le couplage du cœur, mais il faut isoler explicitement les rôles « source » et « identité ». Sinon, on découvre la frontière au moment d’ajouter le deuxième fournisseur.\n\nDans un prochain épisode, je montrerai comment CreaFlow a traité concrètement les problèmes d’identité OAuth et de rafraîchissement des tokens révélés par cette architecture.",
+        "hashtags": [
+          "#LLMEngineering",
+          "#ArchitectureLogicielle",
+          "#OAuth"
+        ],
+        "usedExcerpts": [
+          "Fait le 2026-09-09 (Notion et Linear, `docs/SPEC_CONNECTEURS_ET_SUJETS.md`), et la prédiction tenait pour la partie matière : les deux connecteurs se sont écrits sans toucher à `syncSource` ni à `createSourcesFromCandidates`.",
+          "Ce que le chantier 1 n'avait PAS prévu, en revanche :\n\n- **l'identité.** Ces fournisseurs ne sont pas que des sources, ce sont des portes d'entrée. Il a fallu généraliser `github_accounts` en `oauth_accounts` et écrire un contrat `OAuthIdentityProvider` à côté de `SourceConnector` — deux rôles distincts, deux registres.\n- **l'expiration des tokens.** GitHub était l'exception, pas la règle : son token ne périme jamais, ceux de Notion et Linear si (24 h côté Linear). Le rafraîchissement paresseux est devenu de la plomberie obligatoire."
+        ],
+        "promisesMade": [
+          "Dans un prochain épisode, je montrerai comment CreaFlow a traité concrètement les problèmes d’identité OAuth et de rafraîchissement des tokens révélés par cette architecture."
+        ],
+        "hookVisual": "Un schéma en deux colonnes : à gauche, un cœur CreaFlow relié à un registre de connecteurs Notion / Linear / GitHub avec la mention « cœur inchangé » ; à droite, deux blocs rouges reliés au registre : « identité OAuth » et « rafraîchissement des tokens ». Une flèche centrale indique « extension simplifiée, complexité déplacée ».",
+        "storyboard": [
+          {
+            "planNumber": 1,
+            "description": "Image unique en fond clair, pensée comme un schéma d'architecture lisible sur mobile. En haut, le titre : « Le registre a protégé le cœur. Il a déplacé la difficulté. » Au centre, un bloc « CreaFlow — cœur » relié à un bloc « registre de connecteurs », puis à « GitHub », « Notion » et « Linear ». Une accolade sous le cœur indique « syncSource + createSourcesFromCandidates inchangés ». À droite, deux encadrés contrastés affichent « identité OAuth » et « tokens qui expirent ». En bas : « Arbitrage du chantier : étendre sans toucher au cœur ≠ supprimer la complexité ». "
+          }
+        ]
+      },
+      "design": {
+        "width": 1080,
+        "height": 1350,
+        "durationMs": null,
+        "slides": [
+          {
+            "planNumber": 1,
+            "html": "<div style=\"position:relative;width:1080px;height:1350px;overflow:hidden;background:#F5F2EA\"><div data-layer=\"l1\" data-type=\"text\" style=\"position:absolute;left:72px;top:68px;width:936px;height:132px;color:#17212B;font-family:Space Grotesk;font-size:48px;line-height:1.08;font-weight:700\">Le registre a protégé le cœur.<br>Il a déplacé la difficulté.</div><div data-layer=\"l2\" data-type=\"shape\" style=\"position:absolute;left:72px;top:220px;width:936px;height:2px;background:#D8DEE6\"></div><div data-layer=\"l3\" data-type=\"text\" style=\"position:absolute;left:72px;top:258px;width:430px;height:30px;color:#2F6BFF;font-family:JetBrains Mono;font-size:20px;line-height:1.2;font-weight:700\">ARCHITECTURE / ARBITRAGE</div><div data-layer=\"l4\" data-type=\"shape\" style=\"position:absolute;left:86px;top:390px;width:300px;height:150px;border:3px solid #17212B;border-radius:18px;background:#FFFFFF;box-sizing:border-box\"></div><div data-layer=\"l5\" data-type=\"text\" style=\"position:absolute;left:112px;top:428px;width:248px;height:72px;color:#17212B;font-family:Space Grotesk;font-size:30px;line-height:1.15;font-weight:700;text-align:center\">CreaFlow —<br>cœur</div><div data-layer=\"l6\" data-type=\"shape\" style=\"position:absolute;left:430px;top:390px;width:290px;height:150px;border-radius:18px;background:#2F6BFF;box-sizing:border-box\"></div><div data-layer=\"l7\" data-type=\"text\" style=\"position:absolute;left:456px;top:428px;width:238px;height:72px;color:#FFFFFF;font-family:Space Grotesk;font-size:30px;line-height:1.15;font-weight:700;text-align:center\">registre de<br>connecteurs</div><div data-layer=\"l8\" data-type=\"shape\" style=\"position:absolute;left:386px;top:455px;width:44px;height:4px;background:#17212B\"></div><div data-layer=\"l9\" data-type=\"shape\" style=\"position:absolute;left:720px;top:455px;width:44px;height:4px;background:#17212B\"></div><div data-layer=\"l10\" data-type=\"shape\" style=\"position:absolute;left:778px;top:315px;width:220px;height:72px;border:2px solid #17212B;border-radius:14px;background:#FFFFFF;box-sizing:border-box\"></div><div data-layer=\"l11\" data-type=\"text\" style=\"position:absolute;left:798px;top:337px;width:180px;height:30px;color:#17212B;font-family:Space Grotesk;font-size:25px;font-weight:700;text-align:center\">GitHub</div><div data-layer=\"l12\" data-type=\"shape\" style=\"position:absolute;left:778px;top:408px;width:220px;height:72px;border:2px solid #17212B;border-radius:14px;background:#FFFFFF;box-sizing:border-box\"></div></div>"
+          }
+        ],
+        "timeline": null,
+        "imageUrls": {},
+        "logoUrl": null,
+        "rationale": "La composition oppose visuellement le cœur stable, le registre bleu et la difficulté rouge, avec un axe gauche-droite immédiatement lisible sur mobile. Le schéma doit toutefois rester complet et fidèle au storyboard : les éléments secondaires sont regroupés dans des blocs et des libellés courts pour préserver la hiérarchie."
+      },
+      "trace": {
+        "version": 3,
+        "reader": {
+          "label": "Développeurs d’outils IA",
+          "knows": "Ils connaissent le développement logiciel, les APIs et les modèles de langage, mais cherchent encore des méthodes solides pour cadrer les briefs, comparer les sorties et organiser les tests.",
+          "wants": "Ils viennent voir des cas concrets, des specs, des architectures et des résultats réutilisables pour améliorer leur propre produit ou leur processus de prototypage."
+        },
+        "candidateMoments": [
+          {
+            "moment": "CreaFlow a retenu un registre runtime de connecteurs et un onboarding déclaratif afin d'ajouter des sources et des parcours sans modifier le cœur du produit.",
+            "excerpt": "A maintenant, B seulement le jour où le business l'exige."
+          },
+          {
+            "moment": "Le registre de connecteurs a permis d'ajouter Notion et Linear sans modifier syncSource ni createSourcesFromCandidates.",
+            "excerpt": "Fait le 2026-09-09 (Notion et Linear, `docs/SPEC_CONNECTEURS_ET_SUJETS.md`), et la prédiction tenait pour la partie matière : les deux connecteurs se sont écrits sans toucher à `syncSource` ni à `createSourcesFromCandidates`."
+          },
+          {
+            "moment": "L'architecture a déplacé la difficulté vers l'identité OAuth et l'expiration des tokens.",
+            "excerpt": "Ce que le chantier 1 n'avait PAS prévu, en revanche :\n\n- **l'identité.** Ces fournisseurs ne sont pas que des sources, ce sont des portes d'entrée. Il a fallu généraliser `github_accounts` en `oauth_accounts` et écrire un contrat `OAuthIdentityProvider` à côté de `SourceConnector` — deux rôles distincts, deux registres.\n- **l'expiration des tokens.** GitHub était l'exception, pas la règle : son token ne périme jamais, ceux de Notion et Linear si (24 h côté Linear). Le rafraîchissement paresseux est devenu de la plomberie obligatoire."
+          },
+          {
+            "moment": "L'onboarding déclaratif a permis d'ajouter artisan et entrepreneur sans modifier la page d'onboarding, hors une ligne.",
+            "excerpt": "**Vérifié le 2026-09-09** : l'ajout d'`artisan` et d'`entrepreneur` n'a effectivement pas touché `src/app/onboarding/page.tsx` — hors une ligne, l'ajout de `connectedProvider` au contexte d'étape."
+          },
+          {
+            "moment": "Les connecteurs et l'onboarding ont été structurés autour de contrats et de registres séparés.",
+            "excerpt": "Ajouter Notion : écrire `src/lib/connectors/notion.ts`, l'enregistrer dans le registre, ajouter la valeur à `materialSourceTypeEnum`. Aucun fichier du cœur à modifier."
+          }
+        ],
+        "chosenMoment": {
+          "index": 2,
+          "why": "C'est le cas concret qui rend visible l'arbitrage demandé : l'extension de la matière a été simplifiée, mais la complexité s'est déplacée vers deux problèmes techniques directement utiles aux développeurs d'outils IA."
+        },
+        "hookOptions": [
+          {
+            "kind": "contre-intuitif",
+            "text": "Notre architecture de connecteurs a supprimé les modifications du cœur. Elle a surtout rendu l’identité OAuth et l’expiration des tokens incontournables."
+          },
+          {
+            "kind": "aveu",
+            "text": "J’avais prévu l’extension des sources. Je n’avais pas prévu que chaque source puisse aussi être une porte d’entrée."
+          },
+          {
+            "kind": "avant-après",
+            "text": "Avant : un service nommé GitHub dans le cœur. Après : un registre de connecteurs — et deux nouveaux problèmes à traiter, l’identité OAuth et les tokens qui expirent."
+          }
+        ],
+        "chosenHook": {
+          "index": 0,
+          "why": "Elle expose immédiatement le bénéfice et le coût inattendu du choix, avec les deux termes techniques que ce lectorat vient chercher."
+        },
+        "inspirationsUsed": [
+          "i3",
+          "i4",
+          "i8"
+        ],
+        "inspirationsToDrop": [],
+        "selfCheck": {
+          "factsFromMaterial": true,
+          "bannedPhrasesFound": [],
+          "readerTest": "Le lecteur visé s'arrêtera parce que le post montre un résultat d'architecture vérifiable, puis nomme précisément les deux difficultés que l'ajout de fournisseurs a révélées.",
+          "authorTest": true
+        },
+        "inspirationsShown": [
+          {
+            "ref": "i1",
+            "id": "53b87c1d-953d-4364-b130-d51a7c43b8de"
+          },
+          {
+            "ref": "i2",
+            "id": "5df5961a-1d05-4d65-841b-9b9e2ab952f1"
+          },
+          {
+            "ref": "i3",
+            "id": "2ff5e921-5de4-499b-bf6c-b5ce6a1a3c45"
+          },
+          {
+            "ref": "i4",
+            "id": "4748e056-9f14-4d42-9248-b067cb406156"
+          },
+          {
+            "ref": "i5",
+            "id": "092eab1a-2ea3-4b1e-bb8a-16715a547154"
+          },
+          {
+            "ref": "i6",
+            "id": "26721c5c-7466-43d1-be1f-245c6c00d424"
+          },
+          {
+            "ref": "i7",
+            "id": "749cc0e1-05d3-4ccb-a8d2-4eb08c78c03b"
+          },
+          {
+            "ref": "i8",
+            "id": "b5824ae0-9109-43ff-8f0b-9d5cd9377df4"
+          }
+        ],
+        "checks": {
+          "failures": [],
+          "retried": false
+        }
+      },
+      "ms": 22295
+    },
+    {
+      "scriptId": "4ecd3194-ddb0-4acd-9917-b79d38ffe793",
+      "platform": "linkedin",
+      "contentType": "text",
+      "visualFormat": null,
+      "durationMs": null,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Itération en direct",
+        "beatId": "premier-echec-creaflow",
+        "episode": "Le premier test de génération révèle la limite de la matière rare",
+        "direction": "Pour les développeurs d’outils IA, raconter le premier test concret où CreaFlow valide quatre scénarios sur cinq mais bute sur le cas à matière rare. L’épisode doit faire retenir que les garde-fous et la matière brute traçable améliorent la génération sans résoudre automatiquement le manque de matière : le chantier révèle une limite structurelle, pas seulement un défaut de prompt.",
+        "readers": [
+          "Développeurs d’outils IA",
+          "Indépendants outillés par l’IA",
+          "Curieux des méthodes LLM"
+        ],
+        "recentPosts": 0,
+        "inspirations": 8,
+        "materialDocuments": 2
+      },
+      "post": {
+        "contentType": "text",
+        "concept": "Le premier test de CreaFlow a obtenu quatre scénarios sur cinq, mais le cas à matière rare a révélé une limite structurelle : les garde-fous et la matière brute traçable peuvent cadrer une génération, pas créer automatiquement l'information absente. Les tests sur cinq scénarios servent à distinguer une limite de matière d'un simple défaut de prompt. Le lecteur doit retenir que la matière doit être évaluée comme une entrée du système, puis attendre le prochain épisode où CreaFlow changera concrètement son traitement des briefs à matière rare.",
+        "title": "Le cinquième brief",
+        "caption": "CreaFlow a validé 4 scénarios sur 5. Le cinquième a révélé une limite que le prompt ne pouvait pas corriger.\n\nLe test couvrait plusieurs niveaux de matière et formats : matière riche, matière moyenne, puis un cas à matière rare avec 4 documents.\n\nLes garde-fous et la matière brute traçable peuvent cadrer une sortie. Ils ne fabriquent pas automatiquement les informations qui manquent au brief.\n\nC’est ce que les tests sur cinq scénarios ont rendu visible : le cas à matière rare ne doit pas être traité comme un simple prompt à retoucher. Il révèle une limite structurelle dans l’entrée disponible pour la génération.\n\nLe chantier change donc de niveau : il faut distinguer ce que le modèle peut mieux formuler de ce que la matière permet réellement d’établir.\n\nDans un prochain épisode, je montrerai ce que CreaFlow change concrètement pour traiter les briefs à matière rare.",
+        "hashtags": [
+          "#LLMEvaluation",
+          "#PromptEngineering"
+        ],
+        "usedExcerpts": [
+          "- [`01-rich-video-serie`](./01-rich-video-serie.md) — Matière riche (23 docs, MyTwin Leaderboard) · vidéo TikTok · série imposée (Coulisses du Vendredi) → **OK**\n- [`02-medium-text-sans-serie`](./02-medium-text-sans-serie.md) — Matière moyenne (6 docs, PPO HotlineMiami) · texte LinkedIn · pas de série → **OK**\n- `03-sparse-visual-serie` — Matière rare (4 docs, PixelPitch) · visuel Instagram · série imposée (Showcase du Lundi) → **ÉCHEC** (voir `03-sparse-visual-serie.ERROR.txt`)",
+          "Brief 3 non rejoué (4/5 obtenus) — suffisant au regard de la fourchette \"3-5 briefs\" du protocole (§7/§8 de la spec)."
+        ],
+        "promisesMade": [
+          "Dans un prochain épisode, je montrerai ce que CreaFlow change concrètement pour traiter les briefs à matière rare."
+        ],
+        "hookText": "CreaFlow a validé 4 scénarios sur 5. Le cinquième a révélé une limite que le prompt ne pouvait pas corriger."
+      },
+      "design": null,
+      "trace": {
+        "version": 3,
+        "reader": {
+          "label": "Développeurs d’outils IA",
+          "knows": "Ils connaissent le développement logiciel, les APIs et les modèles de langage, mais cherchent encore des méthodes solides pour cadrer les briefs, comparer les sorties et organiser les tests.",
+          "wants": "Ils viennent voir des cas concrets, des specs, des architectures et des résultats réutilisables pour améliorer leur propre produit ou leur processus de prototypage."
+        },
+        "candidateMoments": [
+          {
+            "moment": "Le premier lot valide quatre scénarios sur cinq, mais échoue sur le scénario à matière rare.",
+            "excerpt": "Brief 3 non rejoué (4/5 obtenus) — suffisant au regard de la fourchette \"3-5 briefs\" du protocole (§7/§8 de la spec)."
+          },
+          {
+            "moment": "Le test compare cinq briefs couvrant différents niveaux de matière et formats, dont un cas à matière rare.",
+            "excerpt": "Mêmes 5 briefs, mêmes ids en base, que docs/baseline/lot0-openai/ — seul le prompt a changé.\n\nAucune écriture en base — uniquement des appels LLM en lecture de contexte.\n\n- [`01-rich-video-serie`](./01-rich-video-serie.md) — Matière riche (23 docs, MyTwin Leaderboard) · vidéo TikTok · série imposée (Coulisses du Vendredi) → **OK**\n- [`02-medium-text-sans-serie`](./02-medium-text-sans-serie.md) — Matière moyenne (6 docs, PPO HotlineMiami) · texte LinkedIn · pas de série → **OK**\n- `03-sparse-visual-serie` — Matière rare (4 docs, PixelPitch) · visuel Instagram · série imposée (Showcase du Lundi) → **ÉCHEC** (voir `03-sparse-visual-serie.ERROR.txt`)"
+          },
+          {
+            "moment": "Le cas de matière rare n'a pas été rejoué après l'échec, car quatre tests sur cinq ont été obtenus et cela suffisait au protocole.",
+            "excerpt": "Brief 3 non rejoué (4/5 obtenus) — suffisant au regard de la fourchette \"3-5 briefs\" du protocole (§7/§8 de la spec)."
+          },
+          {
+            "moment": "L'échec du cas visuel provenait d'un bug d'embedding Gemini avant même l'appel au LLM de génération, et non du prompt.",
+            "excerpt": "Brief 3 échoue systématiquement, **avant même l'appel au LLM de génération** : `buildGenerationContext()` déclenche `findBestBrandAssetForScript()` pour tout `contentType=\"visual\"`, qui appelle `embedText()` (`src/lib/llm/embeddings.ts`) — celui-ci utilise **toujours Gemini** (`text-embedding-004`) pour l'embedding de recherche sémantique, indépendamment de `LLM_PROVIDER`. Ce modèle Gemini renvoie 404 (`models/text-embedding-004 is not found for API version v1beta`)."
+          },
+          {
+            "moment": "Le baseline a utilisé OpenAI avec le modèle gpt-5.6-luna à deux moments datés.",
+            "excerpt": "Provider forcé : OpenAI (`gpt-5.6-luna`). Généré le 2026-08-25T15:07:00.859Z."
+          }
+        ],
+        "chosenMoment": {
+          "index": 1,
+          "why": "Il montre directement le protocole comparable sur cinq scénarios et le contre-exemple à matière rare, sans réduire l'épisode à un simple échec de prompt."
+        },
+        "hookOptions": [
+          {
+            "kind": "chiffre",
+            "text": "CreaFlow a validé 4 scénarios sur 5. Le cinquième a révélé une limite que le prompt ne pouvait pas corriger."
+          },
+          {
+            "kind": "contre-intuitif",
+            "text": "Un premier test presque réussi peut révéler un problème de matière, pas un problème de prompt."
+          },
+          {
+            "kind": "avant-après",
+            "text": "Avec quatre scénarios validés sur cinq, le test semblait concluant. Puis le cas à matière rare a montré où le système cassait."
+          }
+        ],
+        "chosenHook": {
+          "index": 0,
+          "why": "Le ratio 4/5 donne immédiatement une mesure vérifiable, puis ouvre la tension précise sur laquelle les développeurs d'outils IA veulent enquêter."
+        },
+        "inspirationsUsed": [
+          "i8",
+          "i3"
+        ],
+        "inspirationsToDrop": [],
+        "selfCheck": {
+          "factsFromMaterial": true,
+          "bannedPhrasesFound": [],
+          "readerTest": "Le ratio 4/5 et le cas à matière rare donnent à ce lecteur un résultat mesurable et un point de rupture à analyser dans son propre protocole d’évaluation.",
+          "authorTest": true
+        },
+        "inspirationsShown": [
+          {
+            "ref": "i1",
+            "id": "53b87c1d-953d-4364-b130-d51a7c43b8de"
+          },
+          {
+            "ref": "i2",
+            "id": "5df5961a-1d05-4d65-841b-9b9e2ab952f1"
+          },
+          {
+            "ref": "i3",
+            "id": "2ff5e921-5de4-499b-bf6c-b5ce6a1a3c45"
+          },
+          {
+            "ref": "i4",
+            "id": "4748e056-9f14-4d42-9248-b067cb406156"
+          },
+          {
+            "ref": "i5",
+            "id": "092eab1a-2ea3-4b1e-bb8a-16715a547154"
+          },
+          {
+            "ref": "i6",
+            "id": "26721c5c-7466-43d1-be1f-245c6c00d424"
+          },
+          {
+            "ref": "i7",
+            "id": "749cc0e1-05d3-4ccb-a8d2-4eb08c78c03b"
+          },
+          {
+            "ref": "i8",
+            "id": "b5824ae0-9109-43ff-8f0b-9d5cd9377df4"
+          }
+        ],
+        "checks": {
+          "failures": [],
+          "retried": true
+        }
+      },
+      "ms": 55745
+    }
+  ]
+}

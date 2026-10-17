@@ -1,0 +1,571 @@
+{
+  "createdAt": "2026-10-17T00:31:47.513Z",
+  "baseline": false,
+  "forcedProductId": null,
+  "entries": [
+    {
+      "scriptId": "4b4ee15f-0b57-455c-a079-d07581c60adc",
+      "platform": "linkedin",
+      "contentType": "visual",
+      "visualFormat": "animation",
+      "durationMs": 8000,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Prompt en duel",
+        "beatId": "presentation-creaflow",
+        "episode": "Alix présente CreaFlow et le problème qu'il veut résoudre",
+        "direction": "Présenter Alix et CreaFlow à des développeurs qui construisent des outils pour les indépendants : partir du problème fondateur que le projet cherche à résoudre, puis clarifier pourquoi la génération de contenus par modèles de langage mérite d’être intégrée dans cet outil. L’audience doit retenir ce qu’est CreaFlow et pourquoi il existe, sans entrer encore dans une décision ou un résultat de chantier.",
+        "readers": [],
+        "recentPosts": 0,
+        "inspirations": 0,
+        "materialDocuments": 0
+      },
+      "post": {
+        "contentType": "visual",
+        "concept": "Présenter CreaFlow comme une plateforme en construction pour les développeurs qui créent des outils pour les indépendants : partir du besoin de mieux transformer la génération de contenus par modèles de langage en usage intégré, puis annoncer que les futurs arbitrages et résultats seront documentés.",
+        "title": "Le problème avant CreaFlow",
+        "caption": "Je construis CreaFlow autour d'un problème encore à résoudre : intégrer la génération de contenus dans un outil utile aux indépendants.\n\nJe m'appelle Alix Martin. Je construis et teste des outils autour de la génération de contenus par des modèles de langage.\n\nLe point de départ de CreaFlow est là : les outils pour les indépendants doivent aider à produire du contenu dans un usage concret. La génération par modèles de langage peut y contribuer, mais elle doit trouver sa place dans une plateforme pensée autour de ce besoin.\n\nCreaFlow est cette plateforme que je construis et que je veux publier pour rassembler une communauté avant son lancement.\n\nJe vais documenter les cas d'usage, les briefs, les décisions de conception et les résultats obtenus au fil du chantier.\n\nQuand des décisions et résultats documentés seront disponibles, je montrerai les arbitrages du chantier et ce qu'ils changent réellement pour les utilisateurs.",
+        "hashtags": [
+          "#Indépendants",
+          "#DéveloppementLogiciel",
+          "#IA"
+        ],
+        "usedExcerpts": [
+          "Tu construis et testes des outils autour de la génération de contenus par des modèles de langage"
+        ],
+        "promisesMade": [
+          "Quand des décisions et résultats documentés seront disponibles, je montrerai les arbitrages du chantier et ce qu'ils changent réellement pour les utilisateurs."
+        ],
+        "hookVisual": "Animation courte sur une interface sombre et sobre : une zone vide intitulée « besoin indépendant » reste au centre, puis le nom CreaFlow apparaît comme une couche de conception, avant les mots « génération de contenus » qui s'intègrent dans le flux.",
+        "storyboard": [
+          {
+            "planNumber": 1,
+            "description": "Fond fixe : une zone de travail vide avec le texte « Le problème d'abord »."
+          },
+          {
+            "planNumber": 2,
+            "description": "Le texte « outils pour les indépendants » apparaît au centre."
+          },
+          {
+            "planNumber": 3,
+            "description": "Une seconde couche s'ajoute : « génération de contenus »."
+          },
+          {
+            "planNumber": 4,
+            "description": "Les deux éléments se relient sous le nom « CreaFlow »."
+          },
+          {
+            "planNumber": 5,
+            "description": "Écran final : « Je documente la construction. »"
+          }
+        ]
+      },
+      "design": {
+        "width": 1080,
+        "height": 1920,
+        "durationMs": 8000,
+        "slides": [
+          {
+            "planNumber": 1,
+            "html": "<div style=\"position:relative;width:1080px;height:1920px;overflow:hidden;background:#0B1020\"><div data-layer=\"l1\" data-type=\"shape\" style=\"position:absolute;top:0px;left:0px;width:1080px;height:1920px;background:linear-gradient(145deg,#0B1020 0%,#151C33 100%)\"></div><div data-layer=\"l2\" data-type=\"shape\" style=\"position:absolute;top:180px;left:120px;width:840px;height:1560px;border:2px solid #273250;border-radius:28px;background:#10172A\"></div><div data-layer=\"l3\" data-type=\"text\" style=\"position:absolute;top:230px;left:170px;width:740px;height:55px;color:#66E3C4;font-family:JetBrains Mono;font-size:24px;line-height:32px;letter-spacing:1px\">/ WORKSPACE_01</div><div data-layer=\"l4\" data-type=\"shape\" style=\"position:absolute;top:350px;left:210px;width:660px;height:720px;border:2px dashed #3A476B;border-radius:18px;background:#0D1426\"></div><div data-layer=\"l5\" data-type=\"text\" style=\"position:absolute;top:640px;left:260px;width:560px;height:70px;color:#F4F7FB;font-family:Space Grotesk;font-size:40px;line-height:52px;text-align:center;opacity:0\">Le problème d'abord</div><div data-layer=\"l6\" data-type=\"text\" style=\"position:absolute;top:820px;left:250px;width:580px;height:90px;color:#F4F7FB;font-family:Space Grotesk;font-size:42px;line-height:52px;text-align:center;opacity:0\">outils pour les indépendants</div><div data-layer=\"l7\" data-type=\"text\" style=\"position:absolute;top:980px;left:250px;width:580px;height:90px;color:#66E3C4;font-family:Space Grotesk;font-size:42px;line-height:52px;text-align:center;opacity:0\">génération de contenus</div><div data-layer=\"l8\" data-type=\"shape\" style=\"position:absolute;top:900px;left:430px;width:220px;height:2px;background:#66E3C4;opacity:0\"></div><div data-layer=\"l9\" data-type=\"text\" style=\"position:absolute;top:1130px;left:260px;width:560px;height:90px;color:#66E3C4;font-family:Space Grotesk;font-size:56px;line-height:68px;text-align:center;opacity:0\">CreaFlow</div><div data-layer=\"l10\" data-type=\"text\" style=\"position:absolute;top:1480px;left:190px;width:700px;height:90px;color:#F4F7FB;font-family:Space Grotesk;font-size:46px;line-height:58px;text-align:center;opacity:0\">Je documente la construction.</div><div data-layer=\"l11\" data-type=\"shape\" style=\"position:absolute;top:1620px;left:390px;width:300px;height:6px;border-radius:3px;background:#66E3C4;opacity:0\"></div></div>"
+          }
+        ],
+        "timeline": [
+          {
+            "layerId": "l5",
+            "enter": "fade",
+            "startMs": 0,
+            "enterMs": 500,
+            "exit": "fade",
+            "exitAtMs": 1800
+          },
+          {
+            "layerId": "l6",
+            "enter": "slide-up",
+            "startMs": 2000,
+            "enterMs": 500,
+            "exit": "fade",
+            "exitAtMs": 3600
+          },
+          {
+            "layerId": "l7",
+            "enter": "slide-up",
+            "startMs": 3800,
+            "enterMs": 500,
+            "exit": "fade",
+            "exitAtMs": 5400
+          },
+          {
+            "layerId": "l8",
+            "enter": "fade",
+            "startMs": 4000,
+            "enterMs": 400,
+            "exit": "fade",
+            "exitAtMs": 5400
+          },
+          {
+            "layerId": "l9",
+            "enter": "zoom-in",
+            "startMs": 5600,
+            "enterMs": 500,
+            "exit": "fade",
+            "exitAtMs": 6800
+          },
+          {
+            "layerId": "l10",
+            "enter": "typewriter",
+            "startMs": 6900,
+            "enterMs": 700,
+            "exit": null,
+            "exitAtMs": null
+          },
+          {
+            "layerId": "l11",
+            "enter": "fade",
+            "startMs": 7100,
+            "enterMs": 400,
+            "exit": null,
+            "exitAtMs": null
+          }
+        ],
+        "imageUrls": {},
+        "logoUrl": null,
+        "rationale": "La composition reprend une interface de travail sombre, avec une zone vide centrale qui se transforme progressivement en système lisible autour de CreaFlow. Les entrées séquencées font passer le spectateur du problème aux deux couches de contenu, puis à la documentation de la construction."
+      },
+      "trace": {
+        "version": 3,
+        "reader": {
+          "label": "Pour les développeurs qui font des outils pour les indépendants, développeurs",
+          "knows": "Ils construisent des outils et s'intéressent aux usages concrets de la génération de contenus par des modèles de langage.",
+          "wants": "Comprendre quel problème CreaFlow cherche à résoudre et pourquoi cette capacité mérite une place dans l'outil."
+        },
+        "candidateMoments": [
+          {
+            "moment": "Alix construit CreaFlow, une plateforme autour de la génération de contenus par des modèles de langage.",
+            "excerpt": "Tu construis et testes des outils autour de la génération de contenus par des modèles de langage"
+          },
+          {
+            "moment": "CreaFlow vise les outils pour les indépendants.",
+            "excerpt": "Je veux publier la plateforme pour me faire une communauté prete au lancement du produit"
+          },
+          {
+            "moment": "Le projet part d'un problème que les outils existants ne résolvent pas encore clairement.",
+            "excerpt": ""
+          }
+        ],
+        "chosenMoment": {
+          "index": 0,
+          "why": "C'est le seul élément concret disponible qui permet de relier directement le problème fondateur, CreaFlow et la génération de contenus par modèles de langage sans inventer de résultat ou de décision."
+        },
+        "hookOptions": [
+          {
+            "kind": "contre-intuitif",
+            "text": "La génération de contenus par modèles de langage ne suffit pas à faire un outil pour les indépendants."
+          },
+          {
+            "kind": "aveu",
+            "text": "Je construis CreaFlow autour d'un problème encore à résoudre : intégrer la génération de contenus dans un outil utile aux indépendants."
+          },
+          {
+            "kind": "scène",
+            "text": "Je pars d'un besoin simple : construire des outils pour les indépendants qui utilisent réellement la génération de contenus par modèles de langage."
+          }
+        ],
+        "chosenHook": {
+          "index": 1,
+          "why": "Elle nomme immédiatement CreaFlow, le problème fondateur et le public concerné, tout en restant dans la limite des deux premières lignes LinkedIn."
+        },
+        "inspirationsUsed": [],
+        "inspirationsToDrop": [],
+        "selfCheck": {
+          "factsFromMaterial": true,
+          "bannedPhrasesFound": [],
+          "readerTest": "Un développeur qui construit des outils pour les indépendants comprend dès l'ouverture que CreaFlow traite de l'intégration de la génération de contenus par modèles de langage dans un outil concret.",
+          "authorTest": true
+        },
+        "inspirationsShown": [],
+        "checks": {
+          "failures": [],
+          "retried": false
+        }
+      },
+      "ms": 24983
+    },
+    {
+      "scriptId": "03e8eea3-7d44-42e6-869c-d9a2d8dc5007",
+      "platform": "linkedin",
+      "contentType": "text",
+      "visualFormat": null,
+      "durationMs": null,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Autopsie de sortie",
+        "beatId": "notion-generation-contenus",
+        "episode": "Ce que change réellement un modèle de langage dans un outil de contenu",
+        "direction": "Pour les développeurs qui construisent des outils pour les indépendants, clarifier ce que la génération de contenus par modèles de langage change réellement dans CreaFlow : ce n’est pas seulement produire du texte, mais redéfinir la répartition entre intention humaine, contraintes produit et proposition du modèle. L’épisode doit donner le cadre de compréhension nécessaire avant de suivre les arbitrages du chantier.",
+        "readers": [],
+        "recentPosts": 0,
+        "inspirations": 0,
+        "materialDocuments": 0
+      },
+      "post": {
+        "contentType": "text",
+        "concept": "Montrer aux développeurs que la génération de contenus par modèles de langage change surtout l'architecture de décision du produit : l'humain fixe l'intention, le produit porte les contraintes et le modèle propose des options. Ils doivent retenir ce partage avant d'évaluer une fonctionnalité de CreaFlow.",
+        "title": "Le modèle ne décide pas seul",
+        "caption": "Avant, on demandait au modèle d'écrire. Dans un outil, il faut d'abord décider ce que l'humain, le produit et le modèle contrôlent.\n\nC'est le changement que j'essaie de clarifier dans CreaFlow.\n\nLa génération de contenus par modèles de langage ne se limite pas à produire du texte. Elle déplace la conception vers une répartition des responsabilités :\n\n- l'indépendant porte l'intention : ce qu'il veut dire, pour qui et pourquoi ;\n- le produit transforme cette intention en contraintes utilisables ;\n- le modèle propose une formulation, des variantes ou une structure à partir de ce cadre.\n\nLe modèle devient donc une partie d'un système de décision assisté. Sa sortie n'est pas le produit complet. Elle dépend de ce que l'humain a exprimé et de ce que l'outil a rendu explicite.\n\nPour un développeur, cela change la question à poser. Au lieu de commencer par « comment générer un texte ? », il faut commencer par « quelle décision l'outil aide-t-il l'indépendant à prendre, et quelles contraintes doit-il garder visibles ? »\n\nC'est ce cadre qui guidera un arbitrage concret du chantier de CreaFlow dès qu'une décision documentée sera disponible. Dans un prochain épisode, je montrerai comment il s'applique à cet arbitrage.",
+        "hashtags": [
+          "#IA",
+          "#Produit"
+        ],
+        "usedExcerpts": [],
+        "promisesMade": [
+          "Dans un prochain épisode, je montrerai comment il s'applique à cet arbitrage."
+        ],
+        "hookText": "Avant, on demandait au modèle d'écrire. Dans un outil, il faut d'abord décider ce que l'humain, le produit et le modèle contrôlent."
+      },
+      "design": null,
+      "trace": {
+        "version": 3,
+        "reader": {
+          "label": "Pour les développeurs qui font des outils pour les indépendants, développeurs",
+          "knows": "Ils connaissent le développement d'outils pour indépendants et le fonctionnement général des modèles de langage, mais cherchent encore le bon partage des responsabilités dans un produit de contenu.",
+          "wants": "Ils veulent un cadre concret pour concevoir un outil où le modèle propose sans prendre la place de l'intention humaine ni des contraintes produit."
+        },
+        "candidateMoments": [
+          {
+            "moment": "Dans CreaFlow, la génération de contenus par modèles de langage doit être comprise comme une répartition entre intention humaine, contraintes produit et proposition du modèle.",
+            "excerpt": ""
+          },
+          {
+            "moment": "L'épisode doit clarifier que la génération de contenus par modèles de langage ne consiste pas seulement à produire du texte.",
+            "excerpt": ""
+          },
+          {
+            "moment": "Ce cadre servira à guider un arbitrage concret du chantier de CreaFlow lorsqu'une décision documentée sera disponible.",
+            "excerpt": ""
+          }
+        ],
+        "chosenMoment": {
+          "index": 0,
+          "why": "C'est le cœur de la direction éditoriale et le point le plus utile pour des développeurs qui conçoivent eux-mêmes des outils pour indépendants."
+        },
+        "hookOptions": [
+          {
+            "kind": "contre-intuitif",
+            "text": "Automatiser la rédaction n'est pas encore concevoir un outil de contenu."
+          },
+          {
+            "kind": "avant-après",
+            "text": "Avant, on demandait au modèle d'écrire. Dans un outil, il faut d'abord décider ce que l'humain, le produit et le modèle contrôlent."
+          },
+          {
+            "kind": "question-précise",
+            "text": "Qui décide dans un outil de contenu : l'indépendant, le produit ou le modèle ?"
+          }
+        ],
+        "chosenHook": {
+          "index": 1,
+          "why": "Elle oppose immédiatement l'automatisation familière à la question de conception qui intéresse les développeurs, tout en annonçant le cadre utile pour CreaFlow."
+        },
+        "inspirationsUsed": [],
+        "inspirationsToDrop": [],
+        "selfCheck": {
+          "factsFromMaterial": true,
+          "bannedPhrasesFound": [],
+          "readerTest": "Un développeur qui construit un outil de contenu voit dès la première ligne la différence entre automatiser une rédaction et concevoir un système de décision assisté.",
+          "authorTest": true
+        },
+        "inspirationsShown": [],
+        "checks": {
+          "failures": [],
+          "retried": false
+        }
+      },
+      "ms": 10932
+    },
+    {
+      "scriptId": "9d464b43-9145-4700-be17-948865eee054",
+      "platform": "linkedin",
+      "contentType": "text",
+      "visualFormat": null,
+      "durationMs": null,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Brief vers résultat",
+        "beatId": "contexte-outils-independants",
+        "episode": "Pourquoi les indépendants ont besoin d'outils conçus pour leur manière de travailler",
+        "direction": "Expliquer aux développeurs qui conçoivent des outils pour les indépendants pourquoi ces utilisateurs ne peuvent pas être traités comme une version réduite d'une équipe structurée : le post doit faire retenir que leurs outils doivent s'adapter à un travail fragmenté, contextuel et souvent mené seul, avant d'aborder les choix de CreaFlow ou la génération de contenus par modèles de langage.",
+        "readers": [],
+        "recentPosts": 0,
+        "inspirations": 0,
+        "materialDocuments": 0
+      },
+      "post": {
+        "contentType": "text",
+        "concept": "Un indépendant n'a pas besoin d'une version allégée d'un outil d'équipe : il a besoin d'un outil qui respecte un travail fragmenté, contextuel et souvent solitaire. Les développeurs doivent concevoir à partir de ce rythme réel, puis seulement y intégrer la génération de contenus par modèles de langage dans CreaFlow.",
+        "title": "Concevoir pour un travail qui se fragmente",
+        "caption": "Un indépendant n'est pas une équipe de trois personnes avec moins de budget.\n\nSon travail change de forme au fil de la journée : un brief, une tâche administrative, un échange client, une idée à noter, puis un retour au contenu. Les priorités se déplacent. Le contexte aussi.\n\nDans une équipe structurée, les rôles, les outils et les étapes peuvent être répartis. Chez l'indépendant, ils se retrouvent souvent dans la même personne, avec des interruptions entre chaque étape.\n\nC'est là que les outils pour les indépendants doivent partir d'un autre principe : accompagner le travail tel qu'il existe, au lieu de demander à l'utilisateur de reconstruire un processus d'équipe en plus petit.\n\nPour CreaFlow, cela change le point de départ. La génération de contenus par modèles de langage doit s'insérer dans un travail fragmenté et contextuel. Elle ne peut pas supposer qu'un brief complet, un flux linéaire ou une équipe disponible existe déjà.\n\nLe premier choix de conception est donc simple à formuler : comprendre ce que l'indépendant a sous la main au moment où il utilise l'outil, puis l'aider à avancer depuis là.\n\nC'est ce principe que je garde pour la suite de la construction de CreaFlow : l'outil doit s'adapter à la manière de travailler de l'indépendant, pas l'inverse.",
+        "hashtags": [
+          "#ConceptionProduit",
+          "#Indépendants"
+        ],
+        "usedExcerpts": [],
+        "promisesMade": [],
+        "hookText": "Un indépendant n'est pas une équipe de trois personnes avec moins de budget."
+      },
+      "design": null,
+      "trace": {
+        "version": 3,
+        "reader": {
+          "label": "Pour les développeurs qui font des outils pour les indépendants",
+          "knows": "Ils connaissent la conception et le développement d'outils, mais peuvent encore appliquer des modèles pensés pour des équipes structurées.",
+          "wants": "Comprendre quel principe de conception adapter au travail fragmenté, contextuel et souvent solitaire des indépendants."
+        },
+        "candidateMoments": [
+          {
+            "moment": "Les indépendants ne travaillent pas comme une version réduite d'une équipe structurée : leur travail est fragmenté, contextuel et souvent mené seul.",
+            "excerpt": ""
+          },
+          {
+            "moment": "Les outils pour les indépendants doivent s'adapter à leur manière de travailler avant d'imposer un processus conçu pour une équipe.",
+            "excerpt": ""
+          },
+          {
+            "moment": "CreaFlow est construit et testé autour de la génération de contenus par des modèles de langage.",
+            "excerpt": ""
+          }
+        ],
+        "chosenMoment": {
+          "index": 0,
+          "why": "Cette tension répond directement à la direction éditoriale et donne aux développeurs un principe de conception avant de parler de CreaFlow."
+        },
+        "hookOptions": [
+          {
+            "kind": "contre-intuitif",
+            "text": "Un indépendant n'est pas une équipe de trois personnes avec moins de budget."
+          },
+          {
+            "kind": "scène",
+            "text": "Un indépendant passe d'un brief à une relance, puis à une idée de contenu, souvent sans changer d'outil."
+          },
+          {
+            "kind": "avant-après",
+            "text": "Réduire un outil d'équipe ne suffit pas pour accompagner le travail d'un indépendant."
+          }
+        ],
+        "chosenHook": {
+          "index": 0,
+          "why": "Elle formule immédiatement la tension entre le modèle d'équipe et la réalité de l'indépendant, dans les mots des développeurs qui conçoivent ces outils."
+        },
+        "inspirationsUsed": [],
+        "inspirationsToDrop": [],
+        "selfCheck": {
+          "factsFromMaterial": true,
+          "bannedPhrasesFound": [],
+          "readerTest": "Le contraste entre une équipe réduite et le travail fragmenté d'un indépendant donne immédiatement aux développeurs un problème de conception qui les concerne.",
+          "authorTest": true
+        },
+        "inspirationsShown": [],
+        "checks": {
+          "failures": [],
+          "retried": false
+        }
+      },
+      "ms": 11480
+    },
+    {
+      "scriptId": "f824a98a-5418-4d4f-af02-78f4f721cbb0",
+      "platform": "linkedin",
+      "contentType": "visual",
+      "visualFormat": "single",
+      "durationMs": null,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Mythe contre test",
+        "beatId": "premier-choix-architecture",
+        "episode": "Le premier arbitrage de conception de CreaFlow",
+        "direction": "Pour les développeurs qui construisent des outils pour les indépendants : préparer le premier épisode concret du chantier en annonçant l’arbitrage d’architecture qui sera documenté dès qu’une matière exploitable sera disponible. À retenir : CreaFlow entre dans une série consacrée aux arbitrages du chantier, mais aucun choix technique ne peut encore être raconté honnêtement aujourd’hui.",
+        "readers": [],
+        "recentPosts": 0,
+        "inspirations": 0,
+        "materialDocuments": 0
+      },
+      "post": {
+        "contentType": "visual",
+        "concept": "J'annonce une série de coulisses destinée aux développeurs qui construisent des outils pour les indépendants : le premier épisode concret de CreaFlow portera sur un arbitrage d'architecture, mais je ne le force pas avant d'avoir une décision documentée. Le lecteur doit retenir que la série suivra les choix réels du chantier, avec leur matière et leurs conséquences.",
+        "title": "Le premier arbitrage attend sa matière",
+        "caption": "Le premier arbitrage de CreaFlow n'est pas encore publiable.\n\nJe peux annoncer le chantier. Je ne peux pas encore défendre un choix d'architecture précis sans décision concrète à examiner.\n\nC'est le point de départ de cette série : CreaFlow en chantier.\n\nJe documenterai les arbitrages du chantier au fil de la construction : le choix étudié, la contrainte qui compte pour les indépendants, le résultat observé et ce que cela change pour la suite.\n\nPour l'instant, je pose le cadre plutôt que de remplir le silence avec un faux choix technique. Un arbitrage utile doit partir d'une matière réelle : une décision, un test, ou une conséquence que l'on peut regarder de près.\n\nLe premier épisode concret arrivera dès qu'une décision de conception sera suffisamment documentée pour être racontée honnêtement.\n\nJe raconterai le premier arbitrage de conception de CreaFlow dès qu’une décision concrète sera documentée.\n\n#CreaFlow #Indépendants #ConstructionProduit",
+        "hashtags": [
+          "#CreaFlow",
+          "#Indépendants",
+          "#ConstructionProduit"
+        ],
+        "usedExcerpts": [],
+        "promisesMade": [
+          "Je raconterai le premier arbitrage de conception de CreaFlow dès qu’une décision concrète sera documentée."
+        ],
+        "hookVisual": "Une feuille de chantier ou un tableau de conception presque vide, avec une seule ligne encadrée : « Premier arbitrage d'architecture — à documenter dès qu'une décision concrète existe ». Le nom CreaFlow apparaît comme titre de série, sans faux schéma technique.",
+        "storyboard": [
+          {
+            "planNumber": 1,
+            "description": "Image unique au style carnet de chantier produit. En haut : « CreaFlow en chantier — épisode 1 ». Au centre, une ligne encadrée : « Premier arbitrage d'architecture ». Sous cette ligne : « Pas encore de choix à raconter. La matière d'abord. » En bas : « Les outils pour les indépendants se construisent aussi dans les décisions qu'on refuse d'inventer. »"
+          }
+        ]
+      },
+      "design": {
+        "width": 1080,
+        "height": 1350,
+        "durationMs": null,
+        "slides": [
+          {
+            "planNumber": 1,
+            "html": "<div style=\"position:relative;width:1080px;height:1350px;overflow:hidden;background:#F3EBDD\"><div data-layer=\"l1\" data-type=\"shape\" style=\"position:absolute;top:0px;left:0px;width:1080px;height:1350px;background:#F3EBDD\"></div><div data-layer=\"l2\" data-type=\"shape\" style=\"position:absolute;top:68px;left:68px;width:944px;height:1214px;border:2px solid #8A9A8D;box-sizing:border-box\"></div><div data-layer=\"l3\" data-type=\"text\" style=\"position:absolute;top:102px;left:104px;width:680px;height:42px;font-family:Space Grotesk;font-size:25px;line-height:42px;font-weight:600;letter-spacing:1px;color:#1F2A2E\">CREAFLOW EN CHANTIER — ÉPISODE 1</div><div data-layer=\"l4\" data-type=\"text\" style=\"position:absolute;top:102px;left:785px;width:190px;height:42px;text-align:right;font-family:JetBrains Mono;font-size:16px;line-height:42px;color:#8A9A8D\">ALIX MARTIN</div><div data-layer=\"l5\" data-type=\"shape\" style=\"position:absolute;top:272px;left:104px;width:872px;height:202px;border:3px solid #D47A4A;box-sizing:border-box;background:#F3EBDD\"></div><div data-layer=\"l6\" data-type=\"text\" style=\"position:absolute;top:300px;left:140px;width:800px;height:48px;font-family:JetBrains Mono;font-size:18px;line-height:48px;color:#D47A4A\">01 / PREMIER ARBITRAGE</div><div data-layer=\"l7\" data-type=\"text\" style=\"position:absolute;top:361px;left:140px;width:800px;height:68px;font-family:Space Grotesk;font-size:39px;line-height:68px;font-weight:600;color:#1F2A2E\">Premier arbitrage d'architecture</div><div data-layer=\"l8\" data-type=\"text\" style=\"position:absolute;top:562px;left:104px;width:820px;height:112px;font-family:Inter;font-size:30px;line-height:48px;color:#1F2A2E\">Pas encore de choix à raconter.<br>La matière d'abord.</div><div data-layer=\"l9\" data-type=\"shape\" style=\"position:absolute;top:760px;left:104px;width:872px;height:2px;background:#8A9A8D\"></div><div data-layer=\"l10\" data-type=\"text\" style=\"position:absolute;top:824px;left:104px;width:820px;height:170px;font-family:Inter;font-size:27px;line-height:43px;color:#1F2A2E\">Les outils pour les indépendants<br>se construisent aussi dans les décisions<br>qu'on refuse d'inventer.</div><div data-layer=\"l11\" data-type=\"text\" style=\"position:absolute;top:1178px;left:104px;width:600px;height:30px;font-family:JetBrains Mono;font-size:16px;line-height:30px;color:#8A9A8D\">NOTE DE CHANTIER / 01</div><div data-layer=\"l12\" data-type=\"shape\" style=\"position:absolute;top:1178px;left:842px;width:134px;height:30px;background:#1F2A2E\"></div></div>"
+          }
+        ],
+        "timeline": null,
+        "imageUrls": {},
+        "logoUrl": null,
+        "rationale": "La composition reprend les codes d’un carnet de chantier avec un cadre, une ligne de repérage et une hiérarchie typographique très lisible, sans fabriquer de schéma technique. Le cartouche central matérialise l’unique décision disponible tandis que le texte inférieur assume explicitement l’absence de matière, au service du propos."
+      },
+      "trace": {
+        "version": 3,
+        "reader": {
+          "label": "Développeurs qui construisent des outils pour les indépendants",
+          "knows": "Ils connaissent les contraintes de conception d'un produit logiciel destiné à des utilisateurs indépendants.",
+          "wants": "Ils veulent suivre des arbitrages de chantier concrets, avec assez de matière pour comprendre une décision et ses conséquences."
+        },
+        "candidateMoments": [
+          {
+            "moment": "Le premier arbitrage de conception de CreaFlow sera documenté dès qu'une décision concrète sera disponible.",
+            "excerpt": ""
+          },
+          {
+            "moment": "CreaFlow entre dans une série consacrée aux arbitrages du chantier, sans choix technique racontable honnêtement aujourd'hui.",
+            "excerpt": ""
+          },
+          {
+            "moment": "L'auteur construit et teste des outils autour de la génération de contenus par des modèles de langage.",
+            "excerpt": ""
+          }
+        ],
+        "chosenMoment": {
+          "index": 1,
+          "why": "Il pose clairement le format de la série tout en respectant la contrainte principale : ne pas inventer un choix technique avant d'avoir une décision réelle à examiner."
+        },
+        "hookOptions": [
+          {
+            "kind": "contre-intuitif",
+            "text": "Le premier arbitrage de CreaFlow n'est pas encore publiable."
+          },
+          {
+            "kind": "scène",
+            "text": "Pour l'instant, je peux annoncer le chantier. Pas encore défendre un choix d'architecture."
+          },
+          {
+            "kind": "aveu",
+            "text": "Je n'ai pas encore de décision technique honnête à raconter sur CreaFlow."
+          }
+        ],
+        "chosenHook": {
+          "index": 0,
+          "why": "Elle crée une tension immédiate pour un développeur : le chantier commence par la discipline de ne pas transformer une intention en décision technique."
+        },
+        "inspirationsUsed": [],
+        "inspirationsToDrop": [],
+        "selfCheck": {
+          "factsFromMaterial": true,
+          "bannedPhrasesFound": [],
+          "readerTest": "Un développeur qui construit un outil pour des indépendants s'arrête parce que le post annonce une série d'arbitrages réels et montre une discipline de conception : ne pas inventer de choix technique avant d'avoir de la matière.",
+          "authorTest": true
+        },
+        "inspirationsShown": [],
+        "checks": {
+          "failures": [],
+          "retried": false
+        }
+      },
+      "ms": 18318
+    },
+    {
+      "scriptId": "4ecd3194-ddb0-4acd-9917-b79d38ffe793",
+      "platform": "linkedin",
+      "contentType": "text",
+      "visualFormat": null,
+      "durationMs": null,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Itération en direct",
+        "beatId": "premier-echec-creaflow",
+        "episode": "Le premier résultat qui ne fonctionne pas comme prévu",
+        "direction": "Pour les développeurs qui construisent des outils pour les indépendants, raconter le premier échec concret de CreaFlow — uniquement à partir d'une matière documentée — afin de montrer comment un résultat de génération de contenus par modèle de langage révèle un arbitrage de conception et fait évoluer le chantier. En l'absence de document disponible, ne pas inventer l'événement : traiter ce créneau comme une attente éditoriale de cet épisode, à honorer dès que l'échec sera documenté.",
+        "readers": [],
+        "recentPosts": 0,
+        "inspirations": 0,
+        "materialDocuments": 0
+      },
+      "post": {
+        "contentType": "text",
+        "concept": "Signaler honnêtement que l'épisode de l'échec concret de CreaFlow attend encore une matière documentée, afin de ne pas transformer une coulisse produit en récit fabriqué ; annoncer que le prochain épisode montrera le résultat, l'arbitrage et la suite dès que cet échec sera consigné.",
+        "title": "L'échec qu'il faut encore documenter",
+        "caption": "Je n’ai pas encore de premier échec concret de CreaFlow à vous montrer.\n\nLa matière disponible documente le chantier, les cas d’usage, les briefs et les résultats obtenus. Elle ne documente pas encore un résultat précis qui aurait fonctionné autrement que prévu.\n\nJe préfère m’arrêter là plutôt que d’inventer un test, une sortie de modèle ou une décision de conception. Pour un outil destiné aux indépendants, l’échec n’a d’intérêt que s’il permet de suivre l’enquête : le résultat observé, l’arbitrage qu’il révèle, puis la modification du produit.\n\nC’est ce que je veux documenter dans cet épisode de CreaFlow en chantier, dès que le premier échec concret sera consigné.\n\nQuand le premier échec concret de CreaFlow sera documenté, je montrerai le résultat, l’arbitrage de conception qu’il a révélé et ce qui a changé ensuite.",
+        "hashtags": [],
+        "usedExcerpts": [],
+        "promisesMade": [
+          "Quand le premier échec concret de CreaFlow sera documenté, je montrerai le résultat, l’arbitrage de conception qu’il a révélé et ce qui a changé ensuite."
+        ],
+        "hookText": "Je n’ai pas encore de premier échec concret de CreaFlow à vous montrer."
+      },
+      "design": null,
+      "trace": {
+        "version": 3,
+        "reader": {
+          "label": "Pour les développeurs qui font des outils pour les indépendants, développeurs",
+          "knows": "Ils construisent eux-mêmes des produits et savent qu'un test de génération peut révéler un problème de conception.",
+          "wants": "Ils veulent voir un échec documenté, l'arbitrage qu'il révèle et comment il fait évoluer le produit."
+        },
+        "candidateMoments": [],
+        "chosenMoment": {
+          "index": 0,
+          "why": "Aucun échec concret n'est documenté dans la matière fournie ; il serait contraire aux faits d'en inventer un."
+        },
+        "hookOptions": [
+          {
+            "kind": "aveu",
+            "text": "Je n’ai pas encore de premier échec concret de CreaFlow à vous montrer."
+          },
+          {
+            "kind": "contre-intuitif",
+            "text": "Le premier échec de CreaFlow n’est pas encore publiable."
+          },
+          {
+            "kind": "scène",
+            "text": "J’ai ouvert le chantier de CreaFlow pour retrouver le premier résultat qui n’a pas fonctionné comme prévu."
+          }
+        ],
+        "chosenHook": {
+          "index": 0,
+          "why": "L'aveu est immédiat, vérifiable et parle directement aux développeurs qui préfèrent une enquête produit réelle à une fausse étude de cas."
+        },
+        "inspirationsUsed": [],
+        "inspirationsToDrop": [],
+        "selfCheck": {
+          "factsFromMaterial": true,
+          "bannedPhrasesFound": [],
+          "readerTest": "Les développeurs voient immédiatement qu'il s'agit d'une attente éditoriale honnête autour d'un échec produit documenté, sans récit inventé.",
+          "authorTest": true
+        },
+        "inspirationsShown": [],
+        "checks": {
+          "failures": [],
+          "retried": true
+        }
+      },
+      "ms": 13367
+    }
+  ]
+}

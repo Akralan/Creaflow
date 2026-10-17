@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -6,6 +6,8 @@ import { products } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
 import { handleApiError } from "@/lib/api/errors";
 import { createProductsForUser } from "@/lib/services/productsService";
+import { refreshStaleReaderPortraits } from "@/lib/services/readerPortraitService";
+import { logger } from "@/lib/logger";
 
 const productSchema = z.object({
   name: z.string().min(1),
@@ -33,6 +35,10 @@ export async function POST(request: NextRequest) {
     const items = Array.isArray(parsed) ? parsed : [parsed];
 
     const created = await createProductsForUser(userId, items);
+    // Portrait des lecteurs produit hors requête (docs/SPEC_PROMPT_GENERATION_V3.md §2.2).
+    after(() =>
+      refreshStaleReaderPortraits(userId, created.map((p) => p.id)).catch((err) => logger.error("Portraits des lecteurs échoués", err, { userId }))
+    );
 
     return NextResponse.json({ products: created }, { status: 201 });
   } catch (error) {

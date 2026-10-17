@@ -185,6 +185,7 @@ export const completeOnboardingSchema = z.object({
       z.object({
         name: z.string().trim().min(1, "Chaque sujet a besoin d'un nom."),
         description: z.string().trim().max(500).optional(),
+        targetAudience: z.string().trim().max(1000).optional(),
         keys: z.array(z.string()).min(1),
       })
     )
@@ -250,10 +251,17 @@ export async function completeOnboarding(userId: string, input: CompleteOnboardi
   await db.transaction(async (tx) => {
     for (const [i, group] of plan.entries()) {
       const subject = input.subjects[i];
-      const values = { name: subject.name, description: subject.description || null };
+      const values = { name: subject.name, description: subject.description || null, targetAudience: subject.targetAudience || null };
       let productId = group.targetProductId;
       if (productId) {
-        await tx.update(products).set(values).where(and(eq(products.id, productId), eq(products.userId, userId)));
+        // Un champ vide du brouillon veut dire « l'extraction n'a rien trouvé », pas « efface » : on
+        // ne remplace pas ce que le sujet existant porte déjà (son « Pour qui » périmerait le portrait).
+        const update = {
+          name: values.name,
+          ...(values.description ? { description: values.description } : {}),
+          ...(values.targetAudience ? { targetAudience: values.targetAudience } : {}),
+        };
+        await tx.update(products).set(update).where(and(eq(products.id, productId), eq(products.userId, userId)));
       } else {
         [{ id: productId }] = await tx.insert(products).values({ userId, ...values }).returning({ id: products.id });
       }

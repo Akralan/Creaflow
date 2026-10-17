@@ -87,6 +87,9 @@ CreatorProfile (1:1 avec User)
   + corrections apprises `rules[{text, platform|null}]` (≤ 12), `avoid[]`, `prefer[]`, `evidence{scriptCount, learnedAt}`.
   Un profil antérieur au chantier n'a que la voix : lecture tolérante par `parseStoredStyleProfile`, listes vides par défaut.)
 - styleProfileUpdatedAt
+- chosenVoice (jsonb, nullable — `docs/SPEC_CADRAGE_SERIE.md` : voix choisie parmi trois extraits au
+  premier cadrage de série `{id, label, rule, sample, chosenAt}`, une fois pour le compte ; injectée en
+  tête du bloc `<style>`. Migration `0041`)
 
 ContentCategory (rôle éditorial, ex: promotionnel / coulisses / éducatif — personnalisé par IA par utilisateur)
 - id, userId
@@ -109,6 +112,11 @@ ContentSeries ("Direction" — format récurrent nommé, ex: "Le mythe du mercre
 - weight (int — % ABSOLU des créneaux, PAS normalisé à 100 comme ContentCategory.weight :
   la couverture série n'est jamais forcée à 100%, une partie du calendrier reste hors série)
 - archived (bool)
+- productId (FK nullable — sujet dont la série tire sa matière ; posé d'office à la génération IA
+  quand le compte n'a qu'un sujet)
+- framing (jsonb, nullable — cadrage choisi par l'auteur, `docs/SPEC_CADRAGE_SERIE.md` §2 : moment
+  raconté, posture, voix propre à la série (null = voix du compte), récit, signature, extraits écartés,
+  remarques. Migration `0041`)
 - createdAt
 
 ContentSeriesCategories (jointure série ↔ rôle — physiquement N:N, mais l'invariant "exactement
@@ -121,8 +129,23 @@ Product (catalogue de sujets, 1 à 5 par créateur — MIN_PRODUCTS/MAX_PRODUCTS
 et types TS gardent "Product", zéro migration pour ce renommage)
 - id, userId
 - name, description, valueProposition (optionnels), photoUrl
-- targetAudience (texte libre, nullable — override d'audience par sujet, null = fallback sur
-  CreatorProfile.targetAudience ; couvre le cas personal branding multi-sujets, `docs/SPEC_PROMPT_GENERATION_TECH.md` §5)
+- targetAudience (texte libre, nullable — audience du sujet, extraite par sujet à l'onboarding depuis
+  `docs/SPEC_PROMPT_GENERATION_V3.md` (deux projets n'ont pas forcément le même public) ; null = fallback
+  sur CreatorProfile.targetAudience)
+- readerPortrait (jsonb, nullable — 1 à 3 publics `{label, who, situation, wants, alreadyKnows, convincedBy, turnOffs}`
+  + `generatedAt, editedByUser, basedOnAudience`, `docs/SPEC_PROMPT_GENERATION_V3.md` §2. Régénéré en tâche de
+  fond quand l'audience change, sauf s'il a été édité à la main. Migration `0038`)
+- inspirationRefreshedAt (timestamp, nullable — dernière veille d'inspiration ; relancée en tâche de fond
+  au-delà de 7 jours, `docs/SPEC_MEMOIRE_ET_VEILLE.md`. Migration `0039`)
+
+Inspiration (fiche de veille d'un sujet, `docs/SPEC_MEMOIRE_ET_VEILLE.md` §3, migrations `0039`-`0040`)
+- id, userId, productId (FK cascade)
+- url (page réellement consultée par la recherche web), title, insight (ce qu'on en retient)
+- kind, readerLabel (public visé, nullable), platform (nullable)
+- status (active / dismissed), dismissedBy (model / user), dismissReason
+- shownCount, usedCount, dropVotes — 10 fiches actives au plus ; écartée au 2e vote « inutile » du
+  rédacteur ou après 8 présentations sans usage ; un usage remet les votes à zéro
+- createdAt, updatedAt
 
 SourceMaterial (dépôt brut de matière première — un collage, un fichier .md/.txt, une session
 d'interview ; docs/SPEC_MATIERE_EDITEUR.md §3, amendement). Immédiatement utilisable, pas de pipeline
@@ -222,6 +245,9 @@ Script (document co-écrit — Module B, docs/SPEC_MATIERE_EDITEUR.md §4)
 - styleLearnedAt (timestamp, nullable — posé par la passe d'apprentissage du style qui a lu ce
   script ; null = pas encore lu. Le compteur « scripts corrigés depuis la dernière analyse » est une
   requête sur cette colonne)
+- generationTrace (jsonb, nullable — réflexion du rédacteur avant le post (lecteur visé, moments
+  candidats, accroches envisagées, fiches d'inspiration utilisées ou écartées) et résultat des contrôles
+  du code, `docs/SPEC_PROMPT_GENERATION_V3.md` §4. Jamais copiée dans firstDraftSnapshot. Migration `0038`)
 - createdAt, updatedAt (mis à jour explicitement à chaque écriture de contenu, pas de trigger DB)
 
 VisualDesign (`visual_designs` — maquette d'un post visuel, `docs/SPEC_DESIGN_HTML_SUR_IMAGE.md` §4 et
@@ -286,6 +312,8 @@ Les deux entités sont indépendantes mais reliées par `CalendarEntry.scriptId`
 
 Aucune contrainte `NOT NULL` ne force l'un ou l'autre sens.
 
+**Retrait d'une série** (`releaseSlotsOfArchivedSeries`, `src/lib/services/seriesSlotRelease.ts`) : ses créneaux à venir non publiés quittent la série. Un post déjà rédigé sort du calendrier (`scriptId` remis à null, le script reste dans les scripts) ; le jour de publication passe, vide, à la série restante la moins servie au regard de son poids, ou est supprimé s'il ne reste aucune série compatible. Les créneaux passés et publiés ne bougent pas. L'écran Direction ne régénère plus de séries tout seul quand il n'y en a aucune, sauf en sortie d'onboarding (`?selection=1`).
+
 ### Invariant de poids : ContentCategory vs ContentSeries
 
 - `ContentCategory.weight` est **normalisé à 100** sur l'ensemble des catégories actives d'un utilisateur (`normalizeCategoryWeights`, `renormalizeCategoryWeights` dans `src/lib/services/categoryLabelsService.ts` / `calendarService.ts`) : ajouter/modifier une catégorie réajuste automatiquement les autres.
@@ -324,6 +352,9 @@ Un seul parcours, quelle que soit la porte d'entrée (`users.vertical` ne l'aigu
 - `GET/POST /api/profile/content-categories` — `GET` liste les catégories actives ; `POST` avec corps régénère intégralement via IA (`generateCategoriesForUser`, archive l'ancien jeu actif) ; `POST` avec corps `{ categories: [...] }` valide et sauvegarde une édition manuelle (`saveCategoriesForUser`, poids renormalisés).
 - `GET/POST /api/series` — même pattern pour les séries récurrentes (`generateSeriesForUser` / `saveSeriesForUser`), dépend des rôles déjà actifs. Chaque série porte **un** `categoryId` (docs/SPEC_SERIES_ET_ROLES.md) ; la lecture renvoie `category: {id,label}` (singulier).
 - Les angles n'ont pas d'endpoint dédié exposé séparément dans ce document — gérés via `src/lib/services/angleService.ts` (`generateAnglesForUser`, `upsertAngleItem`), appelés à l'onboarding et depuis l'écran Direction.
+- `POST /api/series/:id/framing/options { dimension, chosen, excludeIds, remark?, moment? }` → trois options du catalogue avec leur extrait et le moment raconté ; `POST /api/series/:id/framing/signature` → signature proposée ; `PUT /api/series/:id/framing` enregistre le cadrage (au premier cadrage du compte, la voix devient celle du compte). `docs/SPEC_CADRAGE_SERIE.md`, panneau `SeriesFramingPanel` en tête du détail d'une série.
+- `POST/PUT /api/products/:id/reader-portrait` — régénère / enregistre à la main le portrait des lecteurs d'un sujet (panneau « Lecteurs » du catalogue de sujets).
+- `GET/POST /api/products/:id/inspirations` — liste les fiches de veille / lance une veille ; `PATCH/DELETE /api/inspirations/:id` — réactive, écarte ou supprime une fiche (panneau « Inspirations »).
 - `GET/POST /api/posting-goals` — plateformes de publication : `POST { platform, active }` active une plateforme (au rythme des jours cochés) ou la coupe (`targetCountPerWeek = 0`). Le nombre par semaine ne se règle plus à la main.
 
 - `POST /api/assets/reembed` — maintenance : recalcule les embeddings des ressources `ready` à partir de leur `aiDescription` déjà stockée (aucun appel vision). À lancer une fois après un changement de modèle d'embedding — deux modèles ne produisent pas des vecteurs comparables (`docs/SPEC_RESSOURCES_VISUELLES.md` §8.4). Pas d'écran dédié, appel manuel.
@@ -395,7 +426,15 @@ Assistant **agentique** (`docs/SPEC_ASSISTANT_AGENTIQUE.md`) : il lit tout l'esp
 Tous les appels IA passent par `callStructured` (`src/lib/llm/provider.ts`) : sortie forcée en JSON strict via function/tool calling, avec retry automatique (rappel explicite dans le system prompt) si le modèle répond en texte libre au lieu d'appeler l'outil.
 
 ### 5.1 Génération de script (Module B) — `src/lib/llm/generateScript.ts` + `prompts.ts`
-Prompt v2 (`docs/SPEC_PROMPT_GENERATION_TECH.md`, Lots 1-2) — remplace l'ancienne version one-shot.
+**Prompt V3** (`docs/SPEC_PROMPT_GENERATION_V3.md`, `docs/SPEC_MEMOIRE_ET_VEILLE.md`, `docs/SPEC_CADRAGE_SERIE.md`, textes complets dans `docs/PROMPTS.md`) :
+
+- **Prompt système** = `SCRIPT_CORE_PROMPT` (prête-plume, ordre des priorités, tournures interdites, exemples) + `SCRIPT_METHOD_PROMPT` (la méthode pas à pas que le modèle remplit dans l'outil).
+- **Message** en balises, dans cet ordre : `<lecteurs> <marque> <style> <cadrage> <direction> <matiere> <brief> <inspiration> <plateforme> <format> <derniers_posts> <variete> <rappel>`. `<lecteurs>` vient du portrait du sujet, `<cadrage>` du cadrage de la série, `<derniers_posts>` des fiches des 5 derniers posts du sujet, `<inspiration>` des fiches de veille (i1…i10).
+- **Étapes de réflexion dans l'outil, avant le post** (l'ordre des propriétés est l'ordre de génération) : reader, candidateMoments, chosenMoment, concept, hookOptions, chosenHook, inspirationsUsed, inspirationsToDrop, puis le post, puis `selfCheck`. Le tout est conservé sur `Script.generationTrace`.
+- **Contrôles du code et seconde tentative** (`src/lib/llm/scriptChecks.ts`, `platformRules.ts`) : tournures interdites, limites chiffrées par plateforme, citations retrouvées dans la matière, trous `[à compléter]`, nombre de slides, auto-contrôle, accroche répétée par rapport aux derniers posts. Un échec relance une fois avec un bloc `<refus>` qui liste les fautes ; la tentative avec le moins de fautes est gardée.
+- Sortie stricte (`strict: true`), `maxTokens` 4096.
+
+La suite de cette section décrit la v2 (`docs/SPEC_PROMPT_GENERATION_TECH.md`, Lots 1-2), gardée pour l'historique ; la V3 en conserve le champ `concept` et « autre idée, même brief ».
 
 - **Prompt système** (`SCRIPT_SYSTEM_PROMPT`) — rôle ("Directeur Marketing Virtuel de CreaFlow"), obsession de spécificité explicite ("un post publiable tel quel par un concurrent est un échec"), règles de qualité courtes (une seule idée par script formulée dans le champ `concept`, hook = manque jamais annonce, au moins un élément que seul ce créateur peut dire), interpole `EDITORIAL_WRITING_RULES` (constante partagée, anti-clichés/concret > abstrait — également consommée par `microEdit.ts::rewrite_selection` et `materialEpisodes.ts`, cf. §5.11/§5.12), puis interdits durs (anti-invention, `usedExcerpts` obligatoire).
 - **Contexte dynamique par appel** (`buildScriptUserMessage`, `buildGenerationContext` dans `scriptService.ts`) — blocs balisés à ordre fixe : `=== CONTEXTE MARQUE ===` (marque, **audience visée** — `Product.targetAudience ?? CreatorProfile.targetAudience`, §5 —, « Ce que l'auteur attend de CreaFlow : … » depuis `CreatorProfile.expectations` ; ton, valeurs, matériel et temps ont disparu avec la migration `0037`, la voix passe par le bloc `=== STYLE ===`, §5.5), `=== MATIÈRE ===` (§5.8), `=== BRIEF ===` (produit, plateforme + règle plateforme, catégorie, série, angle, type de contenu, photo de référence, directive d'épisode), `=== VARIÉTÉ ===` (sujets récents, performance, **concepts refusés** via "autre idée" — `rejectedConcepts`, plafonné aux 5 plus récents, §6.3), `=== PRIORITÉS ===` (bloc final, poids maximal : vérité factuelle > identité série/angle > voix de marque > codes plateforme, + rappel du test du concurrent).
@@ -443,9 +482,14 @@ Injection : `buildStyleBlock(profile, platform)` produit un bloc `=== STYLE ===`
 ### 5.6 Suggestion de catégories / angles / séries (direction éditoriale initiale)
 - `src/lib/llm/categoryLabels.ts` — 2 à 6 catégories adaptées au métier décrit (pas de triptyque fixe imposé), poids normalisés à 100 après génération.
 - `src/lib/llm/angleLabels.ts` — 4 à 8 angles/archétypes de structure (pas des sujets), réutilisés par l'anti-répétition.
-- `src/lib/llm/seriesLabels.ts` — 0 à 5 séries récurrentes nommées, chacune rattachée à **un seul** rôle actif par son libellé exact (`categoryLabel`, docs/SPEC_SERIES_ET_ROLES.md) ; liste vide acceptée si le métier ne s'y prête pas.
+- `src/lib/llm/seriesLabels.ts` — 0 à 5 séries récurrentes nommées, chacune rattachée à **un seul** rôle actif par son libellé exact (`categoryLabel`, docs/SPEC_SERIES_ET_ROLES.md) et à un sujet (`subjectName`, enum des sujets ; d'office l'unique sujet du compte) ; liste vide acceptée si le métier ne s'y prête pas.
 
 Les trois reçoivent `expectations` (« Ce que l'auteur attend de CreaFlow : … ») à la place de l'ancien ton/valeurs/matériel/temps. Ces trois générations sont déclenchées automatiquement à la fin de l'onboarding (`completeOnboarding`, dans cet ordre : catégories → angles → séries, les séries dépendant des catégories) et peuvent être régénérées manuellement depuis l'écran Direction (l'ancien jeu actif est archivé, pas supprimé).
+
+### 5.15 Portrait des lecteurs, veille d'inspiration, cadrage de série
+- `src/lib/llm/readerPortrait.ts` — 1 à 3 publics par sujet, tirés de l'audience et de la matière du sujet. Le rédacteur en chef choisit chaque jour le public visé (`readerLabel`), en évitant celui des derniers posts.
+- `src/lib/llm/inspirationResearch.ts` — deux appels : une recherche web (`callWebResearch`, outil `web_search` d'OpenAI avec `tool_choice: "required"`, sinon le modèle répond de mémoire), puis une mise en fiches. Seules les URL réellement consultées (annotations `url_citation`) sont gardées.
+- `src/lib/llm/seriesFraming.ts` — catalogue fixe de 6 options par dimension (posture, voix, récit) ; le modèle en retient 3 et écrit pour chacune un extrait de 80 mots au plus sur un même vrai moment de la matière (choisi par `pickFramingMoment` sur les résumés, hors documents d'installation), puis propose une signature.
 
 ### 5.7 Récupération automatique des métriques & re-pondération (Module D/E)
 

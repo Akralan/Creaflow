@@ -11,6 +11,8 @@ import {
   type DailyDirectionBeatCandidate,
 } from "@/lib/llm/narrativePrompts";
 import { backfillMaterialSummaries } from "@/lib/services/sourceMaterialService";
+import { loadRecentPostCards } from "@/lib/services/recentPostsService";
+import { parseStoredReaderPortrait } from "@/lib/llm/readerPortrait";
 import { ApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
 
@@ -490,6 +492,8 @@ export interface DailyDirection {
   promiseToHonor: string | null;
   promiseToMake: string | null;
   angleHint: string | null;
+  /** Public visé, parmi le portrait du sujet (docs/SPEC_PROMPT_GENERATION_V3.md §2.3) — null sans portrait. */
+  readerLabel: string | null;
 }
 
 /**
@@ -543,6 +547,7 @@ export async function resolveDailyDirection(
     if (!profile) return null; // pas de profil = pas de chef, dégradation silencieuse
 
     const openPromiseTexts = state.openPromises.map((p) => p.text);
+    const readers = parseStoredReaderPortrait(product?.readerPortrait)?.readers ?? [];
     const baseContext = {
       brandName: profile.brandName,
       activityType: profile.activityType,
@@ -557,6 +562,11 @@ export async function resolveDailyDirection(
       rejectedConcepts: params.rejectedConcepts,
       openPromiseTexts,
       callbacks: state.callbacks,
+      readers: readers.map((r) => ({ label: r.label, who: r.who })),
+      recentReaderLabels:
+        readers.length > 1
+          ? (await loadRecentPostCards(userId, effectiveProductId, null)).map((p) => p.readerLabel).filter((l): l is string => l !== null)
+          : [],
     };
 
     const dailyContext =
@@ -606,6 +616,8 @@ export async function resolveDailyDirection(
       promiseToHonor: result.promiseToHonor,
       promiseToMake: result.promiseToMake,
       angleHint: result.angleHint,
+      // Un libellé hors portrait (halluciné) est ignoré : le rédacteur choisira lui-même.
+      readerLabel: readers.find((r) => r.label === result.readerLabel)?.label ?? null,
     };
   } catch (err) {
     logger.error("Choix du jour échoué — dégradation silencieuse vers le pipeline sans chef", err, {

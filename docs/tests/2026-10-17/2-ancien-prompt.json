@@ -1,0 +1,303 @@
+{
+  "createdAt": "2026-10-17T00:49:38.403Z",
+  "baseline": false,
+  "forcedProductId": null,
+  "entries": [
+    {
+      "scriptId": "4b4ee15f-0b57-455c-a079-d07581c60adc",
+      "platform": "linkedin",
+      "contentType": "visual",
+      "visualFormat": "animation",
+      "durationMs": 8000,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Prompt en duel",
+        "beatId": "presentation-creaflow",
+        "episode": "Alix présente CreaFlow et le problème qu'il veut résoudre",
+        "direction": "Présenter CreaFlow comme un chantier déjà recentré : le produit s’adresse désormais aux créateurs qui disposent d’une matière écrite, que les modèles transforment en contenus factuels sans inventer ni répéter. Le post doit donner aux développeurs d’outils pour indépendants le point de départ produit — et montrer pourquoi cette matière source devient la pièce centrale du système.",
+        "readers": [
+          "Développeurs d’outils IA",
+          "Indépendants outillés par l’IA",
+          "Curieux des méthodes LLM"
+        ],
+        "recentPosts": 0,
+        "inspirations": 8,
+        "materialDocuments": 1
+      },
+      "post": {
+        "contentType": "visual",
+        "usedExcerpts": [
+          "Matière vécue jamais publiée : beaucoup accumulent déjà de la matière (notes de projet, specs, journal de bord, décisions, chiffres) sans jamais la transformer en contenu, faute de temps ou de réflexe.",
+          "La matière est là, elle n'est simplement jamais transformée en contenu.",
+          "Une application web centralisée qui agit comme un **rédacteur en chef IA** : elle n'écrit qu'à partir de ce que l'utilisateur lui a réellement confié",
+          "sans jamais inventer une information non fournie",
+          "la **matière factuelle de chaque sujet**",
+          "Cible prioritaire — ceux qui ont déjà de la matière écrite :"
+        ],
+        "promisesMade": [
+          "Dans les prochains épisodes, je montrerai comment ce recentrage se traduit concrètement dans les choix d’architecture et les tests de CreaFlow."
+        ],
+        "concept": "Pour des développeurs qui construisent des outils pour indépendants, raconter le recentrage de CreaFlow comme un avant/après produit : on ne part plus d’une promesse générale de génération, mais d’une matière écrite qui devient la source contrôlable des contenus. Ils doivent retenir que la qualité du système dépend d’abord de ce que le créateur lui confie, pas seulement du modèle choisi. Dans les prochains épisodes, montrer comment ce recentrage se traduit concrètement dans les choix d’architecture et les tests de CreaFlow.",
+        "title": "CreaFlow : de générateur à système fondé sur la source",
+        "hookVisual": "Animation de 8 secondes sur une capture stylisée de notes/specs qui se transforme en pipeline minimal « matière écrite → contenu factuel ». Le premier écran montre une boîte floue « générer du contenu », puis un recentrage visuel net autour de la source.",
+        "storyboard": [
+          {
+            "planNumber": 1,
+            "description": "0–2 s. Fond sombre, une boîte seule au centre : « Générer du contenu »."
+          },
+          {
+            "planNumber": 2,
+            "description": "2–3,5 s. La boîte se décale et devient grise : « Trop général »."
+          },
+          {
+            "planNumber": 3,
+            "description": "3,5–5 s. Une pile de documents apparaît à gauche : « Matière écrite »."
+          },
+          {
+            "planNumber": 4,
+            "description": "5–6,5 s. Une flèche relie la source à une carte : « Contenu factuel »."
+          },
+          {
+            "planNumber": 5,
+            "description": "6,5–8 s. Écran final : « CreaFlow part de la source. » puis, en petit, « Architecture et tests : prochains épisodes »."
+          }
+        ],
+        "caption": "Épisode 1 — CreaFlow en chantier.\n\nAu départ, l’idée pouvait se résumer à : aider à générer des contenus pour les réseaux sociaux.\n\nC’était trop large pour construire quelque chose de fiable.\n\nLe recentrage est devenu notre point de départ produit : CreaFlow s’adresse d’abord aux créateurs qui disposent déjà d’une matière écrite — notes de projet, specs, journal de bord, décisions, chiffres — mais qui ne la transforment pas en contenus.\n\nLa matière écrite devient la source du système.\n\nLe produit ne doit pas demander au modèle de combler les blancs avec des détails plausibles. Il doit transformer ce que le créateur lui a réellement confié en contenus factuels, sans inventer et sans répéter les mêmes angles.\n\nCette décision change le chantier : le corpus n’est plus un simple champ de contexte ajouté au prompt. Il devient la pièce centrale autour de laquelle il faut penser les sujets, la génération, la rotation des unités de matière et le contrôle des sorties.\n\nPour un outil destiné aux indépendants, c’est un point de départ plus concret qu’un générateur généraliste : partir de ce qui existe déjà, plutôt que demander au modèle d’inventer ce qui manque.\n\nDans les prochains épisodes, je montrerai comment ce recentrage se traduit concrètement dans les choix d’architecture et les tests de CreaFlow.",
+        "hashtags": [
+          "#BuildInPublic",
+          "#GenerativeAI",
+          "#ProductDevelopment",
+          "#ContentSystems",
+          "#IndieHackers"
+        ]
+      },
+      "design": null,
+      "trace": null,
+      "designError": "HTML de slide refusé : slide 1 : 15 calques, 12 maximum · ligne de temps : calque « l5 » inconnu · ligne de temps : calque « l6 » inconnu · ligne de temps : calque « l7 » inconnu · ligne de temps : calque « l8 » inconnu · ligne de temps : calque « l9 » inconnu · ligne de temps : calque « l10 » inconnu · ligne de temps : calque « l11 » inconnu · ligne de temps : calque « l12 » inconnu · ligne de temps : calque « l13 » inconnu · ligne de temps : calque « l14 » inconnu",
+      "ms": 107233
+    },
+    {
+      "scriptId": "03e8eea3-7d44-42e6-869c-d9a2d8dc5007",
+      "platform": "linkedin",
+      "contentType": "text",
+      "visualFormat": null,
+      "durationMs": null,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Autopsie de sortie",
+        "beatId": "notion-generation-contenus",
+        "episode": "Ce que change réellement un modèle de langage dans un outil de contenu",
+        "direction": "Pour les développeurs d’outils IA, expliquer la différence entre ajouter un modèle de langage et lui confier une fonction produit : dans CreaFlow, la génération part d’une matière écrite contrainte pour produire des contenus factuels, plutôt que d’inventer à partir d’une consigne vide. L’audience doit retenir que le modèle devient une étape dans une chaîne de décision et de garde-fous, pas le produit à lui seul.",
+        "readers": [
+          "Développeurs d’outils IA",
+          "Indépendants outillés par l’IA",
+          "Curieux des méthodes LLM"
+        ],
+        "recentPosts": 0,
+        "inspirations": 8,
+        "materialDocuments": 1
+      },
+      "post": {
+        "contentType": "text",
+        "usedExcerpts": [
+          "Invention d'informations : au-delà de la répétition, un générateur nourri d'une simple description produit n'a que deux options — rester générique ou inventer des détails plausibles.",
+          "Une application web centralisée qui agit comme un **rédacteur en chef IA** : elle n'écrit qu'à partir de ce que l'utilisateur lui a réellement confié, et garantit la variation des angles côté produit.",
+          "le **corpus de matière factuelle** du sujet (unités structurées si le corpus a été traité, texte brut sinon) — base réelle de la génération, avec instruction explicite de ne jamais inventer une information non fournie (marqueur `[à compléter]` en son absence)",
+          "Rôle, angle et série restent verrouillés depuis l'éditeur — la liberté est sur les mots, pas sur le brief.",
+          "Le modèle rédige. Le produit décide ce qu’il a le droit de rédiger."
+        ],
+        "promisesMade": [],
+        "concept": "Ce post s’adresse aux développeurs qui construisent des outils de contenu avec un LLM et leur montre, à partir du cas CreaFlow, que la vraie fonction produit n’est pas de générer depuis un prompt vide mais de transformer une matière écrite contrainte en contenu publiable sans inventer. Ils doivent retenir que le modèle n’est qu’une étape dans une chaîne de décisions et de garde-fous, puis évaluer leur propre produit à cet endroit précis.",
+        "title": "Le prompt vide n’est pas un produit",
+        "hookText": "Un modèle de langage peut produire un script convaincant avant même de savoir si une seule phrase est vraie.",
+        "caption": "Un modèle de langage peut produire un script convaincant avant même de savoir si une seule phrase est vraie.\n\nC’est la confusion fréquente quand on construit un outil de contenu : croire que le produit consiste à envoyer une consigne à un modèle et à afficher sa réponse.\n\nDans CreaFlow, on a pris le problème dans l’autre sens.\n\nLa génération part d’une matière écrite contrainte : notes de projet, décisions, chiffres, anecdotes ou journal de bord. Cette matière est la source. Le modèle intervient ensuite, dans une chaîne où le rôle éditorial, l’angle, l’audience et les sujets déjà traités encadrent ce qu’il peut produire.\n\nLe principe n’est donc pas : « voici un prompt, invente-moi un post ».\n\nC’est plutôt :\n\n1. voici ce que le créateur a réellement documenté ;\n2. voici la fonction du contenu à produire ;\n3. voici l’angle à utiliser cette fois-ci ;\n4. transforme cette matière en format adapté ;\n5. n’ajoute aucune information absente — et marque [à compléter] si une précision manque.\n\nLa différence est importante pour un développeur : le LLM n’est plus le produit à lui seul. Il devient une étape dans une chaîne de décision et de garde-fous.\n\nDans CreaFlow, cela change aussi le périmètre à construire autour du modèle : collecte de matière, rotation des unités déjà utilisées, anti-répétition des angles, verrouillage du brief, éditeur par blocs et validation humaine.\n\nLe modèle rédige. Le produit décide ce qu’il a le droit de rédiger.\n\nC’est cette frontière qui sépare, à mon sens, une démo de génération d’un véritable outil de contenu.\n\nSi vous construisez un outil IA, regardez votre chaîne en amont et en aval du modèle : quelle matière lui donnez-vous, quelles décisions prenez-vous pour lui, et quel garde-fou empêche une réponse plausible de devenir une fausse information ?",
+        "hashtags": [
+          "#IA",
+          " #LLM",
+          " #ProductEngineering",
+          " #BuildInPublic",
+          " #ContentTools"
+        ]
+      },
+      "design": null,
+      "trace": null,
+      "ms": 9215
+    },
+    {
+      "scriptId": "9d464b43-9145-4700-be17-948865eee054",
+      "platform": "linkedin",
+      "contentType": "text",
+      "visualFormat": null,
+      "durationMs": null,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Brief vers résultat",
+        "beatId": "contexte-outils-independants",
+        "episode": "Pourquoi les indépendants ont besoin d'outils conçus pour leur manière de travailler",
+        "direction": "Détour hors plan assumé : pour les développeurs d’outils IA, raconter le recentrage de CreaFlow sur les créateurs qui disposent déjà d’une matière écrite. L’épisode doit faire comprendre le pari produit — transformer un corpus existant en contenus factuels, avec des garde-fous anti-invention et anti-répétition — sans encore détailler les choix d’architecture ni les résultats de tests.",
+        "readers": [
+          "Développeurs d’outils IA",
+          "Indépendants outillés par l’IA",
+          "Curieux des méthodes LLM"
+        ],
+        "recentPosts": 0,
+        "inspirations": 8,
+        "materialDocuments": 1
+      },
+      "post": {
+        "contentType": "text",
+        "usedExcerpts": [
+          "Matière vécue jamais publiée : beaucoup accumulent déjà de la matière (notes de projet, specs, journal de bord, décisions, chiffres) sans jamais la transformer en contenu, faute de temps ou de réflexe.",
+          "la cible prioritaire de la cible secondaire, c'est **d'où vient la matière**",
+          "**Cible prioritaire — ceux qui ont déjà de la matière écrite :**",
+          "Pour eux, le corpus se remplit en quelques secondes par collage de fichiers existants (`docs/SPEC_MATIERE_EDITEUR.md`) : la matière est là, elle n'est simplement jamais transformée en contenu.",
+          "elle n'écrit qu'à partir de ce que l'utilisateur lui a réellement confié",
+          "sans jamais inventer une information non fournie",
+          "**Alimenter le corpus d'un sujet :** deux portes pour nourrir la génération en matière factuelle (anecdotes, chiffres, décisions, retours...) — coller du texte ou un fichier `.md`/`.txt` pour qui écrit déjà (journal de bord, anciens posts), ou se faire **interviewer par le chat** (une question concrète à la fois) pour qui n'a rien d'écrit.",
+          "La même logique de rotation (least-recently-used) s'applique à la sélection des unités de matière injectées",
+          "Dans un prochain épisode, je montrerai comment CreaFlow ingère cette matière — et ce que cela change dans le chantier produit."
+        ],
+        "promisesMade": [
+          "Dans un prochain épisode, je montrerai comment CreaFlow ingère cette matière — et ce que cela change dans le chantier produit."
+        ],
+        "concept": "Pour des développeurs qui construisent des outils IA pour les indépendants, raconter le recentrage de CreaFlow : le produit ne doit plus partir d’une page blanche, mais d’une matière écrite déjà présente chez ses utilisateurs. Le post doit faire retenir que cette décision impose deux garde-fous — ne rien inventer et ne pas répéter — puis annoncer le prochain épisode sur l’ingestion de cette matière.",
+        "title": "Le corpus avant le prompt",
+        "hookText": "Le premier problème de CreaFlow n’était pas de mieux écrire.",
+        "caption": "Le premier problème de CreaFlow n’était pas de mieux écrire.\n\nC’était de savoir à partir de quoi écrire.\n\nEn construisant l’outil, j’ai recentré la cible : les indépendants, fondateurs et développeurs qui ont déjà de la matière écrite — notes de projet, specs, journal de bord, décisions, chiffres — mais qui ne la transforment presque jamais en contenu.\n\nCe détail change le produit.\n\nAu lieu de demander à l’IA de créer dans le vide, CreaFlow part de cette matière comme source. Le corpus devient la base de génération : chaque contenu doit rester factuel, sans information inventée, et varier les angles pour éviter de reformuler indéfiniment la même idée.\n\nC’est aussi pour cela que le produit est pensé autour de deux portes d’entrée : coller un texte ou un fichier `.md`/`.txt` pour ceux qui écrivent déjà, ou passer par une interview-chat pour ceux dont la matière existe surtout dans la tête.\n\nLe pari est simple : pour un indépendant, le problème n’est pas toujours l’absence d’idées. C’est souvent l’écart entre ce qu’il documente déjà et ce qu’il publie réellement.\n\nDans un prochain épisode, je montrerai comment CreaFlow ingère cette matière — et ce que cela change dans le chantier produit.",
+        "hashtags": [
+          "#BuildInPublic",
+          "#IntelligenceArtificielle",
+          "#ProductDevelopment",
+          "#Indépendants"
+        ]
+      },
+      "design": null,
+      "trace": null,
+      "ms": 8888
+    },
+    {
+      "scriptId": "f824a98a-5418-4d4f-af02-78f4f721cbb0",
+      "platform": "linkedin",
+      "contentType": "visual",
+      "visualFormat": "single",
+      "durationMs": null,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Mythe contre test",
+        "beatId": "premier-choix-architecture",
+        "episode": "Le premier arbitrage de conception de CreaFlow devient une architecture de connecteurs",
+        "direction": "Raconter le premier arbitrage structurant de CreaFlow : choisir une architecture à registre de connecteurs pour pouvoir intégrer de nouvelles sources sans réécrire le cœur du produit. L’épisode doit montrer aux développeurs d’outils IA que cette décision a déplacé la difficulté vers l’identité OAuth et le rafraîchissement des tokens — une conséquence imprévue, pas un inventaire de fonctionnalités.",
+        "readers": [
+          "Développeurs d’outils IA",
+          "Indépendants outillés par l’IA",
+          "Curieux des méthodes LLM"
+        ],
+        "recentPosts": 0,
+        "inspirations": 8,
+        "materialDocuments": 1
+      },
+      "post": {
+        "contentType": "visual",
+        "usedExcerpts": [
+          "Le cœur définit des points d'extension typés. Chaque verticale est un module qui s'y enregistre.",
+          "Ajouter Notion : écrire `src/lib/connectors/notion.ts`, l'enregistrer dans le registre, ajouter la valeur à `materialSourceTypeEnum`. Aucun fichier du cœur à modifier.",
+          "les deux connecteurs se sont écrits sans toucher à `syncSource` ni à `createSourcesFromCandidates`.",
+          "l'identité. Ces fournisseurs ne sont pas que des sources, ce sont des portes d'entrée. Il a fallu généraliser `github_accounts` en `oauth_accounts` et écrire un contrat `OAuthIdentityProvider` à côté de `SourceConnector` — deux rôles distincts, deux registres.",
+          "GitHub était l'exception, pas la règle : son token ne périme jamais, ceux de Notion et Linear si (24 h côté Linear). Le rafraîchissement paresseux est devenu de la plomberie obligatoire."
+        ],
+        "promisesMade": [
+          "Dans un prochain épisode, je montrerai comment CreaFlow a traité l’un des problèmes apparus derrière cette architecture : l’identité OAuth et le rafraîchissement des tokens."
+        ],
+        "concept": "Raconter le premier arbitrage d’architecture comme un déplacement de difficulté : le registre de connecteurs permet d’ajouter Notion et Linear sans toucher au cœur de la synchronisation, mais révèle que l’identité OAuth et l’expiration des tokens sont la vraie dette invisible. Le post s’adresse aux développeurs qui construisent des outils IA pour les indépendants et leur fait retenir qu’une abstraction réussie ne supprime pas la complexité : elle la déplace, ce qu’il faut suivre dans les arbitrages du chantier.",
+        "title": "Le registre qui déplace la dette",
+        "hookVisual": "Image unique en split-screen : à gauche, un registre minimal avec trois cartes GitHub / Notion / Linear qui se branchent sur un bloc central « cœur CreaFlow » ; à droite, derrière le bloc, une couche sombre révélée avec les mentions « identité OAuth » et « tokens qui expirent ». Texte principal affiché : « Un choix d’architecture qui simplifie les intégrations… et révèle immédiatement une dette invisible » ; sous-texte : « Les arbitrages du chantier — épisode CreaFlow en chantier ».",
+        "storyboard": [
+          {
+            "planNumber": 1,
+            "description": "Schéma unique façon tableau d’architecture. À gauche, trois connecteurs nommés GitHub, Notion et Linear convergent vers un registre. Au centre, un bloc « cœur CreaFlow » contient « syncSource » et « createSourcesFromCandidates », barrés d’une mention « ne connaît plus GitHub ». À droite, une couche révélée affiche « dette déplacée : identité OAuth + rafraîchissement des tokens ». En bas, une note : « Ajouter Notion : écrire le connecteur, l’enregistrer, ajouter la valeur à l’enum. »"
+          }
+        ],
+        "caption": "CreaFlow en chantier — épisode : le premier arbitrage structurant.\n\nAu départ, le problème semblait simple : intégrer plusieurs sources de matière sans réécrire le cœur du produit.\n\nLe choix a été un registre de connecteurs.\n\nChaque source devient un module qui respecte le même contrat. Le cœur résout le connecteur depuis `source.type`, puis lui délègue la découverte et la récupération des documents.\n\nLa conséquence recherchée a bien eu lieu : Notion et Linear ont pu être ajoutés sans toucher à `syncSource` ni à `createSourcesFromCandidates`.\n\nMais l’architecture a déplacé la difficulté.\n\nGitHub était à la fois une source de matière et une identité. Avec Notion et Linear, il a fallu séparer les deux rôles :\n\n— un registre de `SourceConnector` pour les sources ;\n— un contrat `OAuthIdentityProvider` pour les identités ;\n— un rafraîchissement paresseux des tokens, parce que le token GitHub ne périme jamais alors que celui de Linear expire après 24 h.\n\nC’est le point que je retiens des arbitrages du chantier : une bonne abstraction ne fait pas disparaître la complexité. Elle la pousse à l’endroit où le modèle initial ne regardait pas encore.\n\nDans un prochain épisode, je montrerai comment CreaFlow a traité l’un des problèmes apparus derrière cette architecture : l’identité OAuth et le rafraîchissement des tokens.",
+        "hashtags": [
+          "#ArchitectureLogicielle",
+          "#DeveloppementWeb",
+          "#OutilsIA",
+          "#OAuth",
+          "#BuildInPublic"
+        ]
+      },
+      "design": {
+        "width": 1080,
+        "height": 1350,
+        "durationMs": null,
+        "slides": [
+          {
+            "planNumber": 1,
+            "html": "<div style=\"position:relative;width:1080px;height:1350px;overflow:hidden;background:#F8FAFC\"><div data-layer=\"l1\" data-type=\"shape\" style=\"position:absolute;top:0px;left:0px;width:1080px;height:18px;background:#7C3AED\"></div><div data-layer=\"l2\" data-type=\"text\" style=\"position:absolute;top:72px;left:72px;width:936px;height:42px;font-family:Inter;font-size:22px;line-height:30px;color:#7C3AED;font-weight:700;letter-spacing:1px\">LES ARBITRAGES DU CHANTIER — ÉPISODE CREAFLOW EN CHANTIER</div><div data-layer=\"l3\" data-type=\"text\" style=\"position:absolute;top:132px;left:72px;width:850px;height:116px;font-family:Space Grotesk;font-size:58px;line-height:62px;color:#101828;font-weight:700\">Le registre qui déplace la dette</div><div data-layer=\"l4\" data-type=\"text\" style=\"position:absolute;top:275px;left:72px;width:910px;height:78px;font-family:Inter;font-size:24px;line-height:34px;color:#344054\">Un choix d’architecture qui simplifie les intégrations… et révèle immédiatement une dette invisible</div><div data-layer=\"l5\" data-type=\"shape\" style=\"position:absolute;top:400px;left:72px;width:936px;height:560px;border:2px solid #CBD5E1;border-radius:24px;background:#FFFFFF\"></div><div data-layer=\"l6\" data-type=\"text\" style=\"position:absolute;top:430px;left:112px;width:220px;height:34px;font-family:Space Grotesk;font-size:22px;line-height:30px;color:#667085;font-weight:700\">SOURCES</div><div data-layer=\"l7\" data-type=\"shape\" style=\"position:absolute;top:492px;left:112px;width:180px;height:58px;border-radius:12px;background:#EDE9FE;border:1px solid #C4B5FD\"><div style=\"display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-family:Inter;font-size:22px;font-weight:700;color:#4C1D95\">GitHub</div></div><div data-layer=\"l8\" data-type=\"shape\" style=\"position:absolute;top:595px;left:112px;width:180px;height:58px;border-radius:12px;background:#EDE9FE;border:1px solid #C4B5FD\"><div style=\"display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-family:Inter;font-size:22px;font-weight:700;color:#4C1D95\">Notion</div></div><div data-layer=\"l9\" data-type=\"shape\" style=\"position:absolute;top:698px;left:112px;width:180px;height:58px;border-radius:12px;background:#EDE9FE;border:1px solid #C4B5FD\"><div style=\"display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-family:Inter;font-size:22px;font-weight:700;color:#4C1D95\">Linear</div></div><div data-layer=\"l10\" data-type=\"shape\" style=\"position:absolute;top:545px;left:370px;width:270px;height:220px;border-radius:18px;background:#101828;color:#FFFFFF\"><div style=\"display:flex;flex-direction:column;justify-content:center;padding:24px;height:100%;box-sizing:border-box;font-family:Space Grotesk\"><div style=\"font-size:28px;line-height:34px;font-weight:700\">cœur CreaFlow</div><div style=\"margin-top:18px;font-family:JetBrains Mono;font-size:18px;line-height:29px;color:#D0D5DD\">syncSource<br>createSourcesFromCandidates</div><div style=\"margin-top:12px;font-family:Inter;font-size:16px;line-height:22px;color:#F59E0B;font-weight:700\">ne connaît plus GitHub</div></div></div><div data-layer=\"l11\" data-type=\"shape\" style=\"position:absolute;top:470px;left:700px;width:268px;height:320px;border-radius:18px;background:#1F2937\"><div style=\"display:flex;flex-direction:column;justify-content:center;padding:28px;height:100%;box-sizing:border-box;font-family:Inter;color:#FFFFFF\"><div style=\"font-size:20px;line-height:28px;color:#F59E0B;font-weight:700\">DETTE DÉPLACÉE</div><div style=\"margin-top:22px;font-family:Space Grotesk;font-size:30px;line-height:36px;font-weight:700\">identité OAuth</div><div style=\"margin-top:16px;height:1px;background:#667085;width:100%\"></div><div style=\"margin-top:18px;font-family:Space Grotesk;font-size:30px;line-height:36px;font-weight:700\">rafraîchissement des tokens</div></div></div><div data-layer=\"l12\" data-type=\"text\" style=\"position:absolute;top:1020px;left:72px;width:936px;height:112px;padding:24px 30px;box-sizing:border-box;border-left:6px solid #7C3AED;background:#EDE9FE;border-radius:0 14px 14px 0;font-family:JetBrains Mono;font-size:21px;line-height:32px;color:#312E81\">Ajouter Notion : écrire le connecteur, l’enregistrer, ajouter la valeur à l’enum.</div></div>"
+          }
+        ],
+        "timeline": null,
+        "imageUrls": {},
+        "logoUrl": null,
+        "rationale": "La composition transforme le post en schéma d’architecture lisible : les trois sources convergent vers un cœur central, tandis que la dette est isolée dans un bloc sombre à droite pour matérialiser le déplacement plutôt que la disparition. La hiérarchie éditoriale place d’abord le titre et l’accroche, puis le schéma et enfin la note d’implémentation, afin de relier immédiatement le choix d’architecture à son coût concret."
+      },
+      "trace": null,
+      "ms": 19673
+    },
+    {
+      "scriptId": "4ecd3194-ddb0-4acd-9917-b79d38ffe793",
+      "platform": "linkedin",
+      "contentType": "text",
+      "visualFormat": null,
+      "durationMs": null,
+      "context": {
+        "series": "CreaFlow en chantier",
+        "role": "Coulisses produit",
+        "angle": "Itération en direct",
+        "beatId": "premier-echec-creaflow",
+        "episode": "Le premier résultat de baseline échoue avant même la génération visuelle",
+        "direction": "Pour les développeurs qui construisent des outils pour indépendants : raconter le premier échec concret de la baseline, survenu avant même la génération visuelle. À retenir : un pipeline peut échouer dans une dépendance d’infrastructure — ici la recherche d’assets et les embeddings — avant que le prompt ou la qualité du contenu ne soient en cause.",
+        "readers": [
+          "Développeurs d’outils IA",
+          "Indépendants outillés par l’IA",
+          "Curieux des méthodes LLM"
+        ],
+        "recentPosts": 0,
+        "inspirations": 8,
+        "materialDocuments": 1
+      },
+      "post": {
+        "contentType": "text",
+        "usedExcerpts": [
+          "`03-sparse-visual-serie` — Matière rare (4 docs, PixelPitch) · visuel Instagram · série imposée (Showcase du Lundi) → **ÉCHEC** (voir `03-sparse-visual-serie.ERROR.txt`)",
+          "**avant même l'appel au LLM de génération**",
+          "`buildGenerationContext()` déclenche `findBestBrandAssetForScript()` pour tout `contentType=\"visual\"`, qui appelle `embedText()` (`src/lib/llm/embeddings.ts`)",
+          "celui-ci utilise **toujours Gemini** (`text-embedding-004`) pour l'embedding de recherche sémantique, indépendamment de `LLM_PROVIDER`.",
+          "Ce modèle Gemini renvoie 404 (`models/text-embedding-004 is not found for API version v1beta`).",
+          "**toute génération de contenu `visual` est cassée en l'état**",
+          "Hors périmètre du présent chantier (prompt de génération) ; non corrigé ici, signalé pour action séparée."
+        ],
+        "promisesMade": [
+          "Dans un prochain épisode, j’isolerai ce bug d’infrastructure du chantier de prompt et je montrerai comment CreaFlow a décidé de le traiter."
+        ],
+        "concept": "Raconter sur LinkedIn le crash du brief visuel comme un échec d’infrastructure survenu avant tout appel au modèle, afin que les développeurs d’outils pour indépendants vérifient leurs dépendances de recherche d’assets et d’embeddings avant d’accuser le prompt ; terminer sur la séparation entre bug d’infrastructure et chantier de prompt, avec les garde-fous anti-invention et anti-répétition comme repères de conception.",
+        "title": "Le visuel cassé avant le prompt",
+        "hookText": "Le premier test visuel de CreaFlow n’a même pas atteint le modèle.",
+        "caption": "**CreaFlow en chantier — épisode du jour**\n\nLe premier test visuel de CreaFlow n’a même pas atteint le modèle.\n\nLe brief `03-sparse-visual-serie` devait produire un visuel Instagram à partir de 4 documents, avec une série imposée. Résultat : échec avant l’appel au LLM de génération.\n\nEn remontant la chaîne, le crash venait de la recherche d’assets. Pour un contenu visuel, `buildGenerationContext()` appelait `findBestBrandAssetForScript()`, qui déclenchait `embedText()` pour la recherche sémantique.\n\nEt cette dépendance utilisait toujours Gemini (`text-embedding-004`), même si le provider LLM était forcé sur OpenAI. Gemini renvoyait une 404 : `models/text-embedding-004 is not found for API version v1beta`.\n\nDonc le prompt n’était pas encore en cause. La qualité du contenu non plus. Le pipeline cassait dans une dépendance d’infrastructure, au moment où il cherchait l’asset de marque.\n\nC’est exactement le type de séparation que je veux préserver dans CreaFlow : ne pas inventer pour combler un manque, ne pas répéter mécaniquement un contenu déjà traité, mais ne pas non plus attribuer au prompt un bug situé avant sa propre exécution.\n\nLe garde-fou utile ici est simple : isoler ce qui relève de l’infrastructure de ce qui relève du chantier de prompt.\n\nDans un prochain épisode, j’isolerai ce bug d’infrastructure du chantier de prompt et je montrerai comment CreaFlow a décidé de le traiter.",
+        "hashtags": [
+          "#BuildInPublic",
+          "#LLM",
+          "#DeveloppementLogiciel",
+          "#AIEngineering"
+        ]
+      },
+      "design": null,
+      "trace": null,
+      "ms": 8854
+    }
+  ]
+}

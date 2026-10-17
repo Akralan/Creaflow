@@ -34,7 +34,7 @@ export function moveKey(
   const without = subjects.map((s) => ({ ...s, keys: s.keys.filter((k) => k !== key) }));
   const next =
     target === "new"
-      ? [...without, { name: newName, description: "", keys: [key] }]
+      ? [...without, { name: newName, description: "", targetAudience: "", keys: [key] }]
       : without.map((s, i) => (i === target ? { ...s, keys: [...s.keys, key] } : s));
   return next.filter((s) => s.keys.length > 0);
 }
@@ -72,6 +72,13 @@ export default function SubjectsEditor({
             value={subject.description}
             placeholder="En une phrase, ce qu'est ce projet"
             onChange={(e) => update(index, { description: e.target.value })}
+            style={inputStyle}
+          />
+          <input
+            aria-label="Pour qui est ce sujet"
+            value={subject.targetAudience}
+            placeholder="Pour qui : les gens que ce projet sert"
+            onChange={(e) => update(index, { targetAudience: e.target.value })}
             style={inputStyle}
           />
           <div style={{ display: "grid", gap: 6, marginTop: 4 }}>

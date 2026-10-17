@@ -1,0 +1,1 @@
+ALTER TABLE "inspirations" ADD COLUMN "drop_votes" integer DEFAULT 0 NOT NULL;

@@ -301,6 +301,40 @@ export async function createDesignForScript(userId: string, scriptId: string, pa
 }
 
 /**
+ * Composition sans enregistrement, pour les tests de génération (scripts/run-generation-test.ts) :
+ * même contexte que createDesignForScript, mêmes photos que la maquette d'origine, mais rien n'est
+ * écrit — ni maquette, ni détourage (les variantes demandées sont seulement rapportées).
+ */
+export async function previewDesign(
+  userId: string,
+  params: {
+    platform: string;
+    title: string | null;
+    hookVisual: string | null;
+    storyboard: { planNumber: number; description: string }[];
+    width: number;
+    height: number;
+    animationDurationMs: number | null;
+    images: DesignImage[];
+  }
+) {
+  const assets = await loadDesignAssets(userId, params.images);
+  const imageContexts = await buildImageContexts(params.images, assets);
+  const { prompt, profile } = await loadPromptContext(userId, params.width, params.height, imageContexts, params.animationDurationMs);
+  return composeDesign({
+    prompt,
+    post: {
+      platform: params.platform,
+      title: params.title,
+      hookVisual: params.hookVisual,
+      storyboard: params.storyboard.slice(0, MAX_DESIGN_SLIDES),
+      brandName: profile.brandName,
+      tone: parseStoredStyleProfile(profile.styleProfile)?.tone ?? null,
+    },
+  });
+}
+
+/**
  * Composition automatique juste après la génération d'un script visuel (docs/SPEC_COMPOSITION_VISUELLE.md
  * §2 « Quand la maquette est composée ») — appelée dans `after()` par les routes de génération.
  * Jamais bloquant : toute erreur est journalisée et laisse le script sans maquette (la fiche

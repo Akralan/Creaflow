@@ -237,6 +237,43 @@ export interface Product {
   photoUrl: string | null;
   /** Override d'audience par sujet (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — null = fallback marque. */
   targetAudience: string | null;
+  /** Portrait des lecteurs (docs/SPEC_PROMPT_GENERATION_V3.md §2.2) — null tant qu'il n'est pas produit. */
+  readerPortrait: ReaderPortrait | null;
+}
+
+/** Fiche de la veille d'inspiration d'un sujet (docs/SPEC_MEMOIRE_ET_VEILLE.md §3). */
+export interface Inspiration {
+  id: string;
+  productId: string;
+  url: string;
+  title: string;
+  insight: string;
+  kind: string;
+  readerLabel: string | null;
+  platform: string | null;
+  status: "active" | "dismissed";
+  dismissedBy: "model" | "user" | "system" | null;
+  dismissReason: string | null;
+  shownCount: number;
+  usedCount: number;
+  createdAt: string;
+}
+
+export interface PortraitReader {
+  label: string;
+  who: string;
+  knows: string;
+  wants: string;
+  stopsFor: string;
+  turnsOff: string;
+  words: string[];
+}
+
+export interface ReaderPortrait {
+  readers: PortraitReader[];
+  generatedAt: string | null;
+  editedByUser: boolean;
+  basedOnAudience: string | null;
 }
 
 export interface Connection {
@@ -311,6 +348,41 @@ export interface ContentSeries {
   /** Sujet dont cette série tire sa matière (sélecteur de sujet, docs/SPEC_REDACTEUR_EN_CHEF.md) —
    *  null si la série n'est rattachée à aucun sujet précis (matière de niveau marque). */
   product: { id: string; name: string } | null;
+  /** Cadrage choisi par l'auteur (docs/SPEC_CADRAGE_SERIE.md) — null si la série n'est pas cadrée. */
+  framing: SeriesFraming | null;
+}
+
+export type FramingDimension = "posture" | "voice" | "story";
+
+export interface FramingChoice {
+  id: string;
+  label: string;
+  rule: string;
+  sample: string;
+}
+
+export interface ProposedFramingOption {
+  id: string;
+  label: string;
+  description: string;
+  rule: string;
+  sample: string;
+}
+
+export interface FramingSignature {
+  text: string;
+  placement: "ouverture" | "fin" | "titre";
+}
+
+export interface SeriesFraming {
+  moment: { title: string; docIds: string[] };
+  posture: FramingChoice;
+  voice: FramingChoice | null;
+  story: FramingChoice;
+  signature: FramingSignature | null;
+  rejected: Array<{ dimension: FramingDimension; id: string; label: string; sample: string }>;
+  remarks: string[];
+  completedAt: string | null;
 }
 
 export interface StoryboardStep {
@@ -506,6 +578,8 @@ export type OnboardingState =
 export interface OnboardingSubjectDraft {
   name: string;
   description: string;
+  /** « Pour qui » de ce sujet (docs/SPEC_PROMPT_GENERATION_V3.md §2.1). */
+  targetAudience: string;
   keys: string[];
 }
 
@@ -721,6 +795,37 @@ export const api = {
   ) => post<{ categories: ContentCategory[] }>("/api/profile/content-categories", { categories }),
 
   getContentSeries: () => apiFetch<{ series: ContentSeries[] }>("/api/series"),
+  getFramingOptions: (
+    seriesId: string,
+    data: {
+      dimension: FramingDimension;
+      chosen: { posture?: { id: string; sample: string } | null; voice?: { id: string; sample: string } | null };
+      excludeIds?: string[];
+      remark?: string;
+      moment?: { title: string; docIds: string[] };
+    }
+  ) =>
+    post<{
+      moment: { title: string; docIds: string[]; hasMaterial: boolean };
+      options: ProposedFramingOption[];
+      accountVoice: (FramingChoice & { chosenAt: string | null }) | null;
+    }>(`/api/series/${seriesId}/framing/options`, data),
+  getFramingSignature: (
+    seriesId: string,
+    data: { posture: { id: string; sample: string }; voice: { id: string; sample: string } | null; story: { id: string; sample: string } }
+  ) => post<FramingSignature & { why: string }>(`/api/series/${seriesId}/framing/signature`, data),
+  saveFraming: (
+    seriesId: string,
+    data: {
+      moment: { title: string; docIds: string[] };
+      posture: { id: string; sample: string };
+      voice: { id: string; sample: string } | null;
+      story: { id: string; sample: string };
+      signature: FramingSignature | null;
+      rejected: Array<{ dimension: FramingDimension; id: string; sample: string }>;
+      remarks: string[];
+    }
+  ) => put<{ series: ContentSeries }>(`/api/series/${seriesId}/framing`, data),
   generateContentSeries: () => post<{ series: ContentSeries[] }>("/api/series"),
   saveContentSeries: (
     series: Array<{
@@ -773,6 +878,16 @@ export const api = {
     data: Partial<{ name: string; description: string; valueProposition: string; photoUrl: string; targetAudience: string | null }>
   ) => put<{ product: Product }>(`/api/products/${id}`, data),
   deleteProduct: (id: string) => del<{ ok: true }>(`/api/products/${id}`),
+  regenerateReaderPortrait: (id: string) => post<{ readerPortrait: ReaderPortrait }>(`/api/products/${id}/reader-portrait`, {}),
+  getInspirations: (productId: string) =>
+    apiFetch<{ inspirations: Inspiration[]; refreshedAt: string | null }>(`/api/products/${productId}/inspirations`),
+  runInspirationResearch: (productId: string) =>
+    post<{ inspirations: Inspiration[]; refreshedAt: string | null }>(`/api/products/${productId}/inspirations`, {}),
+  setInspirationStatus: (id: string, status: "active" | "dismissed") =>
+    patch<{ inspiration: Inspiration }>(`/api/inspirations/${id}`, { status }),
+  deleteInspiration: (id: string) => del<{ ok: true }>(`/api/inspirations/${id}`),
+  saveReaderPortrait: (id: string, readers: PortraitReader[]) =>
+    put<{ readerPortrait: ReaderPortrait }>(`/api/products/${id}/reader-portrait`, { readers }),
 
   getConnections: () => apiFetch<{ connections: Connection[] }>("/api/connections"),
 
@@ -918,7 +1033,7 @@ export const api = {
     expectations?: string;
     publishingDays: number[];
     platforms: string[];
-    subjects: Array<{ name: string; description?: string; keys: string[] }>;
+    subjects: Array<{ name: string; description?: string; targetAudience?: string; keys: string[] }>;
   }) => post<{ ok: true }>("/api/onboarding/complete", data),
 
   getAssistantChat: () =>

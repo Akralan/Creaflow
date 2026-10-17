@@ -438,10 +438,12 @@ export async function resolveProposal(
   // Le résumé d'un document de matière est produit hors de la requête, par la route via after() —
   // convention du repo : aucun service n'importe next/server (cf. api/materials/upload).
   let summarizeMaterialId: string | null = null;
+  // Sujets dont le portrait des lecteurs est à revoir, même convention (docs/SPEC_PROMPT_GENERATION_V3.md §2.2).
+  const portraitProductIds: string[] = [];
 
   if (proposal.kind === "product_create") {
     const data = productPayloadSchema.parse(merged);
-    await createProductsForUser(userId, [
+    const created = await createProductsForUser(userId, [
       {
         name: data.name,
         description: data.description ?? undefined,
@@ -449,6 +451,7 @@ export async function resolveProposal(
         targetAudience: data.targetAudience ?? undefined,
       },
     ]);
+    portraitProductIds.push(...created.map((p) => p.id));
   } else if (proposal.kind === "product_update") {
     if (!proposal.targetId) {
       throw new ApiError(400, "Proposition invalide : cible manquante.");
@@ -460,6 +463,7 @@ export async function resolveProposal(
       valueProposition: data.valueProposition ?? undefined,
       targetAudience: data.targetAudience ?? undefined,
     });
+    portraitProductIds.push(proposal.targetId);
   } else if (proposal.kind === "series_create" || proposal.kind === "series_update") {
     const data = seriesPayloadSchema.parse(merged);
     const categoryId =
@@ -711,5 +715,5 @@ export async function resolveProposal(
   }
 
   await db.update(assistantProposals).set({ status: "accepted", resolvedAt: new Date() }).where(eq(assistantProposals.id, proposal.id));
-  return { proposals: await listPendingProposals(userId), summarizeMaterialId };
+  return { proposals: await listPendingProposals(userId), summarizeMaterialId, portraitProductIds };
 }

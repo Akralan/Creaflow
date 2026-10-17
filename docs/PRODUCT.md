@@ -97,9 +97,14 @@ Chaque génération est contrainte par :
 - le **rôle éditorial** visé (`ContentCategory` côté données — personnalisé par IA, voir Module E),
 - un **angle imposé automatiquement** par le système anti-répétition (invisible pour l'utilisateur mais déterminant pour la structure du script),
 - la **série récurrente** le cas échéant (identité de format reconnaissable),
-- l'**audience visée** (celle du sujet si renseignée, sinon celle de la marque),
+- l'**audience visée**, propre à chaque sujet (deux projets n'ont pas le même public) et décrite en un **portrait de 1 à 3 lecteurs** ; le rédacteur en chef choisit chaque jour à qui s'adresse le post, en variant d'un post à l'autre,
+- le **cadrage de la série** quand l'auteur l'a choisi (posture, voix, récit, signature — voir Module E),
+- les **5 derniers posts du sujet**, pour ne pas répéter une accroche ni une fin,
+- des **fiches d'inspiration** trouvées par une veille web sur ce qui marche pour ces lecteurs ; le rédacteur dit lesquelles l'ont servi et lesquelles ne serviront jamais (une fiche signalée deux fois inutile est écartée),
 - le **corpus de matière factuelle** du sujet (unités structurées si le corpus a été traité, texte brut sinon) — base réelle de la génération, avec instruction explicite de ne jamais inventer une information non fournie (marqueur `[à compléter]` en son absence),
 - les sujets déjà traités récemment et un résumé des performances récentes (métriques saisies manuellement), quand disponibles.
+
+**Réfléchir avant d'écrire, puis être relu :** le modèle remplit d'abord ses étapes de réflexion (le lecteur visé, les moments candidats de la matière, plusieurs accroches, le choix motivé), puis écrit le post et le relit lui-même. Le code vérifie ensuite ce qui se mesure (tournures interdites, longueurs par réseau, citations retrouvées dans la matière, trous, accroche déjà utilisée) et fait réécrire une fois en cas de faute (`docs/SPEC_PROMPT_GENERATION_V3.md`).
 
 **Une idée, pas une paraphrase du brief :** avant de rédiger quoi que ce soit d'autre, le modèle formule en une ou deux phrases l'intention du post — l'idée unique, à qui elle s'adresse, ce qu'on doit en retenir ou faire. Cette intention (le "concept") est conservée avec le script, gelée dès la génération : les micro-retouches et régénérations de bloc s'y tiennent, sans jamais la réécrire.
 
@@ -129,6 +134,8 @@ Jamais implémentée, abandonnée avec la vidéo. Voir §2.4.
 
 ### Module E : Direction éditoriale & Assistant IA — *ajouté au périmètre, non prévu au cadrage initial*
 - **Écran "Direction" :** la **série est le seul objet éditorial manipulé** (`docs/SPEC_SERIES_ET_ROLES.md`) — création, identité, poids, ciblage par plateforme, sujet lié, mode, régénération par IA. Chaque série sert **exactement un rôle éditorial** (pourquoi le post existe : expertise, coulisses, preuve sociale…) ; un créneau sans série est un **post libre** qui ne porte qu'un rôle. Le mix des rôles s'affiche en lecture seule sur cet écran ; son édition complète (libellé, consigne, poids, gourmandise en matière) vit dans Paramètres › Avancé, parce que ce poids est surtout piloté par les performances réelles.
+- **Cadrer une série par des choix, pas par des questions :** avant le premier épisode, l'auteur choisit parmi trois extraits écrits sur un vrai moment de sa matière sa **posture**, sa **voix** (une fois pour le compte) et son **récit** ; le système propose ensuite une **signature** (`docs/SPEC_CADRAGE_SERIE.md`). Personne ne sait répondre à « quel ton veux-tu ? », tout le monde sait dire « celui-là ».
+- **Retirer une série** la sort aussi du calendrier à venir : ses posts déjà rédigés quittent le calendrier (le script reste dans les scripts) et ses jours de publication passent aux séries restantes.
 - **Assistant éditorial (chat) — un rédacteur en chef assistant :** conversation libre pour faire évoluer sujets, séries, rôles, angles, réseaux actifs, jours de publication, **matière première** et **audience de marque** (`docs/SPEC_ASSISTANT_AGENTIQUE.md`).
   - **Il lit tout l'espace de travail** pour argumenter : la matière du créateur, ses scripts, son calendrier, ses performances réelles, l'état narratif de ses séries, son profil. Un rédacteur en chef qui conseille sans avoir lu ce qui est publié ni ce qui est planifié ne sert à rien.
   - **Il ne touche ni aux scripts ni au calendrier.** Les mots et le planning restent la main du créateur ; l'assistant tient le brief. C'est une frontière de rôle, pas une limite technique.

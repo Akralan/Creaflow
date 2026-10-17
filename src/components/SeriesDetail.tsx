@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, Check, RefreshCw, X } from "lucide-react";
 import Button from "@/components/ui/Button";
+import SeriesFramingPanel from "@/components/SeriesFramingPanel";
 import { PlatformBadge } from "@/components/ui/Badge";
 import {
   api,
@@ -593,6 +594,9 @@ export default function SeriesDetail({
       </div>
 
       {error && <p style={{ margin: "0 0 12px", fontSize: 13, color: color.danger }}>{error}</p>}
+
+      {/* Cadrage de la série par des choix (docs/SPEC_CADRAGE_SERIE.md §5). */}
+      <SeriesFramingPanel series={series} onSeriesUpdate={onSeriesUpdate} />
 
       {series.mode === "rendez_vous" ? (
         <>

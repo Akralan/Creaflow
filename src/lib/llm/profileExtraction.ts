@@ -21,6 +21,9 @@ export interface ProfileExtractionInput {
 export const extractedSubjectSchema = z.object({
   name: z.string().min(1),
   description: z.string().default(""),
+  // Le « Pour qui » de CE projet (docs/SPEC_PROMPT_GENERATION_V3.md §2.1) : deux projets du même
+  // auteur n'ont pas forcément le même public.
+  targetAudience: z.string().default(""),
   keys: z.array(z.string()).default([]),
 });
 
@@ -59,13 +62,17 @@ const describeAuthorTool: LlmToolDefinition = {
           properties: {
             name: { type: "string", description: "Nom du projet, court, tel que l'auteur l'appellerait." },
             description: { type: "string", description: "Ce qu'est le projet, en une phrase." },
+            targetAudience: {
+              type: "string",
+              description: "Pour qui est CE projet, en une phrase : les gens qu'il sert. Vide si la matière ne permet pas de le dire.",
+            },
             keys: {
               type: "array",
               description: "Clés des sources et notes qui parlent de ce projet, recopiées telles quelles. Chaque clé dans un seul projet.",
               items: { type: "string" },
             },
           },
-          required: ["name", "description", "keys"],
+          required: ["name", "description", "targetAudience", "keys"],
         },
       },
     },
@@ -80,6 +87,7 @@ Règles :
 - Écris en français, à la deuxième personne (« tu »), sans jargon marketing.
 - Regroupe en un même projet les sources qui parlent du même produit, même si elles viennent d'outils différents : c'est le croisement du code, de la réflexion et des tâches qui fera de bons posts.
 - Au plus 5 projets. Si les sources sont plus nombreuses, regroupe les plus proches.
+- Deux projets du même auteur n'ont pas forcément le même public : donne à chacun le sien.
 - Toutes les clés fournies doivent apparaître, chacune dans un seul projet. Les notes vont dans le projet dont elles parlent.`;
 
 export function buildExtractionMessage(input: ProfileExtractionInput): string {
@@ -112,14 +120,15 @@ export function normalizeSubjects(
   for (const subject of subjects) {
     const keys = subject.keys.filter((key) => known.has(key) && !placed.has(key));
     keys.forEach((key) => placed.add(key));
-    if (keys.length > 0) result.push({ name: subject.name.trim(), description: subject.description.trim(), keys });
+    if (keys.length > 0)
+      result.push({ name: subject.name.trim(), description: subject.description.trim(), targetAudience: subject.targetAudience.trim(), keys });
   }
   for (const item of items) {
     if (placed.has(item.key)) continue;
     if (item.key.startsWith("note:") && result.length > 0) {
       result[0].keys.push(item.key);
     } else {
-      result.push({ name: item.label, description: "", keys: [item.key] });
+      result.push({ name: item.label, description: "", targetAudience: "", keys: [item.key] });
     }
     placed.add(item.key);
   }

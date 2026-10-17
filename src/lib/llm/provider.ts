@@ -1,15 +1,15 @@
-import type { AgenticCallParams, AgenticResult, StructuredCallParams } from "./types";
+import type { AgenticCallParams, AgenticResult, StructuredCallParams, WebResearchParams, WebResearchResult } from "./types";
 import { callAnthropic } from "./providers/anthropic";
 import { callGemini } from "./providers/gemini";
 import { callGroq } from "./providers/groq";
-import { callOpenAI, callOpenAIAgentic } from "./providers/openai";
+import { callOpenAI, callOpenAIAgentic, callOpenAIWebResearch } from "./providers/openai";
 import { logger } from "@/lib/logger";
 
 // Rappel ajouté au system prompt pour la nouvelle tentative — certains modèles (notamment via Groq)
 // répondent parfois en texte libre malgré un tool_choice forcé ; un rappel explicite au 2e essai
 // suffit généralement à corriger le tir.
 const TOOL_CALL_RETRY_NOTE =
-  '\n\nRAPPEL IMPORTANT : ta réponse précédente n\'a pas respecté le format d\'appel d\'outil requis (tu as répondu en texte libre au lieu d\'appeler l\'outil). Tu DOIS impérativement appeler l\'outil fourni, avec tous les champs requis remplis — mets ta réponse conversationnelle dans le champ "assistantReply" de l\'outil, jamais en dehors.';
+  "\n\nRAPPEL IMPORTANT : ta réponse précédente n'a pas appelé l'outil requis. Tu DOIS appeler l'outil fourni, avec tous les champs requis remplis. N'écris rien en dehors de l'appel d'outil.";
 
 function callProvider(provider: string, params: StructuredCallParams): Promise<unknown> {
   switch (provider) {
@@ -44,6 +44,15 @@ export async function callAgentic(params: AgenticCallParams): Promise<AgenticRes
     );
   }
   return callOpenAIAgentic(params);
+}
+
+/** Recherche web de la veille d'inspiration (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.2) — OpenAI en dur,
+ *  même parti pris que callAgentic : elle ne dépend pas de LLM_PROVIDER. */
+export async function callWebResearch(params: WebResearchParams): Promise<WebResearchResult> {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEY est requis pour la veille d'inspiration : la recherche web passe par OpenAI, indépendamment de LLM_PROVIDER.");
+  }
+  return callOpenAIWebResearch(params);
 }
 
 export async function callStructured(params: StructuredCallParams): Promise<unknown> {

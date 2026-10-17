@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { moveKey } from "./SubjectsEditor";
 
 const subjects = [
-  { name: "CreaFlow", description: "", keys: ["source:gh", "source:notion"] },
-  { name: "Autre", description: "", keys: ["source:linear"] },
+  { name: "CreaFlow", description: "", targetAudience: "", keys: ["source:gh", "source:notion"] },
+  { name: "Autre", description: "", targetAudience: "", keys: ["source:linear"] },
 ];
 
 describe("moveKey", () => {
@@ -16,7 +16,7 @@ describe("moveKey", () => {
 
   it("fait un sujet à part, nommé d'après la source", () => {
     const next = moveKey(subjects, "source:notion", "new", "Journal de bord");
-    expect(next[2]).toEqual({ name: "Journal de bord", description: "", keys: ["source:notion"] });
+    expect(next[2]).toEqual({ name: "Journal de bord", description: "", targetAudience: "", keys: ["source:notion"] });
   });
 
   it("retire le sujet qu'on vient de vider", () => {

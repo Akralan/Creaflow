@@ -232,12 +232,31 @@ const CHOOSE_DAILY_DIRECTION_INSTRUCTIONS = `Choisis la direction du prochain po
 - Si une promesse ouverte peut être honorée par ce créneau, honore-la (promiseToHonor) avant d'en faire une nouvelle. Jamais plus d'une promesse faite par post.
 - Si le créateur a fourni une idée, elle guide ce choix : interprète-la (c'est une piste, pas un texte), et si elle sort du plan, assume le détour (beatId null).
 - Si des concepts refusés te sont fournis, propose une direction réellement différente, pas une reformulation.
-- Le champ "concept" est ta direction éditoriale : l'idée unique, à qui elle s'adresse, ce qu'on doit retenir — en 1-2 phrases. Ne rédige rien d'autre.`;
+- Le champ "concept" est ta direction éditoriale : l'idée unique, à qui elle s'adresse, ce qu'on doit retenir — en 1-2 phrases. Ne rédige rien d'autre.
+- Si le sujet a plusieurs publics, choisis celui que ce post sert (readerLabel). Alterne au fil des posts quand l'arc le permet, sans sacrifier l'épisode le plus utile.`;
 
 const CHOOSE_DAILY_DIRECTION_TOOL_NAME = "choose_daily_direction";
 
 // Mêmes chaînes vides que llmNarrativeBeatSchema (angleHint) — pas d'union JSON Schema avec null.
 const emptyToNull = z.string().transform((v) => v.trim() || null);
+
+// Le public est choisi parmi le portrait du sujet (docs/SPEC_PROMPT_GENERATION_V3.md Annexe A.7) :
+// enum quand il y a des libellés, sinon chaîne libre (un enum vide rejetterait toute valeur).
+function buildChooseDailyDirectionTool(readerLabels: string[]): LlmToolDefinition {
+  const readerLabel =
+    readerLabels.length > 0
+      ? { type: "string", enum: [...readerLabels, ""], description: "Le public visé par ce post, recopié parmi les publics du sujet." }
+      : { type: "string", description: "Chaîne vide : le sujet n'a pas de portrait." };
+  const base = chooseDailyDirectionTool.input_schema;
+  return {
+    ...chooseDailyDirectionTool,
+    input_schema: {
+      ...base,
+      properties: { ...base.properties, readerLabel },
+      required: [...(base.required as string[]), "readerLabel"],
+    },
+  };
+}
 
 const chooseDailyDirectionTool: LlmToolDefinition = {
   name: CHOOSE_DAILY_DIRECTION_TOOL_NAME,
@@ -291,6 +310,7 @@ const chooseDailyDirectionResultSchema = z.object({
   promiseToHonor: emptyToNull,
   promiseToMake: emptyToNull,
   angleHint: emptyToNull,
+  readerLabel: emptyToNull.optional().transform((v) => v ?? null),
 });
 export type ChooseDailyDirectionResult = z.infer<typeof chooseDailyDirectionResultSchema>;
 
@@ -323,13 +343,21 @@ export interface DailyDirectionContext {
   openPromiseTexts: string[];
   callbacks: string[];
   documents: NarrativePlanDocumentContext[];
+  /** Portrait des lecteurs du sujet (docs/SPEC_PROMPT_GENERATION_V3.md §2.3). */
+  readers?: Array<{ label: string; who: string }>;
+  /** Publics visés par les derniers posts du sujet, du plus récent au plus ancien. */
+  recentReaderLabels?: string[];
 }
 
 function buildDailyDirectionUserMessage(context: DailyDirectionContext): string {
   const lines: string[] = [
     `Sujet : ${context.subjectLabel}`,
     context.targetAudience ? `Audience visée : ${context.targetAudience}` : null,
-    `Créneau : ${context.platform}, catégorie "${context.contentCategoryLabel}" (${context.contentCategoryDescription}), type de contenu ${context.contentType}.`,
+    context.readers?.length ? `Publics de ce sujet : ${context.readers.map((r) => `${r.label} (${r.who})`).join(" ; ")}` : null,
+    context.readers?.length && context.recentReaderLabels?.length
+      ? `Publics visés par les derniers posts : ${context.recentReaderLabels.join(", ")}`
+      : null,
+    `Créneau : ${context.platform}, rôle "${context.contentCategoryLabel}" (${context.contentCategoryDescription}), type de contenu ${context.contentType}.`,
     context.mode === "feuilleton"
       ? `Mode feuilleton. Arc actuel : ${context.arcSummary ?? "aucun."}`
       : `Mode rendez-vous.${context.formatContract ? ` Contrat de format : ${context.formatContract}` : ""}`,
@@ -366,7 +394,7 @@ export async function chooseDailyDirection(context: DailyDirectionContext): Prom
   const args = await callStructured({
     system: narrativeDirectorSystemPrompt(context.brandName, context.activityType),
     userMessage: buildDailyDirectionUserMessage(context),
-    tool: chooseDailyDirectionTool,
+    tool: buildChooseDailyDirectionTool((context.readers ?? []).map((r) => r.label)),
     maxTokens: 1024,
   });
   return chooseDailyDirectionResultSchema.parse(args);
