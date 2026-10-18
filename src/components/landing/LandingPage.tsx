@@ -76,7 +76,7 @@ export default function LandingPage() {
               </ul>
               <div className="proof" aria-label="What founders say">
                 <div className="proof-grid">
-                  <a className="quote feature" href="/stories/founder">
+                  <Link className="quote feature" href="/stories/founder">
                     <blockquote>
                       <p>
                         I was shipping every week, but barely anyone knew my
@@ -101,8 +101,8 @@ export default function LandingPage() {
                         →
                       </span>
                     </span>
-                  </a>
-                  <a className="quote" href="/stories/indie">
+                  </Link>
+                  <Link className="quote" href="/stories/indie">
                     <blockquote>
                       <p>
                         Writing one post used to take me longer than shipping
@@ -126,8 +126,8 @@ export default function LandingPage() {
                         →
                       </span>
                     </span>
-                  </a>
-                  <a className="quote" href="/stories/open-source">
+                  </Link>
+                  <Link className="quote" href="/stories/open-source">
                     <blockquote>
                       <p>
                         I had people starring my repo, but almost no real
@@ -151,7 +151,7 @@ export default function LandingPage() {
                         →
                       </span>
                     </span>
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -172,7 +172,8 @@ export default function LandingPage() {
                     changelog.
                   </p>
                   <p className="dim">
-                    But your future customers don&apos;t care about what you shipped.
+                    But your future customers don&apos;t care about what you
+                    shipped.
                   </p>
                   <p>They just want to understand why it matters to them.</p>
                   <p className="strong">
@@ -198,8 +199,8 @@ export default function LandingPage() {
                   <span className="n">02</span>
                   <h3>Written for future customers.</h3>
                   <p>
-                    Tellovo understands your SaaS and who you&apos;re building it
-                    for. It connects your technical progress to the problems
+                    Tellovo understands your SaaS and who you&apos;re building
+                    it for. It connects your technical progress to the problems
                     your potential customers actually face.
                   </p>
                 </li>
@@ -214,7 +215,9 @@ export default function LandingPage() {
                 </li>
               </ol>
               <p className="pw-close rv">
-                <span className="pw-muted">The goal isn&apos;t to post more.</span>
+                <span className="pw-muted">
+                  The goal isn&apos;t to post more.
+                </span>
                 <br />
                 It&apos;s to become known for the problems you solve.
               </p>

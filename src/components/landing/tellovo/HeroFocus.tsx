@@ -1,6 +1,14 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { ReactNode, RefObject } from "react";
 import { prefersReducedMotion } from "@/components/landing/tellovo/util";
 
@@ -15,12 +23,19 @@ const HeroFocusContext = createContext<HeroFocus | null>(null);
 
 export function useHeroFocus(): HeroFocus {
   const ctx = useContext(HeroFocusContext);
-  if (!ctx) throw new Error("useHeroFocus must be used inside <HeroFocusProvider>");
+  if (!ctx)
+    throw new Error("useHeroFocus must be used inside <HeroFocusProvider>");
   return ctx;
 }
 
 /** Every call to action brings the visitor back to the repository field: scroll, focus, nudge. */
-export function FocusHeroButton({ className, children }: { className?: string; children: ReactNode }) {
+export function FocusHeroButton({
+  className,
+  children,
+}: {
+  className?: string;
+  children: ReactNode;
+}) {
   const { focusHero } = useHeroFocus();
   return (
     <button className={className} type="button" onClick={focusHero}>
@@ -46,11 +61,15 @@ export function HeroFocusProvider({ children }: { children: ReactNode }) {
     if (!field) return done();
     cancelAnimationFrame(frame.current);
 
-    const viewport = window.innerHeight || document.documentElement.clientHeight;
+    const viewport =
+      window.innerHeight || document.documentElement.clientHeight;
     const rect = field.getBoundingClientRect();
     if (rect.top >= 72 && rect.bottom <= viewport) return done();
 
-    field.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "center" });
+    field.scrollIntoView({
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+      block: "center",
+    });
 
     // Wait for the smooth scroll to settle before nudging the field.
     let last: number | null = null;
@@ -74,6 +93,9 @@ export function HeroFocusProvider({ children }: { children: ReactNode }) {
     frame.current = requestAnimationFrame(tick);
   }, []);
 
-  const value = useMemo(() => ({ fieldRef, inputRef, nudge, focusHero }), [nudge, focusHero]);
+  const value = useMemo(
+    () => ({ fieldRef, inputRef, nudge, focusHero }),
+    [nudge, focusHero],
+  );
   return <HeroFocusContext value={value}>{children}</HeroFocusContext>;
 }

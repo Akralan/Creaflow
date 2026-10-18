@@ -18,7 +18,11 @@ export default function HeroForm() {
       <label className="sr" htmlFor="tv-repo">
         GitHub repository
       </label>
-      <div id="tv-field" ref={fieldRef} className={`field${nudge ? (nudge % 2 ? " nudge-a" : " nudge-b") : ""}`}>
+      <div
+        id="tv-field"
+        ref={fieldRef}
+        className={`field${nudge ? (nudge % 2 ? " nudge-a" : " nudge-b") : ""}`}
+      >
         <RepoIcon className="ico" aria-hidden="true" />
         <input
           id="tv-repo"
