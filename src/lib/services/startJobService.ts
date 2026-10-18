@@ -1,19 +1,17 @@
 import { and, asc, eq, gte, isNotNull, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { calendarEntries, contentSeries, creatorProfiles, materialSources, products, scripts, sourceMaterials, startJobs, users } from "@/db/schema";
-import { generateScript } from "@/lib/llm/generateScript";
-import { defaultContentTypeForPlatform } from "@/lib/llm/prompts";
 import { sendEmail } from "@/lib/email";
 import { firstPostEmail, loginLinkEmail } from "@/lib/email/templates";
 import { llmFailureMessage } from "@/lib/llm/errors";
 import { logger } from "@/lib/logger";
 import { generateAnglesForUser, listActiveAnglesForUser } from "@/lib/services/angleService";
 import { enforceScriptQuota } from "@/lib/services/billingService";
+import { entriesOfPost, writePost, writeSlotVersion } from "@/lib/services/postPairService";
 import { generateCategoriesForUser, listActiveCategoriesForUser } from "@/lib/services/categoryLabelsService";
 import { LOGIN_LINK_TTL_HOURS, issueLoginLink } from "@/lib/services/loginLinkService";
 import { readEventsInBackground } from "@/lib/services/materialEventService";
 import { refreshStaleReaderPortraits } from "@/lib/services/readerPortraitService";
-import { buildGenerationContext, createScriptRecord, deleteScriptForUser } from "@/lib/services/scriptService";
 import { ensureReaderForSeries } from "@/lib/services/seriesReaderService";
 import { generateSeriesForUser, listActiveSeriesForUser } from "@/lib/services/seriesService";
 import { syncSeriesSlots } from "@/lib/services/seriesSlotSync";
@@ -53,32 +51,6 @@ async function openDevlogSlots(userId: string, seriesId: string) {
     ),
     orderBy: asc(calendarEntries.scheduledDate),
   });
-}
-
-/**
- * Écrit le post d'un créneau par le chemin de génération ordinaire (même contexte que
- * `POST /api/scripts/generate`). Le quota d'essai est compté normalement.
- */
-async function writePostForSlot(userId: string, entry: typeof calendarEntries.$inferSelect) {
-  await enforceScriptQuota(userId);
-  const contentType = defaultContentTypeForPlatform(entry.platform);
-  const context = await buildGenerationContext(userId, entry.platform, entry.contentCategoryId, contentType, null, undefined, entry.seriesId);
-  const generated = await generateScript(context);
-  const script = await createScriptRecord(userId, entry.platform, context.contentCategory, context.resolvedProductId ?? null, generated, {
-    angleId: context.angle?.id ?? null,
-    seriesId: context.series?.id ?? null,
-    brandAssetId: context.brandAsset?.id ?? null,
-    eventId: context.eventBrief?.event.id ?? null,
-    visual: context.visual,
-  });
-  try {
-    await db.update(calendarEntries).set({ scriptId: script.id, status: "planned" }).where(eq(calendarEntries.id, entry.id));
-  } catch (error) {
-    // Un script sans créneau serait réécrit au prochain essai (et recompté dans le quota) : on le retire.
-    await deleteScriptForUser(userId, script.id).catch(() => undefined);
-    throw error;
-  }
-  return script;
 }
 
 /** Lit le repo, fait le portrait des lecteurs et lit la ligne de temps : la matière dont tout le reste dépend. */
@@ -183,7 +155,9 @@ export async function runStartJob(userId: string): Promise<void> {
       if (!scriptId) {
         const [slot] = await openDevlogSlots(userId, seriesId);
         if (!slot) throw new ApiError(502, "No slot is open for the first post.");
-        scriptId = (await writePostForSlot(userId, slot)).id;
+        // Le mail ne porte que la version LinkedIn : X s'écrit après son départ (plus bas).
+        await enforceScriptQuota(userId, { date: slot.scheduledDate });
+        scriptId = (await writeSlotVersion(userId, slot)).id;
       }
     } catch (error) {
       const reason = error instanceof ApiError ? error.message : llmFailureMessage(error);
@@ -194,6 +168,7 @@ export async function runStartJob(userId: string): Promise<void> {
     try {
       await sendMail(userId, scriptId ? "post" : "no-post", scriptId);
       await db.update(startJobs).set({ ...(scriptId ? { stage: "mailed" as const } : {}), mailedAt: new Date() }).where(eq(startJobs.userId, userId));
+      if (scriptId) await writeSecondNetwork(userId, scriptId);
     } catch (error) {
       logger.error("Start email could not be sent", error, { userId });
       await db.update(startJobs).set({ stage: "failed", error: "The email could not be sent." }).where(eq(startJobs.userId, userId));
@@ -213,7 +188,12 @@ export async function requestOtherPosts(userId: string): Promise<boolean> {
   if (!series) return false;
   const slots = (await openDevlogSlots(userId, series.id)).slice(0, 2);
   if (slots.length === 0) return false;
-  for (const slot of slots) await db.update(calendarEntries).set({ status: "generating" }).where(eq(calendarEntries.id, slot.id));
+  // Les deux réseaux de chaque post chargent ensemble.
+  for (const slot of slots) {
+    for (const version of await entriesOfPost(userId, slot)) {
+      if (!version.scriptId) await db.update(calendarEntries).set({ status: "generating" }).where(eq(calendarEntries.id, version.id));
+    }
+  }
 
   // La demande n'est gravée qu'une fois les créneaux marqués : sinon un échec entre les deux la
   // consommerait sans rien lancer. Une seule requête la gagne ; l'autre remet ce qu'elle a marqué.
@@ -240,7 +220,20 @@ export async function resumeStalledJob(userId: string): Promise<boolean> {
   return true;
 }
 
-/** Écrit, l'un après l'autre (le même événement ne doit pas être choisi deux fois), les créneaux « en chargement ». */
+/** La version X du premier post, après le départ du mail. Un échec n'est pas grave : elle se réécrit depuis l'écran. */
+async function writeSecondNetwork(userId: string, scriptId: string) {
+  try {
+    const entry = await db.query.calendarEntries.findFirst({ where: and(eq(calendarEntries.userId, userId), eq(calendarEntries.scriptId, scriptId)) });
+    if (entry) await writePost(userId, entry);
+  } catch (error) {
+    logger.error("The second network version of the first post could not be written", error, { userId, scriptId });
+  }
+}
+
+/**
+ * Écrit les posts « en chargement », l'un après l'autre (le même événement ne doit pas être choisi deux
+ * fois), les deux réseaux de chacun.
+ */
 export async function generateOtherPosts(userId: string): Promise<void> {
   if (running.has(`other:${userId}`)) return;
   running.add(`other:${userId}`);
@@ -249,13 +242,18 @@ export async function generateOtherPosts(userId: string): Promise<void> {
       where: and(eq(calendarEntries.userId, userId), eq(calendarEntries.status, "generating"), isNull(calendarEntries.scriptId)),
       orderBy: asc(calendarEntries.scheduledDate),
     });
+    const done = new Set<string>();
     for (const slot of slots) {
+      const key = `${slot.seriesId}|${slot.scheduledDate.getTime()}`;
+      if (done.has(key)) continue;
+      done.add(key);
       try {
-        await writePostForSlot(userId, slot);
+        await writePost(userId, slot);
       } catch (error) {
         logger.error("Generation of a post of the week failed", error, { userId, entryId: slot.id });
-        await db.update(calendarEntries).set({ status: "planned" }).where(eq(calendarEntries.id, slot.id));
       }
+      // Ce qui n'a pas pu s'écrire cesse de charger : le créneau reste vide et se réécrit depuis l'écran.
+      await db.update(calendarEntries).set({ status: "planned" }).where(and(eq(calendarEntries.userId, userId), eq(calendarEntries.status, "generating"), isNull(calendarEntries.scriptId), eq(calendarEntries.scheduledDate, slot.scheduledDate)));
     }
   } finally {
     running.delete(`other:${userId}`);

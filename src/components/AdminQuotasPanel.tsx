@@ -69,7 +69,7 @@ export default function AdminQuotasPanel({ adminEmail }: { adminEmail: string })
     }
   }
 
-  const row = (label: string, counter: AdminAccountQuotas["scripts"], value: string, onChange: (v: string) => void, normal: string) => (
+  const row = (label: string, counter: Omit<AdminAccountQuotas["scripts"], "unit">, value: string, onChange: (v: string) => void, normal: string) => (
     <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 160px", gap: 16, alignItems: "end" }}>
       <div>
         <div style={{ fontSize: 14, fontWeight: 600, color: color.text }}>{label}</div>
@@ -137,7 +137,7 @@ export default function AdminQuotasPanel({ adminEmail }: { adminEmail: string })
                 {account.subscription ? `${account.subscription.plan} subscription (${account.subscription.status})` : "Free trial, no subscription"}
               </div>
             </div>
-            {row("Scripts", account.scripts, scriptLimit, setScriptLimit, "normal limit")}
+            {row(account.scripts.unit === "weeks" ? "Free weeks" : "Scripts", account.scripts, scriptLimit, setScriptLimit, "normal limit")}
             {row("Edits", account.microEdits, microEditLimit, setMicroEditLimit, "normal limit")}
             <p style={{ margin: 0, fontSize: 12, color: color.textFaint, lineHeight: 1.5 }}>
               A custom quota replaces the trial or plan limit (over the same period: lifetime for the

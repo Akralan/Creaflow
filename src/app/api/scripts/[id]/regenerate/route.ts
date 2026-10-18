@@ -20,7 +20,7 @@ export async function POST(
     // Each script generation costs an LLM call — limit shared with the other generation routes.
     await enforceRateLimit("script-generate", userId, 20, 60);
     const { id } = await params;
-    await enforceScriptQuota(userId);
+    await enforceScriptQuota(userId, { scriptId: id });
 
     const existing = await db.query.scripts.findFirst({
       where: and(eq(scripts.id, id), eq(scripts.userId, userId)),

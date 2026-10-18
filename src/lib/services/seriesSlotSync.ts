@@ -1,10 +1,10 @@
-import { and, eq, gt, gte, inArray, ne, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { calendarEntries, contentSeries, postingGoals } from "@/db/schema";
+import { calendarEntries, contentSeries } from "@/db/schema";
 import { planSeriesSlots, slotKey } from "@/lib/services/calendarService";
 import { parseStoredRhythm, RHYTHM_HORIZON_DAYS, toIsoDate } from "@/lib/seriesRhythm";
 import { logger } from "@/lib/logger";
-import { isKnownPlatform } from "@/lib/social/types";
+import { KNOWN_PLATFORMS } from "@/lib/social/types";
 
 /** Ce qu'un recalcul a changé pour une série : affiché après l'enregistrement d'une série (§4). */
 export interface SeriesSlotChange {
@@ -56,7 +56,6 @@ export async function syncSeriesSlots(userId: string): Promise<Map<string, Serie
           contentSeriesPlatforms: { columns: { platform: true } },
         },
       });
-      const goals = await tx.query.postingGoals.findMany({ where: and(eq(postingGoals.userId, userId), gt(postingGoals.targetCountPerWeek, 0)) });
 
       // Séries retirées : tout ce qui n'est pas encore publié quitte le calendrier à venir.
       const archivedIds = series.filter((s) => s.archived).map((s) => s.id);
@@ -86,14 +85,16 @@ export async function syncSeriesSlots(userId: string): Promise<Map<string, Serie
         ),
         columns: { id: true, seriesId: true, platform: true, scheduledDate: true, scriptId: true, status: true },
       });
-      const activePlatforms = goals.map((g) => g.platform).filter(isKnownPlatform);
+      // Chaque post est écrit pour les deux réseaux (docs/SPEC_APP_DESIGN_TELLOVO.md E2) : un créneau par réseau,
+      // quels que soient les objectifs de publication, qui n'éteignent plus un réseau.
+      const activePlatforms = KNOWN_PLATFORMS.map((p) => p.key);
 
       for (const s of active) {
         const { toCreate, toDelete } = planSeriesSlots({
           series: {
             id: s.id,
             rhythm: parseStoredRhythm(s.rhythm),
-            platforms: s.contentSeriesPlatforms.map((p) => p.platform),
+            platforms: [],
             skippedSlots: s.skippedSlots,
           },
           activePlatforms,

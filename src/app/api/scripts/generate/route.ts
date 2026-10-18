@@ -32,8 +32,6 @@ export async function POST(request: NextRequest) {
     await enforceRateLimit("script-generate", userId, 20, 60);
     const body = schema.parse(await request.json());
     const { calendarEntryId, contentType, productId, directive } = body;
-    await enforceScriptQuota(userId);
-
     const entry = await db.query.calendarEntries.findFirst({
       where: and(eq(calendarEntries.id, calendarEntryId), eq(calendarEntries.userId, userId)),
     });
@@ -43,6 +41,7 @@ export async function POST(request: NextRequest) {
     if (entry.scriptId) {
       throw new ApiError(409, "This slot already has an associated script.");
     }
+    await enforceScriptQuota(userId, { date: entry.scheduledDate });
 
     const resolvedContentType = contentType ?? defaultContentTypeForPlatform(entry.platform);
     const context = await buildGenerationContext(

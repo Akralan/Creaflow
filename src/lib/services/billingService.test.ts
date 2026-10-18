@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CUSTOM_QUOTA_NAME, effectiveLimit, resolveQuotaStatus, toDbSubscriptionStatus } from "./billingService";
+import { CUSTOM_QUOTA_NAME, effectiveLimit, resolveQuotaStatus, toDbSubscriptionStatus, weekStartOf } from "./billingService";
 
 describe("resolveQuotaStatus", () => {
   it("allows as long as the used count is strictly below the limit", () => {
@@ -8,6 +8,7 @@ describe("resolveQuotaStatus", () => {
       used: 0,
       limit: 5,
       planName: "Free trial",
+      unit: "scripts",
     });
     expect(resolveQuotaStatus(4, 5, "Free trial").allowed).toBe(true);
   });
@@ -22,6 +23,15 @@ describe("resolveQuotaStatus", () => {
 
   it("reflects the plan name as passed, with no hidden logic", () => {
     expect(resolveQuotaStatus(10, 150, "Pro").planName).toBe("Pro");
+  });
+});
+
+describe("weekStartOf", () => {
+  it("gives the Monday of the week, UTC, whatever the day", () => {
+    expect(weekStartOf(new Date("2026-10-19T00:00:00Z"))).toBe("2026-10-19");
+    expect(weekStartOf(new Date("2026-10-21T15:30:00Z"))).toBe("2026-10-19");
+    expect(weekStartOf(new Date("2026-10-25T23:59:00Z"))).toBe("2026-10-19");
+    expect(weekStartOf(new Date("2026-10-26T00:00:00Z"))).toBe("2026-10-26");
   });
 });
 

@@ -40,6 +40,8 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
 // Free trial with no credit card: lifetime quota (no monthly reset, no `subscriptions` row until
 // the user has paid once — see billingService.ts).
 export const FREE_TRIAL_SCRIPT_LIMIT = 5;
+/** Ce que l'essai offre désormais : une semaine de contenu, à vie (docs/SPEC_APP_DESIGN_TELLOVO.md E10). */
+export const FREE_TRIAL_WEEK_LIMIT = 1;
 export const FREE_TRIAL_MICRO_EDIT_LIMIT = 30;
 
 export function getPlan(id: PlanId): PlanDefinition {

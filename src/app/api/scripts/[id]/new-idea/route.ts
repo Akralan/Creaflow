@@ -34,7 +34,7 @@ export async function POST(
     // Optional body ("idea in mind" field / select-all toggle, docs/SPEC_REDACTEUR_EN_CHEF.md Lot A)
     // — a missing body stays valid, as before the directive was added.
     const { directive } = schema.parse(await request.json().catch(() => ({})));
-    await enforceScriptQuota(userId);
+    await enforceScriptQuota(userId, { scriptId: id });
 
     const existing = await db.query.scripts.findFirst({
       where: and(eq(scripts.id, id), eq(scripts.userId, userId)),

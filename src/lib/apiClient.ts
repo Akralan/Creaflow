@@ -660,6 +660,8 @@ export interface QuotaStatus {
   used: number;
   limit: number;
   planName: string;
+  /** What the counter counts: weeks of content (trial) or scripts (subscription). */
+  unit: "weeks" | "scripts";
 }
 
 export interface BillingSubscription {
@@ -690,7 +692,7 @@ export interface AdminAccountQuotas {
   userId: string;
   email: string;
   subscription: { plan: string; status: string } | null;
-  scripts: { used: number; limit: number; planName: string; custom: number | null };
+  scripts: { used: number; limit: number; planName: string; unit: "weeks" | "scripts"; custom: number | null };
   microEdits: { used: number; limit: number; planName: string; custom: number | null };
 }
 

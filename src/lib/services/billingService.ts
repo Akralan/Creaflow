@@ -1,10 +1,10 @@
 import { and, count, eq, gte } from "drizzle-orm";
 import { db } from "@/db";
-import { scriptGenerationEvents, scriptMicroEditEvents, subscriptions, subscriptionStatusEnum, users } from "@/db/schema";
+import { calendarEntries, consumedWeeks, scriptGenerationEvents, scriptMicroEditEvents, scripts, subscriptions, subscriptionStatusEnum, users } from "@/db/schema";
 import type { Stripe } from "stripe";
 import { ApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
-import { FREE_TRIAL_MICRO_EDIT_LIMIT, FREE_TRIAL_SCRIPT_LIMIT, getPlan, type PlanId } from "@/lib/billing/plans";
+import { FREE_TRIAL_MICRO_EDIT_LIMIT, FREE_TRIAL_WEEK_LIMIT, getPlan, type PlanId } from "@/lib/billing/plans";
 
 type DbSubscriptionStatus = (typeof subscriptionStatusEnum.enumValues)[number];
 
@@ -44,10 +44,19 @@ export interface QuotaStatus {
   used: number;
   limit: number;
   planName: string;
+  /** Ce que le compteur compte : des semaines de contenu (essai) ou des scripts (abonnement). */
+  unit: "weeks" | "scripts";
 }
 
-export function resolveQuotaStatus(used: number, limit: number, planName: string): QuotaStatus {
-  return { allowed: used < limit, used, limit, planName };
+export function resolveQuotaStatus(used: number, limit: number, planName: string, unit: QuotaStatus["unit"] = "scripts"): QuotaStatus {
+  return { allowed: used < limit, used, limit, planName, unit };
+}
+
+/** Lundi (UTC) de la semaine qui contient `date`, en `YYYY-MM-DD` : la clé d'une semaine de contenu. */
+export function weekStartOf(date: Date): string {
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+  return d.toISOString().slice(0, 10);
 }
 
 export const CUSTOM_QUOTA_NAME = "Custom quota";
@@ -61,7 +70,7 @@ export function effectiveLimit(normal: { limit: number; planName: string }, cust
 }
 
 async function customLimits(userId: string) {
-  return db.query.users.findFirst({ where: eq(users.id, userId), columns: { scriptLimit: true, microEditLimit: true } });
+  return db.query.users.findFirst({ where: eq(users.id, userId), columns: { scriptLimit: true, microEditLimit: true, weekLimit: true } });
 }
 
 export async function getSubscriptionForUser(userId: string) {
@@ -90,12 +99,12 @@ export async function getQuotaStatus(userId: string): Promise<QuotaStatus> {
     const periodStart = subscription.currentPeriodStart ?? subscription.createdAt;
     const used = await countGenerationEvents(userId, periodStart);
     const { limit, planName } = effectiveLimit({ limit: plan.scriptsPerMonth, planName: plan.name }, custom?.scriptLimit);
-    return resolveQuotaStatus(used, limit, planName);
+    return resolveQuotaStatus(used, limit, planName, "scripts");
   }
-  // No active subscription: lifetime free trial (no periodic reset), see plans.ts.
-  const used = await countGenerationEvents(userId);
-  const { limit, planName } = effectiveLimit({ limit: FREE_TRIAL_SCRIPT_LIMIT, planName: "Free trial" }, custom?.scriptLimit);
-  return resolveQuotaStatus(used, limit, planName);
+  // No active subscription: the free trial offers weeks of content, for life (no periodic reset), see plans.ts.
+  const [{ value: used }] = await db.select({ value: count() }).from(consumedWeeks).where(eq(consumedWeeks.userId, userId));
+  const { limit, planName } = effectiveLimit({ limit: FREE_TRIAL_WEEK_LIMIT, planName: "Free trial" }, custom?.weekLimit);
+  return resolveQuotaStatus(used, limit, planName, "weeks");
 }
 
 /**
@@ -108,14 +117,46 @@ export async function getQuotaStatus(userId: string): Promise<QuotaStatus> {
  * require a lock held for the whole LLM call (several seconds) — judged worse (DB connections
  * held needlessly) than this occasional, rare overshoot for a monthly quota of 30 to 150 scripts.
  */
-export async function enforceScriptQuota(userId: string): Promise<void> {
+export async function enforceScriptQuota(userId: string, target?: { date?: Date; scriptId?: string }): Promise<void> {
   const status = await getQuotaStatus(userId);
+  if (status.unit === "weeks") return enforceWeekQuota(userId, status, await targetDate(userId, target));
   if (!status.allowed) {
     throw new ApiError(
       402,
       `Quota reached (${status.used}/${status.limit} scripts — ${status.planName}). Upgrade to a higher plan to keep generating scripts.`
     );
   }
+}
+
+/** La semaine visée : celle du créneau du post, sinon celle d'aujourd'hui. */
+async function targetDate(userId: string, target?: { date?: Date; scriptId?: string }): Promise<Date> {
+  if (target?.date) return target.date;
+  if (target?.scriptId) {
+    const entry = await db.query.calendarEntries.findFirst({
+      where: and(eq(calendarEntries.userId, userId), eq(calendarEntries.scriptId, target.scriptId)),
+      columns: { scheduledDate: true },
+    });
+    if (entry) return entry.scheduledDate;
+    // Un script sans créneau : sa semaine est celle où il a été écrit.
+    const script = await db.query.scripts.findFirst({ where: and(eq(scripts.id, target.scriptId), eq(scripts.userId, userId)), columns: { createdAt: true } });
+    if (script) return script.createdAt;
+  }
+  return new Date();
+}
+
+/**
+ * Compte sans abonnement (docs/SPEC_APP_DESIGN_TELLOVO.md E10) : écrire un post d'une semaine déjà entamée
+ * est libre ; entamer une nouvelle semaine consomme l'une de celles offertes. La semaine est gravée avant
+ * l'appel au modèle — une insertion unique, donc deux requêtes simultanées ne la consomment qu'une fois.
+ */
+async function enforceWeekQuota(userId: string, status: QuotaStatus, date: Date): Promise<void> {
+  const weekStart = weekStartOf(date);
+  const already = await db.query.consumedWeeks.findFirst({ where: and(eq(consumedWeeks.userId, userId), eq(consumedWeeks.weekStart, weekStart)), columns: { id: true } });
+  if (already) return;
+  if (!status.allowed) {
+    throw new ApiError(402, `Your ${status.limit === 1 ? "free week is" : `${status.limit} free weeks are`} used. Upgrade to keep your weekly content going.`);
+  }
+  await db.insert(consumedWeeks).values({ userId, weekStart }).onConflictDoNothing();
 }
 
 // Counts micro-edits (scriptMicroEditEvents), a pool separate from the full-generation quota

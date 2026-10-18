@@ -144,6 +144,8 @@ export const users = pgTable("users", {
   // the trial or plan limit. Null = normal limit.
   scriptLimit: integer("script_limit"),
   microEditLimit: integer("micro_edit_limit"),
+  // Semaines offertes à ce compte sans abonnement (docs/SPEC_APP_DESIGN_TELLOVO.md E10) ; null = limite de l'essai.
+  weekLimit: integer("week_limit"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -910,6 +912,20 @@ export const startJobs = pgTable("start_jobs", {
   otherPostsRequestedAt: timestamp("other_posts_requested_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+// Semaines de contenu entamées (docs/SPEC_APP_DESIGN_TELLOVO.md E10) : une ligne à la première génération d'un
+// post d'une semaine. Ce qu'un compte sans abonnement consomme ; supprimer les posts ne rend pas la semaine.
+export const consumedWeeks = pgTable(
+  "consumed_weeks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    /** Lundi de la semaine, `YYYY-MM-DD` (UTC). */
+    weekStart: text("week_start").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [unique().on(t.userId, t.weekStart)]
+);
 
 export const postingGoals = pgTable("posting_goals", {
   id: uuid("id").primaryKey().defaultRandom(),

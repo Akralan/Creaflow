@@ -337,6 +337,13 @@
       "when": 1792328865711,
       "tag": "0047_entree_par_le_repo",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1792349099725,
+      "tag": "0048_semaines_consommees",
+      "breakpoints": true
     }
   ]
 }
