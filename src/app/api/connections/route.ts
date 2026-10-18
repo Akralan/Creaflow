@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { socialConnections, postingGoals } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
-import { KNOWN_PLATFORMS } from "@/lib/social/types";
+import { KNOWN_PLATFORMS, isKnownPlatform } from "@/lib/social/types";
 import { hasMetricsFetch } from "@/lib/social";
 import { handleApiError } from "@/lib/api/errors";
 
@@ -25,7 +25,7 @@ export async function GET() {
     // platforms already connected. Before onboarding (no goal, no connection —
     // the onboarding "networks" step has no platform suggestion yet as long as
     // the conversational chat does not exist), we fall back to the OAuth-connected platforms.
-    const goalOrConnectionPlatforms = [...goals.map((g) => g.platform), ...connections.map((c) => c.platform)];
+    const goalOrConnectionPlatforms = [...goals.map((g) => g.platform), ...connections.map((c) => c.platform)].filter(isKnownPlatform);
     const platforms = new Set<string>(
       goalOrConnectionPlatforms.length > 0
         ? goalOrConnectionPlatforms

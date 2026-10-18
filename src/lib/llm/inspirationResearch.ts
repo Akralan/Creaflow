@@ -47,7 +47,7 @@ const saveInspirationsTool: LlmToolDefinition = {
             },
             kind: { type: "string", enum: [...INSPIRATION_KINDS], description: INSPIRATION_KINDS.join(" | ") },
             readerLabel: { type: "string", description: "The audience concerned, copied from those given, or empty string." },
-            platform: { type: "string", description: "The platform concerned (linkedin, x, instagram, newsletter, blog), or empty string." },
+            platform: { type: "string", description: "The platform concerned (linkedin or x), or empty string." },
           },
           required: ["url", "title", "insight", "kind", "readerLabel", "platform"],
           additionalProperties: false,

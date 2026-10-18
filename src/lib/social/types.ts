@@ -5,19 +5,14 @@ export interface PlatformDefinition {
   hasOAuth: boolean;
 }
 
-/** Registre extensible des plateformes reconnues par l'app. Toutes les plateformes ne
- *  proposent pas de connexion OAuth : les autres sont "suivies" (calendrier + objectifs)
- *  sans mécanique de SocialConnection. */
+/** Les deux réseaux de l'application (docs/SPEC_APP_DESIGN_TELLOVO.md E1) : tout le reste — Instagram,
+ *  newsletter, blog, Slack — a été retiré. Les anciennes lignes en base sur d'autres réseaux ne sont
+ *  pas supprimées, mais plus lues ni affichées. */
 export const KNOWN_PLATFORMS: PlatformDefinition[] = [
-  { key: "instagram", label: "Instagram", hasOAuth: true },
   { key: "linkedin", label: "LinkedIn", hasOAuth: true },
   // Corrigé (docs/SPEC_METRIQUES_AUTO.md §8) : provider écrit dans src/lib/social/x.ts —
   // l'activation réelle reste bloquée tant qu'aucun compte de facturation X n'est ouvert (§2.5).
-  { key: "x", label: "X (Twitter)", hasOAuth: true },
-  { key: "newsletter", label: "Newsletter", hasOAuth: false },
-  { key: "blog", label: "Blog / personal site", hasOAuth: false },
-  { key: "slack", label: "Slack", hasOAuth: false },
-  { key: "other", label: "Other", hasOAuth: false },
+  { key: "x", label: "X", hasOAuth: true },
 ];
 
 export function isKnownPlatform(value: string): boolean {

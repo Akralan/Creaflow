@@ -4,6 +4,8 @@ import { calendarEntries, creatorProfiles, postingGoals, visualDesigns } from "@
 import { planForSeries } from "@/lib/services/seriesReaderService";
 import { imagesOf, slidesOf } from "@/lib/services/visualDesignService";
 import { syncSeriesSlots } from "@/lib/services/seriesSlotSync";
+import { releaseStaleGenerating } from "@/lib/services/startRecovery";
+import { isKnownPlatform } from "@/lib/social/types";
 
 /** Posts rédigés montrés après la semaine affichée. */
 const LATER_HORIZON_DAYS = 28;
@@ -73,8 +75,9 @@ const CAPTION_PREVIEW_CHARS = 280;
  * première slide de sa maquette (HTML aux placeholders non résolus — l'écran les résout comme
  * l'éditeur, via les routes d'images du script).
  */
-export async function listCalendarRange(userId: string, from: Date, to: Date) {
+export async function listCalendarRange(userId: string, from: Date, to: Date, options?: { allSlots?: boolean }) {
   // L'horizon de 28 jours avance avec les jours : on le complète à chaque ouverture (pas de cron).
+  await releaseStaleGenerating(userId);
   await syncSeriesSlots(userId);
 
   const now = new Date();
@@ -143,7 +146,7 @@ export async function listCalendarRange(userId: string, from: Date, to: Date) {
       ? { ...next, series: next.series ? { id: next.series.id, label: next.series.label } : null, script: null, upcoming: upcoming.get(next.id) ?? null }
       : null,
     // Au-delà de la semaine, les posts rédigés et le prochain créneau vide de chaque série.
-    entries: entries.filter((entry) => entry.scheduledDate < to || entry.script || nextBySeries.has(entry.id)).map((entry) => {
+    entries: entries.filter((entry) => isKnownPlatform(entry.platform)).filter((entry) => options?.allSlots || entry.scheduledDate < to || entry.script || entry.status === "generating" || nextBySeries.has(entry.id)).map((entry) => {
       const script = entry.script;
       if (!script) return { ...entry, script: null, upcoming: upcoming.get(entry.id) ?? null };
       const design = designByScript.get(script.id);

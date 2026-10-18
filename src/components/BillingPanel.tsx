@@ -86,7 +86,9 @@ export default function BillingPanel() {
         </div>
 
         <p style={{ margin: 0, fontSize: 14, color: color.textSecondary }}>
-          {quota.used} / {quota.limit} scripts generated {subscription ? "this month" : "(free trial, lifetime)"}
+          {quota.unit === "weeks"
+            ? `${quota.used} / ${quota.limit} free ${quota.limit === 1 ? "week" : "weeks"} used (free trial, lifetime)`
+            : `${quota.used} / ${quota.limit} scripts generated this month`}
         </p>
         <div style={{ height: 6, borderRadius: 3, background: color.trackBg, overflow: "hidden" }}>
           <div

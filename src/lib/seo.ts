@@ -32,6 +32,8 @@ export const PRIVATE_ROUTE_PREFIXES = [
   "/onboarding",
   "/login",
   "/reinitialiser-mot-de-passe",
+  "/start",
+  "/connexion",
 ] as const;
 
 /** Demo or test host suffixes: never indexed, otherwise the real domain would inherit a

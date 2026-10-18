@@ -82,15 +82,6 @@ describe("checkGeneratedPost", () => {
     expect(failures).toContain("The text is 301 characters long, expected between 0 and 280.");
   });
 
-  it("checks the title as the subject line for a newsletter", () => {
-    const failures = checkGeneratedPost(
-      post({ title: "A newsletter subject line far too long for the inbox preview", caption: "x".repeat(2000), hashtags: [] }),
-      null,
-      ctx({ platform: "newsletter" })
-    );
-    expect(failures.some((f) => f.startsWith("The title is"))).toBe(true);
-  });
-
   it("limits the caption of a visual without text", () => {
     const failures = checkGeneratedPost(
       post({ hookText: undefined, hookVisual: "Photo", storyboard: [{ planNumber: 1, description: "Slide" }], caption: "x".repeat(400) }),

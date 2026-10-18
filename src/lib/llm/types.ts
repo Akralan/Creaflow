@@ -80,4 +80,7 @@ export interface StructuredCallParams {
   // declare. Enabling it by default broke the micro-edits (`regenerate_hashtags` etc.)
   // whose smaller schemas are not compliant — see docs/SPEC_MATIERE_EDITEUR.md §3.
   strict?: boolean;
+  // Images the model should look at, as data URLs (`data:image/png;base64,…`) — OpenAI only, ignored by the
+  // other providers. Used by the animation review, where the model sees the frames of its own work.
+  images?: string[];
 }

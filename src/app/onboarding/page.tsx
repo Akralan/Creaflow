@@ -31,7 +31,6 @@ const NAME_KEY = "creaflow.onboarding.name";
 const PLATFORM_CHOICES = [
   { key: "linkedin", label: "LinkedIn" },
   { key: "x", label: "X" },
-  { key: "instagram", label: "Instagram" },
 ];
 
 function readStoredName(): string {

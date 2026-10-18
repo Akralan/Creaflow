@@ -182,7 +182,7 @@ describe("runAssistantChatTurn", () => {
         expectations: "Publish without spending my evenings on it.",
         postingGoals: [
           { platform: "linkedin", targetCountPerWeek: 2 },
-          { platform: "instagram", targetCountPerWeek: 0 },
+          { platform: "x", targetCountPerWeek: 0 },
         ],
       })
     );
@@ -191,7 +191,7 @@ describe("runAssistantChatTurn", () => {
     expect(system).toContain("Days the author can publish: Wednesday, Saturday");
     expect(system).toContain("[id:s1] Workshop journal (Wed, days 3)");
     expect(system).toContain("LinkedIn: active");
-    expect(system).toContain("Instagram: switched off");
+    expect(system).toContain("X: switched off");
     expect(system).not.toContain("/week");
     expect(system).toContain("Publish without spending my evenings on it.");
     const proposalTool = tools.find((t: { name: string }) => t.name === "propose_changes");

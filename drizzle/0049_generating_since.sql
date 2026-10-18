@@ -1,0 +1,1 @@
+ALTER TABLE "calendar_entries" ADD COLUMN "generating_since" timestamp;

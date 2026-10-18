@@ -330,6 +330,34 @@
       "when": 1792277878220,
       "tag": "0046_safe_klaw",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1792328865711,
+      "tag": "0047_entree_par_le_repo",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1792349099725,
+      "tag": "0048_semaines_consommees",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1792354512863,
+      "tag": "0049_generating_since",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1792357186270,
+      "tag": "0050_post_animations",
+      "breakpoints": true
     }
   ]
 }

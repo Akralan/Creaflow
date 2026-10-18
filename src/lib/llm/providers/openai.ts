@@ -12,7 +12,8 @@ function getClient(): OpenAI {
     if (!apiKey) {
       throw new Error("OPENAI_API_KEY is not set in the environment.");
     }
-    client = new OpenAI({ apiKey });
+    // A call that gives no answer for three minutes is stuck (seen on long generations): the SDK retries it.
+    client = new OpenAI({ apiKey, timeout: 180_000 });
   }
   return client;
 }
@@ -26,11 +27,14 @@ const MODEL = process.env.OPENAI_MODEL || "gpt-5-mini";
 // script generation without the cost (tokens/latency) of a higher effort. "minimal" doesn't exist
 // for all reasoning models — gpt-5.6-luna explicitly refuses this value (supported:
 // none/low/medium/high/xhigh/max); "low" is the lowest value above "none" here.
-export async function callOpenAI({ system, userMessage, tool, maxTokens, strict }: StructuredCallParams): Promise<unknown> {
+export async function callOpenAI({ system, userMessage, tool, maxTokens, strict, images }: StructuredCallParams): Promise<unknown> {
   const response = await getClient().responses.create({
     model: MODEL,
     instructions: system,
-    input: userMessage,
+    input:
+      images && images.length > 0
+        ? [{ role: "user", content: [{ type: "input_text", text: userMessage }, ...images.map((image_url) => ({ type: "input_image" as const, image_url, detail: "high" as const }))] }]
+        : userMessage,
     max_output_tokens: maxTokens,
     reasoning: { effort: "low" },
     tools: [

@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     await enforceRateLimit("script-generate", userId, 20, 60);
     const body = schema.parse(await request.json());
     const { platform, contentCategoryId, contentType, productId, scheduledDate, seriesId, directive } = body;
-    await enforceScriptQuota(userId);
+    await enforceScriptQuota(userId, { date: scheduledDate ? new Date(`${scheduledDate}T00:00:00.000Z`) : undefined });
 
     const context = await buildGenerationContext(
       userId,

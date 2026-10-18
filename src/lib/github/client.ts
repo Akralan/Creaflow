@@ -76,10 +76,29 @@ export async function exchangeCode(code: string): Promise<{ accessToken: string;
   return { accessToken: data.access_token, scope: data.scope ?? "" };
 }
 
+/** Jeton du serveur pour lire les dépôts PUBLICS sans compte (docs/SPEC_ENTREE_PAR_LE_REPO.md D13) :
+ *  un jeton sans aucun droit suffit, il fait passer le quota de 60 à 5 000 requêtes par heure. Ce quota
+ *  est compté sur l'IP de notre serveur, pas sur celle du visiteur. Vide = lecture anonyme. */
+export function getPublicReadToken(): string {
+  return process.env.GITHUB_TOKEN?.trim() ?? "";
+}
+
+function authHeaders(token: string): Record<string, string> {
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function throwIfRateLimited(response: Response): void {
+  if (response.status === 403 && response.headers.get("x-ratelimit-remaining") === "0") {
+    const resetEpoch = Number(response.headers.get("x-ratelimit-reset") ?? 0);
+    const minutes = Math.max(1, Math.ceil((resetEpoch * 1000 - Date.now()) / 60000));
+    throw new GithubRateLimitError(minutes);
+  }
+}
+
 async function apiGet<T>(token: string, path: string): Promise<T> {
   const response = await fetch(`${API}${path}`, {
     headers: {
-      Authorization: `Bearer ${token}`,
+      ...authHeaders(token),
       Accept: "application/vnd.github+json",
       "X-GitHub-Api-Version": "2022-11-28",
     },
@@ -91,11 +110,7 @@ async function apiGet<T>(token: string, path: string): Promise<T> {
     }
     // Un 403 quota-atteint n'est pas une panne de la source : message dédié pour ne pas afficher
     // "erreur GitHub" à quelqu'un qui doit seulement attendre.
-    if (response.status === 403 && response.headers.get("x-ratelimit-remaining") === "0") {
-      const resetEpoch = Number(response.headers.get("x-ratelimit-reset") ?? 0);
-      const minutes = Math.max(1, Math.ceil((resetEpoch * 1000 - Date.now()) / 60000));
-      throw new GithubRateLimitError(minutes);
-    }
+    throwIfRateLimited(response);
     throw new Error(`GitHub call ${path} failed (${response.status}): ${await response.text()}`);
   }
 
@@ -175,6 +190,43 @@ export async function listPublicRepos(token: string): Promise<GithubRepo[]> {
   }));
 }
 
+export class GithubRepoNotFoundError extends Error {
+  constructor(fullName: string) {
+    super(`Repository ${fullName} was not found, or it is not public.`);
+    this.name = "GithubRepoNotFoundError";
+  }
+}
+
+/** Un dépôt public par son nom, sans compte. Un 404 vaut « introuvable ou privé » : GitHub ne fait pas
+ *  la différence pour un lecteur anonyme. */
+export async function fetchPublicRepo(token: string, fullName: string): Promise<GithubRepo & { private: boolean }> {
+  try {
+    const r = await apiGet<{
+      id: number;
+      full_name: string;
+      name: string;
+      description: string | null;
+      default_branch: string;
+      language: string | null;
+      pushed_at: string;
+      private: boolean;
+    }>(token, `/repos/${fullName}`);
+    return {
+      externalId: String(r.id),
+      fullName: r.full_name,
+      name: r.name,
+      description: r.description,
+      defaultBranch: r.default_branch,
+      language: r.language,
+      pushedAt: r.pushed_at,
+      private: r.private,
+    };
+  } catch (error) {
+    if (error instanceof Error && /failed \(404\)/.test(error.message)) throw new GithubRepoNotFoundError(fullName);
+    throw error;
+  }
+}
+
 export interface GithubTreeEntry {
   path: string;
   type: string;
@@ -199,12 +251,13 @@ export async function fetchTree(
 export async function fetchBlobText(token: string, fullName: string, sha: string): Promise<string> {
   const response = await fetch(`${API}/repos/${fullName}/git/blobs/${sha}`, {
     headers: {
-      Authorization: `Bearer ${token}`,
+      ...authHeaders(token),
       Accept: "application/vnd.github.raw",
       "X-GitHub-Api-Version": "2022-11-28",
     },
   });
   if (!response.ok) {
+    throwIfRateLimited(response);
     throw new Error(`Reading blob ${sha} of ${fullName} failed (${response.status}).`);
   }
   return response.text();
@@ -218,10 +271,10 @@ export interface GithubCommit {
   date: string;
 }
 
-export async function listCommits(token: string, fullName: string, branch: string): Promise<GithubCommit[]> {
+export async function listCommits(token: string, fullName: string, branch: string, perPage: number = MAX_GITHUB_COMMITS): Promise<GithubCommit[]> {
   const commits = await apiGet<
     Array<{ sha: string; commit: { message: string; author: { name: string | null; date: string } | null } }>
-  >(token, `/repos/${fullName}/commits?sha=${encodeURIComponent(branch)}&per_page=${MAX_GITHUB_COMMITS}`);
+  >(token, `/repos/${fullName}/commits?sha=${encodeURIComponent(branch)}&per_page=${perPage}`);
 
   return commits.map((c) => ({
     sha: c.sha,

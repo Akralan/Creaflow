@@ -118,6 +118,14 @@ passe modifié » (« si ce n'est pas vous, écrivez-nous à … »).
 
 ---
 
+## 5 bis. Avant de brancher Brevo : retirer le lien journalisé
+
+Le parcours `/start` (docs/SPEC_ENTREE_PAR_LE_REPO.md) envoie un email avec un lien de connexion. En attendant
+Brevo, `EMAIL_LOG_LINKS=1` écrit ce lien dans les logs du serveur pour pouvoir essayer le parcours.
+**À retirer avant la clé** : voir `URGENT.md` à la racine du dépôt.
+
+---
+
 ## 6. Emails de facturation — côté Stripe, pas côté code
 
 Les factures, échecs de paiement et rappels de renouvellement ne sont pas envoyés par l'app. Stripe

@@ -3,13 +3,17 @@ import { contentCategorySchema, platformSchema } from "./validation";
 
 describe("platformSchema", () => {
   it("accepts valid platforms, with or without an OAuth provider", () => {
-    for (const platform of ["instagram", "linkedin", "x", "newsletter", "blog", "other"]) {
+    for (const platform of ["linkedin", "x"]) {
       expect(() => platformSchema.parse(platform)).not.toThrow();
     }
   });
 
   it("rejects an unknown platform", () => {
     expect(() => platformSchema.parse("facebook")).toThrow();
+    // Removed with docs/SPEC_APP_DESIGN_TELLOVO.md E1: only LinkedIn and X remain.
+    for (const removed of ["instagram", "newsletter", "blog", "slack", "other"]) {
+      expect(() => platformSchema.parse(removed)).toThrow();
+    }
     // Removed along with video (docs/SPEC_ONBOARDING_MVP.md §6).
     expect(() => platformSchema.parse("tiktok")).toThrow();
     expect(() => platformSchema.parse("youtube")).toThrow();

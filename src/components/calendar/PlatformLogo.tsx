@@ -1,7 +1,6 @@
 import { PlatformBadge } from "@/components/ui/Badge";
 
-/** Logos of the networks you publish on, hand-drawn (no icon dependency for three
- *  brands). Other platforms (newsletter, blog…) keep their badge. */
+/** Logos of the two networks you publish on, hand-drawn (no icon dependency). */
 export default function PlatformLogo({ platform, size = 16 }: { platform: string; size?: number }) {
   if (platform === "linkedin") {
     return (
@@ -19,23 +18,6 @@ export default function PlatformLogo({ platform, size = 16 }: { platform: string
       <svg width={size} height={size} viewBox="0 0 24 24" aria-label="X" role="img">
         <rect width="24" height="24" rx="4" fill="#111" />
         <path fill="#fff" d="M15.9 5.5h2.2l-4.8 5.5 5.6 7.5h-4.4l-3.5-4.5-4 4.5H4.8l5.1-5.9L4.5 5.5h4.5l3.1 4.1 3.8-4.1Zm-.8 11.7h1.2L8.4 6.7H7.1l8 10.5Z" />
-      </svg>
-    );
-  }
-  if (platform === "instagram") {
-    return (
-      <svg width={size} height={size} viewBox="0 0 24 24" aria-label="Instagram" role="img">
-        <defs>
-          <linearGradient id="cf-ig" x1="0" y1="1" x2="1" y2="0">
-            <stop offset="0" stopColor="#F58529" />
-            <stop offset="0.5" stopColor="#DD2A7B" />
-            <stop offset="1" stopColor="#8134AF" />
-          </linearGradient>
-        </defs>
-        <rect width="24" height="24" rx="6" fill="url(#cf-ig)" />
-        <rect x="5.5" y="5.5" width="13" height="13" rx="4" fill="none" stroke="#fff" strokeWidth="1.8" />
-        <circle cx="12" cy="12" r="3.1" fill="none" stroke="#fff" strokeWidth="1.8" />
-        <circle cx="16.1" cy="7.9" r="1" fill="#fff" />
       </svg>
     );
   }

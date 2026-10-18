@@ -20,6 +20,8 @@ interface ProductUpdateInput {
   valueProposition?: string;
   photoUrl?: string;
   targetAudience?: string | null;
+  /** The problem the project solves (docs/SPEC_ENTREE_PAR_LE_REPO.md D14), nullable like the audience. */
+  problem?: string | null;
 }
 
 export async function createProductsForUser(userId: string, items: ProductCreateInput[]) {

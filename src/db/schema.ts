@@ -18,7 +18,7 @@ export const scriptStatusEnum = pgEnum("script_status", ["draft", "planned", "sh
 // "video" removed on 2026-10-16 (docs/SPEC_ONBOARDING_MVP.md §6): the product no longer makes video scripts.
 // The animation of a visual post is not one: it is a visualFormat.
 export const contentTypeEnum = pgEnum("content_type", ["visual", "text"]);
-export const calendarStatusEnum = pgEnum("calendar_status", ["planned", "shot", "published"]);
+export const calendarStatusEnum = pgEnum("calendar_status", ["planned", "shot", "published", "generating"]);
 export const assistantProposalKindEnum = pgEnum("assistant_proposal_kind", [
   "product_create",
   "product_update",
@@ -144,6 +144,8 @@ export const users = pgTable("users", {
   // the trial or plan limit. Null = normal limit.
   scriptLimit: integer("script_limit"),
   microEditLimit: integer("micro_edit_limit"),
+  // Semaines offertes à ce compte sans abonnement (docs/SPEC_APP_DESIGN_TELLOVO.md E10) ; null = limite de l'essai.
+  weekLimit: integer("week_limit"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -338,6 +340,9 @@ export const products = pgTable("products", {
   name: text("name").notNull(),
   description: text("description"),
   valueProposition: text("value_proposition"),
+  // The problem the topic solves (docs/SPEC_ENTREE_PAR_LE_REPO.md §3) — third field of the /start card,
+  // read by the reader portrait. Null as long as nobody (nor the extraction) has filled it.
+  problem: text("problem"),
   photoUrl: text("photo_url"),
   // Per-topic audience override (docs/SPEC_PROMPT_GENERATION_TECH.md §2/§5) — null = fallback to
   // CreatorProfile.targetAudience at injection (buildScriptUserMessage). Covers the multi-topic personal
@@ -882,6 +887,64 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Magic-link sign-in (docs/SPEC_ENTREE_PAR_LE_REPO.md §3, §6): same mechanics as password_reset_tokens
+// — only the SHA-256 hash is stored, a new link invalidates the previous ones, single use — with a
+// 24 h life because the link arrives with the first post. No purge: the row goes with the account.
+export const loginTokens = pgTable("login_tokens", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Background generation behind the /start flow (docs/SPEC_ENTREE_PAR_LE_REPO.md §3, §5): one row per
+// account born from the landing. `stage` makes it resumable and free of duplicates — a restart in the
+// middle, or a second click on the email link, never relaunches a finished step.
+export const startJobStageEnum = pgEnum("start_job_stage", ["queued", "profile", "series", "post", "mailed", "failed"]);
+
+export const startJobs = pgTable("start_jobs", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  stage: startJobStageEnum("stage").notNull().default("queued"),
+  error: text("error"),
+  mailedAt: timestamp("mailed_at"),
+  otherPostsRequestedAt: timestamp("other_posts_requested_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Semaines de contenu entamées (docs/SPEC_APP_DESIGN_TELLOVO.md E10) : une ligne à la première génération d'un
+// post d'une semaine. Ce qu'un compte sans abonnement consomme ; supprimer les posts ne rend pas la semaine.
+export const consumedWeeks = pgTable(
+  "consumed_weeks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    /** Lundi de la semaine, `YYYY-MM-DD` (UTC). */
+    weekStart: text("week_start").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [unique().on(t.userId, t.weekStart)]
+);
+
+// The animation of a post, written by the model as a free HTML page (docs/SPEC_ANIMATION_HTML_LIBRE.md): the
+// fragment that goes inside the stage, played in a sealed iframe. One per script; independent of `visual_designs`
+// (the static mockups). Deleting the script deletes it.
+export const postAnimations = pgTable("post_animations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  scriptId: uuid("script_id").notNull().unique().references(() => scripts.id, { onDelete: "cascade" }),
+  html: text("html").notNull(),
+  durationMs: integer("duration_ms").notNull(),
+  width: integer("width").notNull(),
+  height: integer("height").notNull(),
+  // What the model planned: the idea, the beats, its own rationale (shown in « Source »).
+  concept: text("concept").notNull().default(""),
+  beats: jsonb("beats").notNull().default([]),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const postingGoals = pgTable("posting_goals", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -898,6 +961,9 @@ export const calendarEntries = pgTable("calendar_entries", {
   contentCategoryId: uuid("content_category_id").notNull().references(() => contentCategories.id),
   seriesId: uuid("series_id").references(() => contentSeries.id, { onDelete: "set null" }),
   status: calendarStatusEnum("status").notNull().default("planned"),
+  // When the slot was marked « generating »: a slot still loading ten minutes later (server restarted
+  // mid-write) goes back to « planned » — see startRecovery.ts.
+  generatingSince: timestamp("generating_since"),
   reminderSent: boolean("reminder_sent").notNull().default(false),
 });
 

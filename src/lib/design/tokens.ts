@@ -38,7 +38,8 @@ export const fontMono = "'JetBrains Mono', monospace";
 
 export type Platform = string;
 export type ScriptStatus = "draft" | "planned" | "shot" | "published";
-export type CalendarStatus = "planned" | "shot" | "published";
+/** "generating": a post is being written for this slot (docs/SPEC_ENTREE_PAR_LE_REPO.md §6). */
+export type CalendarStatus = "planned" | "shot" | "published" | "generating";
 
 /** Palette assigned by position (hash of the id) to the dynamic content categories —
  *  there is no stable key (sales/behind-the-scenes/educational) left to map to a fixed color. */
@@ -54,28 +55,24 @@ export const categoryPalette: Array<{ base: string; bg: string; border: string; 
 /** Covers every key of KNOWN_PLATFORMS (src/lib/social/types.ts) — PlatformBadge
  *  applies a generic fallback if an unknown platform were to appear anyway. */
 export const platformMeta: Record<string, { label: string; badge: string; badgeBg: string }> = {
-  instagram: { label: "Instagram", badge: "IG", badgeBg: "oklch(0.6 0.2 15)" },
   linkedin: { label: "LinkedIn", badge: "IN", badgeBg: "oklch(0.5 0.14 250)" },
-  x: { label: "X (Twitter)", badge: "X", badgeBg: "#000" },
-  newsletter: { label: "Newsletter", badge: "NL", badgeBg: "oklch(0.55 0.12 250)" },
-  blog: { label: "Blog / site perso", badge: "BL", badgeBg: "oklch(0.5 0.1 150)" },
-  slack: { label: "Slack", badge: "SL", badgeBg: "oklch(0.5 0.13 320)" },
-  other: { label: "Autre", badge: "?", badgeBg: "#6b6259" },
+  x: { label: "X", badge: "X", badgeBg: "#000" },
 };
 
 export const genericPlatformMeta = { badge: "?", badgeBg: "#6b6259" };
 
 export const statusMeta: Record<ScriptStatus, { label: string; bg: string; fg: string }> = {
-  draft: { label: "Brouillon", bg: color.trackBg, fg: "#8a8078" },
-  planned: { label: "Planned", bg: accentAlpha(0.14), fg: accentText },
+  draft: { label: "Draft", bg: color.trackBg, fg: "#8a8078" },
+  planned: { label: "Ready", bg: accentAlpha(0.14), fg: accentText },
   shot: { label: "Ready", bg: "oklch(0.62 0.13 60 / 0.16)", fg: "oklch(0.5 0.13 60)" },
-  published: { label: "Published", bg: "oklch(0.62 0.13 150 / 0.16)", fg: "oklch(0.42 0.14 150)" },
+  published: { label: "Posted", bg: "oklch(0.62 0.13 150 / 0.16)", fg: "oklch(0.42 0.14 150)" },
 };
 
 export const calendarStatusMeta: Record<CalendarStatus, { label: string; bg: string; fg: string }> = {
   planned: statusMeta.planned,
   shot: statusMeta.shot,
   published: statusMeta.published,
+  generating: { label: "Writing…", bg: statusMeta.planned.bg, fg: statusMeta.planned.fg },
 };
 
 export const scriptStatusOptions: ScriptStatus[] = ["draft", "planned", "shot", "published"];

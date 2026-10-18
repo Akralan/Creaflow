@@ -5,11 +5,6 @@ import { hasOAuthProvider } from "@/lib/social/types";
 export default function ConnectionRow({ connection, returnTo }: { connection: Connection; returnTo: string }) {
   const meta = platformMeta[connection.platform];
   const oauth = hasOAuthProvider(connection.platform);
-  // Friction assumée (docs/SPEC_METRIQUES_AUTO.md §2.3) : un compte Instagram personnel n'a
-  // aucun accès API, quel que soit le chemin — seul un compte Creator (gratuit, réversible,
-  // ~3 taps dans les réglages du téléphone) fonctionne. Aucun contournement côté code, donc
-  // message explicite avant même la tentative de connexion plutôt qu'un échec silencieux.
-  const needsCreatorAccount = connection.platform === "instagram" && !connection.connected;
   const statusLabel =
     connection.status === "needs_reconnect"
       ? "Connection expired"
@@ -82,12 +77,6 @@ export default function ConnectionRow({ connection, returnTo }: { connection: Co
           </span>
         )}
       </div>
-      {needsCreatorAccount && (
-        <p style={{ margin: 0, fontSize: 12, color: color.textFaint, lineHeight: 1.5 }}>
-          Requires an Instagram <strong>Creator</strong> account (free, reversible, about 3 taps in your phone&apos;s
-          settings) — a personal account can&apos;t connect.
-        </p>
-      )}
     </div>
   );
 }

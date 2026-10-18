@@ -79,7 +79,10 @@ export async function buildGenerationContext(
   rejectedConcepts?: string[],
   // Format du post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) — choisi à la génération, relu
   // depuis le script pour les régénérations. Ignoré hors contentType "visual".
-  visual?: VisualFormatSpec | null
+  visual?: VisualFormatSpec | null,
+  // L'autre réseau d'un même post (docs/SPEC_APP_DESIGN_TELLOVO.md E2) : même événement que la version
+  // déjà écrite, au lieu du prochain de la ligne de temps.
+  sameEventId?: string | null
 ): Promise<ScriptGenerationContext> {
   const profile = await db.query.creatorProfiles.findFirst({
     where: eq(creatorProfiles.userId, userId),
@@ -122,7 +125,7 @@ export async function buildGenerationContext(
   let eventBrief = null;
   if (seriesId) {
     if (!seriesHasReader) await ensureReaderForSeries(userId, seriesId);
-    eventBrief = await buildEventBriefForSeries(userId, seriesId, rewritten?.eventId ?? null);
+    eventBrief = await buildEventBriefForSeries(userId, seriesId, rewritten?.eventId ?? sameEventId ?? null);
     if (!eventBrief) {
       throw new ApiError(
         409,

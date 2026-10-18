@@ -157,8 +157,8 @@ describe("polices et formats", () => {
 
   it("choisit un format par plateforme", () => {
     expect(defaultFormatForPlatform("x")).toBe("landscape");
-    expect(defaultFormatForPlatform("instagram")).toBe("portrait");
-    expect(defaultFormatForPlatform("newsletter")).toBe("square");
+    expect(defaultFormatForPlatform("linkedin")).toBe("portrait");
+    expect(defaultFormatForPlatform("anything-else")).toBe("square");
     expect(DESIGN_FORMATS.portrait).toMatchObject({ width: 1080, height: 1350 });
   });
 });

@@ -248,6 +248,8 @@ export interface Product {
   photoUrl: string | null;
   /** Per-topic audience override (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — null = brand fallback. */
   targetAudience: string | null;
+  /** The problem the project solves — « The problem you solve » on the context screen. */
+  problem?: string | null;
   /** Reader portrait (docs/SPEC_PROMPT_GENERATION_V3.md §2.2) — null until it is produced. */
   readerPortrait: ReaderPortrait | null;
 }
@@ -660,6 +662,8 @@ export interface QuotaStatus {
   used: number;
   limit: number;
   planName: string;
+  /** What the counter counts: weeks of content (trial) or scripts (subscription). */
+  unit: "weeks" | "scripts";
 }
 
 export interface BillingSubscription {
@@ -690,8 +694,36 @@ export interface AdminAccountQuotas {
   userId: string;
   email: string;
   subscription: { plan: string; status: string } | null;
-  scripts: { used: number; limit: number; planName: string; custom: number | null };
+  scripts: { used: number; limit: number; planName: string; unit: "weeks" | "scripts"; custom: number | null };
   microEdits: { used: number; limit: number; planName: string; custom: number | null };
+}
+
+/** The animation of a post (docs/SPEC_ANIMATION_HTML_LIBRE.md): the whole sealed page, ready for an iframe. */
+export interface PostAnimation {
+  scriptId: string;
+  document: string;
+  durationMs: number;
+  width: number;
+  height: number;
+  concept: string;
+  beats: Array<{ fromMs: number; toMs: number; shows: string; motion: string }>;
+}
+
+export interface StartAnalysis {
+  repo: { fullName: string; name: string; description: string | null; defaultBranch: string; language: string | null };
+  card: { name: string; tagline: string; building: string; who: string; problem: string };
+  extracted: boolean;
+  failureReason: string | null;
+}
+
+export interface StartCreateInput {
+  repo: string;
+  name: string;
+  building: string;
+  who: string;
+  problem: string;
+  days: number[];
+  email: string;
 }
 
 export const api = {
@@ -703,6 +735,11 @@ export const api = {
   forgotPassword: (email: string) => post<{ ok: true }>("/api/auth/password/forgot", { email }),
   /** Signs the user in right away (session cookie set by the route). */
   resetPassword: (token: string, password: string) => post<{ ok: true }>("/api/auth/password/reset", { token, password }),
+  // /start flow (docs/SPEC_ENTREE_PAR_LE_REPO.md): read a public repo, create the account from the card, sign in from the email link.
+  startAnalyze: (repo: string) => post<StartAnalysis>("/api/start/analyze", { repo }),
+  startCreate: (input: StartCreateInput) => post<{ ok: true }>("/api/start", input),
+  startResend: (email: string) => post<{ ok: true }>("/api/start/resend", { email }),
+  consumeLoginLink: (token: string) => post<{ ok: true; redirect: string }>("/api/auth/link", { token }),
 
   // Account tab (docs/SPEC_LEGAL_EMAIL_RGPD.md §4) — the person, not their brand.
   getAccount: () => apiFetch<{ account: AccountSummary }>("/api/account"),
@@ -861,7 +898,7 @@ export const api = {
   ) => post<{ products: Product[] }>("/api/products", items),
   updateProduct: (
     id: string,
-    data: Partial<{ name: string; description: string; valueProposition: string; photoUrl: string; targetAudience: string | null }>
+    data: Partial<{ name: string; description: string; valueProposition: string; photoUrl: string; targetAudience: string | null; problem: string | null }>
   ) => put<{ product: Product }>(`/api/products/${id}`, data),
   deleteProduct: (id: string) => del<{ ok: true }>(`/api/products/${id}`),
   regenerateReaderPortrait: (id: string) => post<{ readerPortrait: ReaderPortrait }>(`/api/products/${id}/reader-portrait`, {}),
@@ -884,7 +921,7 @@ export const api = {
   getCalendar: (month: string) =>
     apiFetch<{ entries: CalendarEntry[]; goals: PostingGoal[] }>(`/api/calendar?month=${month}`),
   /** Week view: `to` exclusive, dates in YYYY-MM-DD format. */
-  getCalendarWeek: (from: string, to: string) =>
+  getCalendarWeek: (from: string, to: string, options?: { all?: boolean }) =>
     apiFetch<{
       entries: WeekEntry[];
       goals: PostingGoal[];
@@ -893,8 +930,22 @@ export const api = {
       /** First empty slot coming up outside the displayed strip: the "next post" card. */
       nextSlot: WeekEntry | null;
     }>(
-      `/api/calendar?from=${from}&to=${to}`
+      `/api/calendar?from=${from}&to=${to}${options?.all ? "&all=1" : ""}`
     ),
+  /** Writes the post of an empty slot for both networks, in the background (the slots then read "generating"). */
+  writePost: (entryId: string) => post<{ ok: true }>("/api/posts/write", { entryId }),
+  /** « Prepare next week »: writes, in the background, every empty slot of the week starting `weekStart` (a Monday). */
+  prepareWeek: (weekStart: string) => post<{ ok: true; posts: number }>("/api/weeks/prepare", { weekStart }),
+  /** Adds or changes the visual of a post (image, carousel, animation); the text stays. Counts as a micro-edit. */
+  setPostVisual: (scriptId: string, visual: VisualFormatFields) => post<{ ok: true; scriptId: string }>("/api/posts/visual", { scriptId, ...visual }),
+  /** The animation of a post as the sealed page the browser plays, or null. */
+  getPostAnimation: (scriptId: string) => apiFetch<{ animation: PostAnimation | null }>(`/api/posts/animation?scriptId=${scriptId}`),
+  /** The model writes the animation of a post (a few tens of seconds). A micro-edit. */
+  createPostAnimation: (scriptId: string, durationMs: number) => post<{ animation: PostAnimation }>("/api/posts/animation", { scriptId, durationMs }),
+  /** The rendering test found something wrong: the model corrects its page. */
+  revisePostAnimation: (scriptId: string, issues: string[]) => put<{ animation: PostAnimation }>("/api/posts/animation", { scriptId, issues }),
+  removePostAnimation: (scriptId: string) => del<{ ok: true }>(`/api/posts/animation?scriptId=${scriptId}`),
+  removePostVisual: (scriptId: string) => del<{ ok: true }>(`/api/posts/visual?scriptId=${scriptId}`),
   getCalendarEntry: (id: string) => apiFetch<{ entry: CalendarEntry }>(`/api/calendar/${id}`),
   placeScript: (scriptId: string, scheduledDate: string) =>
     post<{ entry: CalendarEntry }>("/api/calendar", { scriptId, scheduledDate }),

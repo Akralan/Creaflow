@@ -40,3 +40,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+docs/tests/animation-html/**/animation.html
+docs/tests/animation-html/**/demo.html

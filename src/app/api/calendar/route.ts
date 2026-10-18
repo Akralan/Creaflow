@@ -29,7 +29,8 @@ export async function GET(request: NextRequest) {
       if (!(to > from) || to.getTime() - from.getTime() > 62 * 24 * 3600 * 1000) {
         throw new ApiError(400, "Invalid period.");
       }
-      return NextResponse.json(await listCalendarRange(userId, from, to));
+      // `all=1`: every empty slot of the window too (the plan and « Prepare next week » need them), not only the next one of each series.
+      return NextResponse.json(await listCalendarRange(userId, from, to, { allSlots: request.nextUrl.searchParams.get("all") === "1" }));
     }
     const month = monthSchema.parse(request.nextUrl.searchParams.get("month"));
     const { year, monthIndex } = parseMonth(month);

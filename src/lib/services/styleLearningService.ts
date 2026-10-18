@@ -19,7 +19,8 @@ import { parseStoredStyleProfile, styleProfileSchema, type StyleProfile } from "
  * social quand aucun profil n'existe encore.
  */
 
-const FINALIZED_STATUSES = ["shot", "published"] as const;
+// Ready (stored as "planned") is the screen's "I am done with this text"; "shot" is the retired video, read the same way.
+const FINALIZED_STATUSES = ["planned", "shot", "published"] as const;
 
 /** Seuil à partir duquel les écrans suggèrent de relancer l'analyse (§2, décision ouverte 1). */
 export const STYLE_LEARNING_SUGGESTION_THRESHOLD = 5;

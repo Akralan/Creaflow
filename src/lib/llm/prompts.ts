@@ -16,11 +16,8 @@ export interface ContentCategoryContext {
 }
 
 const DEFAULT_CONTENT_TYPE_BY_PLATFORM: Record<string, ContentType> = {
-  instagram: "visual",
   linkedin: "text",
   x: "text",
-  newsletter: "text",
-  blog: "text",
 };
 
 /** Content type suggested by default for each platform; the user can change it before generation. */
