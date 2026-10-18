@@ -191,7 +191,7 @@ export async function requestOtherPosts(userId: string): Promise<boolean> {
   // Les deux réseaux de chaque post chargent ensemble.
   for (const slot of slots) {
     for (const version of await entriesOfPost(userId, slot)) {
-      if (!version.scriptId) await db.update(calendarEntries).set({ status: "generating" }).where(eq(calendarEntries.id, version.id));
+      if (!version.scriptId) await db.update(calendarEntries).set({ status: "generating", generatingSince: new Date() }).where(eq(calendarEntries.id, version.id));
     }
   }
 

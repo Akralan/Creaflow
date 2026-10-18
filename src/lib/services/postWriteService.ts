@@ -19,7 +19,7 @@ async function markGenerating(userId: string, entry: typeof calendarEntries.$inf
   let marked = 0;
   for (const version of await entriesOfPost(userId, entry)) {
     if (version.scriptId) continue;
-    await db.update(calendarEntries).set({ status: "generating" }).where(and(eq(calendarEntries.id, version.id), isNull(calendarEntries.scriptId)));
+    await db.update(calendarEntries).set({ status: "generating", generatingSince: new Date() }).where(and(eq(calendarEntries.id, version.id), isNull(calendarEntries.scriptId)));
     marked += 1;
   }
   return marked;

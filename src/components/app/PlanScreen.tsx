@@ -27,7 +27,7 @@ export default function PlanScreen() {
 
   const load = useCallback(async () => {
     try {
-      const { entries } = await api.getCalendarWeek(dayKey(monday), dayKey(addDays(monday, 7)));
+      const { entries } = await api.getCalendarWeek(dayKey(monday), dayKey(addDays(monday, 7)), { all: true });
       setEntries(entries);
     } catch (e) {
       setError(e instanceof ApiClientError ? e.message : "The plan could not be loaded.");
@@ -39,7 +39,7 @@ export default function PlanScreen() {
   useEffect(() => {
     let alive = true;
     api
-      .getCalendarWeek(dayKey(monday), dayKey(addDays(monday, 7)))
+      .getCalendarWeek(dayKey(monday), dayKey(addDays(monday, 7)), { all: true })
       .then(({ entries }) => alive && setEntries(entries))
       .catch((e) => alive && setError(e instanceof ApiClientError ? e.message : "The plan could not be loaded."))
       .finally(() => alive && setLoaded(true));
@@ -86,9 +86,9 @@ export default function PlanScreen() {
     router.push(`/calendar?week=${dayKey(start)}${entry ? `&post=${entry.id}` : ""}`);
   }
 
-  // « Prepare next week » targets the first planned week that has nothing written yet (the next one to start).
-  const unwritten = (w: (typeof weeks)[number]) => w.groups.length > 0 && w.groups.every((g) => ["empty", "writing"].includes(postState(g)));
-  const target = weeks.find((w, i) => i > 0 && unwritten(w)) ?? weeks[1];
+  // « Prepare next week » fills the nearest coming week that still has posts to write.
+  const target = weeks.find((w, i) => i > 0 && w.groups.some((g) => postState(g) === "empty")) ?? weeks[1];
+  const writingNow = weeks.reduce((n, w) => n + w.groups.filter((g) => postState(g) === "writing").length, 0);
 
   return (
     <>
@@ -102,6 +102,12 @@ export default function PlanScreen() {
           {preparing ? "Preparing…" : "Prepare next week"} <span className="arr">→</span>
         </button>
       </header>
+      {writingNow > 0 && (
+        <p className="ai-note" role="status" style={{ marginBottom: 16 }}>
+          <span className="status writing" />
+          Tellovo is writing {writingNow} {writingNow === 1 ? "post" : "posts"}, for LinkedIn and X. They appear below as they are ready.
+        </p>
+      )}
       {error && (
         <p className="err" role="alert" style={{ marginBottom: 16 }}>
           {error}

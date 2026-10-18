@@ -3,10 +3,12 @@ import { z } from "zod";
 import { db } from "@/db";
 import { calendarEntries, scriptMicroEditEvents, scripts } from "@/db/schema";
 import { ApiError } from "@/lib/api/errors";
+import { logger } from "@/lib/logger";
 import { storyboardFromText } from "@/lib/llm/storyboardFromText";
 import { enforceMicroEditQuota } from "@/lib/services/billingService";
 import { entriesOfPost } from "@/lib/services/postPairService";
 import { createDesignForScript, deleteDesign, getDesignForScript, suggestDesignAssets } from "@/lib/services/visualDesignService";
+import { DesignValidationError } from "@/lib/visualDesign/htmlSanitizer";
 import { MAX_DURATION_MS, MAX_SLIDES, MIN_DURATION_MS, MIN_SLIDES, normalizeVisualSpec, VISUAL_FORMATS } from "@/lib/visualDesign/visualFormat";
 
 /**
@@ -43,6 +45,7 @@ export async function setPostVisual(userId: string, input: PostVisualInput) {
 
   const spec = normalizeVisualSpec({ visualFormat: input.visualFormat, slideCount: input.slideCount, durationMs: input.durationMs });
   const brief = await storyboardFromText({ platform: owner.platform, title: owner.title, text, spec }).catch((error) => {
+    logger.error("Visual brief of a post failed", error, { userId, scriptId: owner.id, format: spec.format });
     throw error instanceof ApiError ? error : new ApiError(502, "The visual could not be designed. Try again.");
   });
 
@@ -56,10 +59,19 @@ export async function setPostVisual(userId: string, input: PostVisualInput) {
     .where(eq(scripts.id, owner.id));
   try {
     const suggested = await suggestDesignAssets(userId, { brandAssetId: owner.brandAssetId, productId: owner.productId }).catch(() => []);
-    await createDesignForScript(userId, owner.id, { assetIds: suggested.map((a) => a.id) });
+    // The composer already retries once with its own error report; an answer the whitelist still refuses (seen
+    // in real use: an animation whose timeline names no known layer) is an unlucky sample, a fresh one usually works.
+    try {
+      await createDesignForScript(userId, owner.id, { assetIds: suggested.map((a) => a.id) });
+    } catch (first) {
+      if (!(first instanceof DesignValidationError)) throw first;
+      logger.warn("Mockup of a post refused, trying again", { scriptId: owner.id, issues: first.issues });
+      await createDesignForScript(userId, owner.id, { assetIds: suggested.map((a) => a.id) });
+    }
   } catch (error) {
     // No mockup, no visual: the post goes back to what it was.
     await db.update(scripts).set({ ...before, updatedAt: new Date() }).where(eq(scripts.id, owner.id));
+    logger.error("Mockup of a post failed", error, { userId, scriptId: owner.id, format: spec.format });
     throw error instanceof ApiError ? error : new ApiError(502, "The image could not be composed. Try again.");
   }
   await db.insert(scriptMicroEditEvents).values({ userId, scriptId: owner.id, kind: "design_instruction" });

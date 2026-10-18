@@ -72,7 +72,7 @@ export default function WeekScreen() {
   // Looks at the week again (after a change, or while posts are being written).
   const load = useCallback(async () => {
     try {
-      const { entries, hasLogo } = await api.getCalendarWeek(mondayKey, dayKey(addDays(new Date(`${mondayKey}T00:00:00Z`), 7)));
+      const { entries, hasLogo } = await api.getCalendarWeek(mondayKey, dayKey(addDays(new Date(`${mondayKey}T00:00:00Z`), 7)), { all: true });
       setEntries(entries);
       setHasLogo(hasLogo);
     } catch (e) {
@@ -84,7 +84,7 @@ export default function WeekScreen() {
   useEffect(() => {
     let alive = true;
     api
-      .getCalendarWeek(mondayKey, dayKey(addDays(new Date(`${mondayKey}T00:00:00Z`), 7)))
+      .getCalendarWeek(mondayKey, dayKey(addDays(new Date(`${mondayKey}T00:00:00Z`), 7)), { all: true })
       .then(({ entries, hasLogo }) => {
         if (!alive) return;
         setEntries(entries);

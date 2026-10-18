@@ -910,7 +910,7 @@ export const api = {
   getCalendar: (month: string) =>
     apiFetch<{ entries: CalendarEntry[]; goals: PostingGoal[] }>(`/api/calendar?month=${month}`),
   /** Week view: `to` exclusive, dates in YYYY-MM-DD format. */
-  getCalendarWeek: (from: string, to: string) =>
+  getCalendarWeek: (from: string, to: string, options?: { all?: boolean }) =>
     apiFetch<{
       entries: WeekEntry[];
       goals: PostingGoal[];
@@ -919,7 +919,7 @@ export const api = {
       /** First empty slot coming up outside the displayed strip: the "next post" card. */
       nextSlot: WeekEntry | null;
     }>(
-      `/api/calendar?from=${from}&to=${to}`
+      `/api/calendar?from=${from}&to=${to}${options?.all ? "&all=1" : ""}`
     ),
   /** Writes the post of an empty slot for both networks, in the background (the slots then read "generating"). */
   writePost: (entryId: string) => post<{ ok: true }>("/api/posts/write", { entryId }),

@@ -943,6 +943,9 @@ export const calendarEntries = pgTable("calendar_entries", {
   contentCategoryId: uuid("content_category_id").notNull().references(() => contentCategories.id),
   seriesId: uuid("series_id").references(() => contentSeries.id, { onDelete: "set null" }),
   status: calendarStatusEnum("status").notNull().default("planned"),
+  // When the slot was marked « generating »: a slot still loading ten minutes later (server restarted
+  // mid-write) goes back to « planned » — see startRecovery.ts.
+  generatingSince: timestamp("generating_since"),
   reminderSent: boolean("reminder_sent").notNull().default(false),
 });
 
