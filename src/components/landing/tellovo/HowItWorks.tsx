@@ -16,7 +16,10 @@ import {
   TrendIcon,
   XIcon,
 } from "@/components/landing/tellovo/icons";
-import { isMobile, prefersReducedMotion } from "@/components/landing/tellovo/util";
+import {
+  isMobile,
+  prefersReducedMotion,
+} from "@/components/landing/tellovo/util";
 
 const TABS = [
   { n: "01", label: "Connect" },
@@ -26,13 +29,21 @@ const TABS = [
 ];
 
 const COMMITS = [
-  { title: "feat: webhook retries", meta: "#42 · merged · 2h ago", isNew: true },
+  {
+    title: "feat: webhook retries",
+    meta: "#42 · merged · 2h ago",
+    isNew: true,
+  },
   { title: "fix: idempotent replays", meta: "#41 · merged · yesterday" },
   { title: "docs: retry policy", meta: "a3f9c1 · 2 days ago", extra: true },
 ];
 
 const STEPS = [
-  { n: "01", title: "Connect your work", body: "Start with your GitHub repo. Add Notion, Linear, or Markdown notes for richer context." },
+  {
+    n: "01",
+    title: "Connect your work",
+    body: "Start with your GitHub repo. Add Notion, Linear, or Markdown notes for richer context.",
+  },
   {
     n: "02",
     title: "Tellovo learns your business",
@@ -46,7 +57,10 @@ const STEPS = [
 ];
 
 type State = { phase: number; hold: boolean };
-type Action = { type: "advance" } | { type: "pick"; phase: number } | { type: "follow"; phase: number };
+type Action =
+  | { type: "advance" }
+  | { type: "pick"; phase: number }
+  | { type: "follow"; phase: number };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -55,7 +69,9 @@ function reducer(state: State, action: Action): State {
     case "pick":
       return { phase: action.phase, hold: true };
     case "follow":
-      return action.phase === state.phase ? state : { phase: action.phase, hold: false };
+      return action.phase === state.phase
+        ? state
+        : { phase: action.phase, hold: false };
   }
 }
 
@@ -117,7 +133,8 @@ function Illustration({
   railRef: RefObject<HTMLSpanElement | null>;
   railFillRef: RefObject<HTMLSpanElement | null>;
 }) {
-  const state = (i: number) => (phase === i ? " is-on" : phase > i ? " is-done" : "");
+  const state = (i: number) =>
+    phase === i ? " is-on" : phase > i ? " is-done" : "";
   return (
     <div
       className={`il rv ph-${phase}${hold ? " hold" : ""}`}
@@ -136,7 +153,10 @@ function Illustration({
           </p>
           <div className="il-stack">
             {COMMITS.map((c) => (
-              <div key={c.title} className={c.extra ? "cm il-hl0 cm-3" : "cm il-hl0"}>
+              <div
+                key={c.title}
+                className={c.extra ? "cm il-hl0 cm-3" : "cm il-hl0"}
+              >
                 <GithubIcon className="gh" aria-hidden="true" />
                 <span className="cm-b">
                   <span className="cm-t">{c.title}</span>
@@ -206,7 +226,9 @@ function Illustration({
               <Core />
               <span className="eng-tt">
                 <span className="eng-t">This week</span>
-                <span className="eng-s">3 best stories, each for the audience that converts</span>
+                <span className="eng-s">
+                  3 best stories, each for the audience that converts
+                </span>
               </span>
             </div>
             <ol className="picks">
@@ -237,7 +259,9 @@ function Illustration({
                 <RefreshIcon className="ico sm" aria-hidden="true" />
                 Learned from last week
               </p>
-              <p className="learn-r">“Problem solved” stories get 2× more replies</p>
+              <p className="learn-r">
+                “Problem solved” stories get 2× more replies
+              </p>
               <p className="learn-r">CTOs answer on LinkedIn, devs on X</p>
             </div>
           </div>
@@ -258,7 +282,10 @@ function Illustration({
                 +24
               </span>
             </div>
-            <p className="pm-t">Temporary failures shouldn&apos;t mean lost events. We just shipped webhook retries.</p>
+            <p className="pm-t">
+              Temporary failures shouldn&apos;t mean lost events. We just
+              shipped webhook retries.
+            </p>
             <p className="pm-e">
               <span className="eg">
                 <HeartIcon className="eg-i" />
@@ -284,7 +311,10 @@ function Illustration({
                 +41
               </span>
             </div>
-            <p className="pm-t">How we stopped losing customer events — and what it taught us about reliability.</p>
+            <p className="pm-t">
+              How we stopped losing customer events — and what it taught us
+              about reliability.
+            </p>
             <p className="pm-e">
               <span className="eg">
                 <ThumbIcon className="eg-i" />
@@ -300,7 +330,9 @@ function Illustration({
             <span className="ib-dot" aria-hidden="true" />
             <span className="ib-b">
               <span className="ib-t">New message · Head of Platform</span>
-              <span className="ib-q">“Saw your post on retries. Can we book a demo?”</span>
+              <span className="ib-q">
+                “Saw your post on retries. Can we book a demo?”
+              </span>
             </span>
           </div>
         </div>
@@ -317,7 +349,9 @@ function Illustration({
               <Core small />
               <span className="eng-tt">
                 <span className="eng-t">Engine update</span>
-                <span className="eng-s">What last week&apos;s posts taught it</span>
+                <span className="eng-s">
+                  What last week&apos;s posts taught it
+                </span>
               </span>
             </div>
             <p className="ctx-h ub-h">Replies per post, by story type</p>
@@ -346,7 +380,11 @@ function Illustration({
             </div>
             <p className="ctx-h ctx-live">Adjusted for next week</p>
             <ul className="adj">
-              {["More “problem solved” stories", "LinkedIn first for CTOs", "Fewer plain release notes"].map((t) => (
+              {[
+                "More “problem solved” stories",
+                "LinkedIn first for CTOs",
+                "Fewer plain release notes",
+              ].map((t) => (
                 <li key={t} className="adj-i">
                   <span className="adj-c" aria-hidden="true">
                     <CheckIcon className="ico sm" />
@@ -376,7 +414,9 @@ function Illustration({
               </span>
               <span className="eng-tt">
                 <span className="eng-t">Last 90 days</span>
-                <span className="eng-s">What weeks of stories compound into</span>
+                <span className="eng-s">
+                  What weeks of stories compound into
+                </span>
               </span>
             </div>
             <div className="scl-kpis">
@@ -399,9 +439,20 @@ function Illustration({
             </div>
             <svg className="scl-chart" viewBox="0 0 280 96" aria-hidden="true">
               <path className="scl-grid" d="M0 24H280M0 56H280M0 88H280" />
-              <path className="scl-area" d="M0 84 C40 82 60 78 90 72 S140 62 170 50 S230 24 280 10 V96 H0Z" />
-              <path className="scl-line scl-line-b" pathLength={1} d="M0 76 C50 74 80 70 110 62 S170 52 200 40 S250 30 280 22" />
-              <path className="scl-line" pathLength={1} d="M0 84 C40 82 60 78 90 72 S140 62 170 50 S230 24 280 10" />
+              <path
+                className="scl-area"
+                d="M0 84 C40 82 60 78 90 72 S140 62 170 50 S230 24 280 10 V96 H0Z"
+              />
+              <path
+                className="scl-line scl-line-b"
+                pathLength={1}
+                d="M0 76 C50 74 80 70 110 62 S170 52 200 40 S250 30 280 22"
+              />
+              <path
+                className="scl-line"
+                pathLength={1}
+                d="M0 84 C40 82 60 78 90 72 S140 62 170 50 S230 24 280 10"
+              />
               <circle className="scl-end" cx="280" cy="10" r="4" />
             </svg>
             <p className="scl-x" aria-hidden="true">
@@ -416,8 +467,15 @@ function Illustration({
 
       <div className="il-loop" aria-hidden="true">
         <div className="lp-wrap">
-          <svg className="lp-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
-            <path className="lp-path" d="M78.3 0 V20 Q78.3 32 70 32 H32.6 Q24.3 32 24.3 20 V3" />
+          <svg
+            className="lp-svg"
+            viewBox="0 0 100 40"
+            preserveAspectRatio="none"
+          >
+            <path
+              className="lp-path"
+              d="M78.3 0 V20 Q78.3 32 70 32 H32.6 Q24.3 32 24.3 20 V3"
+            />
           </svg>
           <span className="lp-arr" />
           <span className="lp-label">
@@ -427,9 +485,19 @@ function Illustration({
         </div>
       </div>
 
-      <div className="il-tabs" role="group" aria-label="Walk through the system">
+      <div
+        className="il-tabs"
+        role="group"
+        aria-label="Walk through the system"
+      >
         {TABS.map((t, i) => (
-          <button key={t.n} type="button" className={phase === i ? "it on" : "it"} aria-pressed={phase === i} onClick={() => onPick(i)}>
+          <button
+            key={t.n}
+            type="button"
+            className={phase === i ? "it on" : "it"}
+            aria-pressed={phase === i}
+            onClick={() => onPick(i)}
+          >
             <span className="it-bar" aria-hidden="true">
               <span className="it-f" />
             </span>
@@ -443,7 +511,10 @@ function Illustration({
 }
 
 export default function HowItWorks() {
-  const [{ phase, hold }, dispatch] = useReducer(reducer, { phase: 0, hold: false });
+  const [{ phase, hold }, dispatch] = useReducer(reducer, {
+    phase: 0,
+    hold: false,
+  });
   const sectionRef = useRef<HTMLElement | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
   const railRef = useRef<HTMLSpanElement | null>(null);
@@ -469,7 +540,8 @@ export default function HowItWorks() {
     }
     if (prefersReducedMotion()) return () => observer?.disconnect();
     const timer = setInterval(() => {
-      if (!visible.current || isMobile() || Date.now() < pausedUntil.current) return;
+      if (!visible.current || isMobile() || Date.now() < pausedUntil.current)
+        return;
       dispatch({ type: "advance" });
     }, 4200);
     return () => {
@@ -485,7 +557,9 @@ export default function HowItWorks() {
       frame = 0;
       const grid = gridRef.current;
       if (!grid || !isMobile()) return;
-      const line = 0.6 * (window.innerHeight || document.documentElement.clientHeight || 800);
+      const line =
+        0.6 *
+        (window.innerHeight || document.documentElement.clientHeight || 800);
       let current = 0;
       grid.querySelectorAll(".il-col > .il-k").forEach((el, i) => {
         if (el.getBoundingClientRect().top <= line) current = i;
@@ -518,7 +592,12 @@ export default function HowItWorks() {
   }, []);
 
   return (
-    <section id="story" ref={sectionRef} className={phase < 3 ? `sec story st-${phase}` : "sec story"} data-nav-dark="true">
+    <section
+      id="story"
+      ref={sectionRef}
+      className={phase < 3 ? `sec story st-${phase}` : "sec story"}
+      data-nav-dark="true"
+    >
       <div className="wrap">
         <div className="rv">
           <h2 className="h2">
@@ -536,7 +615,14 @@ export default function HowItWorks() {
             </li>
           ))}
         </ol>
-        <Illustration phase={phase} hold={hold} onPick={pick} gridRef={gridRef} railRef={railRef} railFillRef={railFillRef} />
+        <Illustration
+          phase={phase}
+          hold={hold}
+          onPick={pick}
+          gridRef={gridRef}
+          railRef={railRef}
+          railFillRef={railFillRef}
+        />
       </div>
     </section>
   );
