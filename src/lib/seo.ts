@@ -10,9 +10,9 @@ import type { Metadata } from "next";
  */
 
 export const SITE_NAME = "Tellovo";
-export const SITE_TITLE = "Tellovo — Your work notes become your posts";
+export const SITE_TITLE = "Tellovo — Just build. We grow your audience.";
 export const SITE_DESCRIPTION =
-  "Your work notes become your posts for the week. An AI editor-in-chief for freelancers, founders and developers who already document what they do.";
+  "Turn your GitHub activity into a weekly content plan for X and LinkedIn — built around your SaaS, your future customers, and your voice.";
 
 const FALLBACK_SITE_URL = "http://localhost:3000";
 

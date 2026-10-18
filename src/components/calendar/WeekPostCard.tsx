@@ -9,7 +9,7 @@ import { accent, accentAlpha, fontHeading, fontMono, statusMeta } from "@/lib/de
 import { platformMeta } from "@/lib/design/tokens";
 import styles from "./calendar.module.css";
 
-/** Tints of the landing page (src/components/landing/theme.ts): the calendar speaks the same language. */
+/** Warm tints of the app (the former landing page's palette): the calendar keeps its own. */
 const ink = {
   heading: "#1b1713",
   body: "#221d19",
