@@ -22,7 +22,6 @@ export function defaultFormatForPlatform(platform: string): DesignFormatId {
   switch (platform) {
     case "x":
       return "landscape";
-    case "instagram":
     case "linkedin":
       return "portrait";
     default:

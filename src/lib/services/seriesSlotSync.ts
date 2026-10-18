@@ -4,6 +4,7 @@ import { calendarEntries, contentSeries, postingGoals } from "@/db/schema";
 import { planSeriesSlots, slotKey } from "@/lib/services/calendarService";
 import { parseStoredRhythm, RHYTHM_HORIZON_DAYS, toIsoDate } from "@/lib/seriesRhythm";
 import { logger } from "@/lib/logger";
+import { isKnownPlatform } from "@/lib/social/types";
 
 /** Ce qu'un recalcul a changé pour une série : affiché après l'enregistrement d'une série (§4). */
 export interface SeriesSlotChange {
@@ -85,7 +86,7 @@ export async function syncSeriesSlots(userId: string): Promise<Map<string, Serie
         ),
         columns: { id: true, seriesId: true, platform: true, scheduledDate: true, scriptId: true, status: true },
       });
-      const activePlatforms = goals.map((g) => g.platform);
+      const activePlatforms = goals.map((g) => g.platform).filter(isKnownPlatform);
 
       for (const s of active) {
         const { toCreate, toDelete } = planSeriesSlots({

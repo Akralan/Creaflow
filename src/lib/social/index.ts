@@ -1,12 +1,10 @@
 import type { SocialProvider } from "./types";
-import { instagramProvider } from "./instagram";
 import { linkedinProvider } from "./linkedin";
 import { xProvider } from "./x";
 
 export * from "./types";
 
 export const socialProviders: Partial<Record<string, SocialProvider>> = {
-  instagram: instagramProvider,
   linkedin: linkedinProvider,
   x: xProvider,
 };

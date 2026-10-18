@@ -18,9 +18,6 @@ export interface PlatformLimits {
 export const PLATFORM_LIMITS: Record<string, PlatformLimits> = {
   linkedin: { hookMax: 200, hookIsTitle: false, captionMin: 600, captionMax: 1500, hashtagsMin: 0, hashtagsMax: 3 },
   x: { hookMax: 120, hookIsTitle: false, captionMin: 0, captionMax: 280, hashtagsMin: 0, hashtagsMax: 1 },
-  instagram: { hookMax: 125, hookIsTitle: false, captionMin: 300, captionMax: 1200, hashtagsMin: 3, hashtagsMax: 5 },
-  newsletter: { hookMax: 50, hookIsTitle: true, captionMin: 1500, captionMax: 4000, hashtagsMin: 0, hashtagsMax: 0 },
-  blog: { hookMax: 60, hookIsTitle: true, captionMin: 4000, captionMax: 10000, hashtagsMin: 0, hashtagsMax: 0 },
 };
 
 /** Caption of a visual post without text (`withText: false`): the visual carries the message. */
@@ -35,12 +32,6 @@ const PLATFORM_TEXTS: Record<string, (l: PlatformLimits) => string> = {
     `LinkedIn. Only the first two lines (about ${l.hookMax} characters) show before "see more": they must be enough to make people want to read on. Body of ${l.captionMin} to ${l.captionMax} characters, in paragraphs of one or two sentences separated by a blank line. ${l.hashtagsMin} to ${l.hashtagsMax} hashtags, at the end. The register: someone sharing what they learned, not an announcement.`,
   x: (l) =>
     `X. A post is at most ${l.captionMax} characters, hook included: if the idea doesn't fit, tighten it instead of cutting it. ${l.hashtagsMin} or ${l.hashtagsMax} hashtag. Direct tone, no introductory formula.`,
-  instagram: (l) =>
-    `Instagram. The first ${l.hookMax} characters of the caption show on their own: they carry the idea. Caption of ${l.captionMin} to ${l.captionMax} characters. ${l.hashtagsMin} to ${l.hashtagsMax} hashtags specific to the topic, at the end. The visual carries the message, the caption extends it.`,
-  newsletter: (l) =>
-    `Newsletter. The title works as the subject line: ${l.hookMax} characters at most. Body of ${l.captionMin} to ${l.captionMax} characters, in the tone of a letter to someone you know. No hashtags. A single link or call to action.`,
-  blog: (l) =>
-    `Blog. Title of ${l.hookMax} characters at most, with the word the reader would type into a search engine. Body of ${l.captionMin} to ${l.captionMax} characters, with subheadings. No hashtags.`,
 };
 
 const GENERIC_PLATFORM_TEXT = "Adapt the format and tone to the conventions of this platform, without borrowing those of another.";

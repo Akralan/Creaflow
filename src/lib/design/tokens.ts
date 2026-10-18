@@ -55,13 +55,8 @@ export const categoryPalette: Array<{ base: string; bg: string; border: string; 
 /** Covers every key of KNOWN_PLATFORMS (src/lib/social/types.ts) — PlatformBadge
  *  applies a generic fallback if an unknown platform were to appear anyway. */
 export const platformMeta: Record<string, { label: string; badge: string; badgeBg: string }> = {
-  instagram: { label: "Instagram", badge: "IG", badgeBg: "oklch(0.6 0.2 15)" },
   linkedin: { label: "LinkedIn", badge: "IN", badgeBg: "oklch(0.5 0.14 250)" },
-  x: { label: "X (Twitter)", badge: "X", badgeBg: "#000" },
-  newsletter: { label: "Newsletter", badge: "NL", badgeBg: "oklch(0.55 0.12 250)" },
-  blog: { label: "Blog / site perso", badge: "BL", badgeBg: "oklch(0.5 0.1 150)" },
-  slack: { label: "Slack", badge: "SL", badgeBg: "oklch(0.5 0.13 320)" },
-  other: { label: "Autre", badge: "?", badgeBg: "#6b6259" },
+  x: { label: "X", badge: "X", badgeBg: "#000" },
 };
 
 export const genericPlatformMeta = { badge: "?", badgeBg: "#6b6259" };
