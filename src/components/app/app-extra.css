@@ -255,6 +255,32 @@
   color: var(--ink);
 }
 
+/* A long action (visual, another idea) told on the pane */
+.ap .ai-note.working {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fcfbf9;
+  color: var(--ink);
+}
+.ap .ai-note.working .status {
+  margin-right: 2px;
+}
+.ap .composing {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  max-height: 420px;
+  background: linear-gradient(100deg, var(--soft) 30%, #fff 50%, var(--soft) 70%);
+  background-size: 200% 100%;
+  animation: ap-shimmer 1.4s linear infinite;
+}
+@keyframes ap-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
 /* The plan shows the seven days of a week (a series can publish on the weekend). */
 .ap .slots.seven {
   grid-template-columns: repeat(7, minmax(0, 1fr));

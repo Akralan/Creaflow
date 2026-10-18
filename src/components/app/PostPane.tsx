@@ -64,6 +64,8 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
   const [tools, setTools] = useState(false);
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [mockup, setMockup] = useState(false);
+  // What a long action is doing right now, told on the pane itself (the tools bubble closes when you click away).
+  const [working, setWorking] = useState<null | { text: string; media?: boolean }>(null);
   const [ownerScript, setOwnerScript] = useState<Script | null>(null);
   const [visualDraft, setVisualDraft] = useState<{ format: "single" | "carousel" | "animation"; slides: number; seconds: number }>({
     format: "single",
@@ -273,6 +275,7 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
     setError(null);
     setConfirm(null);
     setTools(false);
+    setWorking({ text: "Writing another idea from the same story… about 20 seconds." });
     try {
       const { script: updated } = await api.newIdea(script.id);
       setScript(updated);
@@ -283,6 +286,7 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
       setError(errorText(e));
     } finally {
       setBusy(null);
+      setWorking(null);
     }
   }
 
@@ -329,6 +333,8 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
     if (!script) return;
     setBusy("tool");
     setError(null);
+    setWorking({ text: "Composing your visual from the post… this takes about 30 seconds.", media: true });
+    setTools(false);
     try {
       await api.setPostVisual(script.id, {
         visualFormat: visualDraft.format,
@@ -336,12 +342,12 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
         ...(visualDraft.format === "animation" ? { durationMs: visualDraft.seconds * 1000 } : {}),
       });
       setConfirm(null);
-      setTools(false);
       onChanged();
     } catch (e) {
       setError(errorText(e));
     } finally {
       setBusy(null);
+      setWorking(null);
     }
   }
 
@@ -350,6 +356,7 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
     setBusy("tool");
     setError(null);
     setTools(false);
+    setWorking({ text: "Removing the visual…" });
     try {
       await api.removePostVisual(script.id);
       onChanged();
@@ -357,6 +364,7 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
       setError(errorText(e));
     } finally {
       setBusy(null);
+      setWorking(null);
     }
   }
 
@@ -382,7 +390,20 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
           </div>
         </div>
 
-        {isVisual && ownerId && (
+        {working && (
+          <p className="ai-note working" role="status" aria-live="polite">
+            <span className="status writing" />
+            {working.text}
+          </p>
+        )}
+        {working?.media && (
+          <div className="post-media">
+            <div className="frame">
+              <div className="composing" aria-hidden="true" />
+            </div>
+          </div>
+        )}
+        {isVisual && ownerId && !working?.media && (
           <div className="post-media">
             <div className="frame">
               {preview ? (
@@ -547,7 +568,7 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
                   </p>
                   <button type="button" onClick={applyVisual} disabled={busy !== null}>
                     <AppIcon name="check" />
-                    {busy === "tool" ? "Composing… about 30 s" : "Create the visual"}
+                    {busy === "tool" ? "Composing…" : "Create the visual"}
                   </button>
                   <button type="button" onClick={() => setConfirm(null)} disabled={busy !== null}>
                     <AppIcon name="x" />

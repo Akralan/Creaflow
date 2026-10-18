@@ -111,6 +111,7 @@ export default function WeekScreen() {
     [entries, weekEnd, nextMonday]
   );
   const anyGenerating = entries.some((e) => e.status === "generating" && !e.script);
+  const writingNow = useMemo(() => groupPosts(entries).filter((g) => postState(g) === "writing").length, [entries]);
 
   // While posts are being written, the screen looks again every few seconds.
   useEffect(() => {
@@ -210,6 +211,12 @@ export default function WeekScreen() {
           {preparing ? "Preparing…" : "Prepare next week"} <span className="arr">→</span>
         </button>
       </header>
+      {writingNow > 0 && (
+        <p className="ai-note" role="status" style={{ marginBottom: 16 }}>
+          <span className="status writing" />
+          Tellovo is writing {writingNow} {writingNow === 1 ? "post" : "posts"}, for LinkedIn and X. They appear here as they are ready.
+        </p>
+      )}
       {error && (
         <p className="err" role="alert" style={{ marginBottom: 16 }}>
           {error}
