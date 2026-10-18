@@ -248,6 +248,8 @@ export interface Product {
   photoUrl: string | null;
   /** Per-topic audience override (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — null = brand fallback. */
   targetAudience: string | null;
+  /** The problem the project solves — « The problem you solve » on the context screen. */
+  problem?: string | null;
   /** Reader portrait (docs/SPEC_PROMPT_GENERATION_V3.md §2.2) — null until it is produced. */
   readerPortrait: ReaderPortrait | null;
 }
@@ -885,7 +887,7 @@ export const api = {
   ) => post<{ products: Product[] }>("/api/products", items),
   updateProduct: (
     id: string,
-    data: Partial<{ name: string; description: string; valueProposition: string; photoUrl: string; targetAudience: string | null }>
+    data: Partial<{ name: string; description: string; valueProposition: string; photoUrl: string; targetAudience: string | null; problem: string | null }>
   ) => put<{ product: Product }>(`/api/products/${id}`, data),
   deleteProduct: (id: string) => del<{ ok: true }>(`/api/products/${id}`),
   regenerateReaderPortrait: (id: string) => post<{ readerPortrait: ReaderPortrait }>(`/api/products/${id}/reader-portrait`, {}),
@@ -919,6 +921,10 @@ export const api = {
     }>(
       `/api/calendar?from=${from}&to=${to}`
     ),
+  /** Writes the post of an empty slot for both networks, in the background (the slots then read "generating"). */
+  writePost: (entryId: string) => post<{ ok: true }>("/api/posts/write", { entryId }),
+  /** « Prepare next week »: writes, in the background, every empty slot of the week starting `weekStart` (a Monday). */
+  prepareWeek: (weekStart: string) => post<{ ok: true; posts: number }>("/api/weeks/prepare", { weekStart }),
   getCalendarEntry: (id: string) => apiFetch<{ entry: CalendarEntry }>(`/api/calendar/${id}`),
   placeScript: (scriptId: string, scheduledDate: string) =>
     post<{ entry: CalendarEntry }>("/api/calendar", { scriptId, scheduledDate }),

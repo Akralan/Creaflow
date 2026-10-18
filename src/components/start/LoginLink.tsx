@@ -29,7 +29,15 @@ export default function LoginLink() {
     sentOnce.current = true;
     api
       .consumeLoginLink(token)
-      .then((r) => router.replace(r.redirect))
+      .then((r) => {
+        // « You're in » : la bannière de bienvenue de l'écran de la semaine, une seule fois.
+        try {
+          sessionStorage.setItem("cf.welcome", "1");
+        } catch {
+          // Sans stockage la bannière manque, sans conséquence.
+        }
+        router.replace(r.redirect);
+      })
       .catch((err) => setError(err instanceof ApiClientError ? err.message : "Something went wrong. Ask for a new link."));
   }, [token, router]);
 

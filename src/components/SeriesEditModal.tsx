@@ -9,7 +9,6 @@ import { api, ApiClientError, type ContentSeries, type SeriesSlotChange } from "
 import { suggestDays, type SeriesRhythm } from "@/lib/seriesRhythm";
 import { accentAlpha, color, fontHeading } from "@/lib/design/tokens";
 import { useContentCategories } from "@/contexts/CategoryLabelsContext";
-import { KNOWN_PLATFORMS } from "@/lib/social/types";
 
 /**
  * Editing ONE series (docs/SPEC_SERIES_ET_ROLES.md) — opened from the pencil icon of a card on the
@@ -44,7 +43,7 @@ export default function SeriesEditModal({
   // A ref, not state: the profile response, which arrives later, must see a gesture made in the meantime.
   const rhythmTouched = useRef(Boolean(series?.rhythm));
   const [categoryId, setCategoryId] = useState(series?.category?.id ?? "");
-  const [platforms, setPlatforms] = useState<string[]>(series?.platforms ?? []);
+  const [platforms] = useState<string[]>(series?.platforms ?? []);
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,10 +86,6 @@ export default function SeriesEditModal({
       categoryId: s.category?.id ?? "",
       platforms: s.platforms,
     };
-  }
-
-  function togglePlatform(platform: string) {
-    setPlatforms((prev) => (prev.includes(platform) ? prev.filter((p) => p !== platform) : [...prev, platform]));
   }
 
   async function submit(payload: SeriesDraft[], removedId?: string) {
@@ -220,35 +215,9 @@ export default function SeriesEditModal({
           />
         </div>
 
-        <div>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 6 }}>
-            Networks <span style={{ fontWeight: 400, color: color.textFaint }}>— none selected = all</span>
-          </label>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {KNOWN_PLATFORMS.map((p) => {
-              const active = platforms.includes(p.key);
-              return (
-                <button
-                  key={p.key}
-                  onClick={() => togglePlatform(p.key)}
-                  style={{
-                    fontSize: 12,
-                    fontWeight: active ? 600 : 500,
-                    color: active ? "oklch(0.48 0.2 292)" : color.textMuted,
-                    background: active ? accentAlpha(0.12) : color.inputBg,
-                    border: `1px solid ${active ? "oklch(0.6 0.15 292)" : color.inputBorder}`,
-                    borderRadius: 20,
-                    padding: "5px 11px",
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                  }}
-                >
-                  {p.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <p style={{ margin: 0, fontSize: 13, color: color.textFaint }}>
+          Every post of this series is written for LinkedIn and for X, with a different text for each.
+        </p>
       </div>
 
       {error && <p style={{ margin: "16px 0 0", fontSize: 13, color: color.danger }}>{error}</p>}

@@ -1,0 +1,407 @@
+/* What the CreaFlow app adds to the copied tellovo.ai app (tellovo-app.css): fonts and links, the account menu,
+   the tools bubble, the image inside a post, the generating state, and the phone layout (E15).
+   docs/SPEC_APP_DESIGN_TELLOVO.md. */
+.ap {
+  --font-sans-stack: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono-stack: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-sans-stack);
+  -webkit-font-smoothing: antialiased;
+}
+.ap a {
+  color: var(--ink);
+}
+.ap button {
+  font-family: inherit;
+}
+.ap .status.posted {
+  color: var(--ink);
+}
+.ap .status.posted:before {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.ap .status.writing:before {
+  border-color: var(--accent);
+  border-top-color: transparent;
+  animation: ap-spin 0.9s linear infinite;
+}
+@keyframes ap-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.ap .wday.writing .snip {
+  font-style: italic;
+}
+
+/* Account menu */
+.ap .me-wrap {
+  position: relative;
+}
+.ap .me-btn {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+}
+.ap .me-btn:hover,
+.ap .me-btn[aria-expanded="true"] {
+  background: var(--soft);
+}
+.ap .menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 30;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 50px -28px #191a1d80;
+  animation: ap-fade 0.2s both;
+}
+.ap .menu a,
+.ap .menu button {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+}
+.ap .menu a:hover,
+.ap .menu button:hover {
+  background: var(--soft);
+}
+.ap .menu hr {
+  border: 0;
+  border-top: 1px solid var(--soft);
+  margin: 4px 2px;
+}
+.ap .side-mobile-me {
+  display: none;
+}
+
+/* Post pane: image, tools */
+.ap .post-media {
+  position: relative;
+  margin: 0 0 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+.ap .post-media .frame {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--soft);
+}
+.ap .post-media .strip {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ap .post-media .strip .tbtn {
+  min-height: 40px;
+  width: 40px;
+  padding: 0;
+  justify-content: center;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+.ap .tools-wrap {
+  position: relative;
+}
+.ap .bubble {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  z-index: 25;
+  width: min(300px, calc(100vw - 32px));
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow: 0 30px 60px -30px #191a1d99;
+  animation: ap-fade 0.2s both;
+  display: flex;
+  flex-direction: column;
+}
+.ap .bubble h3 {
+  font-size: 12px;
+  font-weight: 560;
+  letter-spacing: 0.02em;
+  color: var(--mute);
+  padding: 8px 10px 4px;
+}
+.ap .bubble button {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+.ap .bubble button:hover {
+  background: var(--soft);
+}
+.ap .bubble button.danger {
+  color: #b3261e;
+}
+.ap .bubble button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.ap .bubble hr {
+  border: 0;
+  border-top: 1px solid var(--soft);
+  margin: 4px 2px;
+}
+.ap .empty-pane {
+  padding: 48px 34px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+.ap .empty-pane h2 {
+  letter-spacing: -0.04em;
+  font-size: clamp(22px, 2.1vw, 28px);
+  font-weight: 600;
+  line-height: 1.15;
+}
+.ap .empty-pane p {
+  color: var(--mute);
+  max-width: 52ch;
+}
+.ap .pane-note {
+  color: var(--mute);
+  font-size: 13px;
+  padding: 0 34px 14px;
+}
+.ap .err {
+  color: #b3261e;
+  font-size: 13.5px;
+}
+.ap .pane-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 16px;
+  color: var(--accent);
+  font-size: 13.5px;
+}
+.ap .wk-nav {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.ap .wk-nav .xbtn {
+  width: 28px;
+  height: 28px;
+}
+.ap .series-tag {
+  color: var(--mute);
+  font-size: 12.5px;
+}
+.ap .modal-wide {
+  width: min(980px, 100%);
+  padding: 22px;
+}
+.ap .day-short {
+  display: none;
+}
+
+/* The plan shows the seven days of a week (a series can publish on the weekend). */
+.ap .slots.seven {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+@media (max-width: 900px) {
+  .ap .slots.seven {
+    grid-template-columns: repeat(7, minmax(120px, 1fr));
+  }
+}
+
+/* Phone (E15): the days on top, the script right under, the actions as icons */
+@media (max-width: 900px) {
+  .ap .side {
+    min-width: 0;
+    max-width: 100%;
+  }
+  /* Top bar: the logo and the account on one row, the menu entries scrolling under them. */
+  .ap .side-top {
+    order: 1;
+    flex: 1;
+  }
+  .ap .side-mobile-me {
+    display: inline-flex;
+    order: 2;
+  }
+  .ap .side-nav {
+    order: 3;
+    width: 100%;
+    flex-basis: 100%;
+  }
+  .ap .menu.menu-top {
+    top: calc(100% + 6px);
+    bottom: auto;
+    left: auto;
+    right: 0;
+    width: 220px;
+  }
+  .ap .me-wrap-m {
+    position: relative;
+  }
+}
+@media (max-width: 640px) {
+  .ap .main {
+    padding: 14px 14px 70px;
+  }
+  .ap .vh {
+    margin-bottom: 14px;
+    gap: 10px;
+  }
+  .ap .vt {
+    font-size: 26px;
+  }
+  .ap .vs {
+    display: none;
+  }
+  .ap .vh .btn {
+    min-height: 40px;
+    font-size: 14px;
+  }
+  .ap .welcome {
+    margin-bottom: 14px;
+    padding: 10px 10px 10px 14px;
+  }
+  .ap .wk-grid {
+    gap: 12px;
+  }
+  /* The days as a row of pills; the script follows at once. */
+  .ap .list {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .ap .list .wday {
+    flex: 1 0 auto;
+    min-width: 92px;
+    width: auto;
+    padding: 9px 12px;
+    gap: 2px;
+    border-radius: 14px;
+    align-items: flex-start;
+  }
+  .ap .list .wday b,
+  .ap .list .wday .snip {
+    display: none;
+  }
+  .ap .list .wday .day-short {
+    display: block;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.02em;
+  }
+  .ap .list .wday .wday-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  .ap .list .wday .wday-top > span:first-child {
+    display: none;
+  }
+  .ap .list .next {
+    display: none;
+  }
+  .ap .pane {
+    border-radius: 18px;
+  }
+  .ap .pane-head {
+    padding: 8px 10px 8px 14px;
+  }
+  .ap .pane-head .when {
+    display: none;
+  }
+  .ap .pane-body {
+    padding: 16px 14px 10px;
+  }
+  .ap .pane-title {
+    font-size: 20px;
+    margin-bottom: 12px !important;
+  }
+  .ap .author {
+    margin-bottom: 10px;
+  }
+  .ap .post-text {
+    font-size: 15.5px;
+  }
+  .ap .ai {
+    margin: 0 12px 12px;
+    padding: 12px;
+  }
+  .ap .ai .chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .ap .ai .chip {
+    flex: none;
+  }
+  /* Actions: the words go, the icons stay. */
+  .ap .pane-acts {
+    gap: 2px;
+    padding: 8px 10px;
+  }
+  .ap .pane-acts .tbtn {
+    padding: 0 10px;
+  }
+  .ap .pane-acts .tbtn .lbl {
+    display: none;
+  }
+  .ap .pane-acts .main-act {
+    flex: none;
+    margin: 0 0 0 auto;
+  }
+  .ap .bubble {
+    right: -4px;
+  }
+  .ap .post-media {
+    grid-template-columns: 1fr;
+  }
+  .ap .post-media .strip {
+    flex-direction: row;
+  }
+  .ap .empty-pane {
+    padding: 28px 16px;
+  }
+  .ap .pane-note {
+    padding: 0 14px 12px;
+  }
+}

@@ -19,6 +19,7 @@ const updateProductSchema = z.object({
   // brand (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — the only field in this schema that accepts null,
   // the others stay "omitted = unchanged" for consistency with the rest of the product form.
   targetAudience: z.string().nullable().optional(),
+  problem: z.string().nullable().optional(),
 });
 
 export async function PUT(
@@ -32,7 +33,7 @@ export async function PUT(
 
     const updated = await updateProductForUser(userId, id, body);
     // A modified "Who is it for" makes the portrait stale (unless it was corrected by hand).
-    if (body.targetAudience !== undefined) {
+    if (body.targetAudience !== undefined || body.problem !== undefined) {
       after(() =>
         refreshStaleReaderPortraits(userId, [id]).catch((err) => logger.error("Reader portraits failed", err, { userId }))
       );

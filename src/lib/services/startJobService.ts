@@ -238,22 +238,23 @@ export async function generateOtherPosts(userId: string): Promise<void> {
   if (running.has(`other:${userId}`)) return;
   running.add(`other:${userId}`);
   try {
-    const slots = await db.query.calendarEntries.findMany({
-      where: and(eq(calendarEntries.userId, userId), eq(calendarEntries.status, "generating"), isNull(calendarEntries.scriptId)),
-      orderBy: asc(calendarEntries.scheduledDate),
-    });
-    const done = new Set<string>();
-    for (const slot of slots) {
-      const key = `${slot.seriesId}|${slot.scheduledDate.getTime()}`;
-      if (done.has(key)) continue;
-      done.add(key);
+    // On relit la liste à chaque tour : une demande arrivée pendant l'écriture est prise au passage.
+    for (;;) {
+      const [slot] = await db.query.calendarEntries.findMany({
+        where: and(eq(calendarEntries.userId, userId), eq(calendarEntries.status, "generating"), isNull(calendarEntries.scriptId)),
+        orderBy: asc(calendarEntries.scheduledDate),
+        limit: 1,
+      });
+      if (!slot) break;
       try {
         await writePost(userId, slot);
       } catch (error) {
         logger.error("Generation of a post of the week failed", error, { userId, entryId: slot.id });
       }
       // Ce qui n'a pas pu s'écrire cesse de charger : le créneau reste vide et se réécrit depuis l'écran.
-      await db.update(calendarEntries).set({ status: "planned" }).where(and(eq(calendarEntries.userId, userId), eq(calendarEntries.status, "generating"), isNull(calendarEntries.scriptId), eq(calendarEntries.scheduledDate, slot.scheduledDate)));
+      for (const version of await entriesOfPost(userId, slot)) {
+        if (!version.scriptId) await db.update(calendarEntries).set({ status: "planned" }).where(and(eq(calendarEntries.id, version.id), eq(calendarEntries.status, "generating")));
+      }
     }
   } finally {
     running.delete(`other:${userId}`);
