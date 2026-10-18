@@ -1,6 +1,6 @@
 # SPEC — L'APPLICATION AU DESIGN TELLOVO (semaine, deux réseaux, quota en semaines)
 
-> **Statut : validée et implémentée le 2026-10-18 sur `feature/app-design-tellovo` (lots 0 à 6), migration `0048` en dev seulement, essayée en réel (un post → deux scripts, deux textes, même événement ; semaine suivante refusée par le quota → modale) ; écarts en §9.** Décisions prises à deux (Alix et Claude). Le journal de la section 1 garde chaque décision avec sa raison, parce que CreaFlow sert à parler de CreaFlow.
+> **Statut : validée et implémentée le 2026-10-18 sur `feature/app-design-tellovo` (lots 0 à 7), migration `0048` en dev seulement, essayée en réel (un post → deux scripts, deux textes, même événement ; semaine suivante refusée par le quota → modale) ; écarts en §9.** Décisions prises à deux (Alix et Claude). Le journal de la section 1 garde chaque décision avec sa raison, parce que CreaFlow sert à parler de CreaFlow.
 >
 > **Objectif.** Reprendre le design de l'application du prototype de tellovo.ai (`/app`, `/app/plan`, `/app/context`, modale de paiement) et le brancher sur les fonctions réelles de CreaFlow. Trois changements de fond l'accompagnent : **deux réseaux seulement** (LinkedIn et X, un script par réseau pour un même créneau), **un quota compté en semaines** (et non plus en scripts), et **une page unique « Your content week »** qui remplace le calendrier et la page de détail d'un post.
 >
@@ -27,6 +27,7 @@
 | E13 | **Les deux versions d'un post se voient par onglets LinkedIn / X** dans le post agrandi. | Même geste que Tellovo ; l'un et l'autre sont éditables et prêts à copier. | Deux cartes par jour. |
 | E14 | **Trois statuts seulement : Draft, Ready, Posted.** Draft et Ready sont affichés et se basculent à la main (« Mark as ready »). **Posted n'est jamais posé à la main** : il sera posé par le back-end quand la détection des publications (Performance) sera remise à jour. | Le fondateur n'a pas à dire « tourné » ni « planifié » ; Posted est un fait observé, pas une déclaration. | Quatre statuts ; Posted à la main. |
 | E15 | **Sur téléphone, l'écran est ultra simple** : en haut les jours de la semaine (les trois jours, en pastilles), dessous le script seul, plein écran ; les phrases d'action deviennent des boutons-icônes pour gagner de la place. | Le script doit se voir tout de suite, sans défiler. | Une liste de cartes puis un détail. |
+| E16 | **Le visuel se choisit post par post, depuis la bulle d'outils** : Image, Carrousel (5 slides par défaut, 2 à 10) ou Animation (8 s par défaut, 5 à 15 s), ou « Retirer le visuel ». Le **texte ne change pas** ; le visuel est **commun aux deux réseaux** (la maquette s'accroche au script LinkedIn, la version X la lit). Il est fabriqué à partir du texte du post (storyboard tiré du texte, un appel au modèle) puis composé avec les photos de la bibliothèque, comme un post visuel ordinaire. **Il compte comme une micro-retouche** (`design_instruction`), jamais comme une semaine. Pas de réglage « cette série a toujours une image » pour l'instant. | Le fondateur décide au cas par cas ; garder le texte évite de réécrire un post déjà relu ; une maquette par réseau coûterait un appel de plus pour rien (E3). | Choisir à la série ; réécrire le post en visuel ; une maquette par réseau. |
 
 ---
 
@@ -108,18 +109,20 @@
 | 4 | Menu, compte, Direction et Settings dans le compte, assistant caché (E4, E5). | Captures. |
 | 5 | « Content plan » et « Business context » (4 semaines, fiche à trois champs, sources) ; « Prepare next week » (E11). | Essai réel de la semaine suivante. |
 | 6 | Docs (`CLAUDE.md`, `TECH.md`), `URGENT.md` inchangé. | Relecture. |
+| 7 | Le visuel d'un post depuis la bulle d'outils (E16) : storyboard tiré du texte, composition, affichage sur les deux réseaux, retrait. | Essai réel : image, carrousel, animation ; retrait ; quota de micro-retouches. |
 
 ---
 
 ## 9. Écarts à l'implémentation et limites connues
 
-- **Maquettes visuelles dans la paire** : la génération d'un post écrit deux scripts de **texte**. Un post visuel (créé à la main depuis `/scripts/new`) s'affiche et se retouche bien dans le volet (image entre l'auteur et le texte, éditeur de maquette dans une fenêtre via la bulle d'outils), mais la paire visuelle à image partagée n'est pas générée : le défaut est le texte pour les deux réseaux. À reprendre avec le prochain chantier visuel.
+- **Maquettes visuelles dans la paire** : la génération d'un post écrit deux scripts de **texte** ; le visuel s'ajoute ensuite, post par post, depuis la bulle d'outils (E16, lot 7). Un post visuel créé à la main depuis `/scripts/new` s'affiche aussi dans le volet.
 - **Les objectifs de publication n'éteignent plus un réseau** : les créneaux sont créés pour LinkedIn et X quels que soient `posting_goals` ; la fenêtre « objectif hebdomadaire » du calendrier est supprimée avec l'ancien calendrier.
 - **Quota** : l'essai compte des semaines (`consumed_weeks`, `users.week_limit` pour un quota personnalisé) ; les comptes abonnés gardent le compte en scripts. La semaine est gravée à la demande d'écriture, avant l'appel au modèle : un échec du modèle ne la rend pas.
 - **Pages anciennes** : Direction, Settings, Performance et Assistant gardent leur contenu d'avant, dans la nouvelle coque ; leur restyle n'est pas dans ce chantier. L'assistant n'a plus d'entrée de menu (la route reste).
 - **`/scripts/[id]`** redirige vers `/calendar?week=…&post=…` quand le script a un créneau ; il ne sert plus qu'aux scripts sans créneau (importés, libres).
 - **Statuts** : `Posted` n'est posé par aucun écran ; l'écriture viendra avec la détection des publications.
 - **Semaine affichée** : du lundi au dimanche (un rythme peut tomber le week-end), là où le prototype montre cinq jours.
+- **Visuel d'un post (E16)** : essayé en réel (carrousel de 5 slides composé depuis le texte, affiché sur les deux onglets, retiré) ; la composition se fait avant la réponse (une trentaine de secondes, la bulle l'indique). Changer de format supprime la maquette d'avant. Sans photo dans la bibliothèque, la maquette est composée sans photo. « Another idea » sur le script qui porte le visuel réécrit le texte sans refaire la maquette.
 - **Le premier post du mail est la version LinkedIn** ; la version X s'écrit juste après le départ du mail.
 
 ## 8. Hors périmètre / à décider plus tard

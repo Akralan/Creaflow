@@ -235,6 +235,26 @@
   display: none;
 }
 
+/* Visual picker of the tools bubble */
+.ap .visual-step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 12px 8px;
+  font-size: 14px;
+}
+.ap .visual-step input {
+  width: 72px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0 10px;
+  font: inherit;
+  background: #fff;
+  color: var(--ink);
+}
+
 /* The plan shows the seven days of a week (a series can publish on the weekend). */
 .ap .slots.seven {
   grid-template-columns: repeat(7, minmax(0, 1fr));

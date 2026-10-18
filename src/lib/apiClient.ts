@@ -925,6 +925,9 @@ export const api = {
   writePost: (entryId: string) => post<{ ok: true }>("/api/posts/write", { entryId }),
   /** « Prepare next week »: writes, in the background, every empty slot of the week starting `weekStart` (a Monday). */
   prepareWeek: (weekStart: string) => post<{ ok: true; posts: number }>("/api/weeks/prepare", { weekStart }),
+  /** Adds or changes the visual of a post (image, carousel, animation); the text stays. Counts as a micro-edit. */
+  setPostVisual: (scriptId: string, visual: VisualFormatFields) => post<{ ok: true; scriptId: string }>("/api/posts/visual", { scriptId, ...visual }),
+  removePostVisual: (scriptId: string) => del<{ ok: true }>(`/api/posts/visual?scriptId=${scriptId}`),
   getCalendarEntry: (id: string) => apiFetch<{ entry: CalendarEntry }>(`/api/calendar/${id}`),
   placeScript: (scriptId: string, scheduledDate: string) =>
     post<{ entry: CalendarEntry }>("/api/calendar", { scriptId, scheduledDate }),

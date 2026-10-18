@@ -5,6 +5,7 @@ import AppIcon from "@/components/app/AppIcon";
 import DesignPreview from "@/components/app/DesignPreview";
 import DesignEditor from "@/components/DesignEditor/DesignEditor";
 import { api, ApiClientError, type Script, type WeekEntry } from "@/lib/apiClient";
+import { DEFAULT_DURATION_MS, DEFAULT_SLIDES, MAX_DURATION_MS, MAX_SLIDES, MIN_DURATION_MS, MIN_SLIDES } from "@/lib/visualDesign/visualFormat";
 import { longDay, NETWORKS, postState, scriptReadiness, type Network, type PostGroup } from "@/lib/weekPosts";
 
 /**
@@ -22,7 +23,7 @@ const SUGGESTIONS = [
   { label: "More technical", instruction: "Make it more technical: name the real thing (the function, the number, the choice) instead of describing it." },
 ];
 
-type Confirm = "idea" | "delete" | null;
+type Confirm = "idea" | "delete" | "visual" | null;
 
 interface Props {
   group: PostGroup<WeekEntry>;
@@ -63,6 +64,12 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
   const [tools, setTools] = useState(false);
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [mockup, setMockup] = useState(false);
+  const [ownerScript, setOwnerScript] = useState<Script | null>(null);
+  const [visualDraft, setVisualDraft] = useState<{ format: "single" | "carousel" | "animation"; slides: number; seconds: number }>({
+    format: "single",
+    slides: DEFAULT_SLIDES,
+    seconds: Math.round(DEFAULT_DURATION_MS / 1000),
+  });
   const [copied, setCopied] = useState(false);
   const toolsRef = useRef<HTMLDivElement>(null);
 
@@ -108,7 +115,10 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
   const versionLabel = NETWORK_LABEL[network];
   const upcoming = entry?.upcoming ?? Object.values(group.versions).find((v) => v?.upcoming)?.upcoming ?? null;
   const ready = script ? scriptReadiness(script.status) : null;
-  const preview = entry?.script?.preview ?? null;
+  // The visual of the post hangs on one of its versions (the first, LinkedIn) and shows on both (E16).
+  const ownerVersion = Object.values(group.versions).find((v) => v?.script?.contentType === "visual") ?? null;
+  const ownerId = ownerVersion?.script?.id ?? null;
+  const preview = ownerVersion?.script?.preview ?? null;
 
   const head = (
     <div className="pane-head">
@@ -304,7 +314,53 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
     }
   }
 
-  const isVisual = script?.contentType === "visual";
+  async function openMockup() {
+    if (!ownerId) return;
+    setTools(false);
+    try {
+      setOwnerScript(script?.id === ownerId ? script : (await api.getScript(ownerId)).script);
+      setMockup(true);
+    } catch (e) {
+      setError(errorText(e));
+    }
+  }
+
+  async function applyVisual() {
+    if (!script) return;
+    setBusy("tool");
+    setError(null);
+    try {
+      await api.setPostVisual(script.id, {
+        visualFormat: visualDraft.format,
+        ...(visualDraft.format === "carousel" ? { slideCount: visualDraft.slides } : {}),
+        ...(visualDraft.format === "animation" ? { durationMs: visualDraft.seconds * 1000 } : {}),
+      });
+      setConfirm(null);
+      setTools(false);
+      onChanged();
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function dropVisual() {
+    if (!script) return;
+    setBusy("tool");
+    setError(null);
+    setTools(false);
+    try {
+      await api.removePostVisual(script.id);
+      onChanged();
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const isVisual = Boolean(ownerId);
   const length = (editing ? draft : (script?.caption ?? "")).length;
   const sources = script?.citations ?? [];
   const why = [script?.eventTitle, script?.angle?.description].filter(Boolean);
@@ -326,17 +382,17 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
           </div>
         </div>
 
-        {isVisual && script && (
+        {isVisual && ownerId && (
           <div className="post-media">
             <div className="frame">
               {preview ? (
-                <DesignPreview scriptId={script.id} preview={preview} hasLogo={hasLogo} />
+                <DesignPreview scriptId={ownerId} preview={preview} hasLogo={hasLogo} />
               ) : (
                 <div style={{ padding: 32, color: "var(--mute)", fontSize: 14 }}>The image is being composed…</div>
               )}
             </div>
             <div className="strip">
-              <button className="tbtn" type="button" title="Edit the mockup" aria-label="Edit the mockup" onClick={() => setMockup(true)}>
+              <button className="tbtn" type="button" title="Edit the mockup" aria-label="Edit the mockup" onClick={() => void openMockup()}>
                 <AppIcon name="image" />
               </button>
             </div>
@@ -464,6 +520,41 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
                   </button>
                 </>
               )}
+              {confirm === "visual" && (
+                <>
+                  <h3>{isVisual ? "Change the visual" : "Add a visual"} — same for LinkedIn and X</h3>
+                  <div className="chips" style={{ padding: "4px 8px 8px" }} role="group" aria-label="Visual format">
+                    {([["single", "Image"], ["carousel", "Carousel"], ["animation", "Animation"]] as const).map(([format, label]) => (
+                      <button key={format} className={visualDraft.format === format ? "chip on" : "chip"} type="button" onClick={() => setVisualDraft({ ...visualDraft, format })}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {visualDraft.format === "carousel" && (
+                    <label className="visual-step">
+                      <span>Slides</span>
+                      <input type="number" min={MIN_SLIDES} max={MAX_SLIDES} value={visualDraft.slides} onChange={(e) => setVisualDraft({ ...visualDraft, slides: Math.min(MAX_SLIDES, Math.max(MIN_SLIDES, Number(e.target.value) || DEFAULT_SLIDES)) })} />
+                    </label>
+                  )}
+                  {visualDraft.format === "animation" && (
+                    <label className="visual-step">
+                      <span>Seconds</span>
+                      <input type="number" min={MIN_DURATION_MS / 1000} max={MAX_DURATION_MS / 1000} value={visualDraft.seconds} onChange={(e) => setVisualDraft({ ...visualDraft, seconds: Math.min(MAX_DURATION_MS / 1000, Math.max(MIN_DURATION_MS / 1000, Number(e.target.value) || 8)) })} />
+                    </label>
+                  )}
+                  <p className="pane-note" style={{ padding: "0 10px 8px" }}>
+                    The text stays as it is. The image is composed from the post and your photos; it counts as one edit.
+                  </p>
+                  <button type="button" onClick={applyVisual} disabled={busy !== null}>
+                    <AppIcon name="check" />
+                    {busy === "tool" ? "Composing… about 30 s" : "Create the visual"}
+                  </button>
+                  <button type="button" onClick={() => setConfirm(null)} disabled={busy !== null}>
+                    <AppIcon name="x" />
+                    Back
+                  </button>
+                </>
+              )}
               {confirm === "delete" && (
                 <>
                   <h3>Delete this post, both versions?</h3>
@@ -488,11 +579,21 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
                     <AppIcon name="refresh" />
                     Rewrite the hashtags
                   </button>
+                  <button type="button" role="menuitem" onClick={() => setConfirm("visual")} disabled={!script}>
+                    <AppIcon name="image" />
+                    {isVisual ? "Change the visual" : "Add a visual"}
+                  </button>
                   {isVisual && (
-                    <button type="button" role="menuitem" onClick={() => { setTools(false); setMockup(true); }}>
-                      <AppIcon name="image" />
-                      Edit the mockup
-                    </button>
+                    <>
+                      <button type="button" role="menuitem" onClick={() => void openMockup()}>
+                        <AppIcon name="edit" />
+                        Edit the mockup
+                      </button>
+                      <button type="button" role="menuitem" onClick={dropVisual}>
+                        <AppIcon name="x" />
+                        Remove the visual
+                      </button>
+                    </>
                   )}
                   <hr />
                   <button type="button" role="menuitem" className="danger" onClick={() => setConfirm("delete")}>
@@ -541,7 +642,7 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
         </div>
       )}
 
-      {mockup && script && isVisual && (
+      {mockup && ownerScript && isVisual && (
         <div className="ov" role="dialog" aria-modal="true" aria-label="Edit the mockup">
           <button className="scrim" type="button" aria-label="Close" onClick={() => { setMockup(false); onChanged(); }} />
           <div className="modal modal-wide">
@@ -549,10 +650,12 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
               <AppIcon name="x" />
             </button>
             <DesignEditor
-              script={script}
+              script={ownerScript}
               hasLogo={hasLogo}
-              onDesignChange={(design) => setScript((prev) => (prev ? { ...prev, visualDesign: design } : prev))}
-              onReload={() => load(script.id)}
+              onDesignChange={(design) => setOwnerScript((prev) => (prev ? { ...prev, visualDesign: design } : prev))}
+              onReload={async () => {
+                setOwnerScript((await api.getScript(ownerScript.id)).script);
+              }}
             />
           </div>
         </div>
