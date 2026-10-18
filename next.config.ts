@@ -70,6 +70,11 @@ const nextConfig: NextConfig = {
   // Build autonome pour l'image Docker de production (Dockerfile, docs/DEPLOIEMENT_VPS.md) :
   // .next/standalone contient server.js et les seuls node_modules nécessaires. Sans effet en dev.
   output: "standalone",
+  // Les polices des animations sont lues à l'exécution par leur nom (src/lib/animationHtml/fonts.ts) : le traçage des fichiers
+  // ne peut pas les deviner, on les inclut explicitement dans la sortie autonome.
+  outputFileTracingIncludes: {
+    "/api/posts/animation": ["./src/assets/fonts/design/**/*"],
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

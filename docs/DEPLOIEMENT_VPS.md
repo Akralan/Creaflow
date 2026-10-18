@@ -161,6 +161,8 @@ docker compose -f docker-compose.prod.yml --profile tools run --rm migrate
 docker compose -f docker-compose.prod.yml up -d
 ```
 
+> **À prévoir pour le prochain déploiement (branche `feature/app-design-tellovo`, 2026-10-18)** : migrations `0047` à `0050` (parcours `/start`, quota en semaines, créneaux en chargement, animations) ; variables `OPENAI_API_KEY` (génération, vision), `GITHUB_TOKEN` (lecture des dépôts publics, sans droit) et `START_DAILY_CAP` ; `EMAIL_LOG_LINKS=1` tant qu'aucun service d'envoi n'est branché (`URGENT.md`) ; les polices des animations sont dans `src/assets/fonts/design` (incluses dans la sortie autonome par `outputFileTracingIncludes`, à vérifier sur la première image construite). Voir aussi `deploy/env.production.example`.
+
 Dans l'ordre : construire les images, démarrer la base seule, appliquer les 36 migrations (dont
 `0007` qui active pgvector, déjà présent dans l'image), puis lancer l'app et Caddy.
 
