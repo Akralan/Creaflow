@@ -58,6 +58,27 @@
 
 **Pas encore.** Export MP4, « demander un changement » / « voir le code », retrait de l'ancien moteur, photos de la bibliothèque dans l'animation.
 
+### 4. L'écran Performance (`docs/SPEC_PERFORMANCE.md`)
+
+**Le déclic.** L'écran `/performance` ne montrait aucun chiffre (une liste « To confirm » et un rééquilibrage que plus rien ne génère). Alix : « il faut juste les afficher » — et voir l'écran *avant* de décider des données.
+
+**Méthode : maquette d'abord.** Une page HTML autonome sur le compte MyKiné (`docs/tests/performance-mockup/index.html`, CSS réel de l'app), refaite cinq fois avant la spec. Ce qu'elle a appris : une semaine comme unité (pas de 7/14/30 jours), un mois parcouru semaine par semaine, LinkedIn et X toujours ensemble, des chiffres de démo qui *progressent* (la première version baissait, le pire exemple), et surtout **de la hiérarchie** — trois maquettes où tout avait la même taille, « je me perds dans ce que je dois regarder ». Sources : Carbon (le plus important = le plus grand et le plus contrasté), Stephen Few, le skill dataviz. Icônes en trait, jamais d'emojis.
+
+**Décisions clés.**
+- **X par Apify** plutôt que par l'API officielle : ≈ 0,06 à 0,24 $ par utilisateur et par mois contre 0,60 à 3 $, et plus de compte de facturation ni d'OAuth de X pour les chiffres (les vues d'un post sont publiques). L'API officielle reste en repli. **LinkedIn reste sur l'API officielle** : un scraper ne voit pas les impressions.
+- **`Posted` est posé par le rattachement** (promesse de E14 restée en suspens), avec un rattachement automatique quand un seul script ressemble nettement au post.
+- Une colonne ajoutée, `post_metrics.published_at` : classer selon la date *prévue* serait faux dès qu'on publie un jour plus tard.
+
+**Ce qu'on a trouvé en route.** L'en-tête `LinkedIn-Version: 202401` ne pouvait pas marcher (l'API des statistiques de posts date de 202506) : passé à 202606. Le code relisait 20 posts à chaque rafraîchissement de X (≈ 0,10 $ l'appel au tarif officiel), pas « les posts rattachés » comme la spec de septembre le supposait. Le compte de démo n'étant connecté à aucun réseau, l'écran affichait d'abord « Connect… » au lieu des chiffres : dès qu'il y a des posts, on les montre.
+
+**Pas encore.** Un vrai acteur Apify contre un vrai compte (les champs de sortie sont supposés), l'accès LinkedIn, l'usage de ces chiffres par l'agent qui écrit et qui planifie.
+
+**Après la revue à froid (2026-10-19).** Un agent relecteur sans contexte a rendu « corrections requises » sur cinq points, tous corrigés : lecture et rattachement filtrés par utilisateur (migration `0053`, unicité des candidats par utilisateur), contrôle de fréquence d'Apify pris avant l'appel et gardé en base, plafonds sur les nombres venant d'Apify et un échec par post qui n'arrête pas les autres, un script déjà lié refusé, rattachement automatique resserré (date et légende doivent toutes deux concorder). Il a aussi relevé un redirect ouvert préexistant dans `/api/auth/[platform]/connect` (`returnTo`), refermé au passage. Reste connu : pas de « délier » un post, semaines en UTC (un post du lundi 00:30 à Paris tombe dans la semaine d'avant), les tests ne couvrent pas les chemins qui touchent la base.
+
+**Une semaine qui commence.** Un lundi à 00:58 l'écran montrait 0 et −100 % : la semaine neuve n'avait encore aucun chiffre. Règle : pas d'écart tant qu'aucun post de la semaine n'a de chiffres (tirets), et une pastille accent « Wait N days » à côté du pourcentage tant que le post le plus récent a moins de 3 jours (`daysUntilSettled`) ; le titre et la phrase restent neutres pendant ce temps. Le calcul est pur et testé ; les deux états sont dans `docs/tests/performance-screens/` (9 et 10).
+
+**Se connecter depuis l'écran.** Sur la demande du fondateur : logos des réseaux restants en haut à droite, panneau de pseudo pour X, OAuth pour LinkedIn, page à tirets dès qu'un réseau est connecté. Les captures de chaque état se font avec Chrome et `playwright-core` en répondant aux appels d'API par des données fabriquées.
+
 ### Pièges de méthode (pour la prochaine fois)
 
 - Les heredocs shell avec apostrophes ou backticks cassent la commande sous Git Bash : écrire les patchs dans un fichier avec l'outil d'écriture.

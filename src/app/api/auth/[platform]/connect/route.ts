@@ -30,7 +30,9 @@ export async function GET(
     });
 
     // Mémorise l'écran d'origine (onboarding, paramètres, ...) pour y revenir après le callback.
-    const returnTo = request.nextUrl.searchParams.get("returnTo") || "/";
+    // A path of this site only: `//host` and `https://host` would send the user elsewhere after signing in.
+    const requested = request.nextUrl.searchParams.get("returnTo") || "/";
+    const returnTo = requested.startsWith("/") && !requested.startsWith("//") && !requested.includes("\\") ? requested : "/";
     cookieStore.set(`oauth_return_${platform}`, returnTo, {
       httpOnly: true,
       sameSite: "lax",

@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import { socialConnections } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
-import { hasMetricsFetch } from "@/lib/social";
-import { fetchAndMatchPostsForUser } from "@/lib/services/postMetricsFetchService";
+import { fetchAndMatchPostsForUser, platformsToFetch } from "@/lib/services/postMetricsFetchService";
 import { ApiError, handleApiError } from "@/lib/api/errors";
+import { enforceRateLimit } from "@/lib/services/rateLimitService";
 
 /**
  * Lazy trigger point for metrics retrieval (docs/SPEC_METRIQUES_AUTO.md §7.5) —
@@ -18,18 +15,18 @@ import { ApiError, handleApiError } from "@/lib/api/errors";
 export async function POST() {
   try {
     const userId = await requireUserId();
+    // The screen calls this once per opening; a script hammering it would run scrapes and paid reads.
+    await enforceRateLimit("performance-refresh", userId, 6, 60);
 
-    const connections = await db.query.socialConnections.findMany({
-      where: eq(socialConnections.userId, userId),
-      columns: { platform: true },
-    });
-    const platforms = connections.map((c) => c.platform).filter(hasMetricsFetch);
+    const platforms = await platformsToFetch(userId);
 
     const settled = await Promise.allSettled(platforms.map((platform) => fetchAndMatchPostsForUser(userId, platform)));
 
     const results = settled.map((outcome, i) => ({
       platform: platforms[i],
       updated: outcome.status === "fulfilled" ? outcome.value.updated : 0,
+      linked: outcome.status === "fulfilled" ? outcome.value.linked : 0,
+      failed: outcome.status === "fulfilled" ? outcome.value.failed : 0,
       candidatesCreated: outcome.status === "fulfilled" ? outcome.value.candidatesCreated : 0,
       error:
         outcome.status === "rejected"

@@ -231,6 +231,12 @@ export const creatorProfiles = pgTable("creator_profiles", {
   // settings. Fallback for Product.targetAudience when the latter is null.
   targetAudience: text("target_audience"),
   styleProfile: jsonb("style_profile"),
+  // The author's X handle, without the @ (docs/SPEC_PERFORMANCE.md §4): what the X metrics provider reads the
+  // public numbers of, so it works without the author connecting X. Null = not given.
+  xHandle: text("x_handle"),
+  // When the X numbers were last read through Apify (claimed BEFORE the call, so concurrent requests and failed
+  // runs both count): the throttle that keeps a reloaded page from running a scrape each time.
+  xLastReadAt: timestamp("x_last_read_at"),
   // Voice chosen at the first series framing (docs/SPEC_CADRAGE_SERIE.md §1): starting point of the
   // style before learning from corrections has anything to work with.
   // REMOVED on 2026-10-17 (framing by choices is replaced by the series form, signature included — docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md). Column kept, no longer read.
@@ -777,6 +783,10 @@ export const postMetrics = pgTable("post_metrics", {
   // Automatic category reweighting never considers source="manual" — unverified.
   source: postMetricsSourceEnum("source").notNull().default("manual"),
   platformPostId: text("platform_post_id"),
+  // Real publication date as the network reports it (docs/SPEC_PERFORMANCE.md §3): the Performance screen
+  // files a post under the week it went out, not the week the calendar planned it. Null for manual entries
+  // and for rows older than this column; the planned date is the fallback.
+  publishedAt: timestamp("published_at"),
   fetchedAt: timestamp("fetched_at"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -815,7 +825,8 @@ export const postMatchCandidates = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
     resolvedAt: timestamp("resolved_at"),
   },
-  (t) => [unique().on(t.platform, t.platformPostId)]
+  // Per user: a post spotted from someone else's handle must not hide it from its real author.
+  (t) => [unique().on(t.userId, t.platform, t.platformPostId)]
 );
 
 // One event per script generation OR regeneration — distinct from `scripts.createdAt`, which

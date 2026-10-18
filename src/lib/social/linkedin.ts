@@ -2,6 +2,14 @@ import type { SocialProvider, OAuthTokens, FetchedPost, PlatformPostMetric } fro
 import { getRedirectUri } from "./types";
 
 /**
+ * Version of the LinkedIn REST API sent on every call. `memberCreatorPostAnalytics` only exists from 202506, and
+ * LinkedIn retires old versions (202510 on 2026-10-15) — the previous 202401 could not have worked. To be
+ * checked against a real answer as soon as the Community Management API access is granted
+ * (docs/SPEC_PERFORMANCE.md §4).
+ */
+const LINKEDIN_API_VERSION = "202606";
+
+/**
  * LinkedIn OAuth 2.0 (3-legged).
  *
  * ATTENTION — limite réelle à connaître : contrairement à Instagram, lister les
@@ -66,7 +74,7 @@ export const linkedinProvider: SocialProvider = {
       {
         headers: {
           Authorization: `Bearer ${tokens.accessToken}`,
-          "LinkedIn-Version": "202401",
+          "LinkedIn-Version": LINKEDIN_API_VERSION,
         },
       }
     );
@@ -96,7 +104,7 @@ export const linkedinProvider: SocialProvider = {
     const response = await fetch(`https://api.linkedin.com/rest/memberCreatorPostAnalytics?${params.toString()}`, {
       headers: {
         Authorization: `Bearer ${tokens.accessToken}`,
-        "LinkedIn-Version": "202401",
+        "LinkedIn-Version": LINKEDIN_API_VERSION,
       },
     });
     if (!response.ok) {

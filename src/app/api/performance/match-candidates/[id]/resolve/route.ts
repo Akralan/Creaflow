@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { postMatchCandidates, postMetrics, postMetricsSnapshots } from "@/db/schema";
+import { postMatchCandidates } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
 import { ApiError, handleApiError } from "@/lib/api/errors";
+import { LinkConflictError, linkPostToScript } from "@/lib/services/postLinkService";
 
 const schema = z.object({ action: z.enum(["confirm", "dismiss"]) });
 
@@ -35,49 +36,46 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       throw new ApiError(400, "This candidate has already been handled.");
     }
 
-    if (action === "dismiss") {
-      await db
+    // The status change is the claim: `WHERE status = 'pending'` lets only one of two simultaneous requests
+    // (a double click, two tabs) through.
+    const claim = (status: "confirmed" | "dismissed") =>
+      db
         .update(postMatchCandidates)
-        .set({ status: "dismissed", resolvedAt: new Date() })
-        .where(eq(postMatchCandidates.id, candidate.id));
+        .set({ status, resolvedAt: new Date() })
+        .where(and(eq(postMatchCandidates.id, candidate.id), eq(postMatchCandidates.userId, userId), eq(postMatchCandidates.status, "pending")))
+        .returning({ id: postMatchCandidates.id });
+
+    if (action === "dismiss") {
+      if ((await claim("dismissed")).length === 0) throw new ApiError(400, "This candidate has already been handled.");
       return NextResponse.json({ ok: true });
     }
 
     const metrics = candidateMetricsSchema.parse(candidate.metrics);
 
     await db.transaction(async (tx) => {
-      const existing = await tx.query.postMetrics.findFirst({ where: eq(postMetrics.scriptId, candidate.scriptId) });
-      const values = {
-        views: metrics.views,
-        likes: metrics.likes,
-        comments: metrics.comments,
-        shares: metrics.shares,
-        source: "api" as const,
-        platformPostId: candidate.platformPostId,
-        fetchedAt: new Date(),
-        updatedAt: new Date(),
-      };
-      if (existing) {
-        await tx.update(postMetrics).set(values).where(eq(postMetrics.id, existing.id));
-      } else {
-        await tx.insert(postMetrics).values({ scriptId: candidate.scriptId, ...values });
-      }
-      await tx.insert(postMetricsSnapshots).values({
-        scriptId: candidate.scriptId,
-        views: metrics.views,
-        likes: metrics.likes,
-        comments: metrics.comments,
-        shares: metrics.shares,
-        source: "api",
-      });
-      await tx
+      const claimed = await tx
         .update(postMatchCandidates)
         .set({ status: "confirmed", resolvedAt: new Date() })
-        .where(eq(postMatchCandidates.id, candidate.id));
+        .where(and(eq(postMatchCandidates.id, candidate.id), eq(postMatchCandidates.userId, userId), eq(postMatchCandidates.status, "pending")))
+        .returning({ id: postMatchCandidates.id });
+      if (claimed.length === 0) throw new ApiError(400, "This candidate has already been handled.");
+      await linkPostToScript(tx, {
+        userId,
+        scriptId: candidate.scriptId,
+        platformPostId: candidate.platformPostId,
+        publishedAt: candidate.publishedAt,
+        views: metrics.views,
+        likes: metrics.likes,
+        comments: metrics.comments,
+        shares: metrics.shares,
+      });
     });
 
     return NextResponse.json({ ok: true });
   } catch (error) {
+    if (error instanceof LinkConflictError) {
+      return handleApiError(new ApiError(409, "That script is already linked to another post."));
+    }
     return handleApiError(error);
   }
 }

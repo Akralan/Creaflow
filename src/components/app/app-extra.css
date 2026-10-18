@@ -491,3 +491,650 @@
     padding: 0 14px 12px;
   }
 }
+
+/* Performance (docs/SPEC_PERFORMANCE.md). Three levels of weight: the week's impressions and their change, the
+   best post, then the posts. Reference render: docs/tests/performance-mockup/index.html. */
+.ap {
+  --good: #2f7d5b;
+  --good-bg: #e4f3ec;
+  --bad: #a4503f;
+  --bad-bg: #f6e7e2;
+}
+.ap .net-logo {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  vertical-align: -3px;
+}
+.ap .pf-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+.ap .pf-sync {
+  margin-left: 10px;
+  font-size: 12.5px;
+  color: var(--mute);
+}
+.ap .wk-nav .xbtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.ap .pf-empty {
+  padding: 36px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+.ap .pf-empty h2 {
+  font-size: 20px;
+  letter-spacing: -0.025em;
+  font-weight: 610;
+}
+.ap .pf-empty p {
+  color: var(--mute);
+  max-width: 56ch;
+  margin-bottom: 6px;
+}
+
+/* Level 1: the hero */
+.ap .pf-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-bottom: 34px;
+}
+.ap .pf-hero {
+  padding: 28px 30px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 28px;
+  align-items: stretch;
+}
+.ap .pf-hero .kick {
+  font-size: 13.5px;
+  color: var(--mute);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.ap .pf-hero .kick .ico {
+  width: 16px;
+  height: 16px;
+}
+.ap .pf-big {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: 6px 0 4px;
+  flex-wrap: wrap;
+}
+.ap .pf-big b {
+  font-size: clamp(52px, 6vw, 76px);
+  letter-spacing: -0.055em;
+  font-weight: 620;
+  line-height: 1;
+}
+.ap .pf-pill {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  border-radius: 999px;
+  padding: 5px 15px;
+  background: var(--good-bg);
+  color: var(--good);
+  align-self: center;
+}
+.ap .pf-pill.dn {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+.ap .pf-split {
+  font-size: 14px;
+  color: var(--mute);
+}
+.ap .pf-split b {
+  color: var(--ink);
+  font-weight: 600;
+}
+/* Level 2: three plain figures, no boxes */
+.ap .pf-sec {
+  display: flex;
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top: 1px solid var(--soft);
+}
+.ap .pf-sec > div {
+  flex: 1;
+  padding-right: 14px;
+}
+.ap .pf-sec > div + div {
+  padding-left: 18px;
+  border-left: 1px solid var(--soft);
+}
+.ap .pf-sec .k {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2px;
+  color: var(--mute);
+}
+.ap .pf-sec .k .ico {
+  width: 19px;
+  height: 19px;
+}
+.ap .pf-sec b {
+  font-size: 24px;
+  letter-spacing: -0.03em;
+  font-weight: 620;
+  line-height: 1.2;
+}
+.ap .pf-sec .d {
+  font-size: 12px;
+  margin-left: 6px;
+  color: var(--good);
+  font-weight: 600;
+}
+.ap .pf-sec .d.dn {
+  color: var(--bad);
+}
+/* Four bars, one per week; the week in focus in the accent */
+.ap .pf-chart {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 210px;
+}
+.ap .pf-chart .cap {
+  font-size: 12.5px;
+  color: var(--mute);
+  margin-bottom: auto;
+}
+.ap .pf-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  height: 150px;
+}
+.ap .pf-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+  height: 100%;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+.ap .pf-bar .v {
+  font-size: 12.5px;
+  color: var(--mute);
+  text-align: center;
+  margin-bottom: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.ap .pf-bar i {
+  display: block;
+  border-radius: 8px 8px 3px 3px;
+  background: #dedbd4;
+  transition: background 0.2s;
+}
+.ap .pf-bar:hover i {
+  background: #c9c6bf;
+}
+.ap .pf-bar.cur i {
+  background: var(--accent);
+}
+.ap .pf-bar.cur .v {
+  color: var(--ink);
+  font-weight: 600;
+}
+.ap .pf-lbl {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+.ap .pf-lbl span {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  color: var(--mute);
+}
+.ap .pf-lbl span.cur {
+  color: var(--ink);
+  font-weight: 600;
+}
+/* The best post, tinted */
+.ap .pf-best {
+  padding: 26px;
+  background: oklch(0.55 0.2 292 / 0.07);
+  border-color: oklch(0.55 0.2 292 / 0.28);
+  display: flex;
+  flex-direction: column;
+}
+.ap .pf-best .kick {
+  font-size: 13.5px;
+  color: oklch(0.47 0.2 292);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.ap .pf-best h2 {
+  font-size: 20px;
+  letter-spacing: -0.025em;
+  line-height: 1.28;
+  font-weight: 610;
+  margin: 10px 0 18px;
+}
+.ap .pf-best .nets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: auto;
+}
+.ap .pf-best .nets div {
+  background: #fff;
+  border-radius: 12px;
+  padding: 11px 14px;
+}
+.ap .pf-best .nets .k {
+  display: block;
+}
+.ap .pf-best .nets b {
+  font-size: 22px;
+  letter-spacing: -0.03em;
+  font-weight: 620;
+}
+.ap .pf-best .why {
+  font-size: 13.5px;
+  color: var(--mute);
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ap .pf-best .why .ico {
+  width: 14px;
+  height: 14px;
+}
+.ap .pf-best-empty .why {
+  margin-top: 10px;
+}
+/* Level 3: the posts, calm */
+.ap .pf-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg);
+  padding: 10px 0;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+.ap .pf-sticky b {
+  font-weight: 600;
+}
+.ap .pf-list {
+  padding: 6px 24px 10px;
+}
+.ap .pf-wk {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 13px;
+  color: var(--mute);
+  padding: 20px 0 8px;
+  scroll-margin-top: 70px;
+}
+.ap .pf-wk b {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+.ap .pf-wk.cur b {
+  color: var(--accent);
+}
+.ap .pf-none {
+  font-size: 13.5px;
+  color: var(--mute);
+  padding: 4px 0 10px;
+}
+.ap .pf-colh,
+.ap .pf-tr {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) 168px 168px;
+  gap: 0 18px;
+}
+.ap .pf-colh {
+  font-size: 11.5px;
+  color: var(--mute);
+  padding: 14px 0 4px;
+  border-bottom: 1px solid var(--line);
+}
+.ap .pf-colh span:nth-child(n + 3) {
+  text-align: right;
+}
+.ap .pf-colh .net-logo {
+  width: 16px;
+  height: 16px;
+}
+.ap .pf-tr {
+  align-items: center;
+  padding: 14px 0;
+  border-top: 1px solid var(--soft);
+  transition: opacity 0.25s;
+}
+.ap .pf-wk + .pf-tr {
+  border-top: 0;
+}
+.ap .pf-faded {
+  opacity: 0.45;
+}
+.ap .pf-faded:hover {
+  opacity: 1;
+}
+.ap .pf-date {
+  width: 46px;
+  height: 50px;
+  border-radius: 12px;
+  background: var(--soft);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.ap .pf-date b {
+  font-size: 19px;
+  letter-spacing: -0.03em;
+  font-weight: 650;
+}
+.ap .pf-date span {
+  font-size: 10.5px;
+  color: var(--mute);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.ap .pf-tr .ti {
+  font-size: 15.5px;
+  font-weight: 580;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+}
+.ap .pf-tr .ti em {
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: oklch(0.47 0.2 292);
+  background: oklch(0.55 0.2 292 / 0.12);
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+.ap .pf-tr .net {
+  text-align: right;
+}
+.ap .pf-tr .net.none {
+  color: var(--mute);
+}
+.ap .pf-tr .net b {
+  font-size: 19px;
+  letter-spacing: -0.03em;
+  font-weight: 620;
+  display: block;
+  line-height: 1.2;
+}
+.ap .pf-tr .net .mlogo {
+  display: none;
+  margin-right: 6px;
+}
+.ap .pf-tr .net .net-logo {
+  width: 15px;
+  height: 15px;
+}
+.ap .pf-tr .net small {
+  font-size: 12.5px;
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+}
+.ap .pf-em {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 12px;
+}
+.ap .pf-em .ico {
+  width: 14px;
+  height: 14px;
+}
+@media (max-width: 1000px) {
+  .ap .pf-top,
+  .ap .pf-hero {
+    grid-template-columns: 1fr;
+  }
+  .ap .pf-colh {
+    display: none;
+  }
+  .ap .pf-tr {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 12px;
+  }
+  .ap .pf-tr .pf-date {
+    display: none;
+  }
+  .ap .pf-tr .ti {
+    grid-column: 1 / -1;
+  }
+  .ap .pf-tr .net {
+    text-align: left;
+  }
+  .ap .pf-tr .net .mlogo {
+    display: inline-block;
+  }
+  .ap .pf-em:first-child {
+    margin-left: 0;
+  }
+  .ap .pf-list {
+    padding: 4px 16px 8px;
+  }
+}
+.ap .pf-detected {
+  padding: 18px 22px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ap .pf-detected h2 {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.ap .pf-detected .row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ap .pf-detected .what {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ap .pf-detected .what b {
+  font-size: 14.5px;
+  font-weight: 580;
+}
+.ap .pf-detected .what span {
+  font-size: 12.5px;
+  color: var(--mute);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Performance: connecting a network from the screen */
+.ap .pf-wk {
+  font-weight: 400;
+}
+.ap .vh > .pf-connect {
+  align-self: flex-start;
+}
+.ap .pf-connect {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.ap .pf-connect .k {
+  margin-right: 2px;
+}
+.ap .pf-conn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 560;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.2s, box-shadow 0.3s;
+}
+.ap .pf-conn:hover,
+.ap .pf-conn[aria-expanded="true"] {
+  border-color: #c9c6bf;
+  box-shadow: 0 10px 24px -18px #191a1d99;
+}
+.ap .pf-conn .net-logo {
+  width: 17px;
+  height: 17px;
+}
+.ap .pf-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 20;
+  width: min(360px, calc(100vw - 36px));
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 24px 50px -28px #191a1d80;
+  animation: ap-fade 0.2s both;
+}
+.ap .pf-handle label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.ap .pf-handle .line {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.ap .pf-handle input {
+  flex: 1;
+  min-width: 140px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+  font-size: 14.5px;
+  color: var(--ink);
+}
+.ap .pf-handle input:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+.ap .pf-handle .help {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--mute);
+}
+.ap .pf-handle .err {
+  margin-top: 8px;
+}
+.ap .pf-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(560px, 100%);
+  margin-top: 6px;
+}
+.ap .pf-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg);
+}
+.ap .pf-option .who {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+.ap .pf-option .who .net-logo {
+  width: 20px;
+  height: 20px;
+}
+.ap .pf-option .pf-handle.inline {
+  flex: 1;
+  min-width: 260px;
+}
+.ap .pf-option .pf-handle.inline label {
+  display: none;
+}
+.ap .pf-option .pf-handle.inline .help {
+  margin-top: 6px;
+}
+@media (max-width: 640px) {
+  .ap .vh > .pf-connect {
+    align-self: stretch;
+    justify-content: flex-start;
+  }
+}
+.ap .pf-flags {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  align-self: center;
+}
+.ap .pf-wait {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  border-radius: 999px;
+  padding: 4px 13px;
+  color: oklch(0.47 0.2 292);
+  background: oklch(0.55 0.2 292 / 0.12);
+  white-space: nowrap;
+  cursor: help;
+}

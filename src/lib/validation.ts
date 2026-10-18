@@ -30,6 +30,15 @@ export const expectationsSchema = z.string().trim().max(2000);
 // Language of the generated posts (src/lib/language.ts): null = follow the language of the notes.
 export const postLanguageSchema = z.enum(["en", "fr"]);
 
+// An X handle as people type it: with or without the @, 1 to 15 letters, digits or underscores (X's own rule).
+// Stored without the @; an empty string means « none ».
+export const xHandleSchema = z
+  .string()
+  .trim()
+  .transform((value) => value.replace(/^@/, ""))
+  .refine((value) => value === "" || /^[A-Za-z0-9_]{1,15}$/.test(value), "Enter your X handle, like @yourname.")
+  .transform((value) => (value === "" ? null : value));
+
 // Visual resource library (docs/SPEC_RESSOURCES_VISUELLES.md §7.2: "a selection of
 // 40 images" as the reference order of magnitude).
 export const MAX_ASSETS_PER_INGESTION = 40;
