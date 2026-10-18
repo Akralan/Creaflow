@@ -50,6 +50,12 @@ function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
 /** Match score 0-1 between a post retrieved via API and a candidate script:
  *  50% date proximity (0 beyond 7 days apart), 50% Jaccard similarity of captions. */
 export function scorePostMatch(post: MatchablePost, candidate: MatchableScript): number {
+  const { date, caption } = matchParts(post, candidate);
+  return DATE_WEIGHT * date + CAPTION_WEIGHT * caption;
+}
+
+/** The two halves of the score, each 0-1. */
+export function matchParts(post: MatchablePost, candidate: MatchableScript): { date: number; caption: number } {
   let dateScore = 0;
   if (post.publishedAt && candidate.scheduledDate) {
     const daysDiff =
@@ -59,7 +65,7 @@ export function scorePostMatch(post: MatchablePost, candidate: MatchableScript):
 
   const captionScore = jaccardSimilarity(tokenize(post.captionText), tokenize(candidate.caption));
 
-  return DATE_WEIGHT * dateScore + CAPTION_WEIGHT * captionScore;
+  return { date: dateScore, caption: captionScore };
 }
 
 /** Best candidate script for a given post, above the threshold — null if no candidate
@@ -77,4 +83,42 @@ export function findBestMatchingScript<T extends MatchableScript>(
     }
   }
   return best;
+}
+
+/** From this score, and only when no other script comes close (below), a post is linked without asking. */
+export const AUTO_LINK_SCORE = 0.8;
+/** A sure link needs both halves to agree, not just a high total: the date alone, or a caption that merely
+ *  resembles another post of the same theme, is not enough. There is no way to undo a link, so it is better to ask. */
+export const AUTO_LINK_MIN_DATE = 0.8;
+export const AUTO_LINK_MIN_CAPTION = 0.6;
+/** How far ahead of the second-best script the best one must be: two posts on the same day must not be swapped. */
+export const AUTO_LINK_MARGIN = 0.2;
+
+/**
+ * Like `findBestMatchingScript`, and says whether the match is sure enough to link without a confirmation
+ * (docs/SPEC_PERFORMANCE.md D4). Anything below the bar is still proposed, never dropped.
+ */
+export function classifyMatch<T extends MatchableScript>(
+  post: MatchablePost,
+  candidates: T[]
+): { script: T; score: number; auto: boolean } | null {
+  let best: { script: T; score: number; date: number; caption: number } | null = null;
+  let runnerUp = 0;
+  for (const candidate of candidates) {
+    const parts = matchParts(post, candidate);
+    const score = DATE_WEIGHT * parts.date + CAPTION_WEIGHT * parts.caption;
+    if (!best || score > best.score) {
+      if (best) runnerUp = Math.max(runnerUp, best.score);
+      best = { script: candidate, score, ...parts };
+    } else {
+      runnerUp = Math.max(runnerUp, score);
+    }
+  }
+  if (!best || best.score < MATCH_SCORE_THRESHOLD) return null;
+  const auto =
+    best.score >= AUTO_LINK_SCORE &&
+    best.score - runnerUp >= AUTO_LINK_MARGIN &&
+    best.date >= AUTO_LINK_MIN_DATE &&
+    best.caption >= AUTO_LINK_MIN_CAPTION;
+  return { script: best.script, score: best.score, auto };
 }

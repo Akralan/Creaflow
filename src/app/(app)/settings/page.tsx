@@ -62,6 +62,7 @@ function IdentityTab() {
   // "" = automatic: the language of the notes.
   const [language, setLanguage] = useState("");
   const [publishingDays, setPublishingDays] = useState<number[]>(DEFAULT_PUBLISHING_DAYS);
+  const [xHandle, setXHandle] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -75,6 +76,7 @@ function IdentityTab() {
         setTargetAudience(profile.targetAudience || "");
         setExpectations(profile.expectations || "");
         setLanguage(isPostLanguage(profile.language) ? profile.language : "");
+        setXHandle(profile.xHandle ? `@${profile.xHandle}` : "");
         setPublishingDays(profile.publishingDays.length > 0 ? profile.publishingDays : DEFAULT_PUBLISHING_DAYS);
       }
       setLoaded(true);
@@ -86,7 +88,7 @@ function IdentityTab() {
     setSaved(false);
     setError(null);
     try {
-      await api.saveProfile({ brandName, activityType, targetAudience, expectations, language: language || null, publishingDays });
+      await api.saveProfile({ brandName, activityType, targetAudience, expectations, language: language || null, publishingDays, xHandle });
       setSaved(true);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Something went wrong while saving.");
@@ -128,6 +130,13 @@ function IdentityTab() {
           </option>
         ))}
       </SelectField>
+      <TextField
+        label="Your X handle"
+        value={xHandle}
+        onChange={(e) => setXHandle(e.target.value)}
+        placeholder="@yourname"
+        helper="Used to read the numbers of your posts on X (views, likes, replies, reposts). Only public numbers are read."
+      />
       <div>
         <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 4 }}>
           Days you can publish

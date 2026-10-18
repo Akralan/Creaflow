@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findBestMatchingScript, MATCH_SCORE_THRESHOLD, scorePostMatch } from "./postMatchingService";
+import { classifyMatch, findBestMatchingScript, MATCH_SCORE_THRESHOLD, scorePostMatch } from "./postMatchingService";
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -73,5 +73,58 @@ describe("findBestMatchingScript", () => {
 
   it("returns null for an empty candidate list", () => {
     expect(findBestMatchingScript({ publishedAt }, [])).toBeNull();
+  });
+});
+
+describe("classifyMatch", () => {
+  const day = new Date("2026-10-12T00:00:00Z");
+  const post = { publishedAt: day, captionText: "One month in public: what I would do differently" };
+  const same = { scheduledDate: day, caption: "One month in public: what I would do differently" };
+  const other = { scheduledDate: day, caption: "Why the app never says good job on a bad squat" };
+
+  it("links without asking when one script matches clearly and nothing else comes close", () => {
+    const result = classifyMatch(post, [same, other]);
+    expect(result?.script).toBe(same);
+    expect(result?.auto).toBe(true);
+  });
+
+  it("asks when two scripts of the same day are about as likely", () => {
+    const twin = { ...same };
+    const result = classifyMatch(post, [same, twin]);
+    expect(result?.auto).toBe(false);
+  });
+
+  it("asks when the match is only fair", () => {
+    const result = classifyMatch({ publishedAt: day, captionText: "something else entirely" }, [{ scheduledDate: day, caption: "one month in public" }]);
+    expect(result === null || result.auto === false).toBe(true);
+  });
+
+  it("returns null under the proposal threshold", () => {
+    expect(classifyMatch({ publishedAt: day, captionText: "zzz" }, [{ scheduledDate: new Date("2026-09-01T00:00:00Z"), caption: "abc" }])).toBeNull();
+  });
+});
+
+describe("classifyMatch — the bar for linking without asking", () => {
+  const day = new Date("2026-10-12T00:00:00Z");
+
+  it("asks when the date is perfect but the caption was rewritten", () => {
+    const result = classifyMatch(
+      { publishedAt: day, captionText: "A completely rewritten caption about something else" },
+      [{ scheduledDate: day, caption: "One month in public: what I would do differently" }]
+    );
+    expect(result?.auto).toBe(false);
+  });
+
+  it("asks when the caption matches but the post went out days later", () => {
+    const result = classifyMatch(
+      { publishedAt: new Date("2026-10-15T00:00:00Z"), captionText: "One month in public: what I would do differently" },
+      [{ scheduledDate: day, caption: "One month in public: what I would do differently" }]
+    );
+    expect(result?.auto).toBe(false);
+  });
+
+  it("never links without a publication date", () => {
+    const result = classifyMatch({ captionText: "One month in public" }, [{ scheduledDate: day, caption: "One month in public" }]);
+    expect(result === null || result.auto === false).toBe(true);
   });
 });

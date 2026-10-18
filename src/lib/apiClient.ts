@@ -1,3 +1,4 @@
+import type { PerformanceOverview } from "@/lib/performance/overview";
 import type { Platform, ScriptStatus, CalendarStatus } from "@/lib/design/tokens";
 import type { SeriesRhythm } from "@/lib/seriesRhythm";
 
@@ -140,6 +141,8 @@ export interface CreatorProfile {
   language: string | null;
   /** Publishing days, ISO: 1 = Monday … 7 = Sunday. Never empty. */
   publishingDays: number[];
+  /** X handle without the @, what the X numbers are read from (docs/SPEC_PERFORMANCE.md §4); null = none. */
+  xHandle: string | null;
   /** Brand audience (docs/SPEC_PROMPT_GENERATION_TECH.md §5) — fallback for Product.targetAudience. */
   targetAudience: string | null;
   styleProfile: StyleProfile | null;
@@ -795,6 +798,7 @@ export const api = {
     expectations?: string;
     language?: string | null;
     publishingDays?: number[];
+    xHandle?: string;
   }) => post<{ profile: CreatorProfile }>("/api/profile", data),
   /** Style learning pass (docs/SPEC_APPRENTISSAGE_STYLE.md). `proposalId` null = profile
    *  written directly (first analysis), otherwise a proposal to validate was created. */
@@ -1128,8 +1132,10 @@ export const api = {
   disconnectGoogleDrive: () => del<{ ok: true }>("/api/google-drive/connection"),
 
   getMatchCandidates: () => apiFetch<{ candidates: PostMatchCandidate[] }>("/api/performance/match-candidates"),
+  getPerformanceOverview: () => apiFetch<PerformanceOverview>("/api/performance/overview"),
+  setXHandle: (handle: string) => put<{ xHandle: string | null }>("/api/performance/x-handle", { handle }),
   refreshPerformance: () =>
-    post<{ results: Array<{ platform: string; updated: number; candidatesCreated: number; error: string | null }> }>(
+    post<{ results: Array<{ platform: string; updated: number; linked: number; failed: number; candidatesCreated: number; error: string | null }> }>(
       "/api/performance/refresh"
     ),
   resolveMatchCandidate: (id: string, action: "confirm" | "dismiss") =>

@@ -121,6 +121,23 @@ const PATHS: Record<string, React.ReactNode> = {
     </>
   ),
   list: <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />,
+  heart: <path d="M12 20.5s-8-4.9-8-11A4.6 4.6 0 0 1 12 6.6a4.6 4.6 0 0 1 8 2.9c0 6.1-8 11-8 11z" />,
+  comment: <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z" />,
+  repeat: (
+    <>
+      <path d="m17 3 4 4-4 4" />
+      <path d="M3 11V9a2 2 0 0 1 2-2h16" />
+      <path d="m7 21-4-4 4-4" />
+      <path d="M21 13v2a2 2 0 0 1-2 2H3" />
+    </>
+  ),
+  eye: (
+    <>
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
+  star: <path d="m12 3 2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.5 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z" />,
   play: <path d="M7 4.5v15l12-7.5z" />,
   pause: <path d="M8 5v14M16 5v14" />,
   film: (

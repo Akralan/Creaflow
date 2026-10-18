@@ -7,7 +7,7 @@ import { requireUserId } from "@/lib/auth/session";
 import { listConnectedProviders } from "@/lib/services/oauthAccountService";
 import { getStyleLearningStatus } from "@/lib/services/styleLearningService";
 import { handleApiError } from "@/lib/api/errors";
-import { expectationsSchema, postLanguageSchema, publishingDaysSchema } from "@/lib/validation";
+import { expectationsSchema, postLanguageSchema, publishingDaysSchema, xHandleSchema } from "@/lib/validation";
 import { syncGoalCountsToPublishingDays } from "@/lib/services/postingGoalsService";
 
 const profileSchema = z.object({
@@ -17,6 +17,7 @@ const profileSchema = z.object({
   expectations: expectationsSchema.optional(),
   language: postLanguageSchema.nullable().optional(),
   publishingDays: publishingDaysSchema.optional(),
+  xHandle: xHandleSchema.optional(),
 });
 
 export async function GET() {
@@ -63,10 +64,13 @@ export async function POST(request: NextRequest) {
       where: eq(creatorProfiles.userId, userId),
     });
 
+    // A new handle is a new timeline: the throttle of the old one must not delay reading it.
+    const handleChanged = body.xHandle !== undefined && body.xHandle !== (existing?.xHandle ?? null);
+
     const [profile] = existing
       ? await db
           .update(creatorProfiles)
-          .set(body)
+          .set(handleChanged ? { ...body, xLastReadAt: null } : body)
           .where(eq(creatorProfiles.userId, userId))
           .returning()
       : await db
