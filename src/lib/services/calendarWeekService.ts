@@ -145,7 +145,7 @@ export async function listCalendarRange(userId: string, from: Date, to: Date) {
       ? { ...next, series: next.series ? { id: next.series.id, label: next.series.label } : null, script: null, upcoming: upcoming.get(next.id) ?? null }
       : null,
     // Au-delà de la semaine, les posts rédigés et le prochain créneau vide de chaque série.
-    entries: entries.filter((entry) => entry.scheduledDate < to || entry.script || nextBySeries.has(entry.id)).map((entry) => {
+    entries: entries.filter((entry) => entry.scheduledDate < to || entry.script || entry.status === "generating" || nextBySeries.has(entry.id)).map((entry) => {
       const script = entry.script;
       if (!script) return { ...entry, script: null, upcoming: upcoming.get(entry.id) ?? null };
       const design = designByScript.get(script.id);
