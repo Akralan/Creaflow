@@ -42,6 +42,7 @@ async function buildPortrait(userId: string, product: ProductRow): Promise<Reade
     subjectName: product.name,
     subjectDescription: product.description,
     valueProposition: product.valueProposition,
+    problem: product.problem,
     subjectAudience: product.targetAudience,
     brandAudience: profile?.targetAudience ?? null,
     activityType: profile?.activityType ?? "",

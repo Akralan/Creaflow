@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { logger } from "@/lib/logger";
 import { createBrevoSender } from "./brevo";
 import { getEmailSender, parseSenderIdentity } from "./index";
 import { consoleSender } from "./console";
-import { accountDeletedEmail, passwordChangedEmail, passwordResetEmail } from "./templates";
+import { accountDeletedEmail, firstPostEmail, loginLinkEmail, passwordChangedEmail, passwordResetEmail } from "./templates";
 
 describe("parseSenderIdentity", () => {
   it("reads a \"Name <address>\" form and a bare address", () => {
@@ -100,5 +101,47 @@ describe("templates", () => {
     const email = accountDeletedEmail();
     expect(email.text).not.toMatch(/@/);
     expect(email.subject).toMatch(/deleted/);
+  });
+});
+
+describe("emails of the /start flow", () => {
+  it("firstPostEmail carries the post in full in both versions, and the sign-in link", () => {
+    const mail = firstPostEmail({ productName: "RelayKit", postText: "Line one\nLine <two>", loginUrl: "https://x.test/connexion/lien?token=abc", expiresInHours: 24 });
+    expect(mail.text).toContain("Line one\nLine <two>");
+    expect(mail.text).toContain("https://x.test/connexion/lien?token=abc");
+    expect(mail.html).toContain("Line one\nLine &lt;two&gt;");
+    expect(mail.html).toContain('href="https://x.test/connexion/lien?token=abc"');
+    expect(mail.html.endsWith("</div></body></html>")).toBe(true);
+  });
+
+  it("loginLinkEmail says whether the week is ready", () => {
+    expect(loginLinkEmail({ loginUrl: "https://x.test/l", expiresInHours: 24, fresh: true }).subject).toMatch(/first week/);
+    expect(loginLinkEmail({ loginUrl: "https://x.test/l", expiresInHours: 24, fresh: false }).subject).toMatch(/Sign in/);
+  });
+});
+
+describe("consoleSender in production (EMAIL_LOG_LINKS, temporary — see URGENT.md)", () => {
+  const message = { to: "a@b.c", subject: "s", html: "h", text: "Open: https://app.test/connexion/lien?token=abc123 — bye\nReset: https://app.test/reinitialiser-mot-de-passe?token=zzz" };
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  it("logs neither the body nor any link by default", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const info = vi.spyOn(logger, "info").mockImplementation(() => undefined);
+    await consoleSender.send(message);
+    expect(JSON.stringify(info.mock.calls)).not.toContain("abc123");
+  });
+
+  it("logs only the sign-in link when EMAIL_LOG_LINKS=1, never the reset link", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("EMAIL_LOG_LINKS", "1");
+    const info = vi.spyOn(logger, "info").mockImplementation(() => undefined);
+    await consoleSender.send(message);
+    const logged = JSON.stringify(info.mock.calls);
+    expect(logged).toContain("https://app.test/connexion/lien?token=abc123");
+    expect(logged).not.toContain("zzz");
   });
 });

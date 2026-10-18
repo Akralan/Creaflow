@@ -18,7 +18,7 @@ export const scriptStatusEnum = pgEnum("script_status", ["draft", "planned", "sh
 // "video" removed on 2026-10-16 (docs/SPEC_ONBOARDING_MVP.md §6): the product no longer makes video scripts.
 // The animation of a visual post is not one: it is a visualFormat.
 export const contentTypeEnum = pgEnum("content_type", ["visual", "text"]);
-export const calendarStatusEnum = pgEnum("calendar_status", ["planned", "shot", "published"]);
+export const calendarStatusEnum = pgEnum("calendar_status", ["planned", "shot", "published", "generating"]);
 export const assistantProposalKindEnum = pgEnum("assistant_proposal_kind", [
   "product_create",
   "product_update",
@@ -338,6 +338,9 @@ export const products = pgTable("products", {
   name: text("name").notNull(),
   description: text("description"),
   valueProposition: text("value_proposition"),
+  // The problem the topic solves (docs/SPEC_ENTREE_PAR_LE_REPO.md §3) — third field of the /start card,
+  // read by the reader portrait. Null as long as nobody (nor the extraction) has filled it.
+  problem: text("problem"),
   photoUrl: text("photo_url"),
   // Per-topic audience override (docs/SPEC_PROMPT_GENERATION_TECH.md §2/§5) — null = fallback to
   // CreatorProfile.targetAudience at injection (buildScriptUserMessage). Covers the multi-topic personal
@@ -879,6 +882,32 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   tokenHash: text("token_hash").notNull().unique(),
   expiresAt: timestamp("expires_at").notNull(),
   usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Magic-link sign-in (docs/SPEC_ENTREE_PAR_LE_REPO.md §3, §6): same mechanics as password_reset_tokens
+// — only the SHA-256 hash is stored, a new link invalidates the previous ones, single use — with a
+// 24 h life because the link arrives with the first post. No purge: the row goes with the account.
+export const loginTokens = pgTable("login_tokens", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Background generation behind the /start flow (docs/SPEC_ENTREE_PAR_LE_REPO.md §3, §5): one row per
+// account born from the landing. `stage` makes it resumable and free of duplicates — a restart in the
+// middle, or a second click on the email link, never relaunches a finished step.
+export const startJobStageEnum = pgEnum("start_job_stage", ["queued", "profile", "series", "post", "mailed", "failed"]);
+
+export const startJobs = pgTable("start_jobs", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  stage: startJobStageEnum("stage").notNull().default("queued"),
+  error: text("error"),
+  mailedAt: timestamp("mailed_at"),
+  otherPostsRequestedAt: timestamp("other_posts_requested_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

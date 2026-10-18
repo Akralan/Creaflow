@@ -330,6 +330,13 @@
       "when": 1792277878220,
       "tag": "0046_safe_klaw",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1792328865711,
+      "tag": "0047_entree_par_le_repo",
+      "breakpoints": true
     }
   ]
 }

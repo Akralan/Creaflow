@@ -4,14 +4,25 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useHeroFocus } from "@/components/landing/tellovo/HeroFocus";
 import { RepoIcon } from "@/components/landing/tellovo/icons";
+import { parseRepoUrl } from "@/lib/github/repoUrl";
 
 export default function HeroForm() {
   const router = useRouter();
   const { fieldRef, inputRef, nudge } = useHeroFocus();
   const [repo, setRepo] = useState("");
 
-  // The repository field is a placeholder for now: the onboarding takes over from here.
-  const submit = () => router.push("/onboarding");
+  const [error, setError] = useState("");
+
+  // The link goes to /start, which reads the repository (docs/SPEC_ENTREE_PAR_LE_REPO.md §2).
+  const submit = () => {
+    const parsed = parseRepoUrl(repo);
+    if (!parsed) {
+      setError("Paste the link of a public GitHub repo, like github.com/you/your-saas.");
+      inputRef.current?.focus();
+      return;
+    }
+    router.push(`/start?repo=${encodeURIComponent(parsed.fullName)}`);
+  };
 
   return (
     <div className="hero-form">
@@ -33,7 +44,10 @@ export default function HeroForm() {
           spellCheck={false}
           placeholder="github.com/you/your-saas"
           value={repo}
-          onChange={(e) => setRepo(e.target.value)}
+          onChange={(e) => {
+            setRepo(e.target.value);
+            setError("");
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -46,6 +60,11 @@ export default function HeroForm() {
           Generate my week <span className="arr">→</span>
         </button>
       </div>
+      {error && (
+        <p role="alert" style={{ color: "#b3261e", fontSize: 14, marginTop: 10 }}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }

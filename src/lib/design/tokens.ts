@@ -38,7 +38,8 @@ export const fontMono = "'JetBrains Mono', monospace";
 
 export type Platform = string;
 export type ScriptStatus = "draft" | "planned" | "shot" | "published";
-export type CalendarStatus = "planned" | "shot" | "published";
+/** "generating": a post is being written for this slot (docs/SPEC_ENTREE_PAR_LE_REPO.md §6). */
+export type CalendarStatus = "planned" | "shot" | "published" | "generating";
 
 /** Palette assigned by position (hash of the id) to the dynamic content categories —
  *  there is no stable key (sales/behind-the-scenes/educational) left to map to a fixed color. */
@@ -76,6 +77,7 @@ export const calendarStatusMeta: Record<CalendarStatus, { label: string; bg: str
   planned: statusMeta.planned,
   shot: statusMeta.shot,
   published: statusMeta.published,
+  generating: { label: "Writing…", bg: statusMeta.planned.bg, fg: statusMeta.planned.fg },
 };
 
 export const scriptStatusOptions: ScriptStatus[] = ["draft", "planned", "shot", "published"];

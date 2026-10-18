@@ -4,6 +4,7 @@ import { calendarEntries, creatorProfiles, postingGoals, visualDesigns } from "@
 import { planForSeries } from "@/lib/services/seriesReaderService";
 import { imagesOf, slidesOf } from "@/lib/services/visualDesignService";
 import { syncSeriesSlots } from "@/lib/services/seriesSlotSync";
+import { releaseStaleGenerating } from "@/lib/services/startRecovery";
 
 /** Posts rédigés montrés après la semaine affichée. */
 const LATER_HORIZON_DAYS = 28;
@@ -75,6 +76,7 @@ const CAPTION_PREVIEW_CHARS = 280;
  */
 export async function listCalendarRange(userId: string, from: Date, to: Date) {
   // L'horizon de 28 jours avance avec les jours : on le complète à chaque ouverture (pas de cron).
+  await releaseStaleGenerating(userId);
   await syncSeriesSlots(userId);
 
   const now = new Date();

@@ -73,6 +73,8 @@ export interface SeriesLabelsContext {
   brandName: string;
   activityType: string;
   expectations?: string | null;
+  /** The first series must be the devlog of the single project (docs/SPEC_ENTREE_PAR_LE_REPO.md D11). */
+  leadWithDevlog?: boolean;
   products: Array<{ name: string; description?: string | null }>;
   categories: Array<{ label: string; description: string }>;
 }
@@ -84,6 +86,9 @@ export async function suggestContentSeries(context: SeriesLabelsContext): Promis
     context.products.length > 0
       ? `Products/projects: ${context.products.map((p) => p.name + (p.description ? ` — ${p.description}` : "")).join("; ")}`
       : "No product registered.",
+    context.leadWithDevlog
+      ? "The FIRST series (the most important) must be the devlog of the project: the author telling, as it happens, what they build and decide, from their commits and docs, in the behind-the-scenes spirit. Name it as such (e.g. \"Build log\")."
+      : null,
     `Active editorial roles: ${context.categories.map((c) => `${c.label} — ${c.description}`).join("; ")}`,
   ].filter(Boolean);
 

@@ -97,6 +97,7 @@ function StatusChip({ status }: { status: NonNullable<WeekEntry["script"]>["stat
  */
 function HoloBody({ entry }: { entry: WeekEntry }) {
   const upcoming = entry.upcoming;
+  const writing = entry.status === "generating";
   return (
     <div style={{ position: "absolute", inset: 0, padding: 18, display: "flex", flexDirection: "column", zIndex: 1 }}>
       <span style={{ alignSelf: "flex-start", fontSize: 11.5, fontWeight: 600, color: "#4d3778", background: "rgba(255,253,250,0.7)", borderRadius: 999, padding: "4px 9px" }}>
@@ -107,7 +108,7 @@ function HoloBody({ entry }: { entry: WeekEntry }) {
           className={styles.clamp3}
           style={{ margin: 0, fontFamily: fontHeading, fontWeight: 700, fontSize: upcoming?.title ? 19 : 21, lineHeight: 1.15, letterSpacing: "-0.02em", color: upcoming?.title ? ink.heading : "rgba(34,29,25,0.45)" }}
         >
-          {upcoming?.title ?? "Upcoming post"}
+          {writing ? "Writing this post…" : (upcoming?.title ?? "Upcoming post")}
         </p>
         {upcoming?.project && (
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: 12.5, color: ink.secondary }}>
@@ -115,7 +116,7 @@ function HoloBody({ entry }: { entry: WeekEntry }) {
             {upcoming.project}
           </div>
         )}
-        <div style={{ marginTop: 14, fontSize: 12.5, fontWeight: 600, color: "#4d3778" }}>Write →</div>
+        <div style={{ marginTop: 14, fontSize: 12.5, fontWeight: 600, color: "#4d3778" }}>{writing ? "It will appear here in a moment" : "Write →"}</div>
       </div>
     </div>
   );
@@ -284,7 +285,7 @@ export function WeekPostRow({ entry, isPast, onOpen, kicker }: { entry: WeekEntr
           {dayLabel(entry.scheduledDate)}
         </span>
         <span style={{ display: "block", fontSize: 15, fontWeight: 600, color: script || entry.upcoming?.title ? ink.heading : "rgba(34,29,25,0.5)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {script ? (script.title ?? "Untitled") : (entry.upcoming?.title ?? `Upcoming post · ${entry.series?.label ?? "Free post"}`)}
+          {script ? (script.title ?? "Untitled") : entry.status === "generating" ? "Writing this post…" : (entry.upcoming?.title ?? `Upcoming post · ${entry.series?.label ?? "Free post"}`)}
         </span>
         {!script && entry.upcoming?.project && (
           <span style={{ display: "block", fontSize: 12, color: ink.secondary }}>{entry.upcoming.project}</span>

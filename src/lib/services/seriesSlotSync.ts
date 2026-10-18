@@ -101,7 +101,7 @@ export async function syncSeriesSlots(userId: string): Promise<Map<string, Serie
             seriesId: e.seriesId as string,
             platform: e.platform,
             scheduledDate: e.scheduledDate,
-            locked: e.scriptId !== null || e.status === "published",
+            locked: e.scriptId !== null || e.status === "published" || e.status === "generating",
           })),
           from,
           to,

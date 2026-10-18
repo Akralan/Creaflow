@@ -3,6 +3,7 @@ import {
   fetchTree,
   listCommits,
   listPublicRepos,
+  getPublicReadToken,
   GithubAuthError,
 } from "@/lib/github/client";
 import { buildCommitJournal, COMMITS_EXTERNAL_REF, selectMarkdownFiles } from "@/lib/github/ingest";
@@ -62,7 +63,10 @@ export const githubConnector: SourceConnector<GithubCandidateMeta> = {
   },
 
   async fetchDocuments(userId, source: MaterialSourceRow) {
-    const token = await getAccessToken(userId);
+    // Dépôt public branché depuis la landing, sans compte GitHub (docs/SPEC_ENTREE_PAR_LE_REPO.md) :
+    // lu avec le jeton du serveur.
+    const isPublic = (source.config as { public?: boolean }).public === true;
+    const token = isPublic ? getPublicReadToken() : await getAccessToken(userId);
     const branch = (source.config as { defaultBranch?: string }).defaultBranch ?? "main";
     return collectDocs(token, source.label, branch);
   },

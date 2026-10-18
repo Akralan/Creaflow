@@ -694,6 +694,23 @@ export interface AdminAccountQuotas {
   microEdits: { used: number; limit: number; planName: string; custom: number | null };
 }
 
+export interface StartAnalysis {
+  repo: { fullName: string; name: string; description: string | null; defaultBranch: string; language: string | null };
+  card: { name: string; tagline: string; building: string; who: string; problem: string };
+  extracted: boolean;
+  failureReason: string | null;
+}
+
+export interface StartCreateInput {
+  repo: string;
+  name: string;
+  building: string;
+  who: string;
+  problem: string;
+  days: number[];
+  email: string;
+}
+
 export const api = {
   signup: (email: string, password: string) => post<{ user: User }>("/api/auth/signup", { email, password }),
   login: (email: string, password: string) => post<{ user: User }>("/api/auth/login", { email, password }),
@@ -703,6 +720,11 @@ export const api = {
   forgotPassword: (email: string) => post<{ ok: true }>("/api/auth/password/forgot", { email }),
   /** Signs the user in right away (session cookie set by the route). */
   resetPassword: (token: string, password: string) => post<{ ok: true }>("/api/auth/password/reset", { token, password }),
+  // /start flow (docs/SPEC_ENTREE_PAR_LE_REPO.md): read a public repo, create the account from the card, sign in from the email link.
+  startAnalyze: (repo: string) => post<StartAnalysis>("/api/start/analyze", { repo }),
+  startCreate: (input: StartCreateInput) => post<{ ok: true }>("/api/start", input),
+  startResend: (email: string) => post<{ ok: true }>("/api/start/resend", { email }),
+  consumeLoginLink: (token: string) => post<{ ok: true; redirect: string }>("/api/auth/link", { token }),
 
   // Account tab (docs/SPEC_LEGAL_EMAIL_RGPD.md §4) — the person, not their brand.
   getAccount: () => apiFetch<{ account: AccountSummary }>("/api/account"),

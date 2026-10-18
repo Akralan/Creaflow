@@ -119,7 +119,17 @@ export default function CalendarPage() {
     return done;
   }, [entries]);
 
+  // Posts being written in the background (the two other posts of the first week, docs/SPEC_ENTREE_PAR_LE_REPO.md §6):
+  // the page looks again every few seconds until they arrive.
+  const writing = entries.some((e) => e.status === "generating" && !e.script) || nextSlot?.status === "generating";
+  useEffect(() => {
+    if (!writing) return;
+    const timer = setInterval(() => void load(), 5000);
+    return () => clearInterval(timer);
+  }, [writing, load]);
+
   function open(entry: WeekEntry) {
+    if (entry.status === "generating" && !entry.script) return;
     if (entry.script) router.push(`/scripts/${entry.script.id}`);
     else setChoosingEntry(entry);
   }
@@ -234,6 +244,12 @@ export default function CalendarPage() {
       </div>
 
       {error && <p style={{ color: color.danger, fontSize: 14, margin: "0 0 16px" }}>{error}</p>}
+
+      {writing && (
+        <p role="status" style={{ margin: "0 0 18px", padding: "12px 16px", maxWidth: 560, borderRadius: 12, background: "#fffdfa", border: "1px solid rgba(34,29,25,0.1)", color: "#574d45", fontSize: 14.5 }}>
+          The other posts of your week are loading. They will appear here in a moment.
+        </p>
+      )}
 
       {all.length === 0 && !withHeaders ? (
         <div style={{ maxWidth: 520, padding: "36px 28px", borderRadius: 20, background: "#fffdfa", border: "1px solid rgba(34,29,25,0.08)" }}>

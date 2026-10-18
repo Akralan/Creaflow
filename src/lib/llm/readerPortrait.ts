@@ -103,6 +103,8 @@ export interface ReaderPortraitContext {
   subjectName: string;
   subjectDescription: string | null;
   valueProposition: string | null;
+  /** The problem the subject solves, as its author states it (docs/SPEC_ENTREE_PAR_LE_REPO.md). */
+  problem?: string | null;
   subjectAudience: string | null;
   brandAudience: string | null;
   activityType: string;
@@ -117,6 +119,7 @@ export function buildReaderPortraitMessage(ctx: ReaderPortraitContext): string {
   const lines = [
     `Subject: ${ctx.subjectName}${ctx.subjectDescription ? ` — ${ctx.subjectDescription}` : ""}`,
     ctx.valueProposition ? `Value proposition: ${ctx.valueProposition}` : null,
+    ctx.problem ? `Problem it solves, according to the author: ${ctx.problem}` : null,
     `Who for, according to the author: ${ctx.subjectAudience || "(not specified)"}`,
     `The author's general audience: ${ctx.brandAudience || "(not specified)"}`,
     `What the author does: ${ctx.activityType || "(not specified)"}`,

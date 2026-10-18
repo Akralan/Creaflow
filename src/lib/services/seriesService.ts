@@ -149,7 +149,7 @@ export async function keepOnlySeries(userId: string, keptIds: string[]) {
 
 /** Génère un nouveau jeu de séries via l'IA à partir des catégories actives de l'utilisateur.
  *  Archive l'ancien jeu actif plutôt que de le supprimer (mêmes garanties que generateCategoriesForUser). */
-export async function generateSeriesForUser(userId: string) {
+export async function generateSeriesForUser(userId: string, options: { leadWithDevlog?: boolean } = {}) {
   const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId) });
   if (!profile) {
     throw new ApiError(400, "Set up your creator profile first before generating series.");
@@ -165,6 +165,7 @@ export async function generateSeriesForUser(userId: string) {
     brandName: profile.brandName,
     activityType: profile.activityType,
     expectations: profile.expectations,
+    leadWithDevlog: options.leadWithDevlog,
     products: productList.map((p) => ({ name: p.name, description: p.description })),
     categories: activeCategories.map((c) => ({ label: c.label, description: c.description })),
   });
