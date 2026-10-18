@@ -121,6 +121,14 @@ const PATHS: Record<string, React.ReactNode> = {
     </>
   ),
   list: <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />,
+  play: <path d="M7 4.5v15l12-7.5z" />,
+  pause: <path d="M8 5v14M16 5v14" />,
+  film: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2.5" />
+      <path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4" />
+    </>
+  ),
 };
 
 export default function AppIcon({ name, small = false }: { name: keyof typeof PATHS | string; small?: boolean }) {

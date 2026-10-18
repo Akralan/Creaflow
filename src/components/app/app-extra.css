@@ -281,6 +281,46 @@
   }
 }
 
+/* The animation of a post: a sealed iframe, scaled to its frame */
+.ap .anim-wrap {
+  grid-template-columns: minmax(0, 1fr);
+}
+.ap .anim-wrap .frame {
+  width: min(340px, 100%);
+  margin: 0 auto;
+  background: #000;
+}
+.ap .anim {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #000;
+}
+.ap .anim iframe {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border: 0;
+  transform-origin: 0 0;
+}
+.ap .anim-toggle {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  cursor: pointer;
+}
+.ap .anim-toggle:hover {
+  background: rgba(0, 0, 0, 0.75);
+}
+
 /* The plan shows the seven days of a week (a series can publish on the weekend). */
 .ap .slots.seven {
   grid-template-columns: repeat(7, minmax(0, 1fr));

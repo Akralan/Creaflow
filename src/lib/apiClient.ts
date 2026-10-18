@@ -698,6 +698,17 @@ export interface AdminAccountQuotas {
   microEdits: { used: number; limit: number; planName: string; custom: number | null };
 }
 
+/** The animation of a post (docs/SPEC_ANIMATION_HTML_LIBRE.md): the whole sealed page, ready for an iframe. */
+export interface PostAnimation {
+  scriptId: string;
+  document: string;
+  durationMs: number;
+  width: number;
+  height: number;
+  concept: string;
+  beats: Array<{ fromMs: number; toMs: number; shows: string; motion: string }>;
+}
+
 export interface StartAnalysis {
   repo: { fullName: string; name: string; description: string | null; defaultBranch: string; language: string | null };
   card: { name: string; tagline: string; building: string; who: string; problem: string };
@@ -927,6 +938,13 @@ export const api = {
   prepareWeek: (weekStart: string) => post<{ ok: true; posts: number }>("/api/weeks/prepare", { weekStart }),
   /** Adds or changes the visual of a post (image, carousel, animation); the text stays. Counts as a micro-edit. */
   setPostVisual: (scriptId: string, visual: VisualFormatFields) => post<{ ok: true; scriptId: string }>("/api/posts/visual", { scriptId, ...visual }),
+  /** The animation of a post as the sealed page the browser plays, or null. */
+  getPostAnimation: (scriptId: string) => apiFetch<{ animation: PostAnimation | null }>(`/api/posts/animation?scriptId=${scriptId}`),
+  /** The model writes the animation of a post (a few tens of seconds). A micro-edit. */
+  createPostAnimation: (scriptId: string, durationMs: number) => post<{ animation: PostAnimation }>("/api/posts/animation", { scriptId, durationMs }),
+  /** The rendering test found something wrong: the model corrects its page. */
+  revisePostAnimation: (scriptId: string, issues: string[]) => put<{ animation: PostAnimation }>("/api/posts/animation", { scriptId, issues }),
+  removePostAnimation: (scriptId: string) => del<{ ok: true }>(`/api/posts/animation?scriptId=${scriptId}`),
   removePostVisual: (scriptId: string) => del<{ ok: true }>(`/api/posts/visual?scriptId=${scriptId}`),
   getCalendarEntry: (id: string) => apiFetch<{ entry: CalendarEntry }>(`/api/calendar/${id}`),
   placeScript: (scriptId: string, scheduledDate: string) =>

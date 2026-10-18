@@ -927,6 +927,24 @@ export const consumedWeeks = pgTable(
   (t) => [unique().on(t.userId, t.weekStart)]
 );
 
+// The animation of a post, written by the model as a free HTML page (docs/SPEC_ANIMATION_HTML_LIBRE.md): the
+// fragment that goes inside the stage, played in a sealed iframe. One per script; independent of `visual_designs`
+// (the static mockups). Deleting the script deletes it.
+export const postAnimations = pgTable("post_animations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  scriptId: uuid("script_id").notNull().unique().references(() => scripts.id, { onDelete: "cascade" }),
+  html: text("html").notNull(),
+  durationMs: integer("duration_ms").notNull(),
+  width: integer("width").notNull(),
+  height: integer("height").notNull(),
+  // What the model planned: the idea, the beats, its own rationale (shown in « Source »).
+  concept: text("concept").notNull().default(""),
+  beats: jsonb("beats").notNull().default([]),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const postingGoals = pgTable("posting_goals", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),

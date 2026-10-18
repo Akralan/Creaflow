@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import AppIcon from "@/components/app/AppIcon";
+import AnimationPlayer, { type AnimationPlayerHandle } from "@/components/app/AnimationPlayer";
 import DesignPreview from "@/components/app/DesignPreview";
+import { foreignNumbers } from "@/lib/animationHtml/numbers";
 import DesignEditor from "@/components/DesignEditor/DesignEditor";
-import { api, ApiClientError, type Script, type WeekEntry } from "@/lib/apiClient";
+import { api, ApiClientError, type PostAnimation, type Script, type WeekEntry } from "@/lib/apiClient";
 import { DEFAULT_DURATION_MS, DEFAULT_SLIDES, MAX_DURATION_MS, MAX_SLIDES, MIN_DURATION_MS, MIN_SLIDES } from "@/lib/visualDesign/visualFormat";
 import { longDay, NETWORKS, postState, scriptReadiness, type Network, type PostGroup } from "@/lib/weekPosts";
 
@@ -64,6 +66,10 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
   const [tools, setTools] = useState(false);
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [mockup, setMockup] = useState(false);
+  // The animation of the post (docs/SPEC_ANIMATION_HTML_LIBRE.md): a free HTML page played in a sealed iframe.
+  const [animation, setAnimation] = useState<PostAnimation | null>(null);
+  const [animationNote, setAnimationNote] = useState<string | null>(null);
+  const playerRef = useRef<AnimationPlayerHandle>(null);
   // What a long action is doing right now, told on the pane itself (the tools bubble closes when you click away).
   const [working, setWorking] = useState<null | { text: string; media?: boolean }>(null);
   const [ownerScript, setOwnerScript] = useState<Script | null>(null);
@@ -96,6 +102,10 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
       .then(({ script }) => alive && setScript(script))
       .catch((e) => alive && setError(errorText(e)))
       .finally(() => alive && setLoadingScript(false));
+    api
+      .getPostAnimation(scriptId)
+      .then(({ animation }) => alive && setAnimation(animation))
+      .catch(() => undefined);
     return () => {
       alive = false;
     };
@@ -329,8 +339,73 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
     }
   }
 
+  /**
+   * The animation: the model writes a page, the page is played in the sealed iframe and looks at itself (overlaps,
+   * cut-off or tiny text, figures the post does not state); what is wrong goes back to the model, twice at most.
+   */
+  async function makeAnimation() {
+    if (!script) return;
+    setBusy("tool");
+    setError(null);
+    setAnimationNote(null);
+    setTools(false);
+    setWorking({ text: "Writing your animation from the post… about 30 seconds.", media: true });
+    try {
+      let made = (await api.createPostAnimation(script.id, visualDraft.seconds * 1000)).animation;
+      setAnimation(made);
+      setConfirm(null);
+      const owner = (await api.getScript(made.scriptId)).script;
+      const postText = `${owner.title ?? ""}\n${owner.caption}`;
+      for (let round = 0; round <= 2; round++) {
+        setWorking({ text: round === 0 ? "Checking the layout…" : `Checking the layout again (${round}/2)…` });
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        const probe = await playerRef.current?.probe().catch(() => null);
+        if (!probe) break;
+        const invented = foreignNumbers(probe.text, postText);
+        const issues = [
+          ...probe.errors.map((e) => `script error: ${e}`),
+          ...probe.issues,
+          ...(invented.length > 0 ? [`the screen shows the number ${invented.join(", ")}, which the post does not state: show only figures copied from the post`] : []),
+        ];
+        if (issues.length === 0) break;
+        if (round === 2) {
+          setAnimationNote(`The layout check still found: ${issues[0]}`);
+          break;
+        }
+        setWorking({ text: `Fixing: ${issues[0]}` });
+        made = (await api.revisePostAnimation(made.scriptId, issues)).animation;
+        setAnimation(made);
+      }
+      onChanged();
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(null);
+      setWorking(null);
+    }
+  }
+
+  async function dropAnimation() {
+    if (!script) return;
+    setBusy("tool");
+    setError(null);
+    setTools(false);
+    setWorking({ text: "Removing the animation…" });
+    try {
+      await api.removePostAnimation(script.id);
+      setAnimation(null);
+      setAnimationNote(null);
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy(null);
+      setWorking(null);
+    }
+  }
+
   async function applyVisual() {
     if (!script) return;
+    if (visualDraft.format === "animation") return makeAnimation();
     setBusy("tool");
     setError(null);
     setWorking({ text: "Composing your visual from the post… this takes about 30 seconds.", media: true });
@@ -339,7 +414,6 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
       await api.setPostVisual(script.id, {
         visualFormat: visualDraft.format,
         ...(visualDraft.format === "carousel" ? { slideCount: visualDraft.slides } : {}),
-        ...(visualDraft.format === "animation" ? { durationMs: visualDraft.seconds * 1000 } : {}),
       });
       setConfirm(null);
       onChanged();
@@ -403,7 +477,19 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
             </div>
           </div>
         )}
-        {isVisual && ownerId && !working?.media && (
+        {animation && !working?.media && (
+          <div className="post-media anim-wrap">
+            <div className="frame">
+              <AnimationPlayer ref={playerRef} document={animation.document} width={animation.width} height={animation.height} label="Animation of the post" />
+            </div>
+          </div>
+        )}
+        {animationNote && !working && (
+          <p className="pane-note" style={{ padding: 0, margin: "-8px 0 14px" }}>
+            {animationNote}
+          </p>
+        )}
+        {isVisual && ownerId && !working?.media && !animation && (
           <div className="post-media">
             <div className="frame">
               {preview ? (
@@ -543,7 +629,7 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
               )}
               {confirm === "visual" && (
                 <>
-                  <h3>{isVisual ? "Change the visual" : "Add a visual"} — same for LinkedIn and X</h3>
+                  <h3>{isVisual || animation ? "Change the visual" : "Add a visual"} — same for LinkedIn and X</h3>
                   <div className="chips" style={{ padding: "4px 8px 8px" }} role="group" aria-label="Visual format">
                     {([["single", "Image"], ["carousel", "Carousel"], ["animation", "Animation"]] as const).map(([format, label]) => (
                       <button key={format} className={visualDraft.format === format ? "chip on" : "chip"} type="button" onClick={() => setVisualDraft({ ...visualDraft, format })}>
@@ -604,6 +690,12 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
                     <AppIcon name="image" />
                     {isVisual ? "Change the visual" : "Add a visual"}
                   </button>
+                  {animation && (
+                    <button type="button" role="menuitem" onClick={dropAnimation}>
+                      <AppIcon name="x" />
+                      Remove the animation
+                    </button>
+                  )}
                   {isVisual && (
                     <>
                       <button type="button" role="menuitem" onClick={() => void openMockup()}>
@@ -640,6 +732,12 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
 
       {showSource && (
         <div className="source" id="ap-source">
+          {animation && (
+            <div className="why" style={{ borderTop: 0, paddingTop: 0 }}>
+              <p className="k">The animation</p>
+              <p>{animation.concept}</p>
+            </div>
+          )}
           {sources.length > 0 ? (
             <>
               <p className="k">Based on your material</p>

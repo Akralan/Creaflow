@@ -1,0 +1,39 @@
+{
+  "concept": "Le compteur paraît fonctionner, mais à 6 fps il perd une répétition sur trois : trois points représentent les squats, puis le troisième disparaît tandis que « 1/3 » devient le constat dominant.",
+  "beats": [
+    {
+      "fromMs": 0,
+      "toMs": 1500,
+      "shows": "Silhouette en squat, « 6 fps » et trois points; « COMPTEUR »",
+      "motion": "La courbe d’angle se dessine dès le premier frame; les trois points entrent successivement avec le même léger overshoot, espacés de 120 ms."
+    },
+    {
+      "fromMs": 1500,
+      "toMs": 3600,
+      "shows": "Courbe d’angle et seuil « 100° »",
+      "motion": "La courbe continue de se révéler jusqu’à 2600 ms; le point correspondant à la répétition manquée s’atténue à partir de 3000 ms."
+    },
+    {
+      "fromMs": 3600,
+      "toMs": 5000,
+      "shows": "« 1/3 » au centre, « répétitions ratées » dessous",
+      "motion": "Le grand chiffre monte de 22 px et passe de .92 à 1 avec une entrée ease-out; les éléments techniques se décalent visuellement en retrait."
+    },
+    {
+      "fromMs": 5000,
+      "toMs": 8000,
+      "shows": "« 1/3 » dominant, trois points calmes autour",
+      "motion": "Le chiffre reste parfaitement stable pendant les 3000 dernières ms; seul un mouvement ambient très subtil maintient la silhouette."
+    }
+  ],
+  "rationale": "Le chiffre final est maintenant dans la zone sûre, avec une ligne de texte dédiée sous lui et la signature déplacée à droite pour éviter tout chevauchement avec « 100° ». Le premier frame reste déjà composé, tandis que la disparition d’un seul point rend l’omission visible avant que « 1/3 » prenne toute la hiérarchie.",
+  "attempts": 2,
+  "reviewed": [
+    "Le dernier état est lisible mais le message est incomplet et contradictoire : le grand « 1/3 » recouvre directement la silhouette, la courbe et les points, tandis que « répétitions ratées » reste séparé en bas.",
+    "Le compteur « 0 squats » demeure affiché jusqu'à la fin, ce qui affaiblit le message et entre en concurrence avec « 1/3 ».",
+    "La première image est composée, mais elle montre surtout un schéma technique et aucun signal clair d'échec ; l'idée « le laptop ment par omission » n'est pas assez montrée.",
+    "Le texte visible dépasse l'intention minimale et le libellé « COMPTEUR » est générique ; surtout, l'écran final ne porte pas une conclusion claire du type « 1 sur 3 absente ».",
+    "Le grand « 1/3 » est positionné sur la zone de démonstration et masque des articulations importantes, collision qui nuit à la compréhension du mécanisme."
+  ],
+  "htmlBytes": 3183
+}
