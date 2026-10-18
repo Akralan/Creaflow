@@ -1,6 +1,6 @@
 # SPEC — L'APPLICATION AU DESIGN TELLOVO (semaine, deux réseaux, quota en semaines)
 
-> **Statut : validée le 2026-10-18, en cours d'implémentation sur `feature/app-design-tellovo`.** Décisions prises à deux (Alix et Claude). Le journal de la section 1 garde chaque décision avec sa raison, parce que CreaFlow sert à parler de CreaFlow.
+> **Statut : validée et implémentée le 2026-10-18 sur `feature/app-design-tellovo` (lots 0 à 6), migration `0048` en dev seulement, essayée en réel (un post → deux scripts, deux textes, même événement ; semaine suivante refusée par le quota → modale) ; écarts en §9.** Décisions prises à deux (Alix et Claude). Le journal de la section 1 garde chaque décision avec sa raison, parce que CreaFlow sert à parler de CreaFlow.
 >
 > **Objectif.** Reprendre le design de l'application du prototype de tellovo.ai (`/app`, `/app/plan`, `/app/context`, modale de paiement) et le brancher sur les fonctions réelles de CreaFlow. Trois changements de fond l'accompagnent : **deux réseaux seulement** (LinkedIn et X, un script par réseau pour un même créneau), **un quota compté en semaines** (et non plus en scripts), et **une page unique « Your content week »** qui remplace le calendrier et la page de détail d'un post.
 >
@@ -110,6 +110,17 @@
 | 6 | Docs (`CLAUDE.md`, `TECH.md`), `URGENT.md` inchangé. | Relecture. |
 
 ---
+
+## 9. Écarts à l'implémentation et limites connues
+
+- **Maquettes visuelles dans la paire** : la génération d'un post écrit deux scripts de **texte**. Un post visuel (créé à la main depuis `/scripts/new`) s'affiche et se retouche bien dans le volet (image entre l'auteur et le texte, éditeur de maquette dans une fenêtre via la bulle d'outils), mais la paire visuelle à image partagée n'est pas générée : le défaut est le texte pour les deux réseaux. À reprendre avec le prochain chantier visuel.
+- **Les objectifs de publication n'éteignent plus un réseau** : les créneaux sont créés pour LinkedIn et X quels que soient `posting_goals` ; la fenêtre « objectif hebdomadaire » du calendrier est supprimée avec l'ancien calendrier.
+- **Quota** : l'essai compte des semaines (`consumed_weeks`, `users.week_limit` pour un quota personnalisé) ; les comptes abonnés gardent le compte en scripts. La semaine est gravée à la demande d'écriture, avant l'appel au modèle : un échec du modèle ne la rend pas.
+- **Pages anciennes** : Direction, Settings, Performance et Assistant gardent leur contenu d'avant, dans la nouvelle coque ; leur restyle n'est pas dans ce chantier. L'assistant n'a plus d'entrée de menu (la route reste).
+- **`/scripts/[id]`** redirige vers `/calendar?week=…&post=…` quand le script a un créneau ; il ne sert plus qu'aux scripts sans créneau (importés, libres).
+- **Statuts** : `Posted` n'est posé par aucun écran ; l'écriture viendra avec la détection des publications.
+- **Semaine affichée** : du lundi au dimanche (un rythme peut tomber le week-end), là où le prototype montre cinq jours.
+- **Le premier post du mail est la version LinkedIn** ; la version X s'écrit juste après le départ du mail.
 
 ## 8. Hors périmètre / à décider plus tard
 

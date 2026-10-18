@@ -62,10 +62,10 @@ export const platformMeta: Record<string, { label: string; badge: string; badgeB
 export const genericPlatformMeta = { badge: "?", badgeBg: "#6b6259" };
 
 export const statusMeta: Record<ScriptStatus, { label: string; bg: string; fg: string }> = {
-  draft: { label: "Brouillon", bg: color.trackBg, fg: "#8a8078" },
-  planned: { label: "Planned", bg: accentAlpha(0.14), fg: accentText },
+  draft: { label: "Draft", bg: color.trackBg, fg: "#8a8078" },
+  planned: { label: "Ready", bg: accentAlpha(0.14), fg: accentText },
   shot: { label: "Ready", bg: "oklch(0.62 0.13 60 / 0.16)", fg: "oklch(0.5 0.13 60)" },
-  published: { label: "Published", bg: "oklch(0.62 0.13 150 / 0.16)", fg: "oklch(0.42 0.14 150)" },
+  published: { label: "Posted", bg: "oklch(0.62 0.13 150 / 0.16)", fg: "oklch(0.42 0.14 150)" },
 };
 
 export const calendarStatusMeta: Record<CalendarStatus, { label: string; bg: string; fg: string }> = {
