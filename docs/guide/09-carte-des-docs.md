@@ -10,7 +10,7 @@ Légende : 🟢 vivant, fiable pour sa zone · 🟡 utile mais en partie périm�
 | :--- | :--- | :--- |
 | `PRODUCT.md` (33 Ko) | 🟡 | Vision et modules. Contient encore l'ancien vocabulaire : Instagram/newsletter/blog, « rédacteur en chef », calendrier de cartes, onboarding en six écrans comme entrée. Les encadrés « Mise à jour du 2026-10-18 » corrigent, mais il faut les lire. **Remplacé en pratique par `01-vision.md` + `02-produit.md`.** |
 | `TECH.md` (120 Ko) | 🟡 | Très riche (modèle de données détaillé, endpoints, prompts, Stripe, sécurité, Sentry, légal). Périmé sur : « desktop seulement », écran `/calendar` mensuel, `/scripts/:id`, onboarding en chat, rédacteur en chef (§5.12 `materialEpisodes`), Instagram. **Bon pour les détails de §6 Stripe, §7 sécurité, §8 fournisseurs, §9 Sentry.** |
-| `PROMPTS.md` (94 Ko) | 🟡 | Inventaire des prompts. À recouper avec `src/lib/llm/` : des prompts du rédacteur en chef et du cadrage y figurent encore. |
+| `PROMPTS.md` | 🟢 | Inventaire des prompts, remis à jour contre le code le 2026-10-19 (rédacteur en chef et cadrage retirés ; qualification, fiche de repo, brief visuel et animation HTML ajoutés). |
 
 ## Specs de chantier — par sujet
 

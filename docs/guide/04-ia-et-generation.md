@@ -26,10 +26,10 @@ C'est la partie qui compte le plus et qui a été le plus retravaillée. Après 
         ▼
  Un créneau = le PROCHAIN événement de la ligne de temps, filtrée sur le lecteur,
         │       dans l'ordre, en sautant ce qui a déjà été raconté
-        ▼  RÉDACTEUR AGENTIQUE (jusqu'à 3 tours)                      eventWriter.ts
+        ▼  RÉDACTEUR AGENTIQUE (jusqu'à 14 tours)                     eventWriter.ts
         │    reçoit : l'événement + ses voisins (2 avant, 1 après), le lecteur, la forme,
         │             les règles de style apprises, les 5 derniers posts, les règles du réseau
-        │    outils : read_source · read_timeline · submit_post
+        │    outils : read_source · read_timeline · review_draft · submit_post
         │    méthode : relire la source → brouillon → le juger comme le lecteur → recommencer → soumettre
         ▼
  CONTRÔLES DU CODE (scriptChecks.ts) dans l'outil de soumission                     un post refusé repart
@@ -57,7 +57,7 @@ Agent à trois outils (`list_documents`, `read_document`, `save_event`). Il lit 
 - Le post **s'arrête avant l'événement suivant** (les voisins servent à situer, pas à raconter).
 - Première personne du **singulier** sauf équipe déclarée.
 - Il varie ouverture et fin d'un post à l'autre et ne reprend pas les chiffres des épisodes voisins.
-- Coût accepté : 3 à 6 appels par post.
+- Coût accepté : 3 à 6 appels par post en général (14 tours au plus).
 - Les exemples des prompts sont **fictifs et sans rapport avec un domaine** (un testeur, un joueur, un pair) pour ne pas orienter les générations.
 
 ### Contrôles du code — `scriptChecks.ts`, `platformRules.ts`
@@ -96,7 +96,7 @@ Ce qui se mesure est vérifié par le code, pas par le modèle. Un post fautif e
 
 ## Où sont les prompts
 
-`docs/PROMPTS.md` (94 Ko) en est l'inventaire complet (où, pourquoi, quand, texte). Le code fait foi : `src/lib/llm/`.
+`docs/PROMPTS.md` (état du 2026-10-19, tous les prompts en anglais) en est l'inventaire complet (où, pourquoi, quand, texte). Le code fait foi : `src/lib/llm/`.
 
 ## Ce qu'on a appris (à relire avant de retoucher les prompts)
 
