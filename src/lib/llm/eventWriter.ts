@@ -58,14 +58,14 @@ export interface EventWriterContext {
   language?: PostLanguage;
 }
 
-const READ_SOURCE_TOOL = "read_source";
-const READ_TIMELINE_TOOL = "read_timeline";
-const REVIEW_DRAFT_TOOL = "review_draft";
-const SUBMIT_POST_TOOL = "submit_post";
+export const READ_SOURCE_TOOL = "read_source";
+export const READ_TIMELINE_TOOL = "read_timeline";
+export const REVIEW_DRAFT_TOOL = "review_draft";
+export const SUBMIT_POST_TOOL = "submit_post";
 
 /** At most two submissions: the second has read the checks report. */
-const MAX_SUBMISSIONS = 2;
-const MAX_DRAFTS = 3;
+export const MAX_SUBMISSIONS = 2;
+export const MAX_DRAFTS = 3;
 
 function formatEventDate(e: BriefEvent): string {
   if (!e.date || e.datePrecision === "unknown") return "unknown date";
@@ -74,7 +74,7 @@ function formatEventDate(e: BriefEvent): string {
   return d.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 }
 
-function eventLine(e: BriefEvent): string {
+export function eventLine(e: BriefEvent): string {
   return `${formatEventDate(e)} — ${e.title}`;
 }
 
@@ -116,14 +116,12 @@ The first frame came out of the hive black. Not dark, black. Rain had been getti
 
 export const EVENT_WRITER_SYSTEM_PROMPT = `${SCRIPT_CORE_PROMPT}\n\n${METHOD_PROMPT}`;
 
-function tag(name: string, lines: string[]): string {
+export function tag(name: string, lines: string[]): string {
   return `<${name}>\n${lines.join("\n")}\n</${name}>`;
 }
 
 export function buildEventWriterUserMessage(context: EventWriterContext): string {
   const { brief } = context;
-  const r = brief.reader;
-  const f = brief.form;
   const sections: string[] = [];
 
   sections.push(
@@ -139,6 +137,31 @@ export function buildEventWriterUserMessage(context: EventWriterContext): string
         : "No source document: the author wrote this event themselves. You only have what is above.",
     ])
   );
+
+  sections.push(...buildWriterContextSections({ ...context, reader: brief.reader, form: brief.form }));
+
+  sections.push(`Start with ${READ_SOURCE_TOOL}.`);
+  return sections.join("\n\n");
+}
+
+/**
+ * Everything after the brief itself, shared with the story writer (narrativeWriter.ts): who is
+ * being written for, the series form, the learned style, the latest posts, the platform rules, the
+ * visual format and the language. Extracted as is — same blocks, same order, same wording.
+ */
+export function buildWriterContextSections(context: {
+  reader: Reader;
+  form: SeriesForm;
+  styleProfile?: StyleProfile | null;
+  recentPosts?: RecentPostCard[];
+  platform: Platform;
+  contentType: ContentType;
+  visual?: VisualFormatSpec | null;
+  language?: PostLanguage;
+}): string[] {
+  const r = context.reader;
+  const f = context.form;
+  const sections: string[] = [];
 
   sections.push(
     tag("reader", [
@@ -178,11 +201,10 @@ export function buildEventWriterUserMessage(context: EventWriterContext): string
 
   if (context.language) sections.push(buildLanguageBlock(context.language));
 
-  sections.push(`Start with ${READ_SOURCE_TOOL}.`);
-  return sections.join("\n\n");
+  return sections;
 }
 
-const POST_FIELDS = {
+export const POST_FIELDS = {
   concept: { type: "string", description: "In one sentence: what the reader should remember from this event." },
   title: { type: "string", description: "The name of the idea, short, impossible to reuse for another post." },
   caption: { type: "string", description: "The post text, in full, in the series form and the platform's length." },
@@ -252,7 +274,7 @@ function buildTools(context: EventWriterContext, parts: number): LlmToolDefiniti
   ];
 }
 
-const submittedTextSchema = z.object({
+export const submittedTextSchema = z.object({
   concept: z.string().min(1),
   title: z.string().min(1),
   hookText: z.string().min(1),
@@ -262,7 +284,7 @@ const submittedTextSchema = z.object({
   promisesMade: z.array(z.string()).default([]),
 });
 
-const submittedVisualSchema = z.object({
+export const submittedVisualSchema = z.object({
   concept: z.string().min(1),
   title: z.string().min(1),
   hookVisual: z.string().min(1),

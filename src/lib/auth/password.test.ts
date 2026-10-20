@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { hashPassword, verifyPassword } from "./password";
 
-describe("password hashing", () => {
+// bcrypt est volontairement lent et occupe un cœur : sous la charge de la suite entière, les
+// 5 s par défaut de Vitest ne suffisent plus. Le plafond est ici, pas en global, pour que le reste
+// de la suite garde un délai court.
+describe("password hashing", { timeout: 20_000 }, () => {
   it("hashes a password differently from the plain text", async () => {
     const hash = await hashPassword("password123");
     expect(hash).not.toBe("password123");
