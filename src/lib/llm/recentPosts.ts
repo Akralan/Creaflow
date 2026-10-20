@@ -14,6 +14,9 @@ export interface RecentPostCard {
   /** Type of the chosen hook (number, confession…), taken from the V3 preparation. */
   hookKind: string | null;
   ending: string | null;
+  /** Story post rather than episode (docs/SPEC_FIL_NARRATIF.md §9): the next episode must not
+   *  retell it — a checkpoint in particular already summed up a whole stretch. */
+  narrativeKind: "origin" | "vision" | "checkpoint" | "promise" | null;
 }
 
 export interface RecentPostSource {
@@ -27,12 +30,15 @@ export interface RecentPostSource {
 
 const MAX_ENDING = 160;
 
+const NARRATIVE_KINDS: string[] = ["origin", "vision", "checkpoint", "promise"];
+
 interface TraceShape {
   reader?: { label?: unknown };
   candidateMoments?: Array<{ moment?: unknown }>;
   chosenMoment?: { index?: unknown };
   hookOptions?: Array<{ kind?: unknown }>;
   chosenHook?: { index?: unknown };
+  narrativeKind?: unknown;
 }
 
 function text(value: unknown): string | null {
@@ -63,6 +69,7 @@ export function postCardFromScript(script: RecentPostSource): RecentPostCard {
     hook: text(script.hookText) ?? text(firstSlide),
     hookKind: text(picked(trace.hookOptions, trace.chosenHook?.index)?.kind)?.toLowerCase() ?? null,
     ending: lastSentence(script.caption),
+    narrativeKind: NARRATIVE_KINDS.includes(trace.narrativeKind as string) ? (trace.narrativeKind as RecentPostCard["narrativeKind"]) : null,
   };
 }
 

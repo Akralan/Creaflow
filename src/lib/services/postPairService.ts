@@ -5,6 +5,8 @@ import { generateScript } from "@/lib/llm/generateScript";
 import { defaultContentTypeForPlatform } from "@/lib/llm/prompts";
 import { enforceScriptQuota } from "@/lib/services/billingService";
 import { buildGenerationContext, createScriptRecord, deleteScriptForUser } from "@/lib/services/scriptService";
+import { planNarrativePost, type NarrativePlan } from "@/lib/services/narrativeBriefService";
+import { logger } from "@/lib/logger";
 import { KNOWN_PLATFORMS } from "@/lib/social/types";
 
 /**
@@ -41,19 +43,27 @@ export async function entriesOfPost(userId: string, entry: Pick<SlotEntry, "seri
  * `POST /api/scripts/generate`). `sameEventId` impose l'événement d'une version déjà écrite.
  * Ne vérifie pas le quota : l'appelant le fait une fois pour tout le post.
  */
-export async function writeSlotVersion(userId: string, entry: SlotEntry, sameEventId: string | null = null) {
+export async function writeSlotVersion(userId: string, entry: SlotEntry, sameEventId: string | null = null, lockedPlan: NarrativePlan | null = null) {
   const contentType = defaultContentTypeForPlatform(entry.platform);
-  const context = await buildGenerationContext(userId, entry.platform, entry.contentCategoryId, contentType, null, undefined, entry.seriesId, undefined, undefined, undefined, null, sameEventId);
+  const context = await buildGenerationContext(userId, entry.platform, entry.contentCategoryId, contentType, null, undefined, entry.seriesId, undefined, undefined, undefined, null, sameEventId, lockedPlan);
   const generated = await generateScript(context);
+  const plan = lockedPlan;
   const script = await createScriptRecord(userId, entry.platform, context.contentCategory, context.resolvedProductId ?? null, generated, {
     angleId: context.angle?.id ?? null,
     seriesId: context.series?.id ?? null,
     brandAssetId: context.brandAsset?.id ?? null,
-    eventId: context.eventBrief?.event.id ?? null,
+    // Un post de récit ne marque un événement que s'il en consomme un (origine, promesse tenue).
+    eventId: plan ? plan.marksTold : (context.eventBrief?.event.id ?? null),
+    narrativeKind: plan?.brief.kind ?? null,
+    promiseHonored: plan?.brief.promise?.text ?? null,
+    promiseSourceScriptId: plan?.promiseSourceScriptId ?? null,
     visual: context.visual,
   });
   try {
-    await db.update(calendarEntries).set({ scriptId: script.id, status: "planned" }).where(eq(calendarEntries.id, entry.id));
+    await db
+      .update(calendarEntries)
+      .set({ scriptId: script.id, status: "planned", kind: plan ? "narrative" : "event", narrativeKind: plan?.brief.kind ?? null })
+      .where(eq(calendarEntries.id, entry.id));
   } catch (error) {
     // Un script sans créneau serait réécrit au prochain essai : on le retire.
     await deleteScriptForUser(userId, script.id).catch(() => undefined);
@@ -87,11 +97,23 @@ export async function writePost(
   if (missing.length === 0) return;
   if (missing.length === entries.length) await enforceScriptQuota(userId, { date: entry.scheduledDate });
 
+  // Le fil narratif décide UNE fois par post (docs/SPEC_FIL_NARRATIF.md §9) : les deux réseaux
+  // reçoivent le même plan, donc le même type et le même périmètre. Jamais bloquant : sans plan,
+  // le post est un épisode normal, exactement comme avant.
+  let plan: NarrativePlan | null = null;
+  if (entry.seriesId) {
+    try {
+      plan = await planNarrativePost(userId, entry.seriesId, entry.scheduledDate);
+    } catch (error) {
+      logger.error("Narrative thread skipped for this post", error, { userId, seriesId: entry.seriesId });
+    }
+  }
+
   let eventId = await eventOfWrittenVersion(userId, entries);
   let firstError: unknown = null;
   for (const slot of missing) {
     try {
-      const script = await writeSlotVersion(userId, slot, eventId);
+      const script = await writeSlotVersion(userId, slot, eventId, plan);
       eventId = eventId ?? script.eventId ?? null;
       await hooks?.onVersionWritten?.(script, slot);
     } catch (error) {

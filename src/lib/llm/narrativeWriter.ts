@@ -202,13 +202,13 @@ function buildTools(context: NarrativeWriterContext, parts: number): LlmToolDefi
       input_schema: { type: "object", properties: {}, required: [] },
     },
     ...(brief.promise
-      ? [
+      ? ([
           {
             name: READ_POST_TOOL,
             description: "The published post that made the promise, in full. To quote its sentence exactly.",
             input_schema: { type: "object", properties: {}, required: [] },
           },
-        ]
+        ] satisfies LlmToolDefinition[])
       : []),
     {
       name: REVIEW_DRAFT_TOOL,

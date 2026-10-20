@@ -30,6 +30,7 @@ describe("postCardFromScript", () => {
       hook: "80 ms too long in the air.",
       hookKind: "chiffre",
       ending: "Here is the before and after.",
+      narrativeKind: null,
     });
   });
 
@@ -94,5 +95,36 @@ describe("repetition checks", () => {
     );
     expect(checkGeneratedPost(post("Entirely different new entry here"), prep("aveu"), twice)).toEqual([]);
     expect(checkGeneratedPost(post("Entirely different new entry here"), prep("chiffre"), ctx([card("A b c d e f g", "chiffre")]))).toEqual([]);
+  });
+});
+
+describe("voisin de récit", () => {
+  const narrativeCard = postCardFromScript({
+    createdAt: new Date("2026-10-12T10:00:00Z"),
+    platform: "linkedin",
+    hookText: "Trois semaines plus tard, la démo tient.",
+    storyboard: null,
+    caption: "Trois semaines plus tard, la démo tient.",
+    generationTrace: { version: 1, narrativeKind: "checkpoint", reader: { label: "Kinés" } },
+  });
+
+  it("retient qu'un post était un post de récit, et lequel", () => {
+    expect(narrativeCard.narrativeKind).toBe("checkpoint");
+  });
+
+  it("laisse un épisode normal sans type de récit", () => {
+    const episode = postCardFromScript({
+      createdAt: new Date("2026-10-12T10:00:00Z"),
+      platform: "x",
+      hookText: "h",
+      storyboard: null,
+      caption: "c",
+      generationTrace: trace,
+    });
+    expect(episode.narrativeKind).toBeNull();
+  });
+
+  it("l'annonce à l'épisode suivant, pour qu'il ne le répète pas", () => {
+    expect(buildRecentPostsBlock([narrativeCard])).toContain("story post (checkpoint)");
   });
 });

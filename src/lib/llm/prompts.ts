@@ -4,6 +4,7 @@ import type { Reader } from "./readerPortrait";
 import type { RecentPostCard } from "./recentPosts";
 import { buildFormatBlock, type VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
 import type { EventBrief } from "./eventWriter";
+import type { NarrativeBrief } from "./narrativeWriter";
 import { buildLanguageBlock, type PostLanguage } from "@/lib/language";
 
 export type Platform = string;
@@ -194,6 +195,9 @@ export interface ScriptGenerationContext {
    *  reader, a form and a next event to tell. Generation then goes through the agentic writer
    *  (eventWriter.ts) and ignores angle, role and inspirations. */
   eventBrief?: EventBrief | null;
+  /** The story brief (docs/SPEC_FIL_NARRATIF.md §7): present when the fil narratif claims this post.
+   *  Takes precedence over `eventBrief`; generation then goes through narrativeWriter.ts. */
+  narrativeBrief?: NarrativeBrief | null;
   /** Language the post must be written in (src/lib/language.ts): the profile's, else the notes'. */
   language?: PostLanguage;
 }
@@ -247,6 +251,8 @@ export function buildRecentPostsBlock(cards: RecentPostCard[] | undefined): stri
       c.moment ? `moment "${c.moment}"` : null,
       c.hook ? `hook${c.hookKind ? ` [${c.hookKind}]` : ""} "${c.hook}"` : null,
       c.ending ? `ending "${c.ending}"` : null,
+      // docs/SPEC_FIL_NARRATIF.md §9 — an episode that follows a checkpoint must not say it again.
+      c.narrativeKind ? `a story post (${c.narrativeKind}), don't retell what it covered` : null,
     ].filter(Boolean);
     lines.push(`- ${head}: ${parts.join(" · ") || "(post without text)"}`);
   }

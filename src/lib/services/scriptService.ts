@@ -22,6 +22,7 @@ import { getMaterialForSubject } from "@/lib/services/sourceMaterialService";
 import { recordCitations, deleteCitationsForScript } from "@/lib/services/citationService";
 import { resolveCategoryForGeneration } from "@/lib/services/seriesService";
 import { buildEventBriefForSeries, ensureReaderForSeries } from "@/lib/services/seriesReaderService";
+import type { NarrativePlan } from "@/lib/services/narrativeBriefService";
 import { resolvePostLanguage } from "@/lib/language";
 import { markDesignStale } from "@/lib/services/visualDesignService";
 import type { VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
@@ -82,7 +83,11 @@ export async function buildGenerationContext(
   visual?: VisualFormatSpec | null,
   // L'autre réseau d'un même post (docs/SPEC_APP_DESIGN_TELLOVO.md E2) : même événement que la version
   // déjà écrite, au lieu du prochain de la ligne de temps.
-  sameEventId?: string | null
+  sameEventId?: string | null,
+  // Le post de récit que le fil réclame pour ce créneau (docs/SPEC_FIL_NARRATIF.md §9), décidé une
+  // seule fois par l'appelant (postPairService) et passé aux deux réseaux, pour qu'ils racontent la
+  // même chose. Absent = épisode normal, chemin inchangé. Un post libre n'en a jamais.
+  narrativePlan?: NarrativePlan | null
 ): Promise<ScriptGenerationContext> {
   const profile = await db.query.creatorProfiles.findFirst({
     where: eq(creatorProfiles.userId, userId),
@@ -125,8 +130,10 @@ export async function buildGenerationContext(
   let eventBrief = null;
   if (seriesId) {
     if (!seriesHasReader) await ensureReaderForSeries(userId, seriesId);
-    eventBrief = await buildEventBriefForSeries(userId, seriesId, rewritten?.eventId ?? sameEventId ?? null);
-    if (!eventBrief) {
+    // Le fil narratif passe d'abord (docs/SPEC_FIL_NARRATIF.md §9) : quand il réclame ce post, on
+    // n'ouvre pas de brief d'événement — un post de récit ne lit que son périmètre.
+    if (!narrativePlan) eventBrief = await buildEventBriefForSeries(userId, seriesId, rewritten?.eventId ?? sameEventId ?? null);
+    if (!narrativePlan && !eventBrief) {
       throw new ApiError(
         409,
         "Nothing to tell for this series: its timeline is empty for this reader, or everything has already been told. Add material, reread it, or pick another reader in the series."
@@ -226,6 +233,7 @@ export async function buildGenerationContext(
     materialDocuments: materialDocuments.map((d) => ({ id: d.id, title: d.title, annotatedText: d.annotatedText })),
     directive: directive ?? null,
     eventBrief,
+    narrativeBrief: narrativePlan?.brief ?? null,
     language,
     resolvedProductId: effectiveProductId,
     visual: contentType === "visual" ? (visual ?? null) : null,
@@ -271,6 +279,11 @@ export async function createScriptRecord(
     visual?: VisualFormatSpec | null;
     /** L'événement raconté (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5) — null hors rédacteur par événements. */
     eventId?: string | null;
+    /** Post de récit (docs/SPEC_FIL_NARRATIF.md §11) — null pour un épisode. */
+    narrativeKind?: "origin" | "vision" | "checkpoint" | "promise" | null;
+    /** Promesse tenue : le texte exact de la promesse, et le post qui l'avait faite. */
+    promiseHonored?: string | null;
+    promiseSourceScriptId?: string | null;
   }
 ) {
   return db.transaction(async (tx) => {
@@ -286,6 +299,9 @@ export async function createScriptRecord(
         seriesId: extras?.seriesId ?? null,
         brandAssetId: extras?.brandAssetId ?? null,
         eventId: extras?.eventId ?? null,
+        narrativeKind: extras?.narrativeKind ?? null,
+        promiseHonored: extras?.promiseHonored ?? null,
+        promiseSourceScriptId: extras?.promiseSourceScriptId ?? null,
         visualFormat: extras?.visual?.format ?? "single",
         slideCount: extras?.visual?.slideCount ?? null,
         durationMs: extras?.visual?.durationMs ?? null,

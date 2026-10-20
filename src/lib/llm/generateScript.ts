@@ -11,6 +11,7 @@ import {
 import { SCRIPT_SYSTEM_PROMPT, buildScriptUserMessage, type ScriptGenerationContext } from "./prompts";
 import { buildRefusalBlock, checkGeneratedPost, type CheckContext } from "./scriptChecks";
 import { writeScriptFromEvent } from "./eventWriter";
+import { writeNarrativePost } from "./narrativeWriter";
 import { enforceStoryboardCount } from "@/lib/visualDesign/visualFormat";
 
 interface Attempt {
@@ -38,6 +39,23 @@ function evaluate(script: GeneratedScript, args: unknown, checkContext: CheckCon
  * check. The storyboard is still brought back within its bounds as before.
  */
 export async function generateScript(context: ScriptGenerationContext): Promise<GeneratedScript> {
+  // The fil narratif takes the slot first (docs/SPEC_FIL_NARRATIF.md §9): a story post reads its
+  // scope and nothing else, so it never goes through the per-event path.
+  if (context.narrativeBrief) {
+    return writeNarrativePost({
+      brandName: context.creatorProfile.brandName,
+      activityType: context.creatorProfile.activityType,
+      subjectName: context.product?.name ?? context.creatorProfile.brandName,
+      platform: context.platform,
+      contentType: context.contentType,
+      visual: context.visual,
+      styleProfile: context.styleProfile,
+      recentPosts: context.recentPosts,
+      brief: context.narrativeBrief,
+      language: context.language,
+    });
+  }
+
   // Series with a reader, a form and an event to tell: the per-event writer
   // (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5). The rest of this function is the V3 path.
   if (context.eventBrief) {
