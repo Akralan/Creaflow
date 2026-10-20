@@ -139,7 +139,9 @@ describe("writeNarrativePost", () => {
 
   it("échoue clairement quand le modèle ne soumet rien", async () => {
     playTools([{ name: "read_timeline", input: {} }]);
-    await expect(writeNarrativePost(context())).rejects.toThrow("The writer submitted no post.");
+    const erreur = await writeNarrativePost(context()).catch((e: Error) => e);
+    // Le message dit POURQUOI : tours, brouillons, derniers mots du modèle.
+    expect(String(erreur)).toContain("submitted no post after 1 turn(s), 0 draft(s)");
   });
 
   it("ne laisse pas lire un événement hors périmètre par read_timeline", async () => {
