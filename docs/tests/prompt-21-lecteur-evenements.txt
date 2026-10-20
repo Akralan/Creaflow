@@ -1,0 +1,345 @@
+PROMPT 21 — LECTEUR D'ÉVÉNEMENTS (src/lib/llm/eventReader.ts)
+Rendu le 2026-10-20T18:52:59.220Z sur le sujet « MyKiné » du compte de démo.
+Appel : callAgentic, modèle gpt-5-mini, effort "medium", maxTokens 4096, maxTurns 152 (12 + 15 parties x4 + 40 événements attendus x2, plafond 240).
+Documents : 15, découpés en 15 parties de 12 000 caractères. Ordre de list_documents (le plus daté d'abord) :
+  1. B/devlog.md — 1 partie(s), 32 jour(s) datés
+  2. B/decisions.md — 1 partie(s), 8 jour(s) datés
+  3. A/architecture.md — 1 partie(s), 0 jour(s) datés
+  4. A/backend-api.md — 1 partie(s), 0 jour(s) datés
+  5. A/dashboard-kine.md — 1 partie(s), 0 jour(s) datés
+  6. A/data-model.md — 1 partie(s), 0 jour(s) datés
+  7. A/deployment.md — 1 partie(s), 0 jour(s) datés
+  8. A/exercises.md — 1 partie(s), 0 jour(s) datés
+  9. A/patient-flow.md — 1 partie(s), 0 jour(s) datés
+  10. A/pose-estimation.md — 1 partie(s), 0 jour(s) datés
+  11. A/privacy.md — 1 partie(s), 0 jour(s) datés
+  12. A/README.md — 1 partie(s), 0 jour(s) datés
+  13. A/rep-counter.md — 1 partie(s), 0 jour(s) datés
+  14. A/roadmap.md — 1 partie(s), 0 jour(s) datés
+  15. A/VISION.md — 1 partie(s), 0 jour(s) datés
+
+====================================================================================================
+SYSTEM PROMPT
+====================================================================================================
+You are the material reader for Alix, on the subject "MyKiné". You read everything that was uploaded and extract the events from it: what happened, when, and what it changed. You never write a post: others will use your events to tell the story.
+
+An event is a fact that CHANGES SOMETHING FOR SOMEONE. Before saving anything, the question is always the same: does this fact change something for someone in the audiences below? If it changes nothing for anyone, it is not an event, however true it may be.
+
+It is a precise moment, not a theme and not a feature: "The first tester drops the controller after 40 seconds because the jump feels mushy", never "The test" nor "The jump mechanic". (Fictional example: never reuse it.)
+
+A technical document can perfectly well contain events, and some of the best ones. What matters is not where the fact comes from, it is whether it changes something for someone. "Nothing the camera films ever leaves the phone, the server only receives degrees" comes from a privacy document and it changes everything for someone who worries about their patients. "The angle series are stored in a JSONB column" comes from the same kind of document and changes nothing for anyone: it is not an event.
+
+For each audience the fact speaks to, you write ONE line: what it changes FOR THEM, in THEIR words. The same fact becomes "the counter follows the patient with no lag" for one and "200 ms response time" for another. That line is what the writer will start from, so it is never a translation of the title: it says the consequence, not the mechanism. No audience it speaks to: empty list, and that is a normal answer.
+
+All the text you write (titles, descriptions) is in English, even if the documents are in another language. Only the excerpt stays in the document's own words.
+
+<method>
+1. Call list_documents.
+2. Read every document that remains to be read, in full, part by part and in order, with read_document. Skip no part.
+3. As soon as you meet an event, save it with save_event, before reading on. Several events in the same part: several calls.
+4. When everything is read, answer in one or two sentences what you read and how many events you saved.
+</method>
+
+<rules>
+- The facts come from the text, and only from the text. Numbers, names, dates: as is. Nothing is deduced, nothing is rounded, nothing is added.
+- The date is the one the text gives. A dated log: the date of the entry (precision day). A text that says "in March": the month (precision month). Technical docs without a date: unknown, even if you have a hunch. "Last updated: October 2026" dates the document, not what it reports: a fact taken from such a doc is unknown, unless the text gives it its own date.
+- In a log, every dated entry that reports something is an event: don't skip one because it looks small. The very first moment of a project (the conversation or realization that triggered it, the first prototype) is an event, and often the most important.
+- The same document can yield several events on the same date if it tells several things that day (a decision and a failure, for example).
+- A document that describes how the system works yields an event every time one of its facts changes something for one of the audiences — a guarantee, a constraint they will feel, a number that settles a doubt, a choice made and what it gave up. With precision unknown if nothing dates it. What it does not yield: plumbing nobody feels.
+- A commit log: not one event per commit. Group them, and keep what tells something: a decision, a failure, a number, an abandonment, a first time. A plain "add page X" is not an event.
+- An event already saved (list below) is told better by the document you are reading now? complete_event it: add the date it was missing, what it changed, a closer excerpt, one more audience. Don't save it twice, and don't skip the better version either — the most precise framing wins, not the first one read.
+- atStake is what the fact COST: the money, the time, the trust, the thing thrown away, what was feared, what was embarrassing. It is almost never in the summary of a document and almost always in its details — a sentence someone said, a number that hurt, a confession. It is what makes the difference between a fact and a story, and nobody downstream can invent it. Empty string when the text truly gives none.
+- whatChanged gives the follow-up that the text gives ("a week later, the 45° camera is mandatory"). If the text says nothing, empty string: don't guess.
+- excerpt is copied as is from the document, 300 characters at most. It is the proof. A passage that can't be found gets the event refused: copy again shorter and more exactly.
+- audienceAngles: only audiences from the list below, and for each one the line of what this fact changes for them, in their words. Empty when the fact changes nothing for anyone.
+</rules>
+
+====================================================================================================
+MESSAGE UTILISATEUR (premier tour)
+====================================================================================================
+Subject: MyKiné — Le kiné prescrit un programme d'exercices ; le patient les fait chez lui devant la caméra de son téléphone ; l'app compte les répétitions, vérifie l'amplitude et l'alignement en direct, et envoie un compte-rendu de séance au kiné.
+Subject audiences — for each one, you may write a line of what a fact changes for them:
+- Solo product devs: Independent developers (one or two people) building consumer-facing mobile apps who are responsible for product, code, and ops.
+  Comes looking for: Post‑mortems of decisions, concrete technical trade‑offs, performance numbers, what broke and why, and enough context to copy or avoid the same mistakes; they should come away able to reuse code ideas or architecture patterns.
+  Stops for: Clear technical diagrams, measured results (latency, error rates, accuracy), concrete code snippets, and concise “what we would change” bullets.
+  Turned off by: Overly high-level marketing language, vague commitments, hand‑wavy ML claims, and long clinical explanations unrelated to engineering.
+  Their words: latency, edge vs cloud, trade‑off, throughput, 90th percentile, rep counter, pose model, false positive
+- CV / ML engineers: Engineers focused on computer vision or machine learning, often contributors or contractors, who want to understand pose estimation, model choices, and evaluation.
+  Comes looking for: Architecture of the pose pipeline, model sizes and inference times, sample failure cases, dataset and annotation practices, and reproducible benchmarks to compare with their own work.
+  Stops for: Quantified model evaluations, dataset descriptions, code or model checkpoints, and examples of edge cases with visuals.
+  Turned off by: Vague accuracy claims, missing evaluation methodology, lack of reproducible steps, or anonymized/noisy data descriptions.
+  Their words: pose estimation, keypoints, IOU, FPS, quantization, latency, ground truth, annotator instructions
+- Backend / infra engineers: Engineers responsible for APIs, scaling, privacy, and deployment who read the repo to learn operational and architectural decisions for similar small teams.
+  Comes looking for: Clear API contracts, data retention and privacy tradeoffs, deployment steps, monitoring/SLIs, cost estimates, and failure recovery patterns they can adapt.
+  Stops for: Clear diagrams of data flow, schema examples, deployment scripts, and cost/perf numbers.
+  Turned off by: Undocumented APIs, missing privacy justification, hand‑wavy scaling claims, or opaque stateful architectures.
+  Their words: SLO, latency budget, RBAC, data retention, encryption at rest, backup, autoscaling, cost per 1k sessions
+Documents to read: 15.
+Events already saved (69), not to be redone:
+- [0959d8f7-0cd8-4659-a033-84faf6ea0170] 2025-11-09: Julien reports 6 in 10 patients do not do home exercises and asks if camera prototype can count squats
+- [f9a38bef-f577-4aed-98f3-599f5052f2da] 2025-11-16: Prototype web with MediaPipe counts squats but is too slow on iPhone
+- [c7858561-c721-4b1f-b942-97e194b9982c] 2025-11-23: Server-side inference had high latency and exposed privacy risk; decision to move processing on-device
+- [0e834826-a6ee-4538-8789-812bef5395d8] 2025-12-06: Knee flexion angle computed but tremor causes multiple rep counts
+- [1a18aa05-81f1-4845-b9de-a2b3007292ee] 2025-12-20: Provider lists 9 prescribed exercises; team limits v0 to 4 standing exercises
+- [eac2c606-6d89-4ebd-b0f5-ee6b99fa202a] 2026-01-11: Android builds with TFLite BlazePose lite show device‑dependent FPS
+- [2193395c-5538-450d-aa52-15dc64d434c5] 2026-02-01: Backend stack chosen: FastAPI + Postgres with initial schema
+- [2b76fb18-9075-426e-ba19-ff3ef0bb8ced] 2026-02-07: No patient accounts: access via SMS link and 6‑letter code
+- [4bbc0802-6547-4505-acce-1ba254740f75] 2026-02-15: First clinician creates program and completes a session successfully
+- [955a6e03-a763-4e31-9e54-ed884bd1291b] 2026-03-07: Clinic demo shows occlusion failure and performance complaints
+- [9dc79a83-b560-4faa-8ca7-0c5e98c9f855] 2026-03-14: Decision: require 45° camera angle and visibility check before sessions
+- [dfdb4e95-f30d-4883-be91-a8c2496ca9ef] 2026-03-21: BlazePose lite noisy at squat bottom; full model more stable but slower
+- [18c6c573-d10f-4af2-ad08-10d3efe94f09] 2026-04-05: Adopt full model, frame‑skip under 12 FPS, and add 8° hysteresis to thresholds
+- [95ac91aa-2f5c-477a-8904-4c44608fab9c] 2026-04-12: Lab test: hysteresis reduces false positives from 18% to 4% on 120 reps
+- [e53464f8-0f44-49cc-a6da-ce62de71f52d] 2026-05-12: Pilot 1 launched with 5 Android patients
+- [c06b660e-9eb0-45f9-ad95-447f590152c4] 2026-05-26: Pilot engagement: 3 of 5 patients tried sessions; feedback on lack of guidance
+- [c6f6c365-9c82-471c-a2dd-afa9c5f47359] 2026-06-02: Decision: never store session videos; keep angles at 10 Hz
+- [d163546b-8c1d-4f91-812d-69bd99dd377f] 2026-06-21: Color feedback applied to target and immediately improves user form
+- [0fef9654-720b-4c17-acf6-88ccfe62cb3b] 2026-06-28: Patient reports completing exercises daily for a week
+- [926e1a44-7d2c-45ed-9c2f-40937582995c] 2026-07-06: Adherence metric added to dashboard and used by clinician
+- [0397d94f-c0c5-4f59-bf5c-c29d45fea6e0] 2026-07-13: Pilot expands to 4 clinicians and 19 patients
+- [baa45ea5-ea86-4f0d-a7db-d62be7919b0c] 2026-07-20: Pricing tested: €29/month per clinician; 2 of 4 would pay
+- [82a197d5-5a1a-4b82-a5ee-5ac92ec85c96] 2026-08-17: Occlusion in lateral shoulder raise fixed by measuring wrist and adjusting camera angle
+- [a58d942a-7482-4dcd-bc87-a0b06d9b7fb2] 2026-08-30: Floor exercises unreliable; three floor exercises removed from v0.4
+- [e6dc4e5b-afe7-4224-9a0d-678a1176d291] 2026-09-08: Demand spike from Facebook post: 12 clinicians requested access in 4 days
+- [566d7617-6c20-4d5b-9e3a-45199b696b4d] 2026-09-14: iOS prototype loads model but runs 7 FPS on iPhone 11; not deliverable
+- [d85958c7-eb9a-487e-bb1c-08a71753e729] 2026-09-21: Expo SDK upgrade broke Android camera rendering; rollback lost a day
+- [c1443830-54f6-4a3f-b8dd-e6bda1f5fff5] 2026-10-03: Hosting HDS quote exceeds revenue; decision to anonymize patient data
+- [6c8636ed-7260-4599-ac53-ca8ffe24105e] 2026-10-10: v0.4 status: 8 clinicians, 31 patients, 412 sessions; Android only
+- [d0d25a3b-faf5-43b1-aac3-114b2c635f31] unknown date: Patient app stack and on‑device pose pipeline defined
+- [2785e810-cf13-4cd7-830e-a2f0020b8c5b] unknown date: API authentication: clinician JWT and patient invite code
+- [1123d138-1e01-43f2-90ac-338f2d54affa] unknown date: Session upload API and offline queuing defined
+- [ba1db90a-b2b4-40c8-bf3c-f92d1cdee72f] 2026-04-26: Dashboard implemented with Next.js 15 and server‑side rendering; JWT stored in httpOnly cookie
+- [1319e300-8d4e-45d6-a988-d0b47dd6fdc2] unknown date: Phone numbers stored encrypted with pgcrypto and never returned in clear
+- [95e5c0e7-ddef-4b5e-9a69-eb419bee9fc6] unknown date: Session upload idempotency and payload limits defined
+- [357e217b-c2d5-4fec-bbbb-9a34b13d57e2] unknown date: SMS provider abstraction and two message templates (invitation, reminder)
+- [0a13b366-338a-4914-bfc8-6f8582593666] unknown date: Rate limit: max 20 session uploads per hour per patient code
+- [31b60653-f315-4705-a233-9e451e3c82eb] unknown date: OpenAPI docs served in dev only
+- [72a6b13c-0ed3-4509-b729-e36b6ad84e50] unknown date: Dashboard validates phone numbers in E.164 with libphonenumber‑js and default +33
+- [127978c8-d637-41dd-b783-62e25dfe9a94] unknown date: Program editor enforces API validation rules for sets/reps/duration
+- [385808bc-17dd-471e-838a-183340ec5901] unknown date: Dashboard uses react‑query with 30s staleTime and SSR for initial lists
+- [04d6ba43-4cf7-4d18-a72f-871202e9063c] unknown date: Invite link code format and expiry defined
+- [678ba0b4-c7f7-414c-85fb-8ef0652864b4] unknown date: Constraint: one active (non‑archived) program per patient
+- [ba78910d-5e0b-45ff-a433-52dceebbc372] unknown date: Data retention: sessions kept 24 months; archived patients removed after 12 months
+- [0269e5e8-06c4-4a3a-9eb2-7383d2f26688] unknown date: Production runs on a single small VPS with Docker Compose and Caddy
+- [42d3e2f1-4057-4345-9e1b-404272900621] unknown date: Deployment script refuses to proceed if migrations fail (safe rollback)
+- [a2a7bf85-b6ac-47c8-859e-17073ba6cf2a] unknown date: Daily encrypted backups with age to Scaleway Object Storage (30‑day retention)
+- [985f8057-2e2f-4c57-8844-33c377a148bd] unknown date: Sentry configured to avoid sending PII and request bodies
+- [4effa4f4-8100-436f-a81d-45a47560bf2d] unknown date: Android build via EAS with AAB; only CAMERA permission requested
+- [19d0f627-1d3c-411e-b237-9611d3d48b87] unknown date: iOS: enable Core ML delegate for TFLite to reach acceptable FPS
+- [3ff43c92-5631-4f2d-9d65-30c1c262a237] unknown date: Web fallback uses MediaPipe WASM with the lite model only
+- [2f95f7d0-2a5e-4826-8b00-f177ebb32944] unknown date: Environment per-build configuration: EXPO_PUBLIC_API_URL fixed at build time
+- [6d268a26-581b-4c7d-a5ac-ed12188806e6] unknown date: Observed load and scaling thresholds
+- [6796681c-a006-4797-b1c0-834ee4c78dd9] 2026-10-01: Exercise catalog defined: 14 exercises v0.4 with fixed angle thresholds
+- [d5fb948f-0a3f-4baa-81f1-5557f1fb5699] unknown date: Exercise catalog updated from exercises.yaml by seed.py (no deletions)
+- [70464ab3-de06-47a2-a5f3-82680723f7a5] unknown date: Framing check rejects devices below 4 angles per second
+- [c3753a68-cbb5-4351-85c1-991eb7ee352b] unknown date: Invite code persisted in local app storage after first open
+- [8dd4f526-f6e1-4ac3-a09b-ac62d3adeb1d] unknown date: Inter‑set rest default is 45s and not configurable in v0.4
+- [2321e2ef-0797-4951-9078-dd2c99e905ac] unknown date: Pose models embedded: full and lite BlazePose TFLite models (33 keypoints, 256×256)
+- [c38e9d37-cf83-4d41-937f-c97e6afeb53d] 2026-06-15: Founder goes full‑time on MyKiné (since June 1)
+- [139767ea-ce29-490f-b2a9-318119dd9bac] unknown date: Use Expo SDK 52 and dev client because TFLite native modules don't run in Expo Go
+- [ed38e944-f841-4d62-b4bf-ee6070d4cd53] unknown date: Camera capture: react-native-vision-camera at 640×480 portrait
+- [c2a27512-8303-45b9-8e05-81ed2f6b63d8] unknown date: Session angle series stored as JSONB in sessions.angle_series
+- [212c6e5c-ad5e-49c0-9ba3-8e6a1937c201] unknown date: No index on angle_series; average session_exercise row ~6 KB
+- [1f8eda5f-b22b-4301-85e7-970aa4ac8465] unknown date: Angle thresholds not editable in v0.4
+- [9c4bab8d-1645-45b6-9830-1f77cefd432a] unknown date: Pose pipeline: model selection thresholds and fallbacks
+- [93b5d451-48fd-432e-b8d9-7c4e357a4368] unknown date: No analytics or crash reporting SDK in patient app
+- [b8a1df6b-0dd7-4fbd-aa47-7c7807580f7c] unknown date: VPS disk encrypted with LUKS
+- [22503f5b-de3a-4adc-b0a1-740c4ebc4ec8] unknown date: Rep counter tests replay 120 annotated squat repetitions
+
+Start with list_documents.
+
+====================================================================================================
+OUTILS (4)
+====================================================================================================
+[
+  {
+    "name": "list_documents",
+    "description": "The subject's documents that remain to be read, with their number of parts.",
+    "input_schema": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    }
+  },
+  {
+    "name": "read_document",
+    "description": "The full text of one part of a document. Read all the parts of a document, in order.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "documentId": {
+          "type": "string",
+          "description": "Id of the document, as list_documents gives it."
+        },
+        "part": {
+          "type": "integer",
+          "description": "Number of the part, starting at 1."
+        }
+      },
+      "required": [
+        "documentId",
+        "part"
+      ]
+    }
+  },
+  {
+    "name": "save_event",
+    "description": "Saves ONE event found in the document being read. Call it as soon as you meet the event, before reading on.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "description": "YYYY-MM-DD. To the month: YYYY-MM-01. Empty string if the precision is unknown."
+        },
+        "datePrecision": {
+          "type": "string",
+          "enum": [
+            "day",
+            "month",
+            "unknown"
+          ],
+          "description": "day: the text gives the day. month: the month only. unknown: no date in the text."
+        },
+        "title": {
+          "type": "string",
+          "description": "The moment, not a theme. \"The tester drops the controller after 40 seconds\", never \"The test\". Written in English."
+        },
+        "whatHappened": {
+          "type": "string",
+          "description": "2 to 5 sentences: the facts, with the numbers and names as they are in the text. Nothing else. Written in English."
+        },
+        "whatChanged": {
+          "type": "string",
+          "description": "What it changed afterwards according to the text (a decision, an abandonment, a number that moves). Empty string if the text doesn't say. Written in English."
+        },
+        "atStake": {
+          "type": "string",
+          "description": "What it cost, what was at risk, what was embarrassing or almost lost — in the text's own words. The detail a person would lower their voice to tell. Empty string when the text gives none: do not invent one."
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "failure",
+            "decision",
+            "result",
+            "feedback",
+            "milestone"
+          ],
+          "description": "failure: something broke or failed. decision: a choice made. result: a measurement, a number. feedback: what a person said or did. milestone: a step crossed, a first time."
+        },
+        "audienceAngles": {
+          "type": "array",
+          "description": "One entry per audience this fact speaks to: what it changes FOR THEM, in THEIR words. Empty array when it changes nothing for anyone — a normal answer, not a failure.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "audience": {
+                "type": "string",
+                "enum": [
+                  "Solo product devs",
+                  "CV / ML engineers",
+                  "Backend / infra engineers"
+                ]
+              },
+              "whatItChanges": {
+                "type": "string",
+                "description": "One sentence, in this audience's words, of the consequence for them. Not the mechanism, not a rewording of the title."
+              }
+            },
+            "required": [
+              "audience",
+              "whatItChanges"
+            ]
+          }
+        },
+        "sourceMaterialId": {
+          "type": "string",
+          "description": "Id of the document where the event is found."
+        },
+        "excerpt": {
+          "type": "string",
+          "description": "The exact passage from the document that proves the event, copied as is (in its original language), 300 characters at most."
+        }
+      },
+      "required": [
+        "date",
+        "datePrecision",
+        "title",
+        "whatHappened",
+        "whatChanged",
+        "atStake",
+        "kind",
+        "audienceAngles",
+        "sourceMaterialId",
+        "excerpt"
+      ]
+    }
+  },
+  {
+    "name": "complete_event",
+    "description": "Completes an event you already saved, when the document you are reading now tells it better. Only send the fields you are improving.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Id of the event to complete, as the already-saved list gives it."
+        },
+        "date": {
+          "type": "string",
+          "description": "YYYY-MM-DD, if this document dates a fact that had no date."
+        },
+        "datePrecision": {
+          "type": "string",
+          "enum": [
+            "day",
+            "month",
+            "unknown"
+          ],
+          "description": "Precision of the date you are adding."
+        },
+        "whatChanged": {
+          "type": "string",
+          "description": "The follow-up this document gives, if the first one did not."
+        },
+        "atStake": {
+          "type": "string",
+          "description": "What it cost or what was at risk, if this document says it and the first did not."
+        },
+        "excerpt": {
+          "type": "string",
+          "description": "A passage that proves it better, copied as is from this document."
+        },
+        "audienceAngles": {
+          "type": "array",
+          "description": "One entry per audience this fact speaks to: what it changes FOR THEM, in THEIR words. Empty array when it changes nothing for anyone — a normal answer, not a failure.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "audience": {
+                "type": "string",
+                "enum": [
+                  "Solo product devs",
+                  "CV / ML engineers",
+                  "Backend / infra engineers"
+                ]
+              },
+              "whatItChanges": {
+                "type": "string",
+                "description": "One sentence, in this audience's words, of the consequence for them. Not the mechanism, not a rewording of the title."
+              }
+            },
+            "required": [
+              "audience",
+              "whatItChanges"
+            ]
+          }
+        }
+      },
+      "required": [
+        "id"
+      ]
+    }
+  }
+]

@@ -1,0 +1,77 @@
+BANC D'ESSAI DU BRIEF — branche « A — témoin »
+2026-10-20T20:18:52.901Z · modèle gpt-5-mini · sujet MyKiné · série Build log · lecteur Solo product devs
+Mémoire des derniers posts neutralisée (recentPosts = []) pour que les branches ne se contaminent pas.
+
+====================================================================================================
+2025-11-16 — Prototype web with MediaPipe counts squats but is too slow on iPhone
+at_stake en base : ∅
+====================================================================================================
+Prototype web: squats comptés avec MediaPipe Pose (JS). Sur mon laptop OK; sur l'iPhone 11 de Julien : 6 fps et le compteur rate ~1 répétition sur 3.
+
+Le 16/11/2025 j'ai mis en ligne un prototype web qui utilise MediaPipe Pose (un modèle JS qui estime la position des articulations depuis la caméra) pour compter les squats. Le compteur déclenche quand l'angle hanche‑genou‑cheville descend sous 100°.
+
+Julien a fait 20 squats chez lui : sur laptop la détection fonctionne, sur son iPhone 11 la page tourne à 6 fps et le compteur manque environ 1 répétition sur 3. Preuve de concept : OK. Limite révélée : performances mobiles insuffisantes — iPhone 11 à 6 fps → ~33 % d'erreurs.
+
+HASHTAGS : #MediaPipe #performanceMobile #MyKiné
+TRACE : 2 brouillon(s), 3 soumission(s), fautes restantes []
+SCORE : 3 paragraphes, 2 étiquetés ["Prototype web:","Julien a fait 20 squats chez lui :"], code [], détails humains gardés ["20 squats"] sur ["quand même","salon","20 squats"], 679 car., phrases moy. 96 ± 50
+
+====================================================================================================
+2025-11-23 — Server-side inference had high latency and exposed privacy risk; decision to move processing on-device
+at_stake en base : The trade‑off is that older phones will be slow; moving inference to device sacrifices performance on low‑end hardware.
+====================================================================================================
+23 novembre : envoyer une frame au serveur et recevoir une prédiction prenait 300–600 ms sur la connexion mobile de Julien.
+
+23 novembre : envoyer une frame au serveur et recevoir une prédiction prenait 300–600 ms sur la connexion mobile de Julien.
+
+En plus, les images de Julien étaient stockées sur mon serveur distant pendant les tests.
+
+À l'enjeu : pour un compteur de répétitions en temps réel, 300–600 ms (soit un tiers à une demi‑seconde de retard) rend le feedback inutilisable, et stocker des vidéos de patients crée un risque de vie privée.
+
+Le basculement que j'ai fait ce jour‑là : tout le traitement de pose et le comptage passent sur le téléphone. Le serveur ne reçoit plus que des angles et des compteurs, jamais d'images.
+
+Ce que ça change : le ressenti en séance devient fluide même sur réseau mobile, et les données sensibles ne quittent plus l'appareil.
+
+Ce que ça coûte : les téléphones anciens seront plus lents. En pratique, on sacrifiera de la performance sur du matériel bas de gamme — le modèle "full" tourne déjà à ~9 fps sur un Pixel 4a, donc on prévoit de réduire la fréquence d'analyse quand nécessaire.
+
+Pour vous, si vous voulez compter des reps en mobilité : ne comptez pas sur l'inférence serveur pour un retour immédiat. Planifiez un modèle et un pipeline on‑device, avec des stratégies de dégradation (mode lite, traiter une image sur deux, etc.).
+
+Depuis le 23/11 l'architecture est passée à l'appareil : pas d'images envoyées, juste des angles et des compteurs.
+
+HASHTAGS : #edgecomputing #mobiledev #privacy
+TRACE : 1 brouillon(s), 2 soumission(s), fautes restantes []
+SCORE : 9 paragraphes, 4 étiquetés ["À l'enjeu :","Le basculement que j'ai fait ce jour‑là :","Ce que ça change :","Ce que ça coûte :"], code [], détails humains gardés [] sur ["caleçon","sous-vêtement","en slip"], 1498 car., phrases moy. 123 ± 42
+
+====================================================================================================
+2025-12-06 — Knee flexion angle computed but tremor causes multiple rep counts
+at_stake en base : ∅
+====================================================================================================
+6 déc. 2025 — angle du genou calculé par produit scalaire (hanche→genou, cheville→genou). Un tremblement en bas provoque 2–3 passages sous le seuil et ça double le compte.
+
+6 déc. 2025 — angle du genou calculé par produit scalaire (hanche→genou, cheville→genou). Un tremblement en bas provoque 2–3 passages sous le seuil et ça double le compte.
+
+Concrètement : j'ai défini deux seuils — "haut" >160° et "bas" <100°. Le compteur incrémente quand l'angle repasse sous 100°. Quand la personne tremble en bas, l'angle oscille autour de 100° et on obtient 2–3 passages sous la barre pour une seule répétition réelle.
+
+Ce que ça révèle : un comptage basé uniquement sur un seuil angulaire n'est pas fiable face au bruit du modèle ou aux micro-mouvements des patients. C'est un point critique pour une appli destinée à des patients.
+
+Ce que je prévois (ou que vous devez prévoir) :
+- Hystérésis / debounce : deux seuils distincts ou exiger la condition pendant N frames / T ms.
+- Lissage temporel de l'angle (filtre passe-bas).
+- Machine d'état simple (haut/bas) avec garde temporelle.
+- Contraintes UX : demander de tenir la position basse un court instant ou vérifier la confiance du modèle avant de compter.
+
+Statut : bug découvert le 06/12/2025, pas encore corrigé.
+
+Si vous avez une implémentation qui marche contre les tremblements, je suis preneuse.
+
+HASHTAGS : #mobiledev #edgeai #productdev
+TRACE : 1 brouillon(s), 2 soumission(s), fautes restantes []
+SCORE : 7 paragraphes, 4 étiquetés ["Concrètement :","Ce que ça révèle :","Ce que je prévois (ou que vous devez prévoir) :","Statut :"], code [], détails humains gardés ["tremble","tremblement"] sur ["tremble","tremblement","compte trois","trois fois"], 1349 car., phrases moy. 78 ± 41
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TOTAL branche « A — témoin » sur 3 posts
+────────────────────────────────────────────────────────────────────────────────────────────────────
+paragraphes étiquetés : 10 / 19
+identifiants de code  : 0
+détails humains gardés: 3 / 10
+longueur de phrase    : moyenne 99, écart-type moyen 44

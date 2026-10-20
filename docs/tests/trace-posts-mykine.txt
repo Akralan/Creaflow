@@ -1,0 +1,241 @@
+████████████████████████████████████████████████████████████████████████████████████████████████████
+origin · linkedin
+████████████████████████████████████████████████████████████████████████████████████████████████████
+événement : undefined (undefined)
+lecteur : Solo product devs · tours : 11 · soumissions : 3 · parties lues : [1,2,3,4] · réessai : true
+fautes restantes : []
+
+3 brouillon(s) :
+────────────────────────────────────────────────────────────────────────────────────────────────────
+BROUILLON 1
+────────────────────────────────────────────────────────────────────────────────────────────────────
+why :
+Le draft is concrete, follows the story, includes stakes, turn, and closing facts; it's concise and fit the reader.
+
+keep :
+true
+
+draft :
+Le 9 novembre, Julien m'a lâché un chiffre : environ 6 patients sur 10 ne font pas leurs exercices à la maison. Il a 40 patients. Il m'a demandé si « la caméra » pouvait compter les squats.
+
+Prototype web avec MediaPipe : ça marche sur laptop, mais sur l'iPhone 11 de Julien c'était à 6 fps et le compteur ratait une répétition sur trois. Envoyer les images au serveur donnait 300–600 ms de latence sur sa 4G — et je stockais des images. J'ai choisi de tout faire sur l'appareil.
+
+Sur Android, TFLite + BlazePose lite : 24 fps sur un Pixel 7, 15 fps sur un Pixel 4a. Le modèle lite vibrait de ±6° au bas du squat ; le modèle full était stable mais tombait à ~9 fps sur le 4a. Un simple seuil (haut >160°, bas <100°) sur le genou comptait plusieurs fois quand l'utilisateur tremblait.
+
+Solution pratique : modèle full quand possible, sauter des images sous 12 fps, et ajouter une hystérésis de 8° (bas 92°, haut 108°). En test en cabinet : avant hystérésis 22 faux positifs sur 120 reps (18 %), après 5 (4 %). Pour l'occlusion vue en démo, j'ai rendu obligatoire un angle de caméra à 45° et une vérif des hanches/genoux visibles (>0,6) pendant 2 s — coût : 10–20 s de friction.
+
+Pas de vidéo côté serveur. On démarre avec 4 exercices debout et onboarding par lien SMS sans compte.
+
+Aujourd'hui, l'inférence tourne sur le téléphone, le cadrage à 45° est vérifié en amont, et nos correctifs ont réduit l'erreur de comptage de 18 % à 4 % sur 120 répétitions. Le kiné prescrit un programme; le patient l'exécute devant la caméra de son téléphone; l'app compte les répétitions, vérifie l'amplitude et l'alignement en direct, et envoie un compte‑rendu de séance au kiné.
+
+readerVerdict :
+Le lecteur lira la seconde phrase et ira jusqu'à la fin. Les chiffres et décisions techniques sont concrets et actionnables. Le ton reste personnel et honnête—ressemble à un dev solo. Brevity could be slightly improved but overall solid.
+
+unknownToReader :
+[]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+BROUILLON 2
+────────────────────────────────────────────────────────────────────────────────────────────────────
+why :
+Shortened while preserving key facts, numbers and the story arc.
+
+keep :
+true
+
+draft :
+Le 9 novembre, Julien m'a dit une chose gênante : ~6 patients sur 10 ne font pas leurs exercices. Il a 40 patients et m'a demandé si la caméra pouvait compter les squats.
+
+Prototype web (MediaPipe) : OK sur laptop, pas sur iPhone 11 — 6 fps, compteur qui manque 1 rép sur 3. Envoyer les frames au serveur donnait 300–600 ms de latence sur sa 4G, et je stockais des images. Décision : tout faire sur l'appareil.
+
+TFLite + BlazePose lite : 24 fps sur Pixel 7, 15 fps sur Pixel 4a. Le modèle lite vibrait ±6° au bas du squat ; le modèle full était stable mais tombait à ~9 fps sur le 4a. Un seuil simple (haut >160°, bas <100°) comptait plusieurs fois quand l'utilisateur tremblait.
+
+Correctifs pragmatiques : full quand possible, sauter une image sous 12 fps, et hystérésis de 8° (bas 92°, haut 108°). Test en cabinet : avant hystérésis 22 faux positifs sur 120 (18 %), après 5 (4 %). Pour l'occlusion démontrée en démo, j'impose 45° de caméra et une vérif des hanches/genoux visibles (>0,6) pendant 2 s — coût : 10–20 s de friction.
+
+On évite la vidéo serveur. On limite la v0 aux exercices debout et l'onboarde par lien SMS sans compte.
+
+Aujourd'hui, l'inférence tourne sur le téléphone, le cadrage est vérifié avant la séance, et nos correctifs ont réduit l'erreur de comptage de 18 % à 4 % sur 120 répétitions. Le kiné prescrit un programme; le patient l'exécute devant la caméra de son téléphone; l'app compte les répétitions, vérifie amplitude et alignement en direct, et envoie un compte‑rendu au kiné.
+
+readerVerdict :
+Concise and focused; the reader will read to the end. Keeps the technical trade-offs and numbers needed to replicate decisions. Tone matches a solo dev. Kept.
+
+unknownToReader :
+[]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+BROUILLON 3
+────────────────────────────────────────────────────────────────────────────────────────────────────
+why :
+Shortened wording to meet character limit while keeping the story and facts.
+
+keep :
+true
+
+draft :
+Le 9 novembre, Julien m'a dit une chose gênante : ~6 patients sur 10 ne font pas leurs exercices. Il a 40 patients et m'a demandé si la caméra pouvait compter les squats.
+
+Prototype web (MediaPipe) : OK sur laptop, pas sur iPhone 11 — 6 fps, compteur qui manque 1 rép sur 3. Envoyer les frames au serveur donnait 300–600 ms de latence sur sa 4G, et je stockais des images. Décision : tout faire sur l'appareil.
+
+TFLite + BlazePose lite : 24 fps sur Pixel 7, 15 fps sur Pixel 4a. Le modèle lite vibrait ±6° au bas du squat ; le modèle full était stable mais tombait à ~9 fps sur le 4a. Un seuil simple (haut >160°, bas <100°) comptait plusieurs fois quand l'utilisateur tremblait.
+
+Correctifs pragmatiques : full quand possible, sauter une image sous 12 fps, et hystérésis de 8° (bas 92°, haut 108°). Test en cabinet : avant hystérésis 22 faux positifs sur 120 (18 %), après 5 (4 %). Pour l'occlusion démontrée en démo, j'impose 45° de caméra et une vérif des hanches/genoux visibles (>0,6) pendant 2 s — coût : 10–20 s de friction.
+
+Pas de vidéo serveur. v0 = exercices debout, onboarding par lien SMS.
+
+Aujourd'hui, l'inférence tourne sur le téléphone, le cadrage est vérifié avant la séance, et nos correctifs ont réduit l'erreur de comptage de 18 % à 4 % sur 120 répétitions. Le kiné prescrit un programme; le patient l'exécute devant la caméra; l'app compte les répétitions, vérifie amplitude et alignement en direct, et envoie un compte‑rendu au kiné.
+
+readerVerdict :
+Still concise and clear; the small edits tightened length while preserving key numbers and decisions. Good to post.
+
+unknownToReader :
+[]
+
+████████████████████████████████████████████████████████████████████████████████████████████████████
+épisode · linkedin
+████████████████████████████████████████████████████████████████████████████████████████████████████
+événement : Prototype web with MediaPipe counts squats but is too slow on iPhone (2025-11-16)
+lecteur : Solo product devs · tours : 8 · soumissions : 3 · parties lues : [1] · réessai : true
+fautes restantes : []
+
+3 brouillon(s) :
+────────────────────────────────────────────────────────────────────────────────────────────────────
+BROUILLON 1
+────────────────────────────────────────────────────────────────────────────────────────────────────
+why :
+Le post est court, factuel, commence dans l'événement, et finit sur un chiffre qui ferme l'histoire.
+
+keep :
+true
+
+draft :
+Julien m'avait demandé si la caméra pouvait compter les squats; le 16 novembre j'ai monté un prototype web avec MediaPipe Pose en JS pour vérifier.
+
+Sur mon laptop, le compteur — qui déclenche quand l'angle hanche‑genou‑cheville passe sous 100° — marche. Sur l'iPhone 11 de Julien, l'interface tourne à ~6 fps et le compteur manque environ une répétition sur trois. Il a fait 20 squats dans son salon pour le test.
+
+Ce que j'ai appris en une séance : la pose estimation dans le navigateur suffit pour prouver qu'on peut compter des reps à partir d'angles, mais les performances réelles sur téléphone ciblé peuvent rendre la fonctionnalité inutilisable.
+
+À retenir pour un prototype : testez sur les téléphones réels dès que possible; un résultat correct sur laptop ne garantit rien sur iPhone 11.
+
+Bilan factuel : preuve de concept validée, limite de performance confirmée — iPhone 11 à ~6 fps, compteur rate ~33 % des répétitions.
+
+readerVerdict :
+Le lecteur voit immédiatement le résultat et les chiffres. La première phrase donne le moment et le test. Le post précise la méthode (angle <100°), la mesure (6 fps), l'ampleur de l'erreur (1 rép sur 3) et une courte conclusion utile pour un dev solo (tester sur téléphones réels). Ça sonne comme une note honnête, pas du marketing.
+
+unknownToReader :
+[]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+BROUILLON 2
+────────────────────────────────────────────────────────────────────────────────────────────────────
+why :
+Clarifications ajoutées as required; keeps the same story and numbers.
+
+keep :
+true
+
+draft :
+Julien m'avait demandé si la caméra pouvait compter les squats; le 16 novembre j'ai monté un prototype web avec MediaPipe Pose en JS (lib qui renvoie les coordonnées des points‑clés du corps) pour vérifier.
+
+Sur mon laptop, le compteur — calculé sur l'angle de flexion du genou obtenu entre les points hanche, genou et cheville — marche. Sur l'iPhone 11 de Julien, l'interface tourne à ~6 fps et le compteur manque environ une répétition sur trois. Il a fait 20 squats dans son salon pour le test.
+
+Ce que j'ai appris en une séance : la pose estimation dans le navigateur suffit pour prouver qu'on peut compter des reps à partir d'angles, mais les performances réelles sur téléphone ciblé peuvent rendre la fonctionnalité inutilisable.
+
+À retenir pour un prototype : testez sur les téléphones réels dès que possible; un résultat correct sur laptop ne garantit rien sur iPhone 11.
+
+Bilan factuel : preuve de concept validée, limite de performance confirmée — iPhone 11 à ~6 fps, compteur rate ~33 % des répétitions.
+
+readerVerdict :
+Le post précise désormais ce qu'est MediaPipe Pose et ce qu'est l'angle hanche‑genou‑cheville; le lecteur technique comprend la méthode et les impacts. Le texte reste court et factuel.
+
+unknownToReader :
+[]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+BROUILLON 3
+────────────────────────────────────────────────────────────────────────────────────────────────────
+why :
+Shortened first sentence to pass character limit while preserving facts.
+
+keep :
+true
+
+draft :
+Julien m'avait demandé si la caméra pouvait compter les squats. Le 16 novembre j'ai testé un prototype web avec MediaPipe Pose en JS (lib de points‑clés corporels).
+
+Sur mon laptop, le compteur — calculé sur l'angle de flexion du genou obtenu entre les points hanche, genou et cheville — marche. Sur l'iPhone 11 de Julien, l'interface tourne à ~6 fps et le compteur manque environ une répétition sur trois. Il a fait 20 squats dans son salon pour le test.
+
+Ce que j'ai appris en une séance : la pose estimation dans le navigateur suffit pour prouver qu'on peut compter des reps à partir d'angles, mais les performances réelles sur téléphone ciblé peuvent rendre la fonctionnalité inutilisable.
+
+À retenir pour un prototype : testez sur les téléphones réels dès que possible; un résultat correct sur laptop ne garantit rien sur iPhone 11.
+
+Bilan factuel : preuve de concept validée, limite de performance confirmée — iPhone 11 à ~6 fps, compteur rate ~33 % des répétitions.
+
+readerVerdict :
+Hook shortened to fit preview. The rest remains clear and factual; reader understands method and numbers early. Keeps concise takeaways.
+
+unknownToReader :
+[]
+
+████████████████████████████████████████████████████████████████████████████████████████████████████
+vision · linkedin
+████████████████████████████████████████████████████████████████████████████████████████████████████
+événement : undefined (undefined)
+lecteur : Solo product devs · tours : 11 · soumissions : 2 · parties lues : [1,2,3,4,5,6] · réessai : true
+fautes restantes : []
+
+2 brouillon(s) :
+────────────────────────────────────────────────────────────────────────────────────────────────────
+BROUILLON 1
+────────────────────────────────────────────────────────────────────────────────────────────────────
+why :
+Le draft suit les règles : moment (cadrage), enjeu (compteur non fiable), tournant (gate + probe + fallbacks), et conclusion (faits). No extra facts.
+
+keep :
+true
+
+draft :
+Au cadrage d'une séance, l'app refuse les téléphones qui produisent moins de 4 angles par seconde. Le message exact est : « Ton téléphone est trop lent pour cet exercice ». 
+
+Pendant l’écran de cadrage j'impose deux contraintes : le corps entier visible pendant 2 secondes et un angle de prise de vue trois-quarts (MIN_CAMERA_ANGLE_DEG = 45). La vérification inclut aussi une mesure de cadence et le choix du modèle d'inférence.
+
+Pourquoi bloquer ? Parce qu'un compteur de répétitions fiable demande un budget de traitement réel : on a mesuré que le compteur tient à partir d'environ 8 images traitées par seconde. Plutôt que d'accepter des séances catastrophiques et des retours faux ou inutilisables, j'ai placé une barrière basse pour éliminer les appareils clairement insuffisants.
+
+Sur la durée d'exécution, l'app lance une sonde de 3 secondes avec le modèle « full » ; si la cadence est < 12 FPS on active le saut d'images (FRAME_SKIP = 2), et si on reste sous 8 FPS on bascule sur le modèle « lite ». Ces réglages (MIN_FPS_FOR_FULL = 12, MIN_FPS_FOR_LITE = 8) visent à maintenir l'application utilisable sur des téléphones modestes.
+
+Conséquence produit : certains patients ne pourront pas démarrer l'exercice et verront le message cité plus haut. Pour les développeurs solo : prévoyez cette porte d'entrée dans l'onboarding et un plan de support pour téléphones lents (communication, version web lite, ou prêt d'appareil). 
+
+Fait : les appareils incapables de produire ≥4 échantillons d'angle/s sont bloqués au démarrage ; le client sonde 3 s, applique frame‑skip ou bascule vers le modèle lite, et le compteur est fiable à partir de ~8 images traitées par seconde.
+
+readerVerdict :
+Le lecteur lira la deuxième phrase ; le post a une tension claire (bloquer des téléphones vs mauvais retours), décrit la décision technique et finit sur un fait. Le ton est du développeur solo, pas marketing.
+
+unknownToReader :
+[]
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+BROUILLON 2
+────────────────────────────────────────────────────────────────────────────────────────────────────
+why :
+Shortened to meet character limits while keeping the four-story elements and technical thresholds.
+
+keep :
+true
+
+draft :
+Au cadrage d'une séance, l'app refuse les téléphones qui produisent moins de 4 angles par seconde. Le message exact est : « Ton téléphone est trop lent pour cet exercice ». 
+
+Pendant l’écran de cadrage j'impose deux contraintes : le corps entier visible pendant 2 secondes et un angle de prise de vue trois-quarts (MIN_CAMERA_ANGLE_DEG = 45). La vérification inclut aussi la cadence et le choix du modèle d'inférence.
+
+Bloquer des appareils lents est un compromis : un compteur fiable nécessite environ 8 images traitées par seconde. Plutôt que d'accepter des séances avec des compteurs erratiques, je préfère refuser les cas manifestement inutilisables.
+
+En runtime l'app sonde 3 secondes avec le modèle « full » ; si la cadence < 12 FPS on active un saut d'images (FRAME_SKIP = 2), et si on reste < 8 FPS on bascule sur « lite » (MIN_FPS_FOR_FULL = 12, MIN_FPS_FOR_LITE = 8).
+
+Conséquence pratique : certains téléphones ne pourront pas démarrer la séance. Pour les solo devs : prévoyez cette porte d'entrée dans l'onboarding et un plan de support pour téléphones lents.
+
+Fait : les appareils incapables de produire ≥4 échantillons d'angle/s sont bloqués au démarrage ; le client sonde 3 s, applique frame‑skip ou bascule sur le modèle lite, et le compteur est fiable à partir de ~8 images traitées par seconde.
+
+readerVerdict :
+Lisible et concis; le lecteur arrive au fait final. Ton de dev solo.
+
+unknownToReader :
+[]

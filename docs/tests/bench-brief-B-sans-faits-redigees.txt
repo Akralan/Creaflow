@@ -1,0 +1,74 @@
+BANC D'ESSAI DU BRIEF — branche « B — brief sans faits rédigés »
+2026-10-20T20:24:46.677Z · modèle gpt-5-mini · sujet MyKiné · série Build log · lecteur Solo product devs
+Mémoire des derniers posts neutralisée (recentPosts = []) pour que les branches ne se contaminent pas.
+
+====================================================================================================
+2025-11-16 — Prototype web with MediaPipe counts squats but is too slow on iPhone
+at_stake en base : ∅
+====================================================================================================
+Julien m'a demandé si « ton truc de caméra » pouvait compter les squats.
+
+Julien m'a demandé si « ton truc de caméra » pouvait compter les squats.
+
+Neuf jours plus tard, il a fait 20 squats dans son salon pendant que je regardais la page que j'avais montée.
+
+Technique : MediaPipe Pose en JS, repère l'angle hanche‑genou‑cheville et considère « bas » sous 100°. Sur mon laptop la logique détecte proprement bas et montée.
+
+Sur l'iPhone 11 de Julien, la page tourne à 6 fps. La cadence manque des bas, le compteur rate une répétition sur trois.
+
+Ce qui est en jeu : Julien a 40 patients et m'avait demandé un outil simple à utiliser à la maison. Ce test m'a montré que la preuve de concept existe, mais pas l'usage sur ce téléphone.
+
+Chiffres à reprendre si vous voulez reproduire : MediaPipe JS, seuil 100°, iPhone 11 = 6 fps → ~33% de reps manquées.
+
+#mobiledev #poseestimation
+
+HASHTAGS : mobiledev poseestimation
+TRACE : 2 brouillon(s), 2 soumission(s), fautes restantes []
+SCORE : 8 paragraphes, 3 étiquetés ["Technique :","Ce qui est en jeu :","Chiffres à reprendre si vous voulez reproduire :"], code [], détails humains gardés ["salon","20 squats"] sur ["quand même","salon","20 squats"], 878 car., phrases moy. 78 ± 26
+
+====================================================================================================
+2025-11-23 — Server-side inference had high latency and exposed privacy risk; decision to move processing on-device
+at_stake en base : The trade‑off is that older phones will be slow; moving inference to device sacrifices performance on low‑end hardware.
+====================================================================================================
+Le 23 novembre 2025, notre prototype web envoyait des images au serveur : 300–600 ms de latence sur la 4G de Julien et des images de patients en sous‑vêtements qui transitaient.
+
+Le 23 novembre 2025, notre prototype web envoyait des images au serveur : 300–600 ms de latence sur la 4G de Julien et des images de patients en sous‑vêtements qui transitaient.
+
+On a choisi d'exécuter l'estimation de pose sur le téléphone. Le serveur ne reçoit désormais que des angles (échantillonnés à 10 Hz) et les événements du compteur.
+
+Pourquoi : la latence rendait l'expérience trop lente et on ne voulait pas prendre le risque de faire transiter des images intimes.
+
+Coût : les téléphones anciens seront plus lents. C'est le compromis que nous avons accepté — garder les données chez le patient au prix d'une dégradation sur les bas de gamme.
+
+Depuis le 23/11/2025, on n'envoie plus d'images depuis le téléphone — seulement des séries d'angles et des compteurs. On verra la dégradation sur vieux appareils au cas par cas.
+
+HASHTAGS : #edgecomputing #vieprivée
+TRACE : 2 brouillon(s), 2 soumission(s), fautes restantes []
+SCORE : 6 paragraphes, 2 étiquetés ["Pourquoi :","Coût :"], code [], détails humains gardés [] sur ["caleçon","sous-vêtement","en slip"], 1010 car., phrases moy. 111 ± 46
+
+====================================================================================================
+2025-12-06 — Knee flexion angle computed but tremor causes multiple rep counts
+at_stake en base : ∅
+====================================================================================================
+6 décembre — j'ai calculé l'angle de flexion du genou en local : vecteurs hanche→genou et cheville→genou, produit scalaire.
+
+6 décembre — j'ai calculé l'angle de flexion du genou en local : vecteurs hanche→genou et cheville→genou, produit scalaire.
+Seuils choisis : haut > 160°, bas < 100°. Ça marche… jusqu'au tremblement en bas.
+
+Quand la jambe tremble en position basse, l'angle oscille autour de 100° et le compteur incrémente plusieurs fois pour une seule répétition.
+
+Une semaine auparavant le prototype web rendait 6 fps sur iPhone ; envoyer les frames au serveur donnait 300–600 ms de latence et un vrai risque vie privée. J'ai donc décidé de tout faire sur l'appareil — mais ce bug montre qu'avoir le traitement local ne suffit pas si le signal est instable.
+
+Ce qui est vrai maintenant : l'angle se calcule proprement, les seuils sont clairs, mais le tremblement provoque des faux positifs de comptage. Pas corrigé.
+
+HASHTAGS : edge mobile ml
+TRACE : 1 brouillon(s), 1 soumission(s), fautes restantes []
+SCORE : 5 paragraphes, 1 étiquetés ["Ce qui est vrai maintenant :"], code [], détails humains gardés ["tremble","tremblement"] sur ["tremble","tremblement","compte trois","trois fois"], 925 car., phrases moy. 91 ± 57
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TOTAL branche « B — brief sans faits rédigés » sur 3 posts
+────────────────────────────────────────────────────────────────────────────────────────────────────
+paragraphes étiquetés : 6 / 19
+identifiants de code  : 0
+détails humains gardés: 4 / 10
+longueur de phrase    : moyenne 93, écart-type moyen 43

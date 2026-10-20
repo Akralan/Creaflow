@@ -1,0 +1,327 @@
+TABLE material_events — sujet « MyKiné » (compte mykine.demo@example.com)
+69 lignes en base ; les 10 premières dans l'ordre de la ligne de temps (date asc nulls last, puis created_at).
+∅ = colonne vide en base (null ou tableau vide).
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+#1  id = 0959d8f7-0cd8-4659-a033-84faf6ea0170
+────────────────────────────────────────────────────────────────────────────────────────────────────
+date              : 2025-11-09
+date_precision    : day
+kind              : milestone
+origin            : reader
+title             : Julien reports 6 in 10 patients do not do home exercises and asks if camera prototype can count squats
+what_happened     : At a meeting Julien said approximately 6 out of 10 patients do not do their prescribed home exercises and that he has no way to verify it except by asking (and that patients lie). He has 40 active patients and asked whether the Lab's camera pose-estimation prototype could count squats.
+what_changed      : Triggered interest in building a tool to monitor patient exercise adherence.
+at_stake          : Julien's claim that most patients do not comply and the lack of verification implied a clinical need and potential product market.
+audiences         : [
+                      "Solo product devs"
+                    ]
+audience_angles   : [
+                      {
+                        "audience": "Solo product devs",
+                        "whatItChanges": "There's a clear clinician pain and measurable market: a clinician with 40 patients reports 60% non‑adherence and asked for an automated rep counter."
+                      }
+                    ]
+qualified_at      : 2026-10-20T15:13:38.256Z
+source_material   : B/devlog.md
+source_material_id: 5ec349ac-6efb-4885-980d-a462290a7b61
+excerpt           : Il dit qu'environ 6 patients sur 10 ne font pas leurs exercices à la maison, et qu'il n'a aucun moyen de le savoir à part leur demander, et qu'ils mentent.
+created_at        : 2026-10-20T15:13:38.335Z
+updated_at        : 2026-10-20T15:13:38.335Z
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+#2  id = f9a38bef-f577-4aed-98f3-599f5052f2da
+────────────────────────────────────────────────────────────────────────────────────────────────────
+date              : 2025-11-16
+date_precision    : day
+kind              : result
+origin            : reader
+title             : Prototype web with MediaPipe counts squats but is too slow on iPhone
+what_happened     : A web page using MediaPipe Pose in JS implemented a squat counter based on the hip‑knee‑ankle angle under 100°. It worked on laptop but on Julien's iPhone 11 it ran at 6 fps and the counter missed about one repetition in three.
+what_changed      : Showed proof‑of‑concept for pose‑based rep counting but revealed serious performance limits on target mobile devices.
+at_stake          : ∅ (null)
+audiences         : [
+                      "Solo product devs",
+                      "CV / ML engineers"
+                    ]
+audience_angles   : [
+                      {
+                        "audience": "Solo product devs",
+                        "whatItChanges": "Early prototype proves the idea but exposes a performance problem on real phones: iPhone 11 at 6 fps misses ~33% of reps."
+                      },
+                      {
+                        "audience": "CV / ML engineers",
+                        "whatItChanges": "MediaPipe Pose in browser yields low FPS on mobile (6 fps on iPhone 11), affecting rep counting reliability."
+                      }
+                    ]
+qualified_at      : 2026-10-20T15:13:43.694Z
+source_material   : B/devlog.md
+source_material_id: 5ec349ac-6efb-4885-980d-a462290a7b61
+excerpt           : Page web, MediaPipe Pose en JS, un compteur de squats basé sur l'angle hanche-genou-cheville sous 100°. Ça marche sur mon laptop. Sur l'iPhone 11 de Julien : 6 fps, le compteur rate une répétition sur trois.
+created_at        : 2026-10-20T15:13:43.721Z
+updated_at        : 2026-10-20T15:13:43.721Z
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+#3  id = c7858561-c721-4b1f-b942-97e194b9982c
+────────────────────────────────────────────────────────────────────────────────────────────────────
+date              : 2025-11-23
+date_precision    : day
+kind              : decision
+origin            : reader
+title             : Server-side inference had high latency and exposed privacy risk; decision to move processing on-device
+what_happened     : Testing sending camera frames to a server produced 300–600 ms latency over Julien's 4G. The developer also realized images of Julien were being stored on the VPS. As a result they decided to perform all processing on the phone.
+what_changed      : Shifted architecture from server‑side inference to on‑device processing to avoid latency and privacy risks.
+at_stake          : The trade‑off is that older phones will be slow; moving inference to device sacrifices performance on low‑end hardware.
+audiences         : [
+                      "Solo product devs",
+                      "Backend / infra engineers",
+                      "CV / ML engineers"
+                    ]
+audience_angles   : [
+                      {
+                        "audience": "Solo product devs",
+                        "whatItChanges": "You cannot rely on server inference for real‑time rep counting on 4G; plan on on‑device models and local processing."
+                      },
+                      {
+                        "audience": "Backend / infra engineers",
+                        "whatItChanges": "Server inference produced 300–600 ms round‑trip on 4G, making it unsuitable for real‑time feedback and introducing data storage/privacy issues."
+                      },
+                      {
+                        "audience": "CV / ML engineers",
+                        "whatItChanges": "A server approach incurred prohibitive latency on cellular; model inference should be moved to the client or optimized for mobile."
+                      }
+                    ]
+qualified_at      : 2026-10-20T15:13:49.751Z
+source_material   : B/decisions.md
+source_material_id: dedfbf9c-a12b-4e32-a7a5-301bc180e5a4
+excerpt           : Choix : tout tourne sur le téléphone. Le serveur ne reçoit que des angles et des compteurs.
+created_at        : 2026-10-20T15:13:49.783Z
+updated_at        : 2026-10-20T15:16:25.715Z
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+#4  id = 0e834826-a6ee-4538-8789-812bef5395d8
+────────────────────────────────────────────────────────────────────────────────────────────────────
+date              : 2025-12-06
+date_precision    : day
+kind              : failure
+origin            : reader
+title             : Knee flexion angle computed but tremor causes multiple rep counts
+what_happened     : Knee flexion angle was implemented using dot product of hip→knee and ankle→knee vectors with thresholds high >160° and low <100°. When the user trembles at the bottom position the angle crosses 100° multiple times and the system counts multiple repetitions. The issue was not yet solved.
+what_changed      : Revealed a reliability problem in the simple threshold‑based rep counter requiring a robustness fix (debounce/hysteresis etc.).
+at_stake          : ∅ (null)
+audiences         : [
+                      "CV / ML engineers",
+                      "Solo product devs"
+                    ]
+audience_angles   : [
+                      {
+                        "audience": "CV / ML engineers",
+                        "whatItChanges": "A simple angle threshold (160°/100°) is sensitive to noise: tremor at bottom causes multiple false positives; you'll need debouncing or smoothing."
+                      },
+                      {
+                        "audience": "Solo product devs",
+                        "whatItChanges": "Threshold‑only rep counting will overcount when users tremble; expect to add filtering or UX constraints."
+                      }
+                    ]
+qualified_at      : 2026-10-20T15:13:54.278Z
+source_material   : B/devlog.md
+source_material_id: 5ec349ac-6efb-4885-980d-a462290a7b61
+excerpt           : Angle de flexion du genou calculé correctement (produit scalaire hanche→genou, cheville→genou). Seuils : haut > 160°, bas < 100°. Problème : quand on tremble en bas, l'angle passe trois fois autour de 100° et ça compte trois. Pas corrigé.
+created_at        : 2026-10-20T15:13:54.298Z
+updated_at        : 2026-10-20T15:13:54.298Z
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+#5  id = 1a18aa05-81f1-4845-b9de-a2b3007292ee
+────────────────────────────────────────────────────────────────────────────────────────────────────
+date              : 2025-12-20
+date_precision    : day
+kind              : decision
+origin            : reader
+title             : Provider lists 9 prescribed exercises; team limits v0 to 4 standing exercises
+what_happened     : Julien provided a list of 9 exercises he prescribes most often: 4 standing and 5 on the floor. The developer decided they could not handle floor exercises yet and began with the 4 standing exercises.
+what_changed      : The product scope was limited to standing exercises for the initial implementation.
+at_stake          : ∅ (null)
+audiences         : [
+                      "Solo product devs",
+                      "CV / ML engineers"
+                    ]
+audience_angles   : [
+                      {
+                        "audience": "Solo product devs",
+                        "whatItChanges": "Scope the first release to standing exercises only; floor exercises will be deferred until pose reliability improves."
+                      },
+                      {
+                        "audience": "CV / ML engineers",
+                        "whatItChanges": "Ground/recumbent poses are deferred—focus model evaluation and metrics on standing, partially‑occluded views first."
+                      }
+                    ]
+qualified_at      : 2026-10-20T15:13:58.013Z
+source_material   : B/devlog.md
+source_material_id: 5ec349ac-6efb-4885-980d-a462290a7b61
+excerpt           : Julien m'envoie une liste de 9 exercices qu'il prescrit le plus. 4 sont debout, 5 au sol. Je ne sais pas faire les exercices au sol pour l'instant, je commence par les 4 debout.
+created_at        : 2026-10-20T15:13:58.021Z
+updated_at        : 2026-10-20T15:13:58.021Z
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+#6  id = eac2c606-6d89-4ebd-b0f5-ee6b99fa202a
+────────────────────────────────────────────────────────────────────────────────────────────────────
+date              : 2026-01-11
+date_precision    : day
+kind              : result
+origin            : reader
+title             : Android builds with TFLite BlazePose lite show device‑dependent FPS
+what_happened     : Moved to Expo and produced the first Android build using TFLite and BlazePose lite. On a Pixel 7 the model ran at 24 fps; on a Pixel 4a (bought for testing) it ran at 15 fps. There was no iOS build yet.
+what_changed      : Established baseline mobile inference performance and confirmed significant performance variability across Android devices.
+at_stake          : ∅ (null)
+audiences         : [
+                      "CV / ML engineers",
+                      "Solo product devs"
+                    ]
+audience_angles   : [
+                      {
+                        "audience": "CV / ML engineers",
+                        "whatItChanges": "BlazePose lite via TFLite yields ~24 FPS on a Pixel 7 but only ~15 FPS on older Pixel 4a—expect large device variance."
+                      },
+                      {
+                        "audience": "Solo product devs",
+                        "whatItChanges": "Performance varies widely by phone: plan fallbacks or frame‑skipping strategies for older devices."
+                      }
+                    ]
+qualified_at      : 2026-10-20T15:14:02.630Z
+source_material   : B/devlog.md
+source_material_id: 5ec349ac-6efb-4885-980d-a462290a7b61
+excerpt           : Passage à Expo. Premier build Android sur mon Pixel 7 avec TFLite et le modèle BlazePose lite : 24 fps. Sur le vieux Pixel 4a que j'ai racheté 60 € pour ça : 15 fps. L'iPhone de Julien, je n'ai pas encore de build iOS.
+created_at        : 2026-10-20T15:14:02.637Z
+updated_at        : 2026-10-20T15:14:02.637Z
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+#7  id = 2193395c-5538-450d-aa52-15dc64d434c5
+────────────────────────────────────────────────────────────────────────────────────────────────────
+date              : 2026-02-01
+date_precision    : day
+kind              : decision
+origin            : reader
+title             : Backend stack chosen: FastAPI + Postgres with initial schema
+what_happened     : The backend was implemented with FastAPI and Postgres. The developer created tables for kines, patients, programs, program_exercises, exercises, sessions, and session_exercises to represent clinicians, patients, programs and sessions.
+what_changed      : Settle on a specific backend stack and schema that will drive API and data design.
+at_stake          : ∅ (null)
+audiences         : [
+                      "Backend / infra engineers",
+                      "Solo product devs"
+                    ]
+audience_angles   : [
+                      {
+                        "audience": "Backend / infra engineers",
+                        "whatItChanges": "System uses FastAPI + Postgres with tables for clinicians, patients, programs and sessions—this is the production data model to adapt or reuse."
+                      },
+                      {
+                        "audience": "Solo product devs",
+                        "whatItChanges": "A lightweight Python + Postgres backend was chosen—good reference architecture for small teams."
+                      }
+                    ]
+qualified_at      : 2026-10-20T15:14:06.598Z
+source_material   : A/architecture.md
+source_material_id: eaa64cef-d11a-4206-be44-16e241857a14
+excerpt           : Les séries d'angles sont stockées en JSONB (`sessions.angle_series`), pas dénormalisées : lecture par patient et par séance uniquement.
+created_at        : 2026-10-20T15:14:06.608Z
+updated_at        : 2026-10-20T15:17:15.582Z
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+#8  id = 2b76fb18-9075-426e-ba19-ff3ef0bb8ced
+────────────────────────────────────────────────────────────────────────────────────────────────────
+date              : 2026-02-07
+date_precision    : day
+kind              : decision
+origin            : reader
+title             : No patient accounts: access via SMS link and 6‑letter code
+what_happened     : The system was implemented without patient accounts. Patients receive an SMS with a link and a 6‑letter code. The link opens the app if installed, otherwise a webpage telling them to install the app; pose in browser was considered too slow so web pose was not used for mobile.
+what_changed      : Authentication and onboarding avoid accounts and passwords; access is via one‑time SMS links and codes, simplifying UX and avoiding in‑browser pose on mobile.
+at_stake          : If the phone changes hands the program becomes visible; accepted because no name or video is stored on the server.
+audiences         : [
+                      "Backend / infra engineers",
+                      "Solo product devs"
+                    ]
+audience_angles   : [
+                      {
+                        "audience": "Backend / infra engineers",
+                        "whatItChanges": "Auth is implemented as SMS link + 6‑letter code with no patient accounts; phone number handling and SMS delivery are operational concerns."
+                      },
+                      {
+                        "audience": "Solo product devs",
+                        "whatItChanges": "Onboarding uses SMS one‑time links to avoid account flows and browser pose limitations—simpler but requires careful phone/SMS handling."
+                      }
+                    ]
+qualified_at      : 2026-10-20T15:14:10.931Z
+source_material   : B/decisions.md
+source_material_id: dedfbf9c-a12b-4e32-a7a5-301bc180e5a4
+excerpt           : Choix : le kiné entre un numéro de téléphone, le patient reçoit un SMS avec un lien `mykine.app/s/<code>`. Le code ouvre son programme. Pas de mot de passe. Le lien expire avec le programme.
+created_at        : 2026-10-20T15:14:10.947Z
+updated_at        : 2026-10-20T15:16:28.529Z
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+#9  id = 4bbc0802-6547-4505-acce-1ba254740f75
+────────────────────────────────────────────────────────────────────────────────────────────────────
+date              : 2026-02-15
+date_precision    : day
+kind              : milestone
+origin            : reader
+title             : First clinician creates program and completes a session successfully
+what_happened     : Julien created his first program on the dashboard (basic UI) in 11 minutes, spending 6 minutes figuring out how to set 3 sets. He sent himself the SMS link and completed a session; the app counted 12 squats on a Pixel 7 and he was pleased.
+what_changed      : Provided early usability validation for the dashboard and core flow from program creation to patient session.
+at_stake          : ∅ (null)
+audiences         : [
+                      "Solo product devs"
+                    ]
+audience_angles   : [
+                      {
+                        "audience": "Solo product devs",
+                        "whatItChanges": "A clinician could create a program and complete a session end‑to‑end in ~11 minutes, confirming the core UX works on a modern phone."
+                      }
+                    ]
+qualified_at      : 2026-10-20T15:14:14.998Z
+source_material   : A/dashboard-kine.md
+source_material_id: 599a2fd4-f65d-4755-b9f5-c730dd83ef2e
+excerpt           : Durée de création d'un programme de 5 exercices, mesurée sur un kiné à l'aise avec l'outil : 11 minutes la première fois, 3 à 4 minutes ensuite.
+created_at        : 2026-10-20T15:14:15.008Z
+updated_at        : 2026-10-20T15:24:25.364Z
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+#10  id = 955a6e03-a763-4e31-9e54-ed884bd1291b
+────────────────────────────────────────────────────────────────────────────────────────────────────
+date              : 2026-03-07
+date_precision    : day
+kind              : failure
+origin            : reader
+title             : Clinic demo shows occlusion failure and performance complaints
+what_happened     : During a demo at the clinic, Marion positioned herself in profile and the pose skeleton broke: the rear knee was occluded and the model placed it incorrectly, producing a knee angle around 40° and a false repetition. Marion stopped after 40 seconds and said she could not give this to a patient. Julien also reported the app felt slow on a Pixel 4a.
+what_changed      : Exposed a major occlusion failure case and clinician rejection in its current form, and reinforced device performance variability concerns.
+at_stake          : Clinician refusal to give the app to patients due to incorrect counts; credibility at risk.
+audiences         : [
+                      "CV / ML engineers",
+                      "Solo product devs"
+                    ]
+audience_angles   : [
+                      {
+                        "audience": "CV / ML engineers",
+                        "whatItChanges": "Occlusion (rear knee hidden) produces gross keypoint errors leading to false reps—pose model robustness to occlusion is a critical failure mode."
+                      },
+                      {
+                        "audience": "Solo product devs",
+                        "whatItChanges": "Clinicians may reject the app if occlusion causes false feedback; device performance (old phones) also affects perceived speed."
+                      }
+                    ]
+qualified_at      : 2026-10-20T15:14:29.017Z
+source_material   : B/devlog.md
+source_material_id: 5ec349ac-6efb-4885-980d-a462290a7b61
+excerpt           : le genou arrière est caché par le genou avant, le modèle le place n'importe où, l'angle part à 40°, le compteur compte une répétition qui n'existe pas.
+created_at        : 2026-10-20T15:14:29.061Z
+updated_at        : 2026-10-20T15:14:29.061Z
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+SUR LES 69 ÉVÉNEMENTS DU SUJET
+────────────────────────────────────────────────────────────────────────────────────────────────────
+at_stake rempli      : 15 / 69
+aucun public         : 0 / 69
+sans date            : 37 / 69
+par kind             : {"milestone":9,"result":10,"failure":3,"decision":47}
+par origin           : {"reader":69}

@@ -1,7 +1,7 @@
 /**
  * Monte un compte de démonstration à partir du pack MyKiné (`docs/tests/mykine-pack/`) en passant par
  * les VRAIS services de l'app — rien n'est truqué : le lecteur d'événements lit la matière, le portrait
- * des lecteurs est écrit, la série reçoit son lecteur et sa forme, le calendrier se remplit, et les
+ * des lecteurs est écrit, la série reçoit son lecteur, le calendrier se remplit, et les
  * posts sont écrits par les rédacteurs (23 pour un épisode, 28 pour un post de récit).
  *
  * Demande `OPENAI_API_KEY` et `LLM_PROVIDER=openai` dans `.env`, plus la base de dev lancée.
