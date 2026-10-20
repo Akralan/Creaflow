@@ -7,6 +7,8 @@
  * Demande `OPENAI_API_KEY` et `LLM_PROVIDER=openai` dans `.env`, plus la base de dev lancée.
  * Compte quelques minutes : la lecture de la matière est longue, et chaque post coûte 3 à 6 appels.
  *
+ * Refuse de tourner ailleurs que sur une base locale : il affiche un mot de passe en clair.
+ *
  * Usage :
  *   set -a && source .env && set +a && node_modules/.bin/tsx scripts/seed-mykine.ts [nombre-de-posts]
  *
@@ -15,6 +17,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { randomBytes } from "node:crypto";
 import { and, asc, eq, gte, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { calendarEntries, contentSeries, creatorProfiles, products, sourceMaterials, users } from "@/db/schema";
@@ -29,8 +32,34 @@ import { syncSeriesSlots } from "@/lib/services/seriesSlotSync";
 import { writePost } from "@/lib/services/postPairService";
 
 const EMAIL = "mykine.demo@example.com";
-const PASSWORD = "mykine1234";
 const PACK = path.join(process.cwd(), "docs", "tests", "mykine-pack");
+
+/**
+ * Ce script crée un compte avec un mot de passe qu'il affiche : il ne doit JAMAIS toucher autre chose
+ * qu'une base de développement locale. Le garde-fou est ici, avant toute écriture, parce que
+ * `source .env` sur la mauvaise machine suffirait sinon à planter un compte connu en production.
+ */
+function refuseUnlessLocalDev() {
+  if (process.env.NODE_ENV === "production") throw new Error("NODE_ENV=production : ce script de démonstration ne tourne pas en production.");
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL manquante.");
+  let host: string;
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    throw new Error("DATABASE_URL illisible.");
+  }
+  const local = ["localhost", "127.0.0.1", "::1", "postgres", "db"];
+  if (!local.includes(host)) {
+    throw new Error(`La base pointe sur « ${host} », qui n'est pas une base locale. Ce script crée un compte avec un mot de passe affiché en clair : il refuse toute autre base.`);
+  }
+}
+
+/** Un mot de passe par exécution, jamais une constante dans le dépôt. */
+function freshPassword(): string {
+  return `demo-${randomBytes(9).toString("base64url")}`;
+}
+
 const SUBJECT = {
   name: "MyKiné",
   description:
@@ -59,6 +88,7 @@ function packDocuments(): Array<{ title: string; text: string }> {
 }
 
 async function reset() {
+  refuseUnlessLocalDev();
   const user = await db.query.users.findFirst({ where: eq(users.email, EMAIL), columns: { id: true } });
   if (!user) return console.log("Rien à supprimer.");
   await db.delete(users).where(eq(users.id, user.id)); // CASCADE sur tout le reste
@@ -70,17 +100,22 @@ async function main() {
     await reset();
     process.exit(0);
   }
+  refuseUnlessLocalDev();
   const wanted = Number(process.argv[2]) || 3;
   if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY manquante : tout le pipeline passe par OpenAI.");
   if (process.env.LLM_PROVIDER !== "openai") throw new Error("Mettre LLM_PROVIDER=openai dans .env (le repli codé en dur, gemini, n'est pas opérationnel).");
 
   log("Compte et profil");
+  // Un mot de passe neuf à chaque exécution, y compris sur un compte déjà là : sinon celui qu'on
+  // affiche à la fin serait faux au second passage.
+  const password = freshPassword();
   let user = await db.query.users.findFirst({ where: eq(users.email, EMAIL) });
   if (!user) {
-    [user] = await db.insert(users).values({ email: EMAIL, passwordHash: await hashPassword(PASSWORD) }).returning();
-    console.log(`  créé : ${EMAIL} / ${PASSWORD}`);
+    [user] = await db.insert(users).values({ email: EMAIL, passwordHash: await hashPassword(password) }).returning();
+    console.log(`  compte créé : ${EMAIL}`);
   } else {
-    console.log(`  déjà là : ${EMAIL} / ${PASSWORD}`);
+    await db.update(users).set({ passwordHash: await hashPassword(password) }).where(eq(users.id, user.id));
+    console.log(`  compte déjà là : ${EMAIL} (mot de passe renouvelé)`);
   }
   const userId = user.id;
 
@@ -168,7 +203,9 @@ async function main() {
   }
 
   log("Fini");
-  console.log(`  Connexion : http://localhost:3000/login  —  ${EMAIL} / ${PASSWORD}`);
+  console.log(`  Connexion : http://localhost:3000/login`);
+  console.log(`  ${EMAIL}`);
+  console.log(`  ${password}   (valable jusqu'à la prochaine exécution de ce script)`);
   process.exit(0);
 }
 
