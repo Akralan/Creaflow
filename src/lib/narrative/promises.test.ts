@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { candidateEvents, openPromises, type PromisingPost } from "./promises";
+import { candidateEvents, matchIsStillOpen, openPromises, type PromisingPost } from "./promises";
 import type { PlacementEvent } from "./placement";
 
 const post = (scriptId: string, date: string, ...promisesMade: string[]): PromisingPost => ({ scriptId, date, promisesMade });
@@ -51,5 +51,20 @@ describe("candidateEvents", () => {
   it("rend le type reçu, pas un PlacementEvent appauvri", () => {
     const riche = [{ id: "e2", date: "2026-02-01", kind: "result" as const, whatChanged: null, title: "La démo tourne" }];
     expect(candidateEvents(riche, "2026-01-01", [])[0].title).toBe("La démo tourne");
+  });
+});
+
+describe("matchIsStillOpen", () => {
+  it("garde un appariement dont la promesse n'est pas encore tenue", () => {
+    expect(matchIsStillOpen({ promise: "je publierai le chiffre", eventId: "e2" }, [])).toBe(true);
+  });
+
+  it("écarte un appariement dont la promesse a déjà été tenue", () => {
+    expect(matchIsStillOpen({ promise: "je publierai le chiffre", eventId: "e2" }, ["je publierai le chiffre"])).toBe(false);
+  });
+
+  it("traite l'absence d'appariement comme ouvert : le post peut en recevoir un", () => {
+    expect(matchIsStillOpen(null, [])).toBe(true);
+    expect(matchIsStillOpen({ nope: true }, [])).toBe(true);
   });
 });

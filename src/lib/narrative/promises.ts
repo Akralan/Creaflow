@@ -37,6 +37,18 @@ export function openPromises(published: PromisingPost[], honored: string[]): Ope
 }
 
 /**
+ * Un appariement déjà posé compte-t-il encore ? Non si sa promesse a entre-temps été tenue : le
+ * `promiseMatch` devenu caduc ne doit plus barrer la route aux AUTRES promesses du même post, qui
+ * n'auraient jamais leur tour sinon. Un post sans appariement est ouvert, évidemment.
+ */
+export function matchIsStillOpen(raw: unknown, honored: string[]): boolean {
+  if (!raw || typeof raw !== "object") return true;
+  const promise = (raw as { promise?: unknown }).promise;
+  if (typeof promise !== "string") return true;
+  return !honored.includes(promise);
+}
+
+/**
  * Les événements qui pourraient tenir une promesse : datés strictement après le post qui l'a faite,
  * pas encore racontés, les plus récents d'abord. Générique sur la forme reçue : le placement n'a
  * besoin que de `id` et `date`, l'appel au modèle veut aussi le titre et ce qui s'est passé.

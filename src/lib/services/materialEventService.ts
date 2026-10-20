@@ -24,7 +24,7 @@ import {
 } from "@/lib/llm/eventReader";
 import { parseStoredReaderPortrait } from "@/lib/llm/readerPortrait";
 import { matchPromiseToEvent } from "@/lib/llm/promiseMatch";
-import { candidateEvents, openPromises } from "@/lib/narrative/promises";
+import { candidateEvents, matchIsStillOpen, openPromises } from "@/lib/narrative/promises";
 import { toIsoDate } from "@/lib/seriesRhythm";
 import { ApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
@@ -449,7 +449,9 @@ export async function refreshPromiseMatches(userId: string, productId: string): 
   const byId = new Map(published.map((s) => [s.id, s]));
 
   const posts = published
-    .filter((s) => !s.promiseMatch && Array.isArray(s.promisesMade) && s.promisesMade.length > 0)
+    // Un appariement encore ouvert occupe la place ; devenu caduc (sa promesse a été tenue), il
+    // libère le post pour ses autres promesses.
+    .filter((s) => (!s.promiseMatch || !matchIsStillOpen(s.promiseMatch, honored)) && Array.isArray(s.promisesMade) && s.promisesMade.length > 0)
     .map((s) => ({ scriptId: s.id, date: dateOfScript.get(s.id) ?? toIsoDate(s.createdAt), promisesMade: s.promisesMade as string[] }));
 
   let matched = 0;

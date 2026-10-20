@@ -123,5 +123,14 @@ export async function writePost(
       if (!eventId) break;
     }
   }
+  // Clôture de la promesse (docs/SPEC_FIL_NARRATIF.md §8) : l'appariement a servi, il libère le post
+  // d'origine pour ses autres promesses. Après la boucle, pour que les deux réseaux l'aient vu.
+  if (plan?.promiseSourceScriptId && entries.some((e) => e.scriptId)) {
+    await db
+      .update(scripts)
+      .set({ promiseMatch: null })
+      .where(and(eq(scripts.id, plan.promiseSourceScriptId), eq(scripts.userId, userId)))
+      .catch((error) => logger.error("Promise match could not be cleared", error, { userId }));
+  }
   if (firstError) throw firstError;
 }
