@@ -54,8 +54,8 @@ Les faits, relevés dans la base :
 4. **« Personne » veut dire personne.** Un événement sans public ne part dans aucune série. La
    distinction entre « pas encore trié » et « trié, personne » est explicite.
 5. **La date n'est pas un critère de recevabilité.** Beaucoup d'événements ne seront jamais datés.
-   Elle ne reste exigée qu'au seul endroit où elle veut dire quelque chose : le déclencheur de
-   l'origine (`SPEC_FIL_NARRATIF.md` §7).
+   Elle n'est plus exigée nulle part : l'origine elle-même s'ancre sur le plus ancien événement de la
+   ligne de temps, daté ou non (`SPEC_FIL_NARRATIF.md` §7, révisé le même jour).
 6. **Un changement de public relit la matière**, il ne redistribue pas des étiquettes sur des
    événements écrits pour quelqu'un d'autre. Le prompt 24 disparaît.
 

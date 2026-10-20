@@ -20,7 +20,7 @@ Ce n'est **pas** le retour du rédacteur en chef retiré le 2026-10-17 (`SPEC_RE
 Le rédacteur en chef planifiait des épisodes à partir de thèmes, de haut en bas, et inventait des
 temps forts. Ici :
 
-- rien n'est inventé : chaque post de récit lit des **événements datés existants** de la ligne de
+- rien n'est inventé : chaque post de récit lit des **événements existants** de la ligne de
   temps, plus les champs du sujet ;
 - le placement est une **règle de code**, pas un appel au modèle ;
 - le rédacteur par événements (prompts 21, 22, 23) garde son fonctionnement, sans aucune addition.
@@ -70,8 +70,8 @@ Autres points vérifiés, utilisés plus bas :
 
 | Type | Ce qu'il lit | Ce qu'il dit | Ce qu'il ne fait pas |
 | :--- | :--- | :--- | :--- |
-| **Origine** | Le plus ancien événement daté de la ligne de temps (le déclencheur) + `problem` du sujet | Le problème avant la solution : ce qui a été vu ou entendu, et pourquoi ça ne pouvait pas rester comme ça | Ne nomme pas le produit avant la dernière phrase ; ne décrit pas de fonctionnalité |
-| **Vision** | `description`, `problem`, `valueProposition` du sujet + les événements de genre `decision` | Où ça va et pour qui, ancré sur une décision réelle | Pas de promesse chiffrée, pas de date, pas de roadmap |
+| **Origine** | **Large** : les 12 plus anciens événements de la ligne de temps, plus les **trois champs du sujet** — ce qui est construit (`description`), pour qui (`targetAudience`), le problème (`problem`) | Le problème avant la solution : ce qui a été vu ou entendu, et pourquoi ça ne pouvait pas rester comme ça | Ne nomme pas le produit avant la dernière phrase ; ne décrit pas de fonctionnalité |
+| **Vision** | `description`, `problem`, `valueProposition`, `targetAudience` du sujet + les événements de genre `decision` | Où ça va et pour qui, ancré sur une décision réelle | Pas de promesse chiffrée, pas de date, pas de roadmap |
 | **Point d'étape** | Les événements racontés depuis le dernier post de récit | Ce qui a changé entre le premier et le dernier, pas chacun d'eux | Ne re-raconte aucun épisode ; ne reprend pas les chiffres des épisodes voisins |
 | **Promesse tenue** | Une promesse faite dans un post publié (texte exact + le post) + l'événement postérieur qui la tient | Ce que l'auteur avait dit, puis ce qui s'est passé, sans commentaire | Ne juge pas, ne s'excuse pas, ne reformule pas la promesse |
 
@@ -98,7 +98,7 @@ d'origine fait donc réécrire une origine au prochain post — c'est le comport
 
 | Type | Condition | Si elle n'est pas remplie |
 | :--- | :--- | :--- |
-| **Origine** | Rang 1 de la **première série** d'un sujet (la plus ancienne par `createdAt`), et la ligne de temps a au moins un événement **daté** | Épisode normal, et l'origine n'est plus jamais posée pour cette série |
+| **Origine** | **Obligatoire** au rang 1 de la **première série** d'un sujet, dès que la ligne de temps n'est pas vide. Aucune autre condition : c'est le post qui dit le mieux pourquoi suivre la série, il ne se saute pas | Rien à sauter : sans aucun événement, il n'y a de toute façon rien à générer (le chemin par événements répond 409) |
 | **Vision** | Rang 3 de la première série, `problem` et `valueProposition` remplis, au moins un événement de genre `decision` | Reportée au rang suivant, jusqu'à ce que ce soit vrai |
 | **Point d'étape** | Depuis le dernier post de récit de la série : au moins **3 événements racontés dont le `whatChanged` est rempli**, **et** au moins **4 épisodes normaux écrits** | Rien. Pas de point d'étape |
 | **Promesse tenue** | Une promesse d'un post `published` de l'auteur est appariée à un événement postérieur pas encore raconté | Rien : le type n'apparaît que quand l'appariement existe |
@@ -120,8 +120,10 @@ Conséquences à noter :
 - Seule la première série d'un sujet porte l'origine et la vision. Une deuxième série sur le même
   sujet n'a que des points d'étape et des promesses tenues.
 - Un post de récit **ne marque aucun événement comme raconté** (pas d'`eventId`), sauf l'origine
-  qui marque le déclencheur et la promesse tenue qui marque l'événement qui la tient. Les
-  événements résumés dans un point d'étape restent disponibles pour des épisodes futurs.
+  qui marque le **plus ancien** événement — celui sur lequel elle s'ancre — et la promesse tenue qui
+  marque l'événement qui la tient. Les onze autres événements du périmètre de l'origine, comme ceux
+  résumés dans un point d'étape, restent disponibles pour leurs épisodes : l'origine les **lit pour
+  comprendre**, elle ne les raconte pas.
 
 ## 8. La promesse tenue
 
@@ -228,7 +230,7 @@ Les sept points laissés ouverts le 19, tranchés avec l'auteur.
 | :--- | :--- | :--- |
 | 1 | Le point d'étape n'a **pas** de N : il se déclenche sur la substance — 3 événements racontés au `whatChanged` rempli, plancher de 4 épisodes | Décidé par l'auteur : « un post de récit, c'est quand il faut un post de récit ». Les guides disent de ne pas fabriquer de point d'étape pour tenir une cadence |
 | 2 | Vision au rang 3 | Laisse un épisode normal entre l'origine et elle (jamais deux posts de récit de suite), et les trois premiers posts disent déjà pourquoi et où ça va |
-| 3 | Déclencheur = le plus ancien événement **daté** ; aucun événement daté → pas d'origine, jamais | Il n'existe pas de genre « déclencheur » dans les données, et le plus ancien daté est la seule définition qui ne demande pas au modèle d'inventer |
+| 3 | **Révisé le 2026-10-20** après le premier lancement réel. L'origine est **obligatoire** et lit **large** : les 12 plus anciens événements et les trois champs du sujet, au lieu d'un seul événement daté. Elle s'ancre sur le plus ancien et ne marque que celui-là comme raconté | Décidé par l'auteur : « un post origine qui prend ses infos de globalement un peu tout est nécessaire quand on fait du build in public ». La version initiale (un seul événement daté, et pas d'origine sans lui) rendait le post le plus important du fil à la fois pauvre et facultatif. Les trois champs de `/start` sont les mots de l'auteur sur pourquoi le projet existe : c'est de la matière d'origine, pas du remplissage |
 | 4 | Le point d'étape ne marque rien comme raconté | Proposition du brouillon, conservée : un événement résumé en une ligne mérite encore son épisode |
 | 5 | Deuxième série sur le même sujet : points d'étape et promesses seulement | Proposition du brouillon, conservée |
 | 6 | « Publié » = **Posted** | Vérifié dans le code : `published` se met à la main dans l'éditeur, sans dépendre du rattachement Performance jamais essayé en réel |
