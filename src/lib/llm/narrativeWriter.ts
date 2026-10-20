@@ -263,6 +263,9 @@ export async function writeNarrativePost(context: NarrativeWriterContext): Promi
     // The promise post quotes its own earlier post: that post is material too.
     materialTexts: [...brief.sources.map((s) => s.text), ...(brief.promise ? [brief.promise.postText] : [])],
     avoid: context.styleProfile?.avoid ?? [],
+    // Les mots que ce lecteur ne comprend pas : la forme de série les portait sans que rien ne les
+    // vérifie (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §6).
+    jargon: context.brief.form.jargon,
     recentPosts: context.recentPosts,
     language: context.language,
   };

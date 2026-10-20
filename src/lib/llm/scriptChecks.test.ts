@@ -180,3 +180,28 @@ describe("promesses déclarées", () => {
     expect(checkGeneratedPost(post({ promisesMade: [] }), null, ctx())).toEqual([]);
   });
 });
+
+describe("jargon du lecteur", () => {
+  it("refuse un terme de la liste employé tel quel", () => {
+    expect(checkGeneratedPost(post({ caption: withSentence("Le serveur reçoit un payload JSONB.") }), null, ctx({ jargon: ["JSONB"] }))).toContain(
+      '"JSONB" is in the words this reader does not understand: say what it changes for them, or leave it out.'
+    );
+  });
+
+  it("laisse passer un terme expliqué par son effet dans la même phrase", () => {
+    const explique = "Les angles sont rangés en JSONB, c'est-à-dire que tout un mouvement tient dans une seule ligne.";
+    expect(checkGeneratedPost(post({ caption: withSentence(explique) }), null, ctx({ jargon: ["JSONB"] }))).toEqual([]);
+  });
+
+  it("ignore la casse et les accents", () => {
+    expect(checkGeneratedPost(post({ caption: withSentence("On stocke en jsonb.") }), null, ctx({ jargon: ["JSONB"] }))).toHaveLength(1);
+  });
+
+  it("ne confond pas un terme avec un mot qui le contient", () => {
+    expect(checkGeneratedPost(post({ caption: withSentence("Le posologue a validé.") }), null, ctx({ jargon: ["pose"] }))).toEqual([]);
+  });
+
+  it("ne dit rien sans liste de jargon", () => {
+    expect(checkGeneratedPost(post({ caption: withSentence("Le serveur reçoit un payload JSONB.") }), null, ctx())).toEqual([]);
+  });
+});

@@ -334,6 +334,9 @@ export async function writeScriptFromEvent(context: EventWriterContext): Promise
     visual: context.visual,
     materialTexts: brief.source ? [brief.source.text] : [],
     avoid: context.styleProfile?.avoid ?? [],
+    // Les mots que ce lecteur ne comprend pas : la forme de série les portait sans que rien ne les
+    // vérifie (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §6).
+    jargon: context.brief.form.jargon,
     recentPosts: context.recentPosts,
     language: context.language,
   };
