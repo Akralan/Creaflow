@@ -12,11 +12,10 @@
 import fs from "node:fs";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { contentSeries, creatorProfiles, materialEvents, sourceMaterials, users } from "@/db/schema";
+import { contentSeries, materialEvents, sourceMaterials, users } from "@/db/schema";
 import { buildGenerationContext } from "@/lib/services/scriptService";
 import { generateScript } from "@/lib/llm/generateScript";
 import { readersOfProduct } from "@/lib/services/seriesReaderService";
-import { describeSeriesForm, parseStoredSeriesForm, type SeriesForm } from "@/lib/llm/seriesForm";
 import type { BriefEvent, EventBrief } from "@/lib/llm/eventWriter";
 
 const SERIES_ID = "c287de89-914d-4357-9339-7fb1b8902a15"; // MyKiné en construction
@@ -29,8 +28,8 @@ const EVENT_DATES_TITLES: Array<[string, string]> = [
 ];
 
 async function main() {
-  const [outFile, formFile] = [process.argv[2], process.argv[3]];
-  if (!outFile || !formFile) throw new Error("Donne un fichier de sortie et un fichier de forme.");
+  const outFile = process.argv[2];
+  if (!outFile) throw new Error("Donne un fichier de sortie.");
   const user = await db.query.users.findFirst({ where: eq(users.email, "mykine.test@example.com"), columns: { id: true } });
   if (!user) throw new Error("Compte de test introuvable.");
 
@@ -50,26 +49,6 @@ async function main() {
   const timeline = all.map(toBrief);
   const dated = timeline.filter((e) => e.date !== null);
 
-  let form: SeriesForm;
-  if (fs.existsSync(formFile)) {
-    const stored = parseStoredSeriesForm(JSON.parse(fs.readFileSync(formFile, "utf-8")));
-    if (!stored) throw new Error("Forme illisible.");
-    form = stored;
-  } else {
-    const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, user.id), columns: { brandName: true, activityType: true } });
-    form = await describeSeriesForm({
-      brandName: profile?.brandName ?? "l'auteur",
-      activityType: profile?.activityType ?? "",
-      subjectName: series.product?.name ?? series.label,
-      subjectDescription: series.product?.description ?? null,
-      reader,
-      seriesLabel: series.label,
-      seriesDescription: series.description,
-      platforms: series.contentSeriesPlatforms.map((p) => p.platform),
-      sampleEvents: all.filter((e) => e.audiences.length === 0 || e.audiences.includes(READER_LABEL)).map((e) => e.title).slice(0, 12),
-    });
-    fs.writeFileSync(formFile, JSON.stringify(form, null, 2), "utf-8");
-  }
 
   const out: string[] = [`Généré le ${new Date().toISOString()} — modèle ${process.env.OPENAI_MODEL ?? "?"} — lecteur : ${READER_LABEL} — langue demandée : ${process.env.POST_LANGUAGE ?? "règle réelle (profil, sinon notes)"}`, ""];
   for (const [date, titleStart] of EVENT_DATES_TITLES) {
@@ -84,7 +63,6 @@ async function main() {
       before: index > 0 ? dated.slice(Math.max(0, index - 2), index) : [],
       after: index >= 0 ? dated.slice(index + 1, index + 2) : [],
       reader,
-      form,
       seriesLabel: series.label,
       source: source ? { id: source.id, title: source.title, text: source.rawText } : null,
       timeline: dated,

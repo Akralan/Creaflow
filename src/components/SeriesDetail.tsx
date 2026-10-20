@@ -68,7 +68,7 @@ export default function SeriesDetail({
       await api.updateSeriesFields(series.id, { productId: nextId });
       const product = nextId ? (products.find((p) => p.id === nextId) ?? null) : null;
       // The reader was picked from the old topic's portrait: it has to be picked again.
-      onSeriesUpdate({ ...series, product: product ? { id: product.id, name: product.name } : null, readerLabel: null, form: null });
+      onSeriesUpdate({ ...series, product: product ? { id: product.id, name: product.name } : null, readerLabel: null });
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Something went wrong while changing the topic.");
     } finally {

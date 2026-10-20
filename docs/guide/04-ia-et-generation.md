@@ -110,6 +110,6 @@ Ce qui se mesure est vérifié par le code, pas par le modèle. Un post fautif e
 1. La matière compte mais n'arrivait pas : un seul post sur quatre utilisait un événement avant le lecteur d'événements.
 2. Un « chef » qui reçoit une phrase par document ne lit pas ; il faut **lire en entier**.
 3. Les champs de « réflexion » remplis avant le post dans le même appel sont **un formulaire, pas une réflexion** ; des tours d'agent réels valent mieux.
-4. Une forme de série écrite en recette numérotée est appliquée telle quelle à chaque post → un seul squelette.
+4. Une forme de série écrite en recette numérotée est appliquée telle quelle à chaque post → un seul squelette. Resserrer cette recette n'y change rien : le brief d'écriture de la série est **retiré** le 2026-10-20, sans remplacement.
 5. Des exemples de prompt liés à un domaine orientent toutes les générations vers ce domaine.
 6. Les essais complets sont dans `docs/tests/` (`mykine-pack/`, `2026-10-17/`, `animation-html/`) — pack de test MyKiné, compte `mykine.test@example.com` en base de dev.

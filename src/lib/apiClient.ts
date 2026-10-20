@@ -331,24 +331,7 @@ export interface ContentSeries {
   /** The series' single reader (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4): a label from the topic's
    *  portrait. Null until chosen. */
   readerLabel: string | null;
-  /** The series form for this reader — null until it is written. */
-  form: SeriesForm | null;
 }
-
-/** The form of a series for its reader (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4). */
-export interface SeriesForm {
-  wants: string;
-  episodeShape: string;
-  avoid: string;
-  words: string[];
-  jargon: string[];
-  register: string;
-  /** What comes back in every episode (a sentence, a gesture) — empty string if nothing. */
-  signature: string;
-  generatedAt: string | null;
-  editedByUser: boolean;
-}
-
 /** An event as seen by a series plan. */
 export interface PlannedEvent {
   id: string;
@@ -864,12 +847,6 @@ export const api = {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ readerLabel }),
-    }),
-  saveSeriesForm: (seriesId: string, form: Omit<SeriesForm, "generatedAt" | "editedByUser">) =>
-    apiFetch<{ series: ContentSeries | null }>(`/api/series/${seriesId}/form`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
     }),
   getSeriesPlan: (seriesId: string) => apiFetch<{ plan: SeriesPlan }>(`/api/series/${seriesId}/plan`),
   generateContentSeries: () => post<{ series: ContentSeries[] }>("/api/series"),

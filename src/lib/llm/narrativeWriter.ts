@@ -5,7 +5,6 @@ import { SCRIPT_CORE_PROMPT, type ContentType, type Platform } from "./prompts";
 import type { StyleProfile } from "./styleProfile";
 import type { RecentPostCard } from "./recentPosts";
 import type { Reader } from "./readerPortrait";
-import type { SeriesForm } from "./seriesForm";
 import type { GeneratedScript } from "./scriptSchema";
 import { checkGeneratedPost, type CheckContext } from "./scriptChecks";
 import { reviewFailures, reviewForReader } from "./readerReview";
@@ -51,7 +50,6 @@ export interface NarrativeBrief {
   /** Promise kept only: the sentence to quote and the post that made it. */
   promise: { text: string; postText: string } | null;
   reader: Reader;
-  form: SeriesForm;
   seriesLabel: string;
   /** The source documents of the scope's events, in full. */
   sources: Array<{ id: string; title: string | null; text: string }>;
@@ -75,7 +73,7 @@ const READ_POST_TOOL = "read_post";
 const METHOD_PROMPT = `<method>
 You write ONE post for ONE person, from the events you are given and nothing else.
 1. Reread the material with ${READ_SOURCE_TOOL}: the documents those events come from, in full. That's where the true details are. ${READ_TIMELINE_TOOL} shows you your scope again, never more than it.
-2. Write a complete draft, for this one person, in the series form.
+2. Write a complete draft, for this one person.
 3. Submit it to ${REVIEW_DRAFT_TOOL} with your honest verdict, phrased the way the reader would say it: do they read the second sentence? do they make it to the end? does it sound like the author, or like a marketing department? If the verdict is bad, say in one line what's wrong and start again at step 2. Three drafts at most.
 4. When a draft holds, ${SUBMIT_POST_TOOL}. If the checks reject it, fix exactly what is flagged and resubmit.
 </method>`;
@@ -180,7 +178,7 @@ export function buildNarrativeWriterUserMessage(context: NarrativeWriterContext)
     sections.push(tag("promise", [`The sentence to quote word for word:`, brief.promise.text, "", "The post that made it:", brief.promise.postText]));
   }
 
-  sections.push(...buildWriterContextSections({ ...context, reader: brief.reader, form: brief.form }));
+  sections.push(...buildWriterContextSections({ ...context, reader: brief.reader }));
   sections.push(brief.sources.length ? `Start with ${READ_SOURCE_TOOL}.` : `Start by writing a draft.`);
   return sections.join("\n\n");
 }
@@ -284,9 +282,6 @@ export async function writeNarrativePost(context: NarrativeWriterContext): Promi
     // The promise post quotes its own earlier post: that post is material too.
     materialTexts: [...brief.sources.map((s) => s.text), ...(brief.promise ? [brief.promise.postText] : [])],
     avoid: context.styleProfile?.avoid ?? [],
-    // Les mots que ce lecteur ne comprend pas : la forme de série les portait sans que rien ne les
-    // vérifie (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §6).
-    jargon: context.brief.form.jargon,
     recentPosts: context.recentPosts,
     language: context.language,
   };

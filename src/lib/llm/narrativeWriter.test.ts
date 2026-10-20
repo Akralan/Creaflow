@@ -29,7 +29,6 @@ const brief = (over: Partial<NarrativeBrief> = {}): NarrativeBrief => ({
   subject: { name: "MyKiné", description: "Un suivi d'exercices", problem: "les patients abandonnent", valueProposition: "ils tiennent trois semaines", targetAudience: "des kinés libéraux" },
   promise: null,
   reader: { label: "Kinés", who: "des kinés libéraux", knows: "", wants: "", stopsFor: "", turnsOff: "", words: [] },
-  form: { wants: "du concret", episodeShape: "un moment, un fait", avoid: "le jargon", register: "court", signature: "", words: [], jargon: [], generatedAt: null, editedByUser: false },
   seriesLabel: "Devlog MyKiné",
   sources: [{ id: "d1", title: "Journal", text: "Le rendu passe à 60 fps sur l'iPhone 11 de Julien." }],
   ...over,

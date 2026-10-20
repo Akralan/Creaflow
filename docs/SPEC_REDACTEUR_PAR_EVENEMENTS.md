@@ -67,6 +67,8 @@ Un événement raconté n'est pas verrouillé : il peut resservir sous un autre 
 
 ## 4. Le lecteur et la forme d'une série
 
+> **La forme de la série est RETIRÉE le 2026-10-20, et rien ne la remplace.** Le § ci-dessous reste comme archive de ce qui a existé. Ce qu'on a constaté sur des générations réelles : une forme écrite par la machine finit toujours par prescrire la fabrication d'un épisode (« un bout de code », « finir sur la prochaine étape », « une liste de ce que je changerais »), et le rédacteur obéit à cette consigne-là avant d'obéir à ses propres règles — elle est plus précise et plus proche de lui. Resserrer la forme n'y change rien : ce qu'elle interdit à un endroit, le modèle le remet dans un autre champ. Seul subsiste de ce § le **choix du lecteur** : c'est tout ce qu'une série dit au rédacteur. Prompt 22 et `src/lib/llm/seriesForm.ts` supprimés, route `PUT /api/series/[id]/form` supprimée, colonne `content_series.form` conservée en base sans être lue.
+
 **Le portrait des lecteurs** du sujet (existant, `products.readerPortrait`, 1 à 3 publics avec « s'arrête pour » et « fuit ») devient une étape visible de l'onboarding et de l'écran du sujet. Il est réfléchi **avec la matière sous les yeux** (les événements s'ils existent, sinon les documents), pas seulement avec la phrase « Pour qui ».
 
 **À la création d'une série**, l'auteur choisit **un** public parmi le portrait. Le système écrit alors la **forme** de la série, en un appel, et l'auteur la lit et la corrige :
@@ -77,7 +79,7 @@ Un événement raconté n'est pas verrouillé : il peut resservir sous un autre 
 - les mots qu'il emploie, ceux qu'il ne comprend pas ;
 - la longueur et le registre qui lui conviennent sur la plateforme de la série.
 
-Stocké sur `contentSeries` (`readerLabel`, `form` jsonb). Remplace le cadrage posture/voix/récit, **retiré du code le 2026-10-17** (ses colonnes restent en base sans être lues) ; la forme porte une `signature` facultative, ce qui revient à chaque épisode, transmise au rédacteur.
+Stocké sur `contentSeries` (`readerLabel` ; `form` jsonb, plus écrite ni lue depuis le 2026-10-20). Remplaçait le cadrage posture/voix/récit, **retiré du code le 2026-10-17** (ses colonnes restent en base sans être lues).
 
 **Le plan d'une série** n'est plus un objet à part : c'est la ligne de temps filtrée sur le lecteur de la série (événements marqués pour ce public, ou sans public), dans l'ordre des dates, en sautant ce qui a déjà été raconté. Un post = le prochain événement de cette liste. L'auteur peut en sauter un ou en imposer un (« raconte celui-là »).
 
@@ -87,7 +89,7 @@ Stocké sur `contentSeries` (`readerLabel`, `form` jsonb). Remplace le cadrage p
 
 **Entrée (le brief) :**
 - l'événement du jour, et ses voisins : les 2 précédents et le suivant dans la ligne de temps, pour situer (« une semaine après la démo… ») ;
-- le lecteur et la forme de la série (§4) ;
+- le lecteur de la série (§4) — et rien d'autre de la série : pas de brief d'écriture ;
 - les règles de style apprises (existant) ;
 - les 5 derniers posts de la série (existant : accroche, fin) ;
 - la plateforme et ses limites chiffrées (existant, `platformRules.ts`).
@@ -111,7 +113,7 @@ Aucune table par verticale (règle de `docs/ARCHITECTURE_VERTICALES.md`). Une ta
 
 - `material_events` : `id`, `userId`, `productId`, `date`, `datePrecision`, `title`, `whatHappened`, `whatChanged`, `kind`, `audiences text[]`, `sourceMaterialId`, `excerpt`, `createdBy` (`reader` | `user`), `createdAt`.
 - `source_materials.eventsReadAt` : date de la dernière lecture (null = à lire).
-- `content_series.readerLabel`, `content_series.form jsonb`.
+- `content_series.readerLabel`. (`content_series.form jsonb` conservée mais plus lue depuis le 2026-10-20.)
 - `scripts.eventId`.
 
 Rien n'est supprimé en base dans ce chantier. `narrative_state`, `content_series.framing`, `content_series.mode`, `inspirations` restent, non lus par la génération.

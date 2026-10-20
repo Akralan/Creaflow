@@ -39,7 +39,6 @@ l'animation (27), la revue sur images (vision OpenAI).
 | 18 | Portrait des lecteurs | `src/lib/llm/readerPortrait.ts` | Décrire les 1 à 3 publics d'un sujet |
 | 19 | Veille d'inspiration | `src/lib/llm/inspirationResearch.ts` | Chercher sur le web ce qui marche pour ces publics |
 | 21 | Lecteur d'événements | `src/lib/llm/eventReader.ts` | Lire toute la matière et tenir la ligne de temps datée |
-| 22 | Forme d'une série | `src/lib/llm/seriesForm.ts` | Écrire la forme d'une série pour son lecteur |
 | 23 | Rédacteur par événements | `src/lib/llm/eventWriter.ts` | Écrire le post d'un événement (agent) |
 | 24 | Qualification des événements | `src/lib/llm/eventReader.ts` | Donner un public à chaque événement |
 | 25 | Fiche d'un repo | `src/lib/llm/repoCard.ts` | Lire un dépôt public (parcours `/start`) |
@@ -50,7 +49,7 @@ l'animation (27), la revue sur images (vision OpenAI).
 | — | Bloc `<language>` | `src/lib/language.ts` | Imposer la langue du post |
 | — | Rappel en cas d'échec | `src/lib/llm/provider.ts` | Ajouté au system prompt à la 2e tentative |
 
-**Retirés** (numéros non réutilisés) : 6 et 7 *Rédacteur en chef* (`narrativePrompts.ts`), 20 *Cadrage d'une série* (`seriesFraming.ts`). Les deux fichiers n'existent plus : le rédacteur en chef a été remplacé par le lecteur d'événements (21) et le cadrage par la forme de série (22), cf. `docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md`.
+**Retirés** (numéros non réutilisés) : 6 et 7 *Rédacteur en chef* (`narrativePrompts.ts`), 20 *Cadrage d'une série* (`seriesFraming.ts`). Les deux fichiers n'existent plus : le rédacteur en chef a été remplacé par le lecteur d'événements (21) et le cadrage par la forme de série (22). **22** *Forme d'une série* (`seriesForm.ts`) est retiré à son tour le 2026-10-20, fichier et route compris : ce brief d'écriture prescrivait la forme de chaque épisode (« un bout de code », « finir sur l'étape suivante ») et le rédacteur lui obéissait avant d'obéir à ses propres règles, ce qui a fini par donner des inventaires. **Rien ne le remplace** : une série ne dit plus au rédacteur qu'une seule chose, pour qui il écrit — un lecteur choisi dans le portrait (18).
 
 ---
 
@@ -1408,63 +1407,12 @@ excerpt          : The exact passage from the document that proves the event, co
 
 ---
 
-## 22. Forme d'une série pour son lecteur
-
-- **Où** : `src/lib/llm/seriesForm.ts` (`describeSeriesForm`, outil `describe_series_form`) ; `src/lib/services/seriesReaderService.ts` ; route `PUT /api/series/[id]/reader` ; panneau `src/components/SeriesReaderPanel.tsx`.
-- **À quoi il sert** : écrire une fois, pour le lecteur unique de la série, ce qu'il vient chercher, de quoi est fait un bon épisode pour lui, ce qui le fait partir, ses mots, la longueur et le registre, plus une **signature** facultative (ce qui revient à chaque épisode ; elle remplace le cadrage de série retiré, prompt 20). Tout est écrit en anglais. Corrigeable à la main (`editedByUser`) ; réécrite seulement quand on change de lecteur. Entre dans le bloc `<form>` du prompt 23 (`docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md` §4). Le prompt interdit à la forme de prescrire un ordre numéroté ou une fin d'épisode (sinon le rédacteur écrit dix fois le même post) et de nommer une langue.
-- **Quand** : au choix du lecteur dans la série, et à la validation des séries en fin d'onboarding (public principal du sujet). `callStructured`, `maxTokens` 1500.
-
-### System prompt
-
-```text
-You prepare a ghostwriter's work. ${brandName} (${activityType}) tells the story of ${subjectName} in a series of posts, "${seriesLabel}", written for ONE SINGLE reader. You write the form of this series for that reader: what they come looking for, what a good episode is made of for them, what makes them leave, their words, the length and the register.
-
-A good episode is an event told: what happened, what it changed, for that particular person. The form says how it is told to THIS reader. Two fictional examples of what is expected, for two different readers of the same project (don't copy them, they show the level of precision):
-- someone who uses what the author builds (a customer, a player, a patient…): "a precise situation lived by someone like them, what wasn't working, what the product showed or allowed, what that person did next, in six to ten lines, without a word of tech";
-- a peer of the author (another developer, another craftsperson…): "what we believed, what broke, what we changed, the number before and after, in ten to fifteen lines, with the names of the tools".
-The author writes alone and says "I"; never assume a team, unless their description mentions one. Write for the supplied reader, based on who they really are, and ground the example in one of the real events listed. Never describe the project itself: describe how it is told. The form says what an episode must contain and what it must avoid, never in what order: a writer following a numbered recipe would write the same post ten times. The form never says how an episode ends, nor what it closes on (a limit, a next step, a lesson): the writer chooses the ending from the event. It never names a language either: the language is set elsewhere. Write everything in English.
-```
-
-### Message utilisateur
-
-```text
-Series: ${seriesLabel} — ${seriesDescription}
-Subject: ${subjectName} — ${subjectDescription}
-Platforms: ${platforms | not specified}
-
-Reader: ${label} — ${who}
-Already knows: …        (chaque ligne seulement si renseignée)
-Comes looking for: …
-Stops for: …
-Turned off by: …
-Their words: …
-
-Real events from the subject's timeline (to anchor the structure example):
-- ${title}
-   ou : No event recorded for now: describe the structure without an example drawn from the material.
-
-Write the series form via describe_series_form.
-```
-
-### Outil `describe_series_form`
-
-```text
-description   : Writes the form of a series for its reader. All text in English.
-wants         : What this reader comes looking for in this series, in two concrete sentences.
-episodeShape  : What a good episode is made of for them: the ingredients to find in it (what they want to know, what is useful to them, what makes them stay), with an example taken from the supplied events. Not a numbered recipe: two episodes of the same series must not have the same skeleton. Say nothing about how an episode ends or what it closes on. No adjectives, elements that can be verified in the post.
-avoid         : What makes them leave, in one or two precise sentences.
-words         : 6 to 12 words or expressions they really use.
-jargon        : The project's words they don't understand (to avoid or to explain). Empty if they are from the trade.
-register      : Length and register for them on the platform: number of lines, formal or informal address, first person, what not to do. Never name a language.
-signature     : What can come back in each episode so the reader recognizes the series: a sentence, a way of opening or closing. Empty string if nothing stands out: a forced signature makes people leave. In English, even if an event it refers to is worded in another language: translate it.
-```
-
 ---
 
 ## 23. Rédacteur par événements
 
 - **Où** : `src/lib/llm/eventWriter.ts` (`EVENT_WRITER_SYSTEM_PROMPT` = `SCRIPT_CORE_PROMPT` + `METHOD_PROMPT`, `buildEventWriterUserMessage`, `writeScriptFromEvent`) ; brief assemblé par `buildEventBriefForSeries` (`seriesReaderService.ts`) ; branché dans `generateScript` (`context.eventBrief`). Le bloc `<language>` vient de `buildLanguageBlock` (`src/lib/language.ts`).
-- **À quoi il sert** : écrire un post à partir d'UN événement, pour UN lecteur, dans la forme de la série (`docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md` §5). Remplace le prompt 1 dès qu'une série a un lecteur et une forme ; le chef (prompts 6 et 7), l'angle, le rôle, les fiches d'inspiration et le cadrage ne lui sont pas transmis.
+- **À quoi il sert** : écrire un post à partir d'UN événement, pour UN lecteur (`docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md` §5). Il reçoit le projet, l'événement, le document source et le lecteur — rien d'autre : le brief d'écriture de la série est retiré (voir plus haut), et le reste est à lui. Remplace le prompt 1 dès qu'une série a un lecteur ; le chef (prompts 6 et 7), l'angle, le rôle, les fiches d'inspiration et le cadrage ne lui sont pas transmis.
 - **Quand** : génération depuis un créneau d'une telle série. Boucle agentique (`callAgentic`, effort `medium`, `maxTokens` 4096, **14 tours** au plus) avec quatre outils : `read_source` (le document source de l'événement, par parties de 12 000 caractères), `read_timeline`, `review_draft` (le brouillon et le verdict du lecteur, trois brouillons au plus), `submit_post`. Les contrôles de `scriptChecks.ts` (langue comprise) tournent dans `submit_post` : un post refusé revient au modèle avec ses fautes, **deux soumissions au plus** (`MAX_SUBMISSIONS`), la moins fautive est gardée (à égalité, la dernière). Trace V4 sur `scripts.generationTrace` (brouillons, verdicts, parties lues, tours, `stoppedAtMaxTurns`). `EVENT_WRITER_ENABLED=false` rend le prompt 1.
 
 ### System prompt
@@ -1475,7 +1423,7 @@ signature     : What can come back in each episode so the reader recognizes the 
 <method>
 You tell ONE event to ONE person. Everything else serves that.
 1. Reread the source with read_source: the document the event comes from, in full. That's where the true details are (the exact words, the numbers, what happened just before and just after). If you need to place the event in the story, read_timeline.
-2. Write a complete draft, for this one person, from this one event, in the series form.
+2. Write a complete draft, for this one person, from this one event.
 3. Submit it to review_draft with your honest verdict, phrased the way the reader would say it: do they read the second sentence? do they make it to the end? do they learn something they didn't know? does it sound like the author, or like a marketing department? If the verdict is bad, say in one line what's wrong and start again at step 2. Three drafts at most.
 4. When a draft holds, submit_post. If the checks reject it, fix exactly what is flagged and resubmit.
 </method>
@@ -1489,9 +1437,9 @@ You tell ONE event to ONE person. Everything else serves that.
 - A feeling is shown through a fact.
 - Sentence lengths vary. A regular rhythm reads as machine-written.
 - It doesn't explain the product. If the reader understands what the product does, it's because they saw what happened, not because it was described to them.
-- It ends on the last thing that happened, or on one concrete fact that is still true: a number, an action taken, a sentence someone said. Then it stops. If the facts alone don't say why it mattered, one sentence is allowed: what the author thinks or feels now, never a lesson for everyone. No call to action unless the series form asks for one.
+- It ends on the last thing that happened, or on one concrete fact that is still true: a number, an action taken, a sentence someone said. Then it stops. If the facts alone don't say why it mattered, one sentence is allowed: what the author thinks or feels now, never a lesson for everyone. No call to action.
 - It tells THIS event and stops before the next one. The events before and after only serve to situate in half a sentence ("a week after the demo"), without their numbers or details: they had or will have their own post.
-- It doesn't look like the previous post. Look at <recent_posts>: if the last one opened with a number, this one opens differently; if it ended on "the next step", this one ends on something else, or stops dead. The series form says what an episode contains, not in what order.
+- It doesn't look like the previous post. Look at <recent_posts>: if the last one opened with a number, this one opens differently; if it ended on "the next step", this one ends on something else, or stops dead.
 - Hashtags, if any, change with the post: the event's, not the project's.
 - It is written for ONE person, in their words, at their length. What they wouldn't understand isn't in it, or is explained through its effect.
 - The author speaks in the first person singular. "We" only if the brief or the source says there is a team, and to refer to that team.
@@ -1537,16 +1485,6 @@ Stops for: ${stopsFor}
 Turned off by: ${turnsOff}
 Their words: ${words}
 </reader>
-
-<form>
-What they come looking for in this series: ${form.wants}
-A good episode for them: ${form.episodeShape}
-What makes them leave: ${form.avoid}
-Length and register: ${form.register}
-Series signature, to work in naturally: ${form.signature}   (si renseignée)
-Their words: ${form.words}
-To avoid, or to explain through the effect: ${form.jargon}
-</form>
 
 <style> … </style>
 <recent_posts> … </recent_posts>

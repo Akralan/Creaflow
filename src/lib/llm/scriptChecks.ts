@@ -33,10 +33,6 @@ export interface CheckContext {
   materialTexts: string[];
   /** "Avoid" list learned from the author's style. */
   avoid: string[];
-  /** Words this series' reader does not understand (`form.jargon`, docs/SPEC_EVENEMENTS_PAR_CIBLE.md
-   *  §6). Collected since the series form existed and, until now, never enforced: that is how a post
-   *  about a JSONB column reached a physiotherapist. */
-  jargon?: string[];
   /** Cards of the subject's latest posts, newest first (docs/SPEC_MEMOIRE_ET_VEILLE.md §2). */
   recentPosts?: RecentPostCard[];
   /** The language the post must be in (src/lib/language.ts): a rule, not a preference. */
@@ -161,38 +157,6 @@ function promiseFailures(post: CheckablePost): string[] {
   return found ? [] : ["None of the declared promisesMade can be found in the post: copy the sentences as they appear."];
 }
 
-/** Au moins 25 caractères d'explication derrière le terme : une incise, pas un simple accolement. */
-const MIN_EXPLANATION_CHARS = 25;
-
-/**
- * Un mot que le lecteur de la série ne comprend pas doit être expliqué par son effet, ou absent
- * (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §6). « Expliqué » = suivi, dans la même phrase, d'une incise
- * d'au moins {@link MIN_EXPLANATION_CHARS} caractères : « rangés en JSONB, c'est-à-dire que tout un
- * mouvement tient dans une seule ligne » passe, « un payload JSONB. » non.
- */
-function jargonFailures(post: CheckablePost, ctx: CheckContext): string[] {
-  const terms = ctx.jargon ?? [];
-  if (terms.length === 0) return [];
-  const failures: string[] = [];
-  for (const { text } of postTextFields(post)) {
-    for (const sentence of text.split(/(?<=[.!?…])\s+/)) {
-      const normalized = normalizeForCheck(sentence);
-      for (const term of terms) {
-        const needle = normalizeForCheck(term);
-        if (!needle) continue;
-        // Mot entier : « pose » ne doit pas se déclencher sur « posologue ».
-        const at = normalized.search(new RegExp(`(^|[^\\p{L}\\p{N}])${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}($|[^\\p{L}\\p{N}])`, "u"));
-        if (at === -1) continue;
-        const after = normalized.slice(at + needle.length);
-        if (after.trim().length < MIN_EXPLANATION_CHARS) {
-          failures.push(`"${term}" is in the words this reader does not understand: say what it changes for them, or leave it out.`);
-        }
-      }
-    }
-  }
-  return [...new Set(failures)];
-}
-
 function gapFailures(post: CheckablePost): string[] {
   const gaps = postTextFields(post).reduce((n, { text }) => n + (normalizeForCheck(text).match(GAP_RE) ?? []).length, 0);
   return gaps > MAX_GAPS ? [`This post has ${gaps} "[to be completed]": it goes out as it is. Write the post without that detail, or write it about something else.`] : [];
@@ -246,7 +210,6 @@ export function checkGeneratedPost(post: CheckablePost, prep: GenerationPrep | n
     ...lengthFailures(post, ctx),
     ...citationFailures(post, ctx),
     ...promiseFailures(post),
-    ...jargonFailures(post, ctx),
     ...gapFailures(post),
     ...repetitionFailures(post, prep, ctx.recentPosts ?? []),
     ...(storyboard?.reminder ? [storyboard.reminder] : []),

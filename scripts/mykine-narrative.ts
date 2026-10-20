@@ -20,7 +20,6 @@ import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { contentSeries, creatorProfiles, materialEvents, sourceMaterials, users } from "@/db/schema";
 import { readersOfProduct } from "@/lib/services/seriesReaderService";
-import { describeSeriesForm, parseStoredSeriesForm, type SeriesForm } from "@/lib/llm/seriesForm";
 import { writeNarrativePost, type NarrativeBrief } from "@/lib/llm/narrativeWriter";
 import { writeScriptFromEvent, type BriefEvent, type EventBrief } from "@/lib/llm/eventWriter";
 import type { NarrativeKind } from "@/lib/narrative/placement";
@@ -45,8 +44,8 @@ const SERIES: Step[] = [
 ];
 
 async function main() {
-  const [outFile, formFile] = [process.argv[2], process.argv[3]];
-  if (!outFile || !formFile) throw new Error("Donne un fichier de sortie et un fichier de forme.");
+  const outFile = process.argv[2];
+  if (!outFile) throw new Error("Donne un fichier de sortie.");
   const user = await db.query.users.findFirst({ where: eq(users.email, "mykine.test@example.com"), columns: { id: true } });
   if (!user) throw new Error("Compte de test introuvable.");
 
@@ -65,26 +64,6 @@ async function main() {
   const toBrief = (e: (typeof all)[number]): BriefEvent => ({ id: e.id, date: e.date, datePrecision: e.datePrecision, title: e.title, whatHappened: e.whatHappened, whatChanged: e.whatChanged, kind: e.kind });
   const dated = all.map(toBrief).filter((e) => e.date !== null);
 
-  let form: SeriesForm;
-  if (fs.existsSync(formFile)) {
-    const stored = parseStoredSeriesForm(JSON.parse(fs.readFileSync(formFile, "utf-8")));
-    if (!stored) throw new Error("Forme illisible.");
-    form = stored;
-  } else {
-    const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, user.id), columns: { brandName: true, activityType: true } });
-    form = await describeSeriesForm({
-      brandName: profile?.brandName ?? "l'auteur",
-      activityType: profile?.activityType ?? "",
-      subjectName: series.product?.name ?? series.label,
-      subjectDescription: series.product?.description ?? null,
-      reader,
-      seriesLabel: series.label,
-      seriesDescription: series.description,
-      platforms: series.contentSeriesPlatforms.map((p) => p.platform),
-      sampleEvents: all.filter((e) => e.audiences.length === 0 || e.audiences.includes(READER_LABEL)).map((e) => e.title).slice(0, 12),
-    });
-    fs.writeFileSync(formFile, JSON.stringify(form, null, 2), "utf-8");
-  }
 
   const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, user.id), columns: { brandName: true, activityType: true } });
   const common = {
@@ -118,7 +97,6 @@ async function main() {
         before: index > 0 ? dated.slice(Math.max(0, index - 2), index) : [],
         after: index >= 0 ? dated.slice(index + 1, index + 2) : [],
         reader,
-        form,
         seriesLabel: series.label,
         source,
         timeline: dated,
@@ -148,7 +126,6 @@ async function main() {
       },
       promise: step.promise ? { text: step.promise, postText: previousEpisode } : null,
       reader,
-      form,
       seriesLabel: series.label,
       sources: await sourcesOf(rows.map((r) => r.sourceMaterialId).filter((id): id is string => Boolean(id))),
     };

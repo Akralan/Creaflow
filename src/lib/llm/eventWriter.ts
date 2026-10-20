@@ -6,7 +6,7 @@ import { platformRuleText } from "./platformRules";
 import { buildStyleBlock, type StyleProfile } from "./styleProfile";
 import type { RecentPostCard } from "./recentPosts";
 import type { Reader } from "./readerPortrait";
-import type { SeriesForm } from "./seriesForm";
+
 import { storyboardStepSchema, type GeneratedScript } from "./scriptSchema";
 import { checkGeneratedPost, type CheckContext } from "./scriptChecks";
 import { reviewFailures, reviewForReader } from "./readerReview";
@@ -16,7 +16,7 @@ import { buildLanguageBlock, type PostLanguage } from "@/lib/language";
 
 /**
  * The per-event writer (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5): an agent that receives ONE
- * event, ONE reader and the series form, can reread the source document and the timeline, writes a
+ * event and ONE reader, can reread the source document and the timeline, writes a
  * draft, judges it as the reader would, starts again, then submits. The code checks run inside the
  * submission tool: a rejected post goes back to the model with its faults.
  */
@@ -42,7 +42,6 @@ export interface EventBrief {
   before: BriefEvent[];
   after: BriefEvent[];
   reader: Reader;
-  form: SeriesForm;
   seriesLabel: string;
   /** The document the event comes from, in full — null for a hand-written event. */
   source: { id: string; title: string | null; text: string } | null;
@@ -103,7 +102,7 @@ export function eventLine(e: BriefEvent): string {
 const METHOD_PROMPT = `<method>
 You tell ONE event to ONE person. Everything else serves that.
 1. Reread the source with ${READ_SOURCE_TOOL}: the document the event comes from, in full. That's where the true details are (the exact words, the numbers, what happened just before and just after). If you need to place the event in the story, ${READ_TIMELINE_TOOL}.
-2. Write a complete draft, for this one person, from this one event, in the series form.
+2. Write a complete draft, for this one person, from this one event.
 3. Submit it to ${REVIEW_DRAFT_TOOL} with your honest verdict, phrased the way the reader would say it: do they read the second sentence? do they make it to the end? do they learn something they didn't know? does it sound like the author, or like a marketing department? If the verdict is bad, say in one line what's wrong and start again at step 2. Three drafts at most.
 4. When a draft holds, ${SUBMIT_POST_TOOL}. If the checks reject it, fix exactly what is flagged and resubmit.
 </method>
@@ -117,9 +116,9 @@ You tell ONE event to ONE person. Everything else serves that.
 - A feeling is shown through a fact.
 - Sentence lengths vary. A regular rhythm reads as machine-written.
 - It doesn't explain the product. If the reader understands what the product does, it's because they saw what happened, not because it was described to them.
-- It ends on the last thing that happened, or on one concrete fact that is still true: a number, an action taken, a sentence someone said. Then it stops. If the facts alone don't say why it mattered, one sentence is allowed: what the author thinks or feels now, never a lesson for everyone. No call to action unless the series form asks for one.
+- It ends on the last thing that happened, or on one concrete fact that is still true: a number, an action taken, a sentence someone said. Then it stops. If the facts alone don't say why it mattered, one sentence is allowed: what the author thinks or feels now, never a lesson for everyone. No call to action.
 - It tells THIS event and stops before the next one. The events before and after only serve to situate in half a sentence ("a week after the demo"), without their numbers or details: they had or will have their own post.
-- It doesn't look like the previous post. Look at <recent_posts>: if the last one opened with a number, this one opens differently; if it ended on "the next step", this one ends on something else, or stops dead. The series form says what an episode contains, not in what order.
+- It doesn't look like the previous post. Look at <recent_posts>: if the last one opened with a number, this one opens differently; if it ended on "the next step", this one ends on something else, or stops dead.
 - Hashtags, if any, change with the post: the event's, not the project's.
 - It is written for ONE person, in their words, at their length. What they wouldn't understand isn't in it, or is explained through its effect.
 - The author speaks in the first person singular. "We" only if the brief or the source says there is a team, and to refer to that team.
@@ -165,7 +164,7 @@ export function buildEventWriterUserMessage(context: EventWriterContext): string
     ].filter((l): l is string => l !== null))
   );
 
-  sections.push(...buildWriterContextSections({ ...context, reader: brief.reader, form: brief.form }));
+  sections.push(...buildWriterContextSections({ ...context, reader: brief.reader }));
 
   sections.push(`Start with ${READ_SOURCE_TOOL}.`);
   return sections.join("\n\n");
@@ -178,7 +177,6 @@ export function buildEventWriterUserMessage(context: EventWriterContext): string
  */
 export function buildWriterContextSections(context: {
   reader: Reader;
-  form: SeriesForm;
   styleProfile?: StyleProfile | null;
   recentPosts?: RecentPostCard[];
   platform: Platform;
@@ -187,7 +185,6 @@ export function buildWriterContextSections(context: {
   language?: PostLanguage;
 }): string[] {
   const r = context.reader;
-  const f = context.form;
   const sections: string[] = [];
 
   sections.push(
@@ -201,17 +198,6 @@ export function buildWriterContextSections(context: {
     ].filter((l): l is string => l !== null))
   );
 
-  sections.push(
-    tag("form", [
-      `What they come looking for in this series: ${f.wants}`,
-      `A good episode for them: ${f.episodeShape}`,
-      `What makes them leave: ${f.avoid}`,
-      `Length and register: ${f.register}`,
-      f.signature ? `Series signature, to work in naturally: ${f.signature}` : null,
-      f.words.length ? `Their words: ${f.words.join(", ")}` : null,
-      f.jargon.length ? `To avoid, or to explain through the effect: ${f.jargon.join(", ")}` : null,
-    ].filter((l): l is string => l !== null))
-  );
 
   const styleLines = buildStyleBlock(context.styleProfile, context.platform).split("\n").slice(1).filter(Boolean);
   if (styleLines.length) sections.push(tag("style", styleLines));
@@ -233,7 +219,7 @@ export function buildWriterContextSections(context: {
 
 export const POST_FIELDS = {
   concept: { type: "string", description: "Optional, one sentence: what the reader should remember. Leave it out if the post says it already." },
-  caption: { type: "string", description: "The post text, in full, in the series form and the platform's length." },
+  caption: { type: "string", description: "The post text, in full, at the platform's length." },
   hashtags: { type: "array", items: { type: "string" }, description: "In the number given by <platform>. Empty if it doesn't use any." },
   promisesMade: { type: "array", items: { type: "string" }, description: "Optional. Only if the author genuinely commits to a future fact in this post. Almost always absent." },
 };
@@ -355,9 +341,6 @@ export async function writeScriptFromEvent(context: EventWriterContext): Promise
     visual: context.visual,
     materialTexts: brief.source ? [brief.source.text] : [],
     avoid: context.styleProfile?.avoid ?? [],
-    // Les mots que ce lecteur ne comprend pas : la forme de série les portait sans que rien ne les
-    // vérifie (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §6).
-    jargon: context.brief.form.jargon,
     recentPosts: context.recentPosts,
     language: context.language,
   };

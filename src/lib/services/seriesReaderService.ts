@@ -1,13 +1,11 @@
 import { and, asc, eq, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { contentSeries, creatorProfiles, materialEvents, products, scripts, sourceMaterials } from "@/db/schema";
-import { describeSeriesForm, parseStoredSeriesForm, seriesFormSchema, type SeriesForm } from "@/lib/llm/seriesForm";
+import { contentSeries, materialEvents, products, scripts, sourceMaterials } from "@/db/schema";
 import type { BriefEvent, EventBrief } from "@/lib/llm/eventWriter";
 import { parseStoredReaderPortrait, type Reader } from "@/lib/llm/readerPortrait";
 import { angleFor, tellableTo } from "@/lib/narrative/audience";
 import { listActiveSeriesForUser } from "@/lib/services/seriesService";
 import { ApiError } from "@/lib/api/errors";
-import { logger } from "@/lib/logger";
 
 /**
  * Le lecteur et la forme d'une série (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4), et le plan qui en
@@ -29,61 +27,21 @@ export function readersOfProduct(product: { readerPortrait: unknown } | null | u
   return parseStoredReaderPortrait(product?.readerPortrait)?.readers ?? [];
 }
 
-async function generateForm(userId: string, series: Awaited<ReturnType<typeof loadSeriesWithProduct>>, reader: Reader): Promise<SeriesForm> {
-  const [profile, sampleEvents] = await Promise.all([
-    db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId), columns: { brandName: true, activityType: true } }),
-    series.productId
-      ? db.query.materialEvents.findMany({
-          where: and(eq(materialEvents.userId, userId), eq(materialEvents.productId, series.productId)),
-          columns: { title: true, audiences: true, audienceAngles: true, origin: true, qualifiedAt: true },
-          orderBy: [sql`${materialEvents.date} asc nulls last`, asc(materialEvents.createdAt)],
-          limit: 60,
-        })
-      : Promise.resolve([]),
-  ]);
-  const portraitLabels = readersOfProduct(series.product).map((r) => r.label);
-  const forReader = sampleEvents.filter((e) => tellableTo(e, reader.label, portraitLabels)).map((e) => e.title);
-  return describeSeriesForm({
-    brandName: profile?.brandName ?? "l'auteur",
-    activityType: profile?.activityType ?? "",
-    subjectName: series.product?.name ?? series.label,
-    subjectDescription: series.product?.description ?? null,
-    reader,
-    seriesLabel: series.label,
-    seriesDescription: series.description,
-    platforms: series.contentSeriesPlatforms.map((p) => p.platform),
-    sampleEvents: forReader.slice(0, 12),
-  });
-}
-
 /**
- * L'auteur choisit le lecteur de la série parmi le portrait de son sujet ; la forme est écrite dans
- * la foulée (un appel). Choisir un autre lecteur réécrit la forme, même corrigée à la main : elle
- * était écrite pour quelqu'un d'autre.
+ * L'auteur choisit le lecteur de la série parmi le portrait de son sujet. C'est tout ce que la série
+ * dit au rédacteur : pour qui il écrit.
  */
 export async function setSeriesReader(userId: string, seriesId: string, readerLabel: string) {
   const series = await loadSeriesWithProduct(userId, seriesId);
   if (!series.productId) throw new ApiError(400, "Attach the series to a subject first: the reader is chosen among the subject's audiences.");
   const reader = readersOfProduct(series.product).find((r) => r.label === readerLabel);
   if (!reader) throw new ApiError(400, "This audience is not in the subject's reader portrait.");
-  const form = await generateForm(userId, series, reader);
-  await db.update(contentSeries).set({ readerLabel: reader.label, form }).where(eq(contentSeries.id, seriesId));
-  return (await listActiveSeriesForUser(userId)).find((s) => s.id === seriesId) ?? null;
-}
-
-export const seriesFormEditSchema = seriesFormSchema.omit({ generatedAt: true, editedByUser: true });
-
-/** Correction à la main de la forme : elle n'est plus réécrite, sauf changement de lecteur. */
-export async function saveSeriesForm(userId: string, seriesId: string, input: Omit<SeriesForm, "generatedAt" | "editedByUser">) {
-  const series = await loadSeriesWithProduct(userId, seriesId);
-  const previous = parseStoredSeriesForm(series.form);
-  const form: SeriesForm = { ...input, generatedAt: previous?.generatedAt ?? null, editedByUser: true };
-  await db.update(contentSeries).set({ form }).where(eq(contentSeries.id, seriesId));
+  await db.update(contentSeries).set({ readerLabel: reader.label }).where(eq(contentSeries.id, seriesId));
   return (await listActiveSeriesForUser(userId)).find((s) => s.id === seriesId) ?? null;
 }
 
 /**
- * Pour une série sans lecteur, prend le public principal du sujet et écrit la forme. Appelé à la
+ * Pour une série sans lecteur, prend le public principal du sujet. Appelé à la
  * validation des séries en fin d'onboarding ; jamais bloquant, une série peut rester sans lecteur
  * (l'auteur le choisit alors dans la série).
  */
@@ -92,12 +50,7 @@ export async function ensureReaderForSeries(userId: string, seriesId: string): P
   if (series.readerLabel) return;
   const main = readersOfProduct(series.product)[0];
   if (!main) return;
-  try {
-    const form = await generateForm(userId, series, main);
-    await db.update(contentSeries).set({ readerLabel: main.label, form }).where(eq(contentSeries.id, seriesId));
-  } catch (err) {
-    logger.error("Series form could not be written", err, { seriesId });
-  }
+  await db.update(contentSeries).set({ readerLabel: main.label }).where(eq(contentSeries.id, seriesId));
 }
 
 export interface PlannedEvent {
@@ -174,16 +127,15 @@ function toBriefEvent(e: PlannedEvent): BriefEvent {
 
 /**
  * Le brief du rédacteur pour le prochain post de la série (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5) :
- * l'événement à raconter (le prochain du plan, ou celui qu'on réécrit), ses voisins, le lecteur, la
- * forme, et le document source en entier. Null si la série n'a pas de lecteur, pas de forme, ou plus
+ * l'événement à raconter (le prochain du plan, ou celui qu'on réécrit), ses voisins, le lecteur
+ * et le document source en entier. Null si la série n'a pas de lecteur, ou plus
  * rien à raconter — la génération retombe alors sur le chemin V3.
  */
 export async function buildEventBriefForSeries(userId: string, seriesId: string, lockedEventId: string | null): Promise<EventBrief | null> {
   const series = await loadSeriesWithProduct(userId, seriesId);
   if (!series.readerLabel || !series.productId) return null;
-  const form = parseStoredSeriesForm(series.form);
   const reader = readersOfProduct(series.product).find((r) => r.label === series.readerLabel);
-  if (!form || !reader) return null;
+  if (!reader) return null;
 
   const plan = await planForSeries(userId, seriesId);
   const chosen = lockedEventId ? (plan.events.find((e) => e.id === lockedEventId) ?? null) : plan.next;
@@ -209,7 +161,6 @@ export async function buildEventBriefForSeries(userId: string, seriesId: string,
     before,
     after,
     reader,
-    form,
     seriesLabel: series.label,
     source: sourceRow ? { id: sourceRow.id, title: sourceRow.title, text: sourceRow.rawText } : null,
     timeline: dated,

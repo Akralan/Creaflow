@@ -18,7 +18,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   }
 }
 
-/** Choice of the series reader (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4): also writes the form, one LLM call. */
+/** Choice of the series reader (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4): the only thing a series tells the writer. */
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const userId = await requireUserId();

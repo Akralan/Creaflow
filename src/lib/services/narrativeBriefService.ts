@@ -1,7 +1,6 @@
 import { and, asc, eq, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { calendarEntries, contentSeries, materialEvents, scripts, sourceMaterials } from "@/db/schema";
-import { parseStoredSeriesForm } from "@/lib/llm/seriesForm";
 import { readersOfProduct } from "@/lib/services/seriesReaderService";
 import { angleFor } from "@/lib/narrative/audience";
 import { decideNarrative, firstSeriesOfSubject, type NarrativeKind, type PlacementEvent, type PlacementPost } from "@/lib/narrative/placement";
@@ -79,12 +78,11 @@ export async function planNarrativePost(userId: string, seriesId: string, slotDa
     where: and(eq(contentSeries.id, seriesId), eq(contentSeries.userId, userId)),
     with: { product: true },
   });
-  // Mêmes gardes que le brief d'événement : sans sujet, sans lecteur ou sans forme, pas de récit.
+  // Mêmes gardes que le brief d'événement : sans sujet ni lecteur, pas de récit.
   if (!series?.productId || !series.readerLabel) return null;
-  const form = parseStoredSeriesForm(series.form);
   const portraitLabels = readersOfProduct(series.product).map((r) => r.label);
   const reader = readersOfProduct(series.product).find((r) => r.label === series.readerLabel);
-  if (!form || !reader) return null;
+  if (!reader) return null;
 
   const productId = series.productId;
   const slotIso = toIsoDate(slotDate);
@@ -188,7 +186,6 @@ export async function planNarrativePost(userId: string, seriesId: string, slotDa
       },
       promise: decision.promise && promiseSource ? { text: decision.promise.text, postText: postText(promiseSource) } : null,
       reader,
-      form,
       seriesLabel: series.label,
       sources: sources.map((s) => ({ id: s.id, title: s.title, text: s.rawText })),
     },
