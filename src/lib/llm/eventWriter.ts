@@ -88,6 +88,14 @@ export function postTextOf(script: GeneratedScript): string {
   return [hook, ...slides, script.caption].filter(Boolean).join("\n\n");
 }
 
+
+/** L'étiquette du post dans l'app. Déduite, plus demandée au modèle : un champ de plus à remplir,
+ *  c'est une case de formulaire de plus, et un formulaire appelle une liste. */
+export function titleFrom(hook: string, caption: string): string {
+  const source = (hook || caption).trim().split("\n")[0] ?? "";
+  const cut = source.length > 70 ? `${source.slice(0, 69).trimEnd().replace(/[,;:–—-]+$/, "")}…` : source;
+  return cut || "(sans titre)";
+}
 export function eventLine(e: BriefEvent): string {
   return `${formatEventDate(e)} — ${e.title}`;
 }
@@ -149,7 +157,8 @@ export function buildEventWriterUserMessage(context: EventWriterContext): string
       brief.event.angle ? `For this reader: ${brief.event.angle}` : null,
       brief.event.atStake ? `What it cost: ${brief.event.atStake}` : null,
       brief.before.length ? `Just before, in the story:\n${brief.before.map((e) => `- ${eventLine(e)}`).join("\n")}` : "This is the first event of the story.",
-      brief.after.length ? `Just after:\n${brief.after.map((e) => `- ${eventLine(e)}`).join("\n")}` : "Nothing recorded after, for now.",
+      // On ne lui montre plus ce qui vient après : le dernier bloc narratif du brief ne doit pas
+      // être l'avenir, sinon le post finit dessus.
       brief.source
         ? `Source: "${brief.source.title ?? "document"}", to reread with ${READ_SOURCE_TOOL}.`
         : "No source document: the author wrote this event themselves. You only have what is above.",
@@ -223,16 +232,10 @@ export function buildWriterContextSections(context: {
 }
 
 export const POST_FIELDS = {
-  concept: { type: "string", description: "In one sentence: what the reader should remember from this event." },
-  title: { type: "string", description: "The name of the idea, short, impossible to reuse for another post." },
+  concept: { type: "string", description: "Optional, one sentence: what the reader should remember. Leave it out if the post says it already." },
   caption: { type: "string", description: "The post text, in full, in the series form and the platform's length." },
   hashtags: { type: "array", items: { type: "string" }, description: "In the number given by <platform>. Empty if it doesn't use any." },
-  usedExcerpts: {
-    type: "array",
-    items: { type: "string" },
-    description: "The passages of the source that PROVE the post's facts, copied word for word — they are kept as evidence and never appear in the post itself, which is written in the author's words. Empty array if the event has no source.",
-  },
-  promisesMade: { type: "array", items: { type: "string" }, description: "Only if the author genuinely commits to a future fact in this post, copied as it appears. Almost always empty: a post ends on what happened, not on what comes next." },
+  promisesMade: { type: "array", items: { type: "string" }, description: "Optional. Only if the author genuinely commits to a future fact in this post. Almost always absent." },
 };
 
 function buildTools(context: EventWriterContext, parts: number): LlmToolDefinition[] {
@@ -254,8 +257,8 @@ function buildTools(context: EventWriterContext, parts: number): LlmToolDefiniti
       : { ...POST_FIELDS, hookText: { type: "string", description: "The first sentence of the post, as is: it is already inside the event." } };
   const submitRequired =
     context.contentType === "visual"
-      ? ["concept", "title", "hookVisual", "storyboard", "caption", "hashtags", "usedExcerpts"]
-      : ["concept", "title", "hookText", "caption", "hashtags", "usedExcerpts"];
+      ? ["hookVisual", "storyboard", "caption", "hashtags"]
+      : ["hookText", "caption", "hashtags"];
 
   return [
     {
@@ -299,8 +302,8 @@ function buildTools(context: EventWriterContext, parts: number): LlmToolDefiniti
 }
 
 export const submittedTextSchema = z.object({
-  concept: z.string().min(1),
-  title: z.string().min(1),
+  concept: z.string().default(""),
+  title: z.string().default(""),
   hookText: z.string().min(1),
   caption: z.string().min(1),
   hashtags: z.array(z.string()).default([]),
@@ -309,8 +312,8 @@ export const submittedTextSchema = z.object({
 });
 
 export const submittedVisualSchema = z.object({
-  concept: z.string().min(1),
-  title: z.string().min(1),
+  concept: z.string().default(""),
+  title: z.string().default(""),
   hookVisual: z.string().min(1),
   storyboard: z.array(storyboardStepSchema).min(1),
   caption: z.string().min(1),
@@ -359,10 +362,15 @@ export async function writeScriptFromEvent(context: EventWriterContext): Promise
     language: context.language,
   };
 
-  const parseSubmission = (input: unknown): GeneratedScript =>
-    context.contentType === "visual"
-      ? { contentType: "visual", ...submittedVisualSchema.parse(input) }
-      : { contentType: "text", ...submittedTextSchema.parse(input) };
+  const parseSubmission = (input: unknown): GeneratedScript => {
+    const parsed =
+        context.contentType === "visual"
+          ? { contentType: "visual" as const, ...submittedVisualSchema.parse(input) }
+      : { contentType: "text" as const, ...submittedTextSchema.parse(input) };
+    // L'étiquette du calendrier se déduit du post : un champ de moins à remplir pour le modèle.
+    const hook = "hookText" in parsed ? parsed.hookText : "hookVisual" in parsed ? parsed.hookVisual : "";
+    return { ...parsed, title: parsed.title || titleFrom(hook, parsed.caption) };
+  };
 
   const result = await callAgentic({
     system: EVENT_WRITER_SYSTEM_PROMPT,

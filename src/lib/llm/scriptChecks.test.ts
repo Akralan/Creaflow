@@ -75,7 +75,7 @@ describe("checkGeneratedPost", () => {
   });
 
   it("checks hook length, text length and hashtag count per platform", () => {
-    const failures = checkGeneratedPost(post({ hookText: "x".repeat(250), caption: "Too short.", hashtags: ["#a", "#b", "#c", "#d"] }), null, ctx());
+    const failures = checkGeneratedPost(post({ hookText: "x".repeat(250), caption: "y".repeat(1600), hashtags: ["#a", "#b", "#c", "#d"] }), null, ctx());
     expect(failures).toContain("The hook is 250 characters long, linkedin shows 200 before \"see more\".");
     expect(failures.some((f) => f.startsWith("The text is"))).toBe(true);
     expect(failures).toContain("4 hashtags, expected between 0 and 3.");

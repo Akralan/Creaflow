@@ -15,8 +15,11 @@ export interface PlatformLimits {
   hashtagsMax: number;
 }
 
+// Pas de plancher de longueur : un post court n'est pas une faute. Le minimum de 600 sur LinkedIn
+// forçait le remplissage, et le seul remplissage disponible depuis un brief est l'énumération —
+// les trois posts donnés en exemple au rédacteur font 229 à 322 caractères et étaient refusés.
 export const PLATFORM_LIMITS: Record<string, PlatformLimits> = {
-  linkedin: { hookMax: 200, hookIsTitle: false, captionMin: 600, captionMax: 1500, hashtagsMin: 0, hashtagsMax: 3 },
+  linkedin: { hookMax: 200, hookIsTitle: false, captionMin: 0, captionMax: 1500, hashtagsMin: 0, hashtagsMax: 3 },
   x: { hookMax: 120, hookIsTitle: false, captionMin: 0, captionMax: 280, hashtagsMin: 0, hashtagsMax: 1 },
 };
 
@@ -29,7 +32,7 @@ export function platformLimits(platform: string): PlatformLimits | null {
 
 const PLATFORM_TEXTS: Record<string, (l: PlatformLimits) => string> = {
   linkedin: (l) =>
-    `LinkedIn. Only the first two lines (about ${l.hookMax} characters) show before "see more": they must be enough to make people want to read on. Body of ${l.captionMin} to ${l.captionMax} characters, in paragraphs of one or two sentences separated by a blank line. ${l.hashtagsMin} to ${l.hashtagsMax} hashtags, at the end. The register: someone sharing what they learned, not an announcement.`,
+    `LinkedIn. Only the first two lines (about ${l.hookMax} characters) show before "see more": they must be enough to make people want to read on. ${l.captionMax} characters at most, in paragraphs of one or two sentences separated by a blank line. As short as the story needs: a post that says one thing well beats a long one. ${l.hashtagsMin} to ${l.hashtagsMax} hashtags, at the end. The register: someone sharing what they learned, not an announcement.`,
   x: (l) =>
     `X. A post is at most ${l.captionMax} characters, hook included: if the idea doesn't fit, tighten it instead of cutting it. ${l.hashtagsMin} or ${l.hashtagsMax} hashtag. Direct tone, no introductory formula.`,
 };

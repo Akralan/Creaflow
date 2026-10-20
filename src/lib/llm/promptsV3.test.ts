@@ -63,7 +63,7 @@ describe("buildScriptUserMessage V3", () => {
     const message = buildScriptUserMessage({ ...base, materialDocuments: [{ id: "d1", title: "Journal", annotatedText: "The jump was tuned." }] });
     expect(message).toContain("<material>\nMaterial for this subject. It is your only source of facts.");
     expect(message).toContain("[Journal]\nThe jump was tuned.");
-    expect(message).toMatch(/<platform>\nLinkedIn\. .*200 characters.*600 to 1500 characters/);
+    expect(message).toMatch(/<platform>\nLinkedIn\. .*200 characters.*1500 characters at most/);
   });
 
   it("garde les blocs dans l'ordre de l'annexe A.3", () => {

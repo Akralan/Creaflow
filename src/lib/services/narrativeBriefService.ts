@@ -35,6 +35,7 @@ function toBriefEvent(e: typeof materialEvents.$inferSelect, readerLabel: string
     title: e.title,
     whatHappened: e.whatHappened,
     whatChanged: e.whatChanged,
+    atStake: e.atStake,
     kind: e.kind,
     // Ce que ce fait change pour le lecteur de cette série (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §6).
     angle: angleFor(e, readerLabel, portraitLabels),

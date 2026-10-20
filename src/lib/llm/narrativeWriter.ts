@@ -16,6 +16,7 @@ import {
   MAX_DRAFTS,
   MAX_SUBMISSIONS,
   POST_FIELDS,
+  titleFrom,
   postTextOf,
   READ_SOURCE_TOOL,
   READ_TIMELINE_TOOL,
@@ -204,8 +205,8 @@ function buildTools(context: NarrativeWriterContext, parts: number): LlmToolDefi
       : { ...POST_FIELDS, hookText: { type: "string", description: "The first sentence of the post, as is." } };
   const submitRequired =
     context.contentType === "visual"
-      ? ["concept", "title", "hookVisual", "storyboard", "caption", "hashtags", "usedExcerpts"]
-      : ["concept", "title", "hookText", "caption", "hashtags", "usedExcerpts"];
+      ? ["hookVisual", "storyboard", "caption", "hashtags"]
+      : ["hookText", "caption", "hashtags"];
 
   return [
     {
@@ -290,10 +291,15 @@ export async function writeNarrativePost(context: NarrativeWriterContext): Promi
     language: context.language,
   };
 
-  const parseSubmission = (input: unknown): GeneratedScript =>
-    context.contentType === "visual"
-      ? { contentType: "visual", ...submittedVisualSchema.parse(input) }
-      : { contentType: "text", ...submittedTextSchema.parse(input) };
+  const parseSubmission = (input: unknown): GeneratedScript => {
+    const parsed =
+        context.contentType === "visual"
+          ? { contentType: "visual" as const, ...submittedVisualSchema.parse(input) }
+      : { contentType: "text" as const, ...submittedTextSchema.parse(input) };
+    // L'étiquette du calendrier se déduit du post : un champ de moins à remplir pour le modèle.
+    const hook = "hookText" in parsed ? parsed.hookText : "hookVisual" in parsed ? parsed.hookVisual : "";
+    return { ...parsed, title: parsed.title || titleFrom(hook, parsed.caption) };
+  };
 
   const result = await callAgentic({
     system: NARRATIVE_WRITER_SYSTEM_PROMPTS[brief.kind],
