@@ -1,0 +1,1 @@
+ALTER TABLE "material_events" ADD COLUMN "at_stake" text;

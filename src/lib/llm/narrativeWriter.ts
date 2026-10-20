@@ -165,7 +165,8 @@ export function buildNarrativeWriterUserMessage(context: NarrativeWriterContext)
       "These events, and only these, are what you may tell:",
       ...brief.scope.map(
         (e) =>
-          `- ${eventLine(e)}\n  What happened: ${e.whatHappened}${e.whatChanged ? `\n  What it changed: ${e.whatChanged}` : ""}${e.angle ? `\n  For this reader: ${e.angle}` : ""}`
+          `- ${eventLine(e)}\n  What happened: ${e.whatHappened}${e.whatChanged ? `\n  What it changed: ${e.whatChanged}` : ""}${e.angle ? `\n  For this reader: ${e.angle}` : ""}${e.atStake ? `
+  What it cost: ${e.atStake}` : ""}`
       ),
       ...subjectLines(brief),
       brief.sources.length
@@ -203,8 +204,8 @@ function buildTools(context: NarrativeWriterContext, parts: number): LlmToolDefi
       : { ...POST_FIELDS, hookText: { type: "string", description: "The first sentence of the post, as is." } };
   const submitRequired =
     context.contentType === "visual"
-      ? ["concept", "title", "hookVisual", "storyboard", "caption", "hashtags", "usedExcerpts", "promisesMade"]
-      : ["concept", "title", "hookText", "caption", "hashtags", "usedExcerpts", "promisesMade"];
+      ? ["concept", "title", "hookVisual", "storyboard", "caption", "hashtags", "usedExcerpts"]
+      : ["concept", "title", "hookText", "caption", "hashtags", "usedExcerpts"];
 
   return [
     {

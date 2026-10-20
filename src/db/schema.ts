@@ -486,6 +486,11 @@ export const materialEvents = pgTable("material_events", {
   title: text("title").notNull(),
   whatHappened: text("what_happened").notNull(),
   whatChanged: text("what_changed"),
+  // Ce que ça a coûté, ce qui était en jeu, le détail qui gêne. C'est ce qui manquait : on
+  // enregistrait ce qui s'est passé et ce que ça a changé, jamais la tension — et le rédacteur ne
+  // peut pas l'inventer. Le bon post sur l'abandon des vidéos tenait à « j'avais des photos de lui
+  // en caleçon sur mon VPS », une phrase qui n'était que dans le document source.
+  atStake: text("at_stake"),
   kind: materialEventKindEnum("kind").notNull(),
   // Labels of the topic's reader portrait (products.readerPortrait) for whom this is interesting.
   // DERIVED from audienceAngles since docs/SPEC_EVENEMENTS_PAR_CIBLE.md §4: kept because the series

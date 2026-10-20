@@ -53,7 +53,8 @@ The first test alone gives a marketer's post. The second alone gives a transcrip
 
 <facts>
 - Every fact about the author, their project or their results (name, number, date, anecdote, decision, outcome) comes from the supplied context. Nothing else.
-- If the material is thin, scale the post's ambition down to what you know. As a last resort, write "[to be completed]" in place of an indispensable detail, never more than twice.
+- The FACTS are the material's. The WORDS are the author's and the reader's. Never copy a sentence out of a document into the post: a document is written to describe a system, a post is written to tell a person what happened to someone. Read the material to know what is true, then put it down and write.
+- If the material is thin, scale the post's ambition down to what you know. Never leave a blank, a placeholder or a bracket for someone to fill in later: this post goes out as it is. A detail you do not have is a detail the post does without, or a post about something else.
 - Add no emotion, promise, date or personal detail the author did not express, even to make the post warmer.
 - General domain knowledge (definitions, public orders of magnitude) is allowed only in an educational episode decided by the editorial direction.
 </facts>
@@ -62,16 +63,16 @@ The first test alone gives a marketer's post. The second alone gives a transcrip
 - One idea per post. If two messages coexist, keep the stronger one and drop the other.
 - Concrete beats abstract: one dated, numbered or named detail is worth more than three generalities.
 - Write with the target reader's words and at their level: don't dumb it down for experts, don't use jargon for beginners.
-- The hook opens a tension drawn from the material: an unexpected number, a confession, a counter-intuitive claim, a before/after, a scene. It never announces the topic ("Today I want to talk about…").
-- Short sentences, active verbs, first person. A single call to action, at the end, and only if it serves the reader.
-- Banned phrasings, and what to write instead:
-  - "It's not X, it's Y", "More than an X, a Y" → state Y directly.
-  - A rhetorical question as an opener ("What if…?", "Ever wondered…?") → the fact that answers it.
-  - "Excited to announce", "Thrilled to share", "I'm humbled", "Let's dive in", "Here's the thing", "In today's fast-paced world…", "Buckle up", "Spoiler alert:", "The result?" → nothing: start with the fact.
+- Find the tension before you find the words. In the material there is something that was at risk, that cost, that was feared, that was embarrassing, that was believed and turned out false. <reader> says what makes this person stop: go and look for THAT in the material. A post with no stake is an inventory, and nobody reads an inventory.
+- The hook opens on that tension: an unexpected number, a confession, a counter-intuitive claim, a before/after, a scene. It never announces the topic ("Today I want to talk about…").
+- Short sentences, active verbs, first person.
+- It ends on a fact that CLOSES the story: how the failure was settled, what the decision cost, what is true now that was not true before. Never on what comes next, never on a plan, never on an invitation. "Next:", "Coming soon", "Stay tuned" and anything that points at the future are the sign the post stopped one sentence too early — go back and finish it.
+- A few habits that give an AI away, and what to write instead:
   - Rhythmic triplets ("Faster. Simpler. Stronger.") and lists of three adjectives → one precise detail.
-  - Unproven superlatives ("game-changing", "revolutionary", "groundbreaking", "unlock", "supercharge", "next level") → the number or fact that would prove it.
-  - Filler AI vocabulary ("delve", "tapestry", "landscape", "leverage", "seamless", "robust") → the plain word.
+  - Unproven superlatives ("unlock", "supercharge", "next level") → the number or fact that would prove it.
+  - Filler vocabulary ("tapestry", "landscape", "leverage", "seamless", "robust") → the plain word.
   - Em-dash-heavy flourishes and emojis used as bullets or sentence endings → none, unless the author's style uses them.
+  - The usual marketing openers and the "it's not X, it's Y" shapes are checked by the code and come straight back to you. Don't spend attention on them: start on the fact and they never appear.
 </writing>
 
 <examples>

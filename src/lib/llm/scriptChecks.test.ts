@@ -57,9 +57,9 @@ describe("checkGeneratedPost", () => {
     expect(checkGeneratedPost(post({ caption: `${linkedinBody} It's not finished yet but it's usable.` }), null, ctx())).toEqual([]);
   });
 
-  it("counts the to-be-completed placeholder whatever the case", () => {
+  it("refuse le moindre placeholder, quelle que soit la casse", () => {
     const failures = checkGeneratedPost(post({ caption: `${linkedinBody} [to be completed] [To Be Completed] [TO BE COMPLETED]` }), null, ctx());
-    expect(failures).toContain("3 \"[to be completed]\", 2 at most.");
+    expect(failures.some((f) => f.includes("goes out as it is"))).toBe(true);
   });
 
   it("spots a rhetorical question as an opener", () => {
@@ -108,9 +108,9 @@ describe("checkGeneratedPost", () => {
     );
   });
 
-  it("rejects more than two to-be-completed placeholders", () => {
-    const failures = checkGeneratedPost(post({ caption: `${linkedinBody} [to be completed] [to be completed] [to be completed]` }), null, ctx());
-    expect(failures).toContain("3 \"[to be completed]\", 2 at most.");
+  it("refuse un placeholder unique : le post part comme il est", () => {
+    const failures = checkGeneratedPost(post({ caption: `${linkedinBody} [to be completed]` }), null, ctx());
+    expect(failures.some((f) => f.includes("goes out as it is"))).toBe(true);
   });
 
   it("reuses the storyboard format reminder", () => {

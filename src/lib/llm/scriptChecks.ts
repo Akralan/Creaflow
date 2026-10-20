@@ -81,7 +81,8 @@ const OPENING_QUESTION = { label: "what if…? as an opener", re: /^(?:what if|e
 const USED_MARKERS = /\[already used in a previous post\]|\[\/already used\]|\[déjà utilisé dans un post précédent\]|\[\/déjà utilisé\]/g;
 // Searched on normalized (lowercased) text.
 const GAP_RE = /\[to be completed\]/g;
-const MAX_GAPS = 2;
+/** Zéro : le post part comme il est. Le prompt n'autorise plus de blanc à combler plus tard. */
+const MAX_GAPS = 0;
 
 function postTextFields(post: CheckablePost): Array<{ field: string; text: string }> {
   return [
@@ -194,7 +195,7 @@ function jargonFailures(post: CheckablePost, ctx: CheckContext): string[] {
 
 function gapFailures(post: CheckablePost): string[] {
   const gaps = postTextFields(post).reduce((n, { text }) => n + (normalizeForCheck(text).match(GAP_RE) ?? []).length, 0);
-  return gaps > MAX_GAPS ? [`${gaps} "[to be completed]", ${MAX_GAPS} at most.`] : [];
+  return gaps > MAX_GAPS ? [`This post has ${gaps} "[to be completed]": it goes out as it is. Write the post without that detail, or write it about something else.`] : [];
 }
 
 /** The post is written in the language it was asked in, title, hook, slides and text alike. */

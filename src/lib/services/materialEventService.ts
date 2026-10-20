@@ -278,6 +278,7 @@ export async function readEventsForSubject(userId: string, productId: string): P
             title: data.title,
             whatHappened: data.whatHappened,
             whatChanged: data.whatChanged || null,
+            atStake: data.atStake || null,
             kind: data.kind,
             audiences: audiencesOf(angles),
             audienceAngles: angles,
@@ -311,6 +312,7 @@ export async function readEventsForSubject(userId: string, productId: string): P
           set.datePrecision = normalized.datePrecision;
         }
         if (patch.whatChanged !== undefined && patch.whatChanged) set.whatChanged = patch.whatChanged;
+        if (patch.atStake !== undefined && patch.atStake) set.atStake = patch.atStake;
         if (patch.excerpt !== undefined) {
           const doc = [...docsById.values()].find((d) => excerptIsInDocument(patch.excerpt as string, d.rawText));
           if (!doc) throw new Error("Excerpt not found in any document you are reading: copy it verbatim.");

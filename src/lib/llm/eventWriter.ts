@@ -28,6 +28,8 @@ export interface BriefEvent {
   title: string;
   whatHappened: string;
   whatChanged: string | null;
+  /** Ce que ça a coûté, ce qui était en jeu : c'est là qu'est l'histoire. */
+  atStake?: string | null;
   kind: string;
   /** Ce que ce fait change pour le lecteur de CETTE série, dans ses mots
    *  (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §6). Null quand le lecteur n'a pas d'angle dessus. */
@@ -117,7 +119,7 @@ You tell ONE event to ONE person. Everything else serves that.
 </what_makes_a_post>
 
 <examples_of_form>
-Three short posts, from trades that have nothing to do with the author's. They show the level of precision and the rhythm, nothing else. Do not reuse their openings, their structure or their turns of phrase: each post finds its own shape from its own event.
+Three short posts, from trades that have nothing to do with the author's. Read them for ONE thing: in each, someone risked or lost something, and paid for it. 14 bowls thrown away. A survey that lied about 22 frames. A winter of rain in a hive. That is what makes them worth reading — not their rhythm, not their openings, which belong to them and not to you.
 
 "It's not the glaze, it's the oven," the man at the supplier's said, and hung up. I had thrown away 14 bowls that month. Same recipe, same clay, one oven door I never closed the same way twice. I taped a line on the floor where the door stops. Next firing, 12 out of 12 came out. I trust the door more than the recipe now.
 
@@ -145,6 +147,7 @@ export function buildEventWriterUserMessage(context: EventWriterContext): string
       // L'angle écrit pendant la lecture de la matière : le rédacteur part de là et prouve avec les
       // faits, au lieu de deviner la traduction (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §6).
       brief.event.angle ? `For this reader: ${brief.event.angle}` : null,
+      brief.event.atStake ? `What it cost: ${brief.event.atStake}` : null,
       brief.before.length ? `Just before, in the story:\n${brief.before.map((e) => `- ${eventLine(e)}`).join("\n")}` : "This is the first event of the story.",
       brief.after.length ? `Just after:\n${brief.after.map((e) => `- ${eventLine(e)}`).join("\n")}` : "Nothing recorded after, for now.",
       brief.source
@@ -227,9 +230,9 @@ export const POST_FIELDS = {
   usedExcerpts: {
     type: "array",
     items: { type: "string" },
-    description: "The passages of the source copied WORD FOR WORD that ground the post's facts, one per fact. Empty array if the event has no source.",
+    description: "The passages of the source that PROVE the post's facts, copied word for word — they are kept as evidence and never appear in the post itself, which is written in the author's words. Empty array if the event has no source.",
   },
-  promisesMade: { type: "array", items: { type: "string" }, description: "The explicit promises made to the reader in the post, copied as is. Empty otherwise." },
+  promisesMade: { type: "array", items: { type: "string" }, description: "Only if the author genuinely commits to a future fact in this post, copied as it appears. Almost always empty: a post ends on what happened, not on what comes next." },
 };
 
 function buildTools(context: EventWriterContext, parts: number): LlmToolDefinition[] {
@@ -251,8 +254,8 @@ function buildTools(context: EventWriterContext, parts: number): LlmToolDefiniti
       : { ...POST_FIELDS, hookText: { type: "string", description: "The first sentence of the post, as is: it is already inside the event." } };
   const submitRequired =
     context.contentType === "visual"
-      ? ["concept", "title", "hookVisual", "storyboard", "caption", "hashtags", "usedExcerpts", "promisesMade"]
-      : ["concept", "title", "hookText", "caption", "hashtags", "usedExcerpts", "promisesMade"];
+      ? ["concept", "title", "hookVisual", "storyboard", "caption", "hashtags", "usedExcerpts"]
+      : ["concept", "title", "hookText", "caption", "hashtags", "usedExcerpts"];
 
   return [
     {

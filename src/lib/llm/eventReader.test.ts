@@ -160,6 +160,7 @@ describe("saveEventInputSchema — angles par public", () => {
     title: "Marion arrête la démo au bout de 40 secondes",
     whatHappened: "De profil, le squelette saute sur le genou.",
     whatChanged: "",
+    atStake: "",
     kind: "feedback" as const,
     sourceMaterialId: "doc-1",
     excerpt: "Elle a arrêté au bout de 40 secondes",
