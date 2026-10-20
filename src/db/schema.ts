@@ -488,7 +488,18 @@ export const materialEvents = pgTable("material_events", {
   whatChanged: text("what_changed"),
   kind: materialEventKindEnum("kind").notNull(),
   // Labels of the topic's reader portrait (products.readerPortrait) for whom this is interesting.
+  // DERIVED from audienceAngles since docs/SPEC_EVENEMENTS_PAR_CIBLE.md §4: kept because the series
+  // plan and the UI already read it. Written at the same time as the angles, never on its own.
   audiences: text("audiences").array().notNull().default(sql`'{}'::text[]`),
+  // What this fact changes FOR EACH audience it speaks to, in that audience's own words
+  // (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §4): [{ audience, whatItChanges }]. Written by the event
+  // reader at extraction, document in front of it — the same fact becomes "the counter follows the
+  // patient with no lag" for a physio and "200 ms response" for a developer. Empty = speaks to
+  // nobody, which is a normal answer and means no series tells it.
+  audienceAngles: jsonb("audience_angles").notNull().default([]),
+  // Null = never went through a reader that knew who the posts are for. Distinguishes "not sorted
+  // yet" from "sorted, nobody" (§4): both untellable, but only the first deserves a re-read.
+  qualifiedAt: timestamp("qualified_at"),
   // SET NULL: an event added by hand has no document; and a deleted document does not
   // erase what was learned from it (the passage stays in `excerpt`).
   sourceMaterialId: uuid("source_material_id").references(() => sourceMaterials.id, { onDelete: "set null" }),
