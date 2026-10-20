@@ -270,6 +270,36 @@ export function buildQualifyEventsPrompt(params: {
 
 /** Turn cap for a read: each part needs at least one turn, and the saves add up (often grouped in
  *  the same turn). Bounded so that a read never runs endlessly. */
-export function maxTurnsForParts(totalParts: number): number {
-  return Math.min(160, 12 + totalParts * 4);
+/** Un titre daté : `## 2025-11-09`, `# 2025-11-09 — …`, ou une ligne qui commence par la date. */
+const DATED_HEADING = /^\s*(?:#{1,6}\s*|[-*]\s*)?(\d{4}-\d{2}-\d{2})\b/gm;
+
+/**
+ * Combien de jours distincts ce texte raconte. C'est ce qui sépare un journal d'une page de
+ * documentation (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §5) : sur le pack MyKiné, le devlog en compte
+ * onze et les treize fichiers techniques zéro.
+ */
+export function datedEntryCount(text: string): number {
+  const days = new Set<string>();
+  for (const match of text.matchAll(DATED_HEADING)) days.add(match[1]);
+  return days.size;
+}
+
+/**
+ * Les documents à lire, ceux qui racontent d'abord : le récit est lu quand le budget de tours est
+ * intact. Tri stable, pour que deux lectures de la même matière donnent le même ordre.
+ */
+export function narrativeFirst<T extends { rawText: string }>(documents: T[]): T[] {
+  return documents
+    .map((doc, index) => ({ doc, index, dates: datedEntryCount(doc.rawText) }))
+    .sort((a, b) => b.dates - a.dates || a.index - b.index)
+    .map((d) => d.doc);
+}
+
+/**
+ * Le budget de tours de la lecture. L'ancienne version ne comptait que les parties lues — or chaque
+ * enregistrement coûte un tour, et un journal de onze entrées tient dans une seule partie. C'est ce
+ * qui a coupé la lecture du pack MyKiné au 33e tour sur un plafond de 32.
+ */
+export function maxTurnsForReading(input: { parts: number; expectedEvents: number }): number {
+  return Math.min(240, 12 + input.parts * 4 + input.expectedEvents * 2);
 }

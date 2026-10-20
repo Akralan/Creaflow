@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   buildEventReaderTools,
+  datedEntryCount,
   excerptIsInDocument,
-  maxTurnsForParts,
+  maxTurnsForReading,
+  narrativeFirst,
   normalizeEventDate,
   saveEventInputSchema,
   splitDocumentIntoParts,
@@ -59,11 +61,52 @@ describe("splitDocumentIntoParts", () => {
   });
 });
 
-describe("maxTurnsForParts", () => {
-  it("croît avec le nombre de parties et reste borné", () => {
-    expect(maxTurnsForParts(1)).toBe(16);
-    expect(maxTurnsForParts(10)).toBe(52);
-    expect(maxTurnsForParts(1000)).toBe(160);
+const doc = (id: string, rawText: string) => ({ id, title: id, rawText });
+
+describe("datedEntryCount", () => {
+  it("compte les titres datés d'un journal", () => {
+    expect(datedEntryCount("## 2025-11-09\nJulien dit…\n## 2025-11-16\nPrototype.")).toBe(2);
+  });
+
+  it("ne compte pas deux fois la même date", () => {
+    expect(datedEntryCount("## 2025-11-09\nx\n## 2025-11-09\ny")).toBe(1);
+  });
+
+  it("rend 0 sur une page de documentation sans date", () => {
+    expect(datedEntryCount("# Architecture\nFastAPI, PostgreSQL 16, SQLAlchemy.")).toBe(0);
+  });
+});
+
+describe("narrativeFirst", () => {
+  it("met le journal daté avant la documentation", () => {
+    const docs = [doc("a", "# Architecture\nFastAPI."), doc("b", "## 2025-11-09\nJulien dit…\n## 2025-11-16\nPrototype.")];
+    expect(narrativeFirst(docs).map((x) => x.id)).toEqual(["b", "a"]);
+  });
+
+  it("classe les journaux entre eux par densité de dates décroissante", () => {
+    const peu = doc("peu", "## 2026-01-01\nx\n## 2026-01-02\ny");
+    const beaucoup = doc("beaucoup", Array.from({ length: 11 }, (_, i) => `## 2026-02-${String(i + 1).padStart(2, "0")}\nx`).join("\n"));
+    expect(narrativeFirst([peu, beaucoup]).map((x) => x.id)).toEqual(["beaucoup", "peu"]);
+  });
+
+  it("garde l'ordre d'origine entre deux documents sans date", () => {
+    const docs = [doc("x", "# A"), doc("y", "# B"), doc("z", "# C")];
+    expect(narrativeFirst(docs).map((d) => d.id)).toEqual(["x", "y", "z"]);
+  });
+});
+
+describe("maxTurnsForReading", () => {
+  it("laisse de la place aux enregistrements, pas seulement aux lectures", () => {
+    expect(maxTurnsForReading({ parts: 5, expectedEvents: 13 })).toBeGreaterThanOrEqual(34);
+  });
+
+  it("reproduit le cas réel qui avait été coupé", () => {
+    // 5 documents, 13 entrées datées : il avait fallu 33 tours, l'ancien plafond en donnait 32.
+    expect(maxTurnsForReading({ parts: 5, expectedEvents: 13 })).toBeGreaterThan(32);
+  });
+
+  it("reste plafonné pour ne pas partir en boucle", () => {
+    expect(maxTurnsForReading({ parts: 500, expectedEvents: 500 })).toBeLessThanOrEqual(240);
   });
 });
 

@@ -12,7 +12,9 @@ import {
   qualifiedEventsSchema,
   excerptIsInDocument,
   LIST_DOCUMENTS_TOOL,
-  maxTurnsForParts,
+  datedEntryCount,
+  maxTurnsForReading,
+  narrativeFirst,
   MAX_EXCERPT_CHARS,
   normalizeEventDate,
   READ_DOCUMENT_TOOL,
@@ -176,8 +178,14 @@ export async function readEventsForSubject(userId: string, productId: string): P
     return { documents: 0, documentsRead: 0, partsRead: 0, eventsSaved: 0, eventsRejected: 0, turns: 0, stoppedAtMaxTurns: false, reply: "Nothing to read." };
   }
 
-  const docsById = new Map(unread.map((d) => [d.id, { ...d, parts: splitDocumentIntoParts(d.rawText), partsRead: new Set<number>() }]));
+  // La matière qui raconte d'abord (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §5) : `list_documents` rend
+  // les documents dans cet ordre, donc le devlog est lu quand le budget de tours est intact. Sur le
+  // pack MyKiné, l'ordre d'insertion plaçait treize fichiers de documentation avant lui.
+  const docsById = new Map(narrativeFirst(unread).map((d) => [d.id, { ...d, parts: splitDocumentIntoParts(d.rawText), partsRead: new Set<number>() }]));
   const totalParts = [...docsById.values()].reduce((sum, d) => sum + d.parts.length, 0);
+  // Le budget compte aussi les enregistrements : un journal de onze entrées tient dans une seule
+  // partie, et chaque save_event coûte un tour (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §5).
+  const expectedEvents = Math.max(10, unread.reduce((sum, d) => sum + datedEntryCount(d.rawText), 0));
   const readers = parseStoredReaderPortrait(product.readerPortrait)?.readers ?? [];
   const audienceLabels = readers.map((r) => r.label);
 
@@ -200,7 +208,7 @@ export async function readEventsForSubject(userId: string, productId: string): P
     messages: [{ role: "user", content: buildEventReaderUserMessage(context) }],
     tools: buildEventReaderTools({ audienceLabels }),
     maxTokens: 4096,
-    maxTurns: maxTurnsForParts(totalParts),
+    maxTurns: maxTurnsForReading({ parts: totalParts, expectedEvents }),
     // La qualité de lecture compte plus que la latence : une lecture se fait une fois par document.
     effort: "medium",
     onToolCall: async ({ name, input }) => {
