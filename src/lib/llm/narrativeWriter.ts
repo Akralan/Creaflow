@@ -150,7 +150,10 @@ export function buildNarrativeWriterUserMessage(context: NarrativeWriterContext)
     tag("scope", [
       `Series: ${brief.seriesLabel} — ${context.subjectName}, by ${context.brandName} (${context.activityType}).`,
       "These events, and only these, are what you may tell:",
-      ...brief.scope.map((e) => `- ${eventLine(e)}\n  What happened: ${e.whatHappened}${e.whatChanged ? `\n  What it changed: ${e.whatChanged}` : ""}`),
+      ...brief.scope.map(
+        (e) =>
+          `- ${eventLine(e)}\n  What happened: ${e.whatHappened}${e.whatChanged ? `\n  What it changed: ${e.whatChanged}` : ""}${e.angle ? `\n  For this reader: ${e.angle}` : ""}`
+      ),
       ...subjectLines(brief),
       brief.sources.length
         ? `Sources to reread with ${READ_SOURCE_TOOL}: ${brief.sources.map((s, i) => `${i + 1}. "${s.title ?? "document"}"`).join(", ")}.`

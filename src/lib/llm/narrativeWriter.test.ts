@@ -165,3 +165,17 @@ describe("writeNarrativePost", () => {
     expect(callAgenticMock.mock.calls[0][0].tools.map((t: { name: string }) => t.name)).toContain("read_post");
   });
 });
+
+describe("l'angle du lecteur", () => {
+  it("donne au rédacteur l'angle du lecteur à côté des faits", () => {
+    const withAngle = { ...ev("e1", "La démo tourne"), angle: "le patient voit son compteur bouger tout de suite" };
+    const msg = buildNarrativeWriterUserMessage(context({ brief: brief({ scope: [withAngle] }) }));
+    expect(msg).toContain("For this reader: le patient voit son compteur bouger tout de suite");
+  });
+
+  it("se passe d'angle quand il n'y en a pas", () => {
+    const msg = buildNarrativeWriterUserMessage(context());
+    expect(msg).not.toContain("For this reader:");
+    expect(msg).toContain("La démo tourne");
+  });
+});

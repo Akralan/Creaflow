@@ -28,6 +28,9 @@ export interface BriefEvent {
   whatHappened: string;
   whatChanged: string | null;
   kind: string;
+  /** Ce que ce fait change pour le lecteur de CETTE série, dans ses mots
+   *  (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §6). Null quand le lecteur n'a pas d'angle dessus. */
+  angle?: string | null;
 }
 
 export interface EventBrief {
@@ -130,12 +133,15 @@ export function buildEventWriterUserMessage(context: EventWriterContext): string
       `The event to tell: ${eventLine(brief.event)}`,
       `What happened: ${brief.event.whatHappened}`,
       brief.event.whatChanged ? `What it changed: ${brief.event.whatChanged}` : "What it changed: nothing noted.",
+      // L'angle écrit pendant la lecture de la matière : le rédacteur part de là et prouve avec les
+      // faits, au lieu de deviner la traduction (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §6).
+      brief.event.angle ? `For this reader: ${brief.event.angle}` : null,
       brief.before.length ? `Just before, in the story:\n${brief.before.map((e) => `- ${eventLine(e)}`).join("\n")}` : "This is the first event of the story.",
       brief.after.length ? `Just after:\n${brief.after.map((e) => `- ${eventLine(e)}`).join("\n")}` : "Nothing recorded after, for now.",
       brief.source
         ? `Source: "${brief.source.title ?? "document"}", to reread with ${READ_SOURCE_TOOL}.`
         : "No source document: the author wrote this event themselves. You only have what is above.",
-    ])
+    ].filter((l): l is string => l !== null))
   );
 
   sections.push(...buildWriterContextSections({ ...context, reader: brief.reader, form: brief.form }));

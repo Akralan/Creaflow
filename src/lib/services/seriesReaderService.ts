@@ -4,6 +4,7 @@ import { contentSeries, creatorProfiles, materialEvents, products, scripts, sour
 import { describeSeriesForm, parseStoredSeriesForm, seriesFormSchema, type SeriesForm } from "@/lib/llm/seriesForm";
 import type { BriefEvent, EventBrief } from "@/lib/llm/eventWriter";
 import { parseStoredReaderPortrait, type Reader } from "@/lib/llm/readerPortrait";
+import { angleFor, tellableTo } from "@/lib/narrative/audience";
 import { listActiveSeriesForUser } from "@/lib/services/seriesService";
 import { ApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
@@ -34,13 +35,14 @@ async function generateForm(userId: string, series: Awaited<ReturnType<typeof lo
     series.productId
       ? db.query.materialEvents.findMany({
           where: and(eq(materialEvents.userId, userId), eq(materialEvents.productId, series.productId)),
-          columns: { title: true, audiences: true },
+          columns: { title: true, audiences: true, audienceAngles: true, origin: true, qualifiedAt: true },
           orderBy: [sql`${materialEvents.date} asc nulls last`, asc(materialEvents.createdAt)],
           limit: 60,
         })
       : Promise.resolve([]),
   ]);
-  const forReader = sampleEvents.filter((e) => e.audiences.length === 0 || e.audiences.includes(reader.label)).map((e) => e.title);
+  const portraitLabels = readersOfProduct(series.product).map((r) => r.label);
+  const forReader = sampleEvents.filter((e) => tellableTo(e, reader.label, portraitLabels)).map((e) => e.title);
   return describeSeriesForm({
     brandName: profile?.brandName ?? "l'auteur",
     activityType: profile?.activityType ?? "",
@@ -107,6 +109,8 @@ export interface PlannedEvent {
   whatChanged: string | null;
   kind: "failure" | "decision" | "result" | "feedback" | "milestone";
   audiences: string[];
+  /** Ce que ce fait change pour le lecteur de cette série, dans ses mots. Null sans angle. */
+  angle: string | null;
   /** Déjà raconté par un post de cette série. */
   told: boolean;
   scriptId: string | null;
@@ -140,7 +144,10 @@ export async function planForSeries(userId: string, seriesId: string): Promise<S
     }),
   ]);
   const scriptByEvent = new Map(told.map((s) => [s.eventId as string, s.id]));
-  const forReader = events.filter((e) => !series.readerLabel || e.audiences.length === 0 || e.audiences.includes(series.readerLabel));
+  // « Personne » veut dire personne (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §3.4) : un événement sans
+  // angle pour ce lecteur ne part plus dans sa série. Trois exceptions seulement, dans tellableTo.
+  const portraitLabels = readersOfProduct(series.product).map((r) => r.label);
+  const forReader = events.filter((e) => tellableTo(e, series.readerLabel, portraitLabels));
   const planned: PlannedEvent[] = forReader.map((e) => ({
     id: e.id,
     date: e.date,
@@ -150,6 +157,7 @@ export async function planForSeries(userId: string, seriesId: string): Promise<S
     whatChanged: e.whatChanged,
     kind: e.kind,
     audiences: e.audiences,
+    angle: angleFor(e, series.readerLabel, portraitLabels),
     told: scriptByEvent.has(e.id),
     scriptId: scriptByEvent.get(e.id) ?? null,
   }));
@@ -158,7 +166,7 @@ export async function planForSeries(userId: string, seriesId: string): Promise<S
 }
 
 function toBriefEvent(e: PlannedEvent): BriefEvent {
-  return { id: e.id, date: e.date, datePrecision: e.datePrecision, title: e.title, whatHappened: e.whatHappened, whatChanged: e.whatChanged, kind: e.kind };
+  return { id: e.id, date: e.date, datePrecision: e.datePrecision, title: e.title, whatHappened: e.whatHappened, whatChanged: e.whatChanged, kind: e.kind, angle: e.angle };
 }
 
 /**

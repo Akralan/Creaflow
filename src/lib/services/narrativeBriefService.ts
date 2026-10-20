@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { calendarEntries, contentSeries, materialEvents, scripts, sourceMaterials } from "@/db/schema";
 import { parseStoredSeriesForm } from "@/lib/llm/seriesForm";
 import { readersOfProduct } from "@/lib/services/seriesReaderService";
+import { angleFor } from "@/lib/narrative/audience";
 import { decideNarrative, firstSeriesOfSubject, type NarrativeKind, type PlacementEvent, type PlacementPost } from "@/lib/narrative/placement";
 import type { NarrativeBrief } from "@/lib/llm/narrativeWriter";
 import type { BriefEvent } from "@/lib/llm/eventWriter";
@@ -26,8 +27,18 @@ export interface NarrativePlan {
   promiseSourceScriptId: string | null;
 }
 
-function toBriefEvent(e: typeof materialEvents.$inferSelect): BriefEvent {
-  return { id: e.id, date: e.date, datePrecision: e.datePrecision, title: e.title, whatHappened: e.whatHappened, whatChanged: e.whatChanged, kind: e.kind };
+function toBriefEvent(e: typeof materialEvents.$inferSelect, readerLabel: string | null, portraitLabels: string[]): BriefEvent {
+  return {
+    id: e.id,
+    date: e.date,
+    datePrecision: e.datePrecision,
+    title: e.title,
+    whatHappened: e.whatHappened,
+    whatChanged: e.whatChanged,
+    kind: e.kind,
+    // Ce que ce fait change pour le lecteur de cette série (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §6).
+    angle: angleFor(e, readerLabel, portraitLabels),
+  };
 }
 
 function toPlacementEvent(e: typeof materialEvents.$inferSelect): PlacementEvent {
@@ -70,6 +81,7 @@ export async function planNarrativePost(userId: string, seriesId: string, slotDa
   // Mêmes gardes que le brief d'événement : sans sujet, sans lecteur ou sans forme, pas de récit.
   if (!series?.productId || !series.readerLabel) return null;
   const form = parseStoredSeriesForm(series.form);
+  const portraitLabels = readersOfProduct(series.product).map((r) => r.label);
   const reader = readersOfProduct(series.product).find((r) => r.label === series.readerLabel);
   if (!form || !reader) return null;
 
@@ -165,7 +177,7 @@ export async function planNarrativePost(userId: string, seriesId: string, slotDa
   return {
     brief: {
       kind: decision.kind,
-      scope: scope.map(toBriefEvent),
+      scope: scope.map((e) => toBriefEvent(e, series.readerLabel, portraitLabels)),
       subject: {
         name: series.product?.name ?? series.label,
         description: series.product?.description ?? null,
