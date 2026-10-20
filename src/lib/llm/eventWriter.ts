@@ -422,7 +422,11 @@ export async function writeScriptFromEvent(context: EventWriterContext): Promise
   });
 
   if (submissions.length === 0) {
-    throw new Error("The writer submitted no post.");
+    // Dire POURQUOI : sans ça, la panne est muette et on ne peut que deviner (vécu le 2026-10-20).
+    throw new Error(
+      `The writer submitted no post after ${result.turns} turn(s)` +
+        `${result.stoppedAtMaxTurns ? " (turn cap reached)" : ""}, ${drafts.length} draft(s). Its last words: ${result.reply.slice(0, 300)}`
+    );
   }
   // The best submission: the least faulty; on a tie, the last one, which read the report.
   const best = submissions.reduce((b, s) => (s.failures.length <= b.failures.length ? s : b), submissions[0]);

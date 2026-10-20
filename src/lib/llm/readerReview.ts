@@ -29,6 +29,12 @@ export interface UnknownTerm {
 
 export interface ReaderReview {
   unknownToReader: UnknownTerm[];
+  /**
+   * Ce que le post montre du doigt et que ce lecteur ne peut pas atteindre. Question distincte de
+   * la compréhension : un kiné COMPREND très bien que `B/devlog.md` est un journal, il ne peut
+   * simplement pas l'ouvrir. Sur LinkedIn, il n'a que le post.
+   */
+  outOfReach: string[];
   /** Ce lecteur pourrait-il répéter ce post à un confrère avec ses mots à lui ? */
   couldRepeat: boolean;
   why: string;
@@ -43,7 +49,9 @@ Go sentence by sentence and list every word, name or reference you cannot unders
 
 An empty list means you went through every sentence and found none. It does not mean you did not look.
 
-Then answer one question: could this reader repeat what this post says to a colleague, using only words they already had? If not, say in one line what stops them.
+Then a different question, and do not confuse it with the first: this reader has THE POST AND NOTHING ELSE. No file, no repository, no dashboard, no attachment, no earlier post. List everything the post points them at that they cannot reach from the post itself — a file name, an internal document, a screen or a report they do not have, a screenshot announced but not there, a link that does not exist. A reader can understand perfectly well what a devlog is and still never be able to open yours.
+
+Last, one question: could this reader repeat what this post says to a colleague, using only words they already had? If not, say in one line what stops them.
 
 You never rewrite the post and you never suggest wording. You report.`;
 
@@ -65,10 +73,16 @@ const TOOL: LlmToolDefinition = {
           required: ["term", "explained"],
         },
       },
+      outOfReach: {
+        type: "array",
+        items: { type: "string" },
+        description:
+          "Everything the post points this reader at that they cannot reach from the post itself: a file name, an internal document, a screen or report they do not have, a screenshot announced but absent, a link that does not exist. Copied as it appears. Empty when the post stands on its own.",
+      },
       couldRepeat: { type: "boolean", description: "True if this reader could repeat what the post says to a colleague, using only words they already had." },
       why: { type: "string", description: "If couldRepeat is false: what stops them, in one line. Empty otherwise." },
     },
-    required: ["unknownToReader", "couldRepeat", "why"],
+    required: ["unknownToReader", "outOfReach", "couldRepeat", "why"],
   },
 };
 
@@ -76,6 +90,7 @@ const answerSchema = z.object({
   unknownToReader: z
     .array(z.object({ term: z.string().trim().min(1), explained: z.boolean() }))
     .catch([]),
+  outOfReach: z.array(z.string().trim().min(1)).catch([]),
   couldRepeat: z.boolean().catch(true),
   why: z.string().trim().catch(""),
 });
@@ -104,7 +119,10 @@ export function reviewFailures(review: ReaderReview): string[] {
     .filter((t) => !t.explained)
     .slice(0, MAX_REPORTED)
     .map((t) => `A reader of this post does not understand "${t.term}" and the post never says what it changes for them: say what it changes, or take it out.`);
-  if (failures.length > 0) return failures;
+  const unreachable = review.outOfReach
+    .slice(0, MAX_REPORTED)
+    .map((ref) => `The post points at "${ref}", which this reader cannot open: they have the post and nothing else. Say what it says, or drop it.`);
+  if (failures.length > 0 || unreachable.length > 0) return [...failures, ...unreachable];
   if (!review.couldRepeat) {
     return [`This reader could not repeat what this post says using only words they already had: ${review.why || "it stays on your side of the work."}`];
   }
@@ -123,6 +141,6 @@ export async function reviewForReader(input: { reader: Reader; postText: string 
     return answerSchema.parse(raw);
   } catch (error) {
     logger.warn("Reader review failed", { error: String(error) });
-    return { unknownToReader: [], couldRepeat: true, why: "" };
+    return { unknownToReader: [], outOfReach: [], couldRepeat: true, why: "" };
   }
 }

@@ -16,7 +16,7 @@ const reader = {
   words: ["séance", "amplitude"],
 };
 
-const review = (over: Partial<ReaderReview> = {}): ReaderReview => ({ unknownToReader: [], couldRepeat: true, why: "", ...over });
+const review = (over: Partial<ReaderReview> = {}): ReaderReview => ({ unknownToReader: [], outOfReach: [], couldRepeat: true, why: "", ...over });
 
 beforeEach(() => {
   callStructuredMock.mockReset();
@@ -67,11 +67,36 @@ describe("reviewForReader", () => {
 
   it("ne bloque jamais un post quand l'appel échoue", async () => {
     callStructuredMock.mockRejectedValue(new Error("coupure réseau"));
-    await expect(reviewForReader({ reader, postText: "x" })).resolves.toEqual({ unknownToReader: [], couldRepeat: true, why: "" });
+    await expect(reviewForReader({ reader, postText: "x" })).resolves.toEqual({ unknownToReader: [], outOfReach: [], couldRepeat: true, why: "" });
   });
 
   it("tolère une réponse mal formée plutôt que de planter", async () => {
     callStructuredMock.mockResolvedValue({ nope: true });
     await expect(reviewForReader({ reader, postText: "x" })).resolves.toMatchObject({ unknownToReader: [], couldRepeat: true });
+  });
+});
+
+describe("ce que le lecteur ne peut pas atteindre", () => {
+  it("refuse un fichier que le lecteur n'ouvrira jamais", () => {
+    const r = review({ outOfReach: ["B/devlog.md"] });
+    expect(reviewFailures(r)).toContain(
+      'The post points at "B/devlog.md", which this reader cannot open: they have the post and nothing else. Say what it says, or drop it.'
+    );
+  });
+
+  it("refuse une capture annoncée mais absente", () => {
+    expect(reviewFailures(review({ outOfReach: ["la capture du tableau de bord"] }))).toHaveLength(1);
+  });
+
+  it("ne dit rien quand tout ce que le post montre est dans le post", () => {
+    expect(reviewFailures(review({ outOfReach: [] }))).toEqual([]);
+  });
+
+  it("signale d'abord les mots incompris, puis ce qui est hors de portée", () => {
+    const r = review({ unknownToReader: [{ term: "JSONB", explained: false }], outOfReach: ["B/devlog.md"] });
+    const failures = reviewFailures(r);
+    expect(failures).toHaveLength(2);
+    expect(failures[0]).toContain("JSONB");
+    expect(failures[1]).toContain("B/devlog.md");
   });
 });
