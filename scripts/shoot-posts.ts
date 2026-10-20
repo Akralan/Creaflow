@@ -38,27 +38,32 @@ async function main() {
     where: and(eq(calendarEntries.userId, user.id), isNotNull(calendarEntries.scriptId), eq(calendarEntries.platform, "linkedin")),
     orderBy: asc(calendarEntries.scheduledDate),
     columns: { scriptId: true, scheduledDate: true, kind: true, narrativeKind: true },
+    with: { script: { columns: { caption: true } } },
   });
   if (slots.length === 0) throw new Error("Aucun post écrit sur ce compte.");
 
   fs.mkdirSync(outDir, { recursive: true });
-  const browser = await chromium.launch();
+    // Le binaire déjà installé sur la machine : on ne télécharge rien (la révision attendue par
+  // playwright-core peut différer de celle présente, PLAYWRIGHT_CHROME laisse le choix).
+  const executablePath = process.env.PLAYWRIGHT_CHROME || undefined;
+  const browser = await chromium.launch(executablePath ? { executablePath } : {});
   const page = await browser.newPage({ viewport: { width: 1280, height: 1400 }, deviceScaleFactor: 2 });
 
-  await page.goto(`${APP}/login`, { waitUntil: "domcontentloaded" });
-  await page.getByLabel(/email/i).fill(email);
-  await page.getByLabel(/password|mot de passe/i).fill(password);
-  await page.getByRole("button", { name: /sign in|log in|connexion|se connecter/i }).click();
-  await page.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 30_000 });
-
+  // Connexion par l'API : le formulaire dépend du rendu client, l'API non — et le cookie de
+  // session se pose dans le contexte du navigateur, donc les pages suivantes sont authentifiées.
+  const login = await page.request.post(`${APP}/api/auth/login`, { data: { email, password } });
+  if (!login.ok()) throw new Error(`Connexion refusée (${login.status()}) : ${(await login.text()).slice(0, 200)}`);
   const written: string[] = [];
   for (const [i, slot] of slots.entries()) {
     const day = slot.scheduledDate.toISOString().slice(0, 10);
     const kind = slot.kind === "narrative" ? `recit-${slot.narrativeKind}` : "episode";
     const file = path.join(outDir, `post-${i + 1}-${day}-${kind}.png`);
     await page.goto(`${APP}/scripts/${slot.scriptId}`, { waitUntil: "domcontentloaded" });
-    // Le contenu arrive côté client : on attend que le texte du post soit là.
-    await page.waitForTimeout(2500);
+    // On attend le TEXTE du post, pas un délai : en dev, Next compile la page à la première visite
+    // et une capture prise trop tôt ne montre qu'un écran vide marqué « Compiling ».
+    const needle = (slot.script?.caption ?? "").trim().slice(0, 40);
+    if (needle) await page.getByText(needle, { exact: false }).first().waitFor({ timeout: 120_000 });
+    await page.waitForTimeout(1200);
     await page.screenshot({ path: file, fullPage: true });
     written.push(file);
     console.log(`${file}  (${day}, ${kind})`);
