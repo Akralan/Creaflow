@@ -85,6 +85,9 @@ export function firstSeriesOfSubject(candidates: SeriesCandidate[]): string | nu
 /** Ce que l'origine a le droit de lire : le début de l'histoire, assez pour la comprendre. */
 const ORIGIN_SCOPE = 12;
 
+/** Ce que la vision a le droit de lire : quelques décisions récentes pour l'ancrer, pas davantage. */
+const VISION_SCOPE = 12;
+
 /** Rang de la vision : laisse un épisode normal entre elle et l'origine. */
 const VISION_RANK = 3;
 /** Plancher entre deux points d'étape — un plancher, jamais une cadence. */
@@ -124,8 +127,16 @@ export function decideNarrative(input: PlacementInput): NarrativeDecision | null
 
   // Vision : reportée de rang en rang tant qu'il n'y a pas de décision à quoi l'ancrer.
   if (isFirstSeries && rank >= VISION_RANK && subject.problem && subject.valueProposition && !written.some((w) => w.narrativeKind === "vision")) {
+    // Les décisions les plus RÉCENTES, et pas toutes : où ça va se dit par ce qui vient d'être
+    // décidé, pas par ce qui l'a été il y a un an. Et sans plafond, un sujet à 46 décisions noyait
+    // la vision sous 195 000 caractères de matière — le rédacteur n'arrivait même plus à soumettre
+    // (constaté en réel le 2026-10-20). Les trois champs du sujet portent le post, ces décisions
+    // ne font que l'ancrer.
     const decisions = events.filter((e) => e.kind === "decision");
-    if (decisions.length > 0) return { kind: "vision", eventIds: decisions.map((e) => e.id), marksTold: null, promise: null };
+    if (decisions.length > 0) {
+      const anchors = decisions.slice(-VISION_SCOPE);
+      return { kind: "vision", eventIds: anchors.map((e) => e.id), marksTold: null, promise: null };
+    }
   }
 
   // Promesse tenue : prioritaire sur le point d'étape, parce qu'elle a une date de péremption.

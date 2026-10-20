@@ -183,3 +183,28 @@ describe("firstSeriesOfSubject", () => {
     expect(firstSeriesOfSubject([])).toBeNull();
   });
 });
+
+describe("decideNarrative — vision, périmètre borné", () => {
+  const twoEpisodes = [p("2026-01-05", null, "e1"), p("2026-01-07", null, "e2")];
+
+  it("ne lit que 12 décisions au plus", () => {
+    const vingt = Array.from({ length: 20 }, (_, i) => ev(`d${i}`, `2026-02-${String(i + 1).padStart(2, "0")}`, "decision"));
+    const d = decideNarrative(input({ written: twoEpisodes, events: vingt }));
+    expect(d?.kind).toBe("vision");
+    expect(d?.eventIds).toHaveLength(12);
+  });
+
+  it("garde les décisions les plus RÉCENTES : où ça va se dit par ce qui vient d'être décidé", () => {
+    const vingt = Array.from({ length: 20 }, (_, i) => ev(`d${i}`, `2026-02-${String(i + 1).padStart(2, "0")}`, "decision"));
+    const ids = decideNarrative(input({ written: twoEpisodes, events: vingt }))?.eventIds ?? [];
+    expect(ids).toContain("d19");
+    expect(ids).not.toContain("d0");
+  });
+
+  it("les rend dans l'ordre du temps, la plus ancienne d'abord", () => {
+    const vingt = Array.from({ length: 20 }, (_, i) => ev(`d${i}`, `2026-02-${String(i + 1).padStart(2, "0")}`, "decision"));
+    const ids = decideNarrative(input({ written: twoEpisodes, events: vingt }))?.eventIds ?? [];
+    expect(ids[0]).toBe("d8");
+    expect(ids[ids.length - 1]).toBe("d19");
+  });
+});

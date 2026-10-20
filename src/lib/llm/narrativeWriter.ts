@@ -99,6 +99,7 @@ const WHAT_MAKES_A_POST: Record<NarrativeKind, string> = {
 - It does not say the project will fix it. It says why it could not be left alone.
 </what_makes_a_post>`,
   vision: `<what_makes_a_post>
+- The backbone of this post is ALREADY WRITTEN, in the author's own words, in <scope>: what they are building, who it is for, the problem it solves. Those three sentences are the post. The decisions below are not the subject — they are what stops it from being a pitch.
 - It says where this is going and for whom, and every claim about the future rests on a decision that was actually taken.
 - It starts from one of those decisions, told concretely: what was chosen, and what was given up to choose it. What is given up is what makes a vision credible.
 - No roadmap, no dates, no numbers promised. "Next quarter", "by summer", "10,000 users" do not appear.
@@ -290,7 +291,11 @@ export async function writeNarrativePost(context: NarrativeWriterContext): Promi
     messages: [{ role: "user", content: buildNarrativeWriterUserMessage(context) }],
     tools: buildTools(context, parts.length),
     maxTokens: 4096,
-    maxTurns: 14,
+    // Le plafond suit la matière : lire une partie coûte un tour, et il faut qu'il en reste pour
+    // trois brouillons et deux soumissions. Une constante à 14 rendait certains périmètres
+    // littéralement impossibles — 17 parties à lire, 14 tours, aucune soumission jamais
+    // (constaté en réel le 2026-10-20 sur la vision).
+    maxTurns: Math.min(40, 10 + parts.length * 2),
     effort: "medium",
     onToolCall: async ({ name, input }) => {
       if (name === READ_SOURCE_TOOL) {
