@@ -11,6 +11,7 @@ import {
   unique,
   uniqueIndex,
   vector,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 
@@ -19,6 +20,10 @@ export const scriptStatusEnum = pgEnum("script_status", ["draft", "planned", "sh
 // The animation of a visual post is not one: it is a visualFormat.
 export const contentTypeEnum = pgEnum("content_type", ["visual", "text"]);
 export const calendarStatusEnum = pgEnum("calendar_status", ["planned", "shot", "published", "generating"]);
+// Narrative thread (docs/SPEC_FIL_NARRATIF.md §11): a post is either an episode — one event, the
+// default — or one of the four story posts that hold the series together.
+export const calendarEntryKindEnum = pgEnum("calendar_entry_kind", ["event", "narrative"]);
+export const narrativeKindEnum = pgEnum("narrative_kind", ["origin", "vision", "checkpoint", "promise"]);
 export const assistantProposalKindEnum = pgEnum("assistant_proposal_kind", [
   "product_create",
   "product_update",
@@ -688,12 +693,19 @@ export const scripts = pgTable("scripts", {
   // Explicit promises made by this script to the audience (Annexe B.6) — consolidated in
   // NarrativeState.openPromises when moving to "published" (§5, Lot B4).
   promisesMade: jsonb("promises_made").notNull().default([]),
-  // EXACT text of the open promise this post honours, chosen by the chief at the day choice
-  // (direction.promiseToHonor, §3.3) — absent from the spec's §2 model, but needed to remove
-  // the promise from openPromises when moving to "published" (§5): this link must survive between
-  // generation and a later publication, potentially in an entirely different session. Null if
-  // this post honours no promise.
+  // EXACT text of the promise this post honours (docs/SPEC_FIL_NARRATIF.md §8) — written on a
+  // narrativeKind="promise" post. It is what closes the promise: a promise whose text already
+  // appears in a promiseHonored is never a candidate again. Null on every other post.
   promiseHonored: text("promise_honored"),
+  // The post that made the honoured promise (§8). SET NULL: deleting the older post does not
+  // erase the one that kept its word.
+  promiseSourceScriptId: uuid("promise_source_script_id").references((): AnyPgColumn => scripts.id, { onDelete: "set null" }),
+  // Pairing found by the material re-read (§8), carried on the script that MADE the promise:
+  // { promise, eventId }. Read when the next post is written, emptied once the promise post
+  // exists. Avoids one model call on every write.
+  promiseMatch: jsonb("promise_match"),
+  // Story post rather than episode (§5). Null = episode, the default.
+  narrativeKind: narrativeKindEnum("narrative_kind"),
   hookVisual: text("hook_visual"),
   hookText: text("hook_text"),
   storyboard: jsonb("storyboard"),
@@ -972,6 +984,12 @@ export const calendarEntries = pgTable("calendar_entries", {
   contentCategoryId: uuid("content_category_id").notNull().references(() => contentCategories.id),
   seriesId: uuid("series_id").references(() => contentSeries.id, { onDelete: "set null" }),
   status: calendarStatusEnum("status").notNull().default("planned"),
+  // What this slot turned out to be (docs/SPEC_FIL_NARRATIF.md §9): written AT WRITE TIME, as the
+  // TRACE of the decision — not a prediction made when the slot was created, since the rank of a
+  // post is unknown 28 days ahead. It is what makes the second network of the same post and
+  // "another idea, same brief" come back on the same type.
+  kind: calendarEntryKindEnum("kind").notNull().default("event"),
+  narrativeKind: narrativeKindEnum("narrative_kind"),
   // When the slot was marked « generating »: a slot still loading ten minutes later (server restarted
   // mid-write) goes back to « planned » — see startRecovery.ts.
   generatingSince: timestamp("generating_since"),
