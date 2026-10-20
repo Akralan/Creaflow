@@ -35,6 +35,7 @@ export const MAX_EXCERPT_CHARS = 300;
 export const LIST_DOCUMENTS_TOOL = "list_documents";
 export const READ_DOCUMENT_TOOL = "read_document";
 export const SAVE_EVENT_TOOL = "save_event";
+export const COMPLETE_EVENT_TOOL = "complete_event";
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -46,11 +47,27 @@ export const saveEventInputSchema = z.object({
   whatHappened: z.string().trim().min(1).max(1500),
   whatChanged: z.string().trim().max(1000),
   kind: z.enum(EVENT_KINDS),
-  audiences: z.array(z.string().trim().min(1)).max(5),
+  audienceAngles: z
+    .array(z.object({ audience: z.string().trim().min(1), whatItChanges: z.string().trim().min(1).max(400) }))
+    .max(5),
   sourceMaterialId: z.string().trim().min(1),
   excerpt: z.string().trim().min(1).max(MAX_EXCERPT_CHARS * 2),
 });
 export type SaveEventInput = z.infer<typeof saveEventInputSchema>;
+
+/** Compléter un événement déjà enregistré : tout est facultatif sauf l'id. */
+export const completeEventInputSchema = z.object({
+  id: z.string().trim().min(1),
+  date: z.string().trim().optional(),
+  datePrecision: z.enum(DATE_PRECISIONS).optional(),
+  whatChanged: z.string().trim().max(1000).optional(),
+  excerpt: z.string().trim().min(1).max(MAX_EXCERPT_CHARS * 2).optional(),
+  audienceAngles: z
+    .array(z.object({ audience: z.string().trim().min(1), whatItChanges: z.string().trim().min(1).max(400) }))
+    .max(5)
+    .optional(),
+});
+export type CompleteEventInput = z.infer<typeof completeEventInputSchema>;
 
 export interface NormalizedEventDate {
   date: string | null;
@@ -110,10 +127,24 @@ export function splitDocumentIntoParts(text: string, partChars = DOCUMENT_PART_C
 }
 
 export function buildEventReaderTools(params: { audienceLabels: string[] }): LlmToolDefinition[] {
-  const audienceProperty =
-    params.audienceLabels.length > 0
-      ? { type: "array", items: { type: "string", enum: params.audienceLabels }, description: "The subject's audiences for whom this event is interesting. Empty if you don't know." }
-      : { type: "array", items: { type: "string" }, description: "Empty: no audience is defined yet for this subject." };
+  // Le public est borné par le schéma quand le portrait existe : le code ne fait pas confiance au
+  // modèle sur une étiquette (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §3).
+  const audienceAnglesProperty = {
+    type: "array",
+    description:
+      "One entry per audience this fact speaks to: what it changes FOR THEM, in THEIR words. Empty array when it changes nothing for anyone — a normal answer, not a failure.",
+    items: {
+      type: "object",
+      properties: {
+        audience: params.audienceLabels.length > 0 ? { type: "string", enum: params.audienceLabels } : { type: "string" },
+        whatItChanges: {
+          type: "string",
+          description: "One sentence, in this audience's words, of the consequence for them. Not the mechanism, not a rewording of the title.",
+        },
+      },
+      required: ["audience", "whatItChanges"],
+    },
+  };
 
   return [
     {
@@ -146,11 +177,28 @@ export function buildEventReaderTools(params: { audienceLabels: string[] }): Llm
           whatHappened: { type: "string", description: "2 to 5 sentences: the facts, with the numbers and names as they are in the text. Nothing else. Written in English." },
           whatChanged: { type: "string", description: "What it changed afterwards according to the text (a decision, an abandonment, a number that moves). Empty string if the text doesn't say. Written in English." },
           kind: { type: "string", enum: [...EVENT_KINDS], description: "failure: something broke or failed. decision: a choice made. result: a measurement, a number. feedback: what a person said or did. milestone: a step crossed, a first time." },
-          audiences: audienceProperty,
+          audienceAngles: audienceAnglesProperty,
           sourceMaterialId: { type: "string", description: "Id of the document where the event is found." },
           excerpt: { type: "string", description: `The exact passage from the document that proves the event, copied as is (in its original language), ${MAX_EXCERPT_CHARS} characters at most.` },
         },
-        required: ["date", "datePrecision", "title", "whatHappened", "whatChanged", "kind", "audiences", "sourceMaterialId", "excerpt"],
+        required: ["date", "datePrecision", "title", "whatHappened", "whatChanged", "kind", "audienceAngles", "sourceMaterialId", "excerpt"],
+      },
+    },
+    {
+      name: COMPLETE_EVENT_TOOL,
+      description:
+        "Completes an event you already saved, when the document you are reading now tells it better. Only send the fields you are improving.",
+      input_schema: {
+        type: "object",
+        properties: {
+          id: { type: "string", description: "Id of the event to complete, as the already-saved list gives it." },
+          date: { type: "string", description: "YYYY-MM-DD, if this document dates a fact that had no date." },
+          datePrecision: { type: "string", enum: [...DATE_PRECISIONS], description: "Precision of the date you are adding." },
+          whatChanged: { type: "string", description: "The follow-up this document gives, if the first one did not." },
+          excerpt: { type: "string", description: "A passage that proves it better, copied as is from this document." },
+          audienceAngles: audienceAnglesProperty,
+        },
+        required: ["id"],
       },
     },
   ];
@@ -160,16 +208,23 @@ export interface EventReaderPromptContext {
   brandName: string;
   subjectName: string;
   subjectDescription: string | null;
-  audiences: Array<{ label: string; who: string }>;
+  audiences: Array<{ label: string; who: string; wants: string; stopsFor: string; turnsOff: string; words: string[] }>;
   unreadDocuments: number;
   alreadyReadDocuments: number;
-  existingEvents: Array<{ date: string | null; title: string }>;
+  /** Avec leur id : c'est ce qui permet de compléter plutôt que de sauter un doublon. */
+  existingEvents: Array<{ id: string; date: string | null; title: string }>;
 }
 
 export function buildEventReaderSystemPrompt(context: EventReaderPromptContext): string {
   return `You are the material reader for ${context.brandName}, on the subject "${context.subjectName}". You read everything that was uploaded and extract the events from it: what happened, when, and what it changed. You never write a post: others will use your events to tell the story.
 
-An event is a precise moment: a failure, a decision, a measured result, something a person said or did, a step crossed. It is neither a theme, nor a feature, nor a description of how the system works. "The first tester drops the controller after 40 seconds because the jump feels mushy", never "The test" nor "The jump mechanic". (Fictional example: never reuse it.)
+An event is a fact that CHANGES SOMETHING FOR SOMEONE. Before saving anything, the question is always the same: does this fact change something for someone in the audiences below? If it changes nothing for anyone, it is not an event, however true it may be.
+
+It is a precise moment, not a theme and not a feature: "The first tester drops the controller after 40 seconds because the jump feels mushy", never "The test" nor "The jump mechanic". (Fictional example: never reuse it.)
+
+A technical document can perfectly well contain events, and some of the best ones. What matters is not where the fact comes from, it is whether it changes something for someone. "Nothing the camera films ever leaves the phone, the server only receives degrees" comes from a privacy document and it changes everything for someone who worries about their patients. "The angle series are stored in a JSONB column" comes from the same kind of document and changes nothing for anyone: it is not an event.
+
+For each audience the fact speaks to, you write ONE line: what it changes FOR THEM, in THEIR words. The same fact becomes "the counter follows the patient with no lag" for one and "200 ms response time" for another. That line is what the writer will start from, so it is never a translation of the title: it says the consequence, not the mechanism. No audience it speaks to: empty list, and that is a normal answer.
 
 All the text you write (titles, descriptions) is in English, even if the documents are in another language. Only the excerpt stays in the document's own words.
 
@@ -185,12 +240,12 @@ All the text you write (titles, descriptions) is in English, even if the documen
 - The date is the one the text gives. A dated log: the date of the entry (precision day). A text that says "in March": the month (precision month). Technical docs without a date: unknown, even if you have a hunch. "Last updated: October 2026" dates the document, not what it reports: a fact taken from such a doc is unknown, unless the text gives it its own date.
 - In a log, every dated entry that reports something is an event: don't skip one because it looks small. The very first moment of a project (the conversation or realization that triggered it, the first prototype) is an event, and often the most important.
 - The same document can yield several events on the same date if it tells several things that day (a decision and a failure, for example).
-- Technical docs describing how the system works contain no event, except what they report as having happened: a measurement ("4% false positives over 120 repetitions"), an abandonment ("status: abandoned"), a threshold chosen after a test. In that case save it, with precision unknown if nothing dates it.
+- A document that describes how the system works yields an event every time one of its facts changes something for one of the audiences — a guarantee, a constraint they will feel, a number that settles a doubt, a choice made and what it gave up. With precision unknown if nothing dates it. What it does not yield: plumbing nobody feels.
 - A commit log: not one event per commit. Group them, and keep what tells something: a decision, a failure, a number, an abandonment, a first time. A plain "add page X" is not an event.
-- An event already saved (list below) is not saved again, even if another document tells it. Skip it.
+- An event already saved (list below) is told better by the document you are reading now? ${COMPLETE_EVENT_TOOL} it: add the date it was missing, what it changed, a closer excerpt, one more audience. Don't save it twice, and don't skip the better version either — the most precise framing wins, not the first one read.
 - whatChanged gives the follow-up that the text gives ("a week later, the 45° camera is mandatory"). If the text says nothing, empty string: don't guess.
 - excerpt is copied as is from the document, ${MAX_EXCERPT_CHARS} characters at most. It is the proof. A passage that can't be found gets the event refused: copy again shorter and more exactly.
-- audiences: only among the listed audiences. Empty if none stands out.
+- audienceAngles: only audiences from the list below, and for each one the line of what this fact changes for them, in their words. Empty when the fact changes nothing for anyone.
 </rules>`;
 }
 
@@ -198,17 +253,31 @@ export function buildEventReaderUserMessage(context: EventReaderPromptContext): 
   const lines: string[] = [];
   lines.push(`Subject: ${context.subjectName}${context.subjectDescription ? ` — ${context.subjectDescription}` : ""}`);
   if (context.audiences.length > 0) {
-    lines.push("Subject audiences:");
-    for (const a of context.audiences) lines.push(`- ${a.label}: ${a.who}`);
+    // Le portrait COMPLET, pas l'étiquette : c'est avec ça que se décide « est-ce que ce fait change
+    // quelque chose pour lui », et c'est dans ses mots que s'écrit la ligne qui lui est destinée.
+    lines.push("Subject audiences — for each one, you may write a line of what a fact changes for them:");
+    for (const a of context.audiences) {
+      lines.push(
+        [
+          `- ${a.label}: ${a.who}`,
+          a.wants ? `  Comes looking for: ${a.wants}` : null,
+          a.stopsFor ? `  Stops for: ${a.stopsFor}` : null,
+          a.turnsOff ? `  Turned off by: ${a.turnsOff}` : null,
+          a.words.length ? `  Their words: ${a.words.join(", ")}` : null,
+        ]
+          .filter((l): l is string => l !== null)
+          .join("\n")
+      );
+    }
   } else {
-    lines.push("Subject audiences: none defined for now (leave audiences empty).");
+    lines.push("Subject audiences: none defined for now (leave audienceAngles empty).");
   }
   lines.push(
     `Documents to read: ${context.unreadDocuments}.${context.alreadyReadDocuments > 0 ? ` Already read in a previous pass: ${context.alreadyReadDocuments}, don't read them again.` : ""}`
   );
   if (context.existingEvents.length > 0) {
     lines.push(`Events already saved (${context.existingEvents.length}), not to be redone:`);
-    for (const e of context.existingEvents) lines.push(`- ${e.date ?? "unknown date"}: ${e.title}`);
+    for (const e of context.existingEvents) lines.push(`- [${e.id}] ${e.date ?? "unknown date"}: ${e.title}`);
   } else {
     lines.push("No event saved for now.");
   }

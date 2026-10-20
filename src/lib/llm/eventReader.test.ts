@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildEventReaderSystemPrompt,
   buildEventReaderTools,
+  buildEventReaderUserMessage,
+  COMPLETE_EVENT_TOOL,
   datedEntryCount,
   excerptIsInDocument,
   maxTurnsForReading,
@@ -110,50 +113,84 @@ describe("maxTurnsForReading", () => {
   });
 });
 
-describe("saveEventInputSchema", () => {
-  it("accepte ce que le modèle est censé envoyer", () => {
-    const parsed = saveEventInputSchema.safeParse({
-      date: "2026-03-07",
-      datePrecision: "day",
-      title: "Marion arrête la démo au bout de 40 secondes",
-      whatHappened: "De profil, le squelette saute sur le genou.",
-      whatChanged: "",
-      kind: "feedback",
-      audiences: ["Kinés du sport"],
-      sourceMaterialId: "doc-1",
-      excerpt: "Elle a arrêté au bout de 40 secondes",
-    });
-    expect(parsed.success).toBe(true);
+describe("prompt du lecteur d'événements", () => {
+  const ctx = () => ({
+    brandName: "Alix",
+    subjectName: "MyKiné",
+    subjectDescription: "Le patient fait ses exercices devant la caméra de son téléphone.",
+    audiences: [
+      {
+        label: "Kinés du sport",
+        who: "des kinés libéraux en cabinet",
+        wants: "savoir ce que font leurs patients entre deux séances",
+        stopsFor: "un patient qui tient trois semaines",
+        turnsOff: "le vocabulaire technique",
+        words: ["séance", "amplitude"],
+      },
+    ],
+    unreadDocuments: 2,
+    alreadyReadDocuments: 0,
+    existingEvents: [],
   });
 
-  it("refuse un type d'événement inconnu", () => {
-    const parsed = saveEventInputSchema.safeParse({
-      date: "",
-      datePrecision: "unknown",
-      title: "x",
-      whatHappened: "y",
-      whatChanged: "",
-      kind: "anecdote",
-      audiences: [],
-      sourceMaterialId: "doc-1",
-      excerpt: "z",
-    });
-    expect(parsed.success).toBe(false);
+  it("donne le portrait complet de chaque public, pas seulement son étiquette", () => {
+    const msg = buildEventReaderUserMessage(ctx());
+    expect(msg).toContain("Comes looking for: savoir ce que font leurs patients");
+    expect(msg).toContain("Turned off by: le vocabulaire technique");
+    expect(msg).toContain("Their words: séance, amplitude");
+  });
+
+  it("autorise explicitement un document technique à rendre des événements", () => {
+    expect(buildEventReaderSystemPrompt(ctx())).toContain("A technical document can perfectly well contain events");
+  });
+
+  it("pose la bonne question : ce fait change-t-il quelque chose pour quelqu'un", () => {
+    expect(buildEventReaderSystemPrompt(ctx())).toContain("does this fact change something for someone");
+  });
+
+  it("dit que compléter vaut mieux qu'écarter un doublon", () => {
+    expect(buildEventReaderSystemPrompt(ctx())).toContain(COMPLETE_EVENT_TOOL);
   });
 });
 
-describe("buildEventReaderTools", () => {
-  it("restreint les publics à ceux du portrait quand il existe", () => {
-    const tools = buildEventReaderTools({ audienceLabels: ["Kinés du sport", "Devs santé"] });
-    const save = tools.find((t) => t.name === "save_event")!;
-    const audiences = save.input_schema.properties.audiences as { items: { enum?: string[] } };
-    expect(audiences.items.enum).toEqual(["Kinés du sport", "Devs santé"]);
+describe("saveEventInputSchema — angles par public", () => {
+  const base = {
+    date: "2026-03-07",
+    datePrecision: "day" as const,
+    title: "Marion arrête la démo au bout de 40 secondes",
+    whatHappened: "De profil, le squelette saute sur le genou.",
+    whatChanged: "",
+    kind: "feedback" as const,
+    sourceMaterialId: "doc-1",
+    excerpt: "Elle a arrêté au bout de 40 secondes",
+  };
+
+  it("accepte des angles par public", () => {
+    const parsed = saveEventInputSchema.safeParse({ ...base, audienceAngles: [{ audience: "Kinés du sport", whatItChanges: "de trois quarts face, le genou reste visible" }] });
+    expect(parsed.success).toBe(true);
   });
 
-  it("laisse les publics libres mais vides sans portrait", () => {
-    const tools = buildEventReaderTools({ audienceLabels: [] });
+  it("accepte une liste d'angles vide : « personne » est une réponse normale", () => {
+    expect(saveEventInputSchema.safeParse({ ...base, audienceAngles: [] }).success).toBe(true);
+  });
+
+  it("refuse un angle sans texte", () => {
+    expect(saveEventInputSchema.safeParse({ ...base, audienceAngles: [{ audience: "Kinés du sport", whatItChanges: "" }] }).success).toBe(false);
+  });
+});
+
+describe("outils du lecteur", () => {
+  it("expose complete_event avec l'id de l'événement à compléter", () => {
+    const tools = buildEventReaderTools({ audienceLabels: ["Kinés du sport"] });
+    expect(tools.map((t) => t.name)).toContain(COMPLETE_EVENT_TOOL);
+    const complete = tools.find((t) => t.name === COMPLETE_EVENT_TOOL)!;
+    expect(complete.input_schema.required).toContain("id");
+  });
+
+  it("borne les publics des angles à ceux du portrait", () => {
+    const tools = buildEventReaderTools({ audienceLabels: ["Kinés du sport"] });
     const save = tools.find((t) => t.name === "save_event")!;
-    const audiences = save.input_schema.properties.audiences as { items: { enum?: string[] } };
-    expect(audiences.items.enum).toBeUndefined();
+    const angles = save.input_schema.properties.audienceAngles as { items: { properties: { audience: { enum?: string[] } } } };
+    expect(angles.items.properties.audience.enum).toEqual(["Kinés du sport"]);
   });
 });

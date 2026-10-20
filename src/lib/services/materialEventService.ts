@@ -18,6 +18,8 @@ import {
   MAX_EXCERPT_CHARS,
   normalizeEventDate,
   READ_DOCUMENT_TOOL,
+  COMPLETE_EVENT_TOOL,
+  completeEventInputSchema,
   SAVE_EVENT_TOOL,
   saveEventInputSchema,
   splitDocumentIntoParts,
@@ -27,6 +29,7 @@ import {
 import { parseStoredReaderPortrait } from "@/lib/llm/readerPortrait";
 import { matchPromiseToEvent } from "@/lib/llm/promiseMatch";
 import { candidateEvents, matchIsStillOpen, openPromises } from "@/lib/narrative/promises";
+import { audiencesOf, parseAudienceAngles } from "@/lib/narrative/audience";
 import { toIsoDate } from "@/lib/seriesRhythm";
 import { ApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
@@ -168,7 +171,7 @@ export async function readEventsForSubject(userId: string, productId: string): P
     }),
     db.query.materialEvents.findMany({
       where: and(eq(materialEvents.userId, userId), eq(materialEvents.productId, productId)),
-      columns: { date: true, title: true },
+      columns: { id: true, date: true, title: true },
       orderBy: [sql`${materialEvents.date} asc nulls last`, asc(materialEvents.createdAt)],
     }),
   ]);
@@ -193,7 +196,7 @@ export async function readEventsForSubject(userId: string, productId: string): P
     brandName: profile?.brandName ?? "l'auteur",
     subjectName: product.name,
     subjectDescription: product.description,
-    audiences: readers.map((r) => ({ label: r.label, who: r.who })),
+    audiences: readers.map((r) => ({ label: r.label, who: r.who, wants: r.wants, stopsFor: r.stopsFor, turnsOff: r.turnsOff, words: r.words })),
     unreadDocuments: unread.length,
     alreadyReadDocuments: allDocs.length - unread.length,
     existingEvents: existingEvents.slice(0, 150),
@@ -257,11 +260,9 @@ export async function readEventsForSubject(userId: string, productId: string): P
           eventsRejected++;
           throw new Error("Excerpt not found in the document: copy it verbatim, without rephrasing, shorter if needed.");
         }
-        const unknownAudiences = data.audiences.filter((a) => !audienceLabels.includes(a));
-        if (unknownAudiences.length > 0) {
-          eventsRejected++;
-          throw new Error(`Unknown audience: ${unknownAudiences.join(", ")}. Possible audiences: ${audienceLabels.join(", ") || "none"}.`);
-        }
+        // Un angle qui nomme un public absent du portrait est retiré, pas fatal : le modèle peut
+        // inventer une étiquette, ça ne doit pas coûter l'événement (SPEC_EVENEMENTS_PAR_CIBLE §3).
+        const angles = parseAudienceAngles(data.audienceAngles, audienceLabels);
         let normalized;
         try {
           normalized = normalizeEventDate(data.date, data.datePrecision);
@@ -280,7 +281,9 @@ export async function readEventsForSubject(userId: string, productId: string): P
             whatHappened: data.whatHappened,
             whatChanged: data.whatChanged || null,
             kind: data.kind,
-            audiences: data.audiences,
+            audiences: audiencesOf(angles),
+            audienceAngles: angles,
+            qualifiedAt: new Date(),
             sourceMaterialId: doc.id,
             excerpt: data.excerpt,
             origin: "reader",
@@ -288,6 +291,48 @@ export async function readEventsForSubject(userId: string, productId: string): P
           .returning({ id: materialEvents.id });
         eventsSaved++;
         return { saved: true, id: row.id, note: "Saved. Keep reading." };
+      }
+
+      if (name === COMPLETE_EVENT_TOOL) {
+        const parsed = completeEventInputSchema.safeParse(input);
+        if (!parsed.success) {
+          throw new Error(`Completion refused: ${parsed.error.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`);
+        }
+        const patch = parsed.data;
+        // L'événement doit appartenir à ce sujet et à cet utilisateur : un id pris ailleurs est
+        // refusé et renvoyé au modèle, jamais appliqué.
+        const existing = await db.query.materialEvents.findFirst({
+          where: and(eq(materialEvents.id, patch.id), eq(materialEvents.userId, userId), eq(materialEvents.productId, productId)),
+        });
+        if (!existing) throw new Error("Unknown event id: take it from the already-saved list of THIS subject.");
+
+        const set: Partial<typeof materialEvents.$inferInsert> = { updatedAt: new Date() };
+        if (patch.date !== undefined && patch.datePrecision !== undefined) {
+          const normalized = normalizeEventDate(patch.date, patch.datePrecision);
+          set.date = normalized.date;
+          set.datePrecision = normalized.datePrecision;
+        }
+        if (patch.whatChanged !== undefined && patch.whatChanged) set.whatChanged = patch.whatChanged;
+        if (patch.excerpt !== undefined) {
+          const doc = [...docsById.values()].find((d) => excerptIsInDocument(patch.excerpt as string, d.rawText));
+          if (!doc) throw new Error("Excerpt not found in any document you are reading: copy it verbatim.");
+          set.excerpt = patch.excerpt;
+          set.sourceMaterialId = doc.id;
+        }
+        if (patch.audienceAngles !== undefined) {
+          // Les angles s'ajoutent aux existants : un second document peut parler à un public de plus.
+          const merged = [...parseAudienceAngles(existing.audienceAngles, audienceLabels)];
+          for (const angle of parseAudienceAngles(patch.audienceAngles, audienceLabels)) {
+            const at = merged.findIndex((m) => m.audience === angle.audience);
+            if (at === -1) merged.push(angle);
+            else merged[at] = angle;
+          }
+          set.audienceAngles = merged;
+          set.audiences = audiencesOf(merged);
+          set.qualifiedAt = new Date();
+        }
+        await db.update(materialEvents).set(set).where(eq(materialEvents.id, patch.id));
+        return { completed: true, note: "Completed. Keep reading." };
       }
 
       throw new Error(`Unknown tool: ${name}`);
