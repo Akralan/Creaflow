@@ -80,7 +80,7 @@ describe("repetition checks", () => {
   });
   const card = (hook: string, hookKind: string | null) => ({ createdAt: "", platform: "linkedin", readerLabel: null, moment: null, hook, hookKind, ending: null });
   const ctx = (recentPosts: ReturnType<typeof card>[]) => ({ platform: "linkedin", contentType: "text" as const, materialTexts: [], avoid: [], recentPosts });
-  const post = (hookText: string) => ({ title: "T", hookText, caption: body, hashtags: [], usedExcerpts: [] });
+  const post = (hookText: string) => ({ title: "T", hookText, caption: body, hashtags: [], usedExcerpts: [], promisesMade: [] });
 
   it("rejects a hook that reuses the opening of a recent post", () => {
     const failures = checkGeneratedPost(post("I deleted 4,000 lines this month."), null, ctx([card("I deleted 4,000 lines this week.", null)]));

@@ -21,6 +21,8 @@ export interface CheckablePost {
   caption: string;
   hashtags: string[];
   usedExcerpts: string[];
+  /** Sentences where the author commits to a future fact (docs/SPEC_FIL_NARRATIF.md §8), copied as they appear. */
+  promisesMade: string[];
 }
 
 export interface CheckContext {
@@ -140,6 +142,20 @@ function citationFailures(post: CheckablePost, ctx: CheckContext): string[] {
   return found ? [] : ["None of the usedExcerpts quotes can be found in the material: quote the passages word for word."];
 }
 
+/**
+ * A declared promise must really be in the post (docs/SPEC_FIL_NARRATIF.md §8): it is what a later
+ * "promise kept" post will quote word for word. Same tolerance as the citations: only a post whose
+ * declared promises are ALL absent is sent back, so a light rewording still passes.
+ */
+function promiseFailures(post: CheckablePost): string[] {
+  if (post.promisesMade.length === 0) return [];
+  const text = postTextFields(post)
+    .map((f) => f.text)
+    .join("\n");
+  const found = post.promisesMade.some((promise) => findBestMatchInText(promise, text));
+  return found ? [] : ["None of the declared promisesMade can be found in the post: copy the sentences as they appear."];
+}
+
 function gapFailures(post: CheckablePost): string[] {
   const gaps = postTextFields(post).reduce((n, { text }) => n + (normalizeForCheck(text).match(GAP_RE) ?? []).length, 0);
   return gaps > MAX_GAPS ? [`${gaps} "[to be completed]", ${MAX_GAPS} at most.`] : [];
@@ -192,6 +208,7 @@ export function checkGeneratedPost(post: CheckablePost, prep: GenerationPrep | n
     ...bannedPhraseFailures(post, ctx.avoid),
     ...lengthFailures(post, ctx),
     ...citationFailures(post, ctx),
+    ...promiseFailures(post),
     ...gapFailures(post),
     ...repetitionFailures(post, prep, ctx.recentPosts ?? []),
     ...(storyboard?.reminder ? [storyboard.reminder] : []),

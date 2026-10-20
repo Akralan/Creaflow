@@ -10,8 +10,12 @@ const post = (overrides: Partial<CheckablePost> = {}): CheckablePost => ({
   caption: linkedinBody,
   hashtags: ["#refactor"],
   usedExcerpts: [],
+  promisesMade: [],
   ...overrides,
 });
+
+/** Le corps d'un post LinkedIn assez long pour passer les contrôles de longueur, plus une phrase. */
+const withSentence = (sentence: string) => `${linkedinBody} ${sentence}`;
 
 const ctx = (overrides: Partial<CheckContext> = {}): CheckContext => ({
   platform: "linkedin",
@@ -152,5 +156,27 @@ describe("language check", () => {
 
   it("checks nothing when no language is given", () => {
     expect(checkGeneratedPost(french, null, ctx()).some((f) => f.includes("must be written in"))).toBe(false);
+  });
+});
+
+describe("promesses déclarées", () => {
+  const promise = "La semaine prochaine je publie le chiffre.";
+
+  it("passe quand la phrase déclarée est dans le post", () => {
+    expect(checkGeneratedPost(post({ promisesMade: [promise], caption: withSentence(promise) }), null, ctx())).toEqual([]);
+  });
+
+  it("passe sur une reformulation légère", () => {
+    expect(checkGeneratedPost(post({ promisesMade: [promise], caption: withSentence("La semaine prochaine, je publie le chiffre !") }), null, ctx())).toEqual([]);
+  });
+
+  it("refuse quand aucune promesse déclarée n'est dans le post", () => {
+    expect(checkGeneratedPost(post({ promisesMade: ["Une phrase qui n'est nulle part."] }), null, ctx())).toContain(
+      "None of the declared promisesMade can be found in the post: copy the sentences as they appear."
+    );
+  });
+
+  it("ne dit rien quand aucune promesse n'est déclarée", () => {
+    expect(checkGeneratedPost(post({ promisesMade: [] }), null, ctx())).toEqual([]);
   });
 });
