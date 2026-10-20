@@ -9,6 +9,7 @@ import type { Reader } from "./readerPortrait";
 import type { SeriesForm } from "./seriesForm";
 import { storyboardStepSchema, type GeneratedScript } from "./scriptSchema";
 import { checkGeneratedPost, type CheckContext } from "./scriptChecks";
+import { reviewFailures, reviewForReader } from "./readerReview";
 import { splitDocumentIntoParts } from "./eventReader";
 import { buildFormatBlock, enforceStoryboardCount, type VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
 import { buildLanguageBlock, type PostLanguage } from "@/lib/language";
@@ -75,6 +76,13 @@ function formatEventDate(e: BriefEvent): string {
   const d = new Date(`${e.date}T00:00:00.000Z`);
   if (e.datePrecision === "month") return d.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
   return d.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+}
+
+/** Ce que le lecteur verra : le texte publié, jamais le titre interne ni les champs de travail. */
+export function postTextOf(script: GeneratedScript): string {
+  const slides = "storyboard" in script && Array.isArray(script.storyboard) ? script.storyboard.map((s) => s.description) : [];
+  const hook = "hookText" in script ? script.hookText : "hookVisual" in script ? script.hookVisual : null;
+  return [hook, ...slides, script.caption].filter(Boolean).join("\n\n");
 }
 
 export function eventLine(e: BriefEvent): string {
@@ -266,8 +274,14 @@ function buildTools(context: EventWriterContext, parts: number): LlmToolDefiniti
         properties: {
           draft: { type: "string", description: "The complete draft of the post text." },
           readerVerdict: { type: "string", description: "What the reader would say while reading it, in two or three sentences, in their words." },
-          keep: { type: "boolean", description: "True if this draft holds and can be submitted." },
-          why: { type: "string", description: "If keep is false: what's wrong, in one line, and what you change." },
+          unknownToReader: {
+            type: "array",
+            items: { type: "string" },
+            description:
+              "Every word, name or reference in this draft that this reader would not use themselves: a technical term, a tool or vendor name, a file, an address, a unit they do not use, an internal name. Go sentence by sentence. An empty list means you checked every sentence and found none — not that you did not look.",
+          },
+          keep: { type: "boolean", description: "True ONLY if unknownToReader is empty, or if every word in it is followed, in the same sentence, by what it changes for this reader." },
+          why: { type: "string", description: "Always: what you change if keep is false, or why it holds if keep is true. One line." },
         },
         required: ["draft", "readerVerdict", "keep", "why"],
       },
@@ -306,7 +320,7 @@ export interface EventWriterTrace {
   event: { id: string; title: string; date: string | null };
   /** Same shape as the V3 trace for the latest-posts memory (recentPosts.ts reads trace.reader.label). */
   reader: { label: string };
-  drafts: Array<{ draft: string; readerVerdict: string; keep: boolean; why: string }>;
+  drafts: Array<{ draft: string; readerVerdict: string; unknownToReader: string[]; keep: boolean; why: string }>;
   sourcePartsRead: number[];
   timelineRead: boolean;
   submissions: number;
@@ -370,7 +384,7 @@ export async function writeScriptFromEvent(context: EventWriterContext): Promise
       }
       if (name === REVIEW_DRAFT_TOOL) {
         const d = z
-          .object({ draft: z.string(), readerVerdict: z.string(), keep: z.boolean(), why: z.string().default("") })
+          .object({ draft: z.string(), readerVerdict: z.string(), unknownToReader: z.array(z.string()).default([]), keep: z.boolean(), why: z.string().default("") })
           .parse(input);
         drafts.push(d);
         if (d.keep) return { note: `Draft ${drafts.length} kept. Submit it with ${SUBMIT_POST_TOOL}.` };
@@ -388,7 +402,15 @@ export async function writeScriptFromEvent(context: EventWriterContext): Promise
         if (script.contentType === "visual") {
           script = { ...script, storyboard: enforceStoryboardCount(script.storyboard, context.visual).storyboard };
         }
-        const failures = checkGeneratedPost(script, null, checkContext);
+        // Les contrôles du code, puis le relecteur (prompt 29) : un appel SÉPARÉ qui ne voit que
+        // le lecteur et le texte, jamais la matière. Seulement à la première soumission — la
+        // seconde est acceptée de toute façon, le relire coûterait un appel pour rien.
+        const codeFailures = checkGeneratedPost(script, null, checkContext);
+        const readerFailures =
+          codeFailures.length === 0 && submissions.length === 0
+            ? reviewFailures(await reviewForReader({ reader: context.brief.reader, postText: postTextOf(script) }))
+            : [];
+        const failures = [...codeFailures, ...readerFailures];
         submissions.push({ script, failures });
         if (failures.length > 0 && submissions.length < MAX_SUBMISSIONS) {
           throw new Error(`Post rejected by the checks:\n${failures.map((f) => `- ${f}`).join("\n")}\nFix exactly these points and resubmit the complete post.`);

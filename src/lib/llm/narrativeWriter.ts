@@ -8,6 +8,7 @@ import type { Reader } from "./readerPortrait";
 import type { SeriesForm } from "./seriesForm";
 import type { GeneratedScript } from "./scriptSchema";
 import { checkGeneratedPost, type CheckContext } from "./scriptChecks";
+import { reviewFailures, reviewForReader } from "./readerReview";
 import { splitDocumentIntoParts } from "./eventReader";
 import {
   buildWriterContextSections,
@@ -15,6 +16,7 @@ import {
   MAX_DRAFTS,
   MAX_SUBMISSIONS,
   POST_FIELDS,
+  postTextOf,
   READ_SOURCE_TOOL,
   READ_TIMELINE_TOOL,
   REVIEW_DRAFT_TOOL,
@@ -73,7 +75,7 @@ const METHOD_PROMPT = `<method>
 You write ONE post for ONE person, from the events you are given and nothing else.
 1. Reread the material with ${READ_SOURCE_TOOL}: the documents those events come from, in full. That's where the true details are. ${READ_TIMELINE_TOOL} shows you your scope again, never more than it.
 2. Write a complete draft, for this one person, in the series form.
-3. Submit it to ${REVIEW_DRAFT_TOOL} with your honest verdict, phrased the way the reader would say it: do they read the second sentence? do they make it to the end? does it sound like the author, or like a marketing department? If the verdict is bad, say in one line what's wrong and start again at step 2. Three drafts at most.
+3. Submit it to ${REVIEW_DRAFT_TOOL} with your honest verdict, phrased the way the reader would say it: do they read the second sentence? do they make it to the end? does it sound like the author, or like a marketing department? And before judging, list in unknownToReader every word they would not use themselves — a draft that leaves one of them unexplained does not hold. If the verdict is bad, say in one line what's wrong and start again at step 2. Three drafts at most.
 4. When a draft holds, ${SUBMIT_POST_TOOL}. If the checks reject it, fix exactly what is flagged and resubmit.
 </method>`;
 
@@ -232,8 +234,14 @@ function buildTools(context: NarrativeWriterContext, parts: number): LlmToolDefi
         properties: {
           draft: { type: "string", description: "The complete draft of the post text." },
           readerVerdict: { type: "string", description: "What the reader would say while reading it, in two or three sentences, in their words." },
-          keep: { type: "boolean", description: "True if this draft holds and can be submitted." },
-          why: { type: "string", description: "If keep is false: what's wrong, in one line, and what you change." },
+          unknownToReader: {
+            type: "array",
+            items: { type: "string" },
+            description:
+              "Every word, name or reference in this draft that this reader would not use themselves: a technical term, a tool or vendor name, a file, an address, a unit they do not use, an internal name. Go sentence by sentence. An empty list means you checked every sentence and found none — not that you did not look.",
+          },
+          keep: { type: "boolean", description: "True ONLY if unknownToReader is empty, or if every word in it is followed, in the same sentence, by what it changes for this reader." },
+          why: { type: "string", description: "Always: what you change if keep is false, or why it holds if keep is true. One line." },
         },
         required: ["draft", "readerVerdict", "keep", "why"],
       },
@@ -251,7 +259,7 @@ export interface NarrativeWriterTrace {
   narrativeKind: NarrativeKind;
   scope: Array<{ id: string; title: string }>;
   reader: { label: string };
-  drafts: Array<{ draft: string; readerVerdict: string; keep: boolean; why: string }>;
+  drafts: Array<{ draft: string; readerVerdict: string; unknownToReader: string[]; keep: boolean; why: string }>;
   sourcePartsRead: number[];
   submissions: number;
   checks: { failures: string[]; retried: boolean };
@@ -317,7 +325,7 @@ export async function writeNarrativePost(context: NarrativeWriterContext): Promi
         return { promise: brief.promise.text, post: brief.promise.postText };
       }
       if (name === REVIEW_DRAFT_TOOL) {
-        const d = z.object({ draft: z.string(), readerVerdict: z.string(), keep: z.boolean(), why: z.string().default("") }).parse(input);
+        const d = z.object({ draft: z.string(), readerVerdict: z.string(), unknownToReader: z.array(z.string()).default([]), keep: z.boolean(), why: z.string().default("") }).parse(input);
         drafts.push(d);
         if (d.keep) return { note: `Draft ${drafts.length} kept. Submit it with ${SUBMIT_POST_TOOL}.` };
         if (drafts.length >= MAX_DRAFTS) return { note: `Three drafts: submit the best one with ${SUBMIT_POST_TOOL}, fixing what you noted.` };
@@ -334,7 +342,15 @@ export async function writeNarrativePost(context: NarrativeWriterContext): Promi
         if (script.contentType === "visual") {
           script = { ...script, storyboard: enforceStoryboardCount(script.storyboard, context.visual).storyboard };
         }
-        const failures = checkGeneratedPost(script, null, checkContext);
+        // Les contrôles du code, puis le relecteur (prompt 29) : un appel SÉPARÉ qui ne voit que
+        // le lecteur et le texte, jamais la matière. Seulement à la première soumission — la
+        // seconde est acceptée de toute façon, le relire coûterait un appel pour rien.
+        const codeFailures = checkGeneratedPost(script, null, checkContext);
+        const readerFailures =
+          codeFailures.length === 0 && submissions.length === 0
+            ? reviewFailures(await reviewForReader({ reader: context.brief.reader, postText: postTextOf(script) }))
+            : [];
+        const failures = [...codeFailures, ...readerFailures];
         submissions.push({ script, failures });
         if (failures.length > 0 && submissions.length < MAX_SUBMISSIONS) {
           throw new Error(`Post rejected by the checks:\n${failures.map((f) => `- ${f}`).join("\n")}\nFix exactly these points and resubmit the complete post.`);
