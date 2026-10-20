@@ -1,7 +1,7 @@
 import { after } from "next/server";
-import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { creatorProfiles, materialEvents, products, sourceMaterials } from "@/db/schema";
+import { calendarEntries, creatorProfiles, materialEvents, products, scripts, sourceMaterials } from "@/db/schema";
 import { callAgentic, callStructured } from "@/lib/llm/provider";
 import {
   buildEventReaderSystemPrompt,
@@ -23,6 +23,9 @@ import {
   type EventKind,
 } from "@/lib/llm/eventReader";
 import { parseStoredReaderPortrait } from "@/lib/llm/readerPortrait";
+import { matchPromiseToEvent } from "@/lib/llm/promiseMatch";
+import { candidateEvents, openPromises } from "@/lib/narrative/promises";
+import { toIsoDate } from "@/lib/seriesRhythm";
 import { ApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
 
@@ -301,6 +304,15 @@ export async function readEventsForSubject(userId: string, productId: string): P
     reply: result.reply,
   };
   logger.info("Event reading finished", { userId, productId, ...report, reply: undefined });
+  // De nouveaux événements, donc peut-être une promesse enfin tenable (docs/SPEC_FIL_NARRATIF.md §8).
+  // Jamais bloquant : une panne ici ne doit pas faire échouer une lecture qui a duré des minutes.
+  if (eventsSaved > 0) {
+    try {
+      await refreshPromiseMatches(userId, productId);
+    } catch (error) {
+      logger.error("Promise pairing failed after the material re-read", error, { userId, productId });
+    }
+  }
   return report;
 }
 
@@ -409,4 +421,55 @@ export async function countUnreadDocuments(userId: string, productId: string): P
     .from(sourceMaterials)
     .where(and(eq(sourceMaterials.userId, userId), eq(sourceMaterials.productId, productId), isNull(sourceMaterials.eventsReadAt)));
   return rows[0]?.n ?? 0;
+}
+
+/**
+ * Apparie les promesses encore ouvertes des posts publiés aux événements survenus depuis
+ * (docs/SPEC_FIL_NARRATIF.md §8). Tourne après chaque relecture de la matière, et pas à l'écriture
+ * d'un post : c'est ce qui évite un appel au modèle à chaque génération. Le résultat vit sur le
+ * script QUI A FAIT la promesse (`promiseMatch`), vidé quand le post de promesse tenue est écrit.
+ *
+ * Jamais bloquant : rendre 0 veut simplement dire « pas de promesse tenue à écrire ».
+ */
+export async function refreshPromiseMatches(userId: string, productId: string): Promise<number> {
+  const [published, honoredRows, toldRows, timeline, slots] = await Promise.all([
+    db.query.scripts.findMany({
+      where: and(eq(scripts.userId, userId), eq(scripts.productId, productId), eq(scripts.status, "published")),
+      columns: { id: true, title: true, hookText: true, hookVisual: true, caption: true, promisesMade: true, promiseMatch: true, createdAt: true },
+    }),
+    db.query.scripts.findMany({ where: and(eq(scripts.userId, userId), isNotNull(scripts.promiseHonored)), columns: { promiseHonored: true } }),
+    db.query.scripts.findMany({ where: and(eq(scripts.userId, userId), isNotNull(scripts.eventId)), columns: { eventId: true } }),
+    listEventsForSubject(userId, productId),
+    db.query.calendarEntries.findMany({ where: eq(calendarEntries.userId, userId), columns: { scriptId: true, scheduledDate: true } }),
+  ]);
+
+  const dateOfScript = new Map(slots.filter((s) => s.scriptId).map((s) => [s.scriptId as string, toIsoDate(s.scheduledDate)]));
+  const honored = honoredRows.map((r) => r.promiseHonored as string);
+  const told = toldRows.map((r) => r.eventId as string);
+  const byId = new Map(published.map((s) => [s.id, s]));
+
+  const posts = published
+    .filter((s) => !s.promiseMatch && Array.isArray(s.promisesMade) && s.promisesMade.length > 0)
+    .map((s) => ({ scriptId: s.id, date: dateOfScript.get(s.id) ?? toIsoDate(s.createdAt), promisesMade: s.promisesMade as string[] }));
+
+  let matched = 0;
+  // Une promesse par post : la plus ancienne ouverte. Les autres attendront leur tour.
+  const seen = new Set<string>();
+  for (const open of openPromises(posts, honored)) {
+    if (seen.has(open.scriptId)) continue;
+    seen.add(open.scriptId);
+    const post = byId.get(open.scriptId);
+    if (!post) continue;
+    const candidates = candidateEvents(timeline, open.date, told).map((e) => ({ id: e.id, date: e.date, title: e.title, whatHappened: e.whatHappened }));
+    const eventId = await matchPromiseToEvent({
+      promise: open.promise,
+      postText: [post.title, post.hookText, post.hookVisual, post.caption].filter(Boolean).join("\n"),
+      candidates,
+    });
+    if (!eventId) continue;
+    await db.update(scripts).set({ promiseMatch: { promise: open.promise, eventId } }).where(eq(scripts.id, open.scriptId));
+    matched += 1;
+  }
+  if (matched > 0) logger.info("Promises paired with an event", { userId, productId, matched });
+  return matched;
 }
