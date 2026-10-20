@@ -47,6 +47,41 @@ export interface NarrativeDecision {
   promise: { text: string; sourceScriptId: string } | null;
 }
 
+export interface SeriesCandidate {
+  id: string;
+  /** Millisecondes. Les séries proposées en fin d'onboarding les ont TOUTES identiques. */
+  createdAt: number;
+  /** Sans rythme, une série ne crée aucun créneau : elle ne peut pas porter le fil. */
+  hasRhythm: boolean;
+  archived: boolean;
+  /** Jour du premier post écrit de la série (YYYY-MM-DD), null si elle n'a rien écrit. */
+  firstPostDate: string | null;
+}
+
+/**
+ * La « première série d'un sujet » — celle qui porte l'origine et la vision (§7).
+ *
+ * Pas simplement la plus ancienne : les séries proposées en fin d'onboarding sont toutes créées dans
+ * la même insertion et portent la MÊME date à la microseconde, si bien qu'un tri par date désigne
+ * n'importe laquelle — y compris une série sans rythme qui n'écrira jamais rien, et l'origine ne
+ * sort alors jamais. D'où ces trois règles, dans l'ordre :
+ *
+ * 1. seules les séries vivantes qui publient (un rythme) sont candidates ;
+ * 2. si l'une publie déjà, c'est celle dont le premier post est le plus ancien — une fois le fil
+ *    commencé, il ne change plus de série ;
+ * 3. sinon la plus ancienne par date de création, l'identifiant tranchant les égalités pour que
+ *    deux exécutions donnent la même réponse.
+ */
+export function firstSeriesOfSubject(candidates: SeriesCandidate[]): string | null {
+  const alive = candidates.filter((c) => !c.archived && c.hasRhythm);
+  if (alive.length === 0) return null;
+  const publishing = alive.filter((c) => c.firstPostDate !== null);
+  if (publishing.length > 0) {
+    return publishing.sort((a, b) => (a.firstPostDate as string).localeCompare(b.firstPostDate as string) || a.id.localeCompare(b.id))[0].id;
+  }
+  return alive.sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id))[0].id;
+}
+
 /** Rang de la vision : laisse un épisode normal entre elle et l'origine. */
 const VISION_RANK = 3;
 /** Plancher entre deux points d'étape — un plancher, jamais une cadence. */

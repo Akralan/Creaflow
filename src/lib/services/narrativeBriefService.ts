@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { calendarEntries, contentSeries, materialEvents, scripts, sourceMaterials } from "@/db/schema";
 import { parseStoredSeriesForm } from "@/lib/llm/seriesForm";
 import { readersOfProduct } from "@/lib/services/seriesReaderService";
-import { decideNarrative, type NarrativeKind, type PlacementEvent, type PlacementPost } from "@/lib/narrative/placement";
+import { decideNarrative, firstSeriesOfSubject, type NarrativeKind, type PlacementEvent, type PlacementPost } from "@/lib/narrative/placement";
 import type { NarrativeBrief } from "@/lib/llm/narrativeWriter";
 import type { BriefEvent } from "@/lib/llm/eventWriter";
 import { toIsoDate } from "@/lib/seriesRhythm";
@@ -76,7 +76,7 @@ export async function planNarrativePost(userId: string, seriesId: string, slotDa
   const productId = series.productId;
   const slotIso = toIsoDate(slotDate);
 
-  const [events, seriesScripts, slots, siblings, userScripts] = await Promise.all([
+  const [events, seriesScripts, allSlots, siblings, userScripts] = await Promise.all([
     db.query.materialEvents.findMany({
       where: and(eq(materialEvents.userId, userId), eq(materialEvents.productId, productId)),
       orderBy: [sql`${materialEvents.date} asc nulls last`, asc(materialEvents.createdAt)],
@@ -85,17 +85,20 @@ export async function planNarrativePost(userId: string, seriesId: string, slotDa
       where: and(eq(scripts.userId, userId), eq(scripts.seriesId, seriesId)),
       columns: { id: true, eventId: true, narrativeKind: true, promiseHonored: true },
     }),
+    // Tous les créneaux écrits de l'auteur, pas seulement ceux de cette série : il faut savoir
+    // laquelle des séries du sujet a commencé à publier la première (§7).
     db.query.calendarEntries.findMany({
-      where: and(eq(calendarEntries.userId, userId), eq(calendarEntries.seriesId, seriesId), isNotNull(calendarEntries.scriptId)),
-      columns: { scriptId: true, scheduledDate: true },
+      where: and(eq(calendarEntries.userId, userId), isNotNull(calendarEntries.scriptId)),
+      columns: { scriptId: true, scheduledDate: true, seriesId: true },
     }),
-    db.query.contentSeries.findMany({ where: and(eq(contentSeries.userId, userId), eq(contentSeries.productId, productId)), columns: { id: true, archived: true, createdAt: true } }),
+    db.query.contentSeries.findMany({ where: and(eq(contentSeries.userId, userId), eq(contentSeries.productId, productId)), columns: { id: true, archived: true, createdAt: true, rhythm: true } }),
     db.query.scripts.findMany({
       where: and(eq(scripts.userId, userId), eq(scripts.productId, productId)),
       columns: { id: true, title: true, hookText: true, hookVisual: true, caption: true, promiseMatch: true, promiseHonored: true, createdAt: true },
     }),
   ]);
 
+  const slots = allSlots.filter((s) => s.seriesId === seriesId);
   const scriptById = new Map(seriesScripts.map((s) => [s.id, s]));
   const dateOfScript = new Map(slots.map((s) => [s.scriptId as string, toIsoDate(s.scheduledDate)]));
   // Le créneau qu'on écrit ne compte pas : sinon la version LinkedIn décalerait le rang de la version X.
@@ -106,7 +109,24 @@ export async function planNarrativePost(userId: string, seriesId: string, slotDa
   );
   const written = writtenPostsForPlacement(slots, placementScripts, slotIso);
 
-  const firstSeries = siblings.filter((s) => !s.archived).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())[0];
+  // Le premier post écrit de chaque série du sujet : c'est ce qui départage les séries nées d'un
+  // bloc en fin d'onboarding, toutes créées à la même microseconde.
+  const firstPostBySeries = new Map<string, string>();
+  for (const s of allSlots) {
+    if (!s.scriptId || !s.seriesId) continue;
+    const day = toIsoDate(s.scheduledDate);
+    const seen = firstPostBySeries.get(s.seriesId);
+    if (!seen || day < seen) firstPostBySeries.set(s.seriesId, day);
+  }
+  const firstSeriesId = firstSeriesOfSubject(
+    siblings.map((s) => ({
+      id: s.id,
+      createdAt: s.createdAt.getTime(),
+      hasRhythm: s.rhythm !== null,
+      archived: s.archived,
+      firstPostDate: firstPostBySeries.get(s.id) ?? null,
+    }))
+  );
 
   // Une promesse déjà tenue par un AUTRE post ne se retient plus ; tenue par ce créneau-ci, si :
   // c'est ainsi que la version X retrouve la promesse que la version LinkedIn vient d'honorer.
@@ -121,7 +141,7 @@ export async function planNarrativePost(userId: string, seriesId: string, slotDa
   const decision = decideNarrative({
     written,
     events: events.map(toPlacementEvent),
-    isFirstSeries: firstSeries?.id === seriesId,
+    isFirstSeries: firstSeriesId === seriesId,
     subject: { problem: series.product?.problem ?? null, valueProposition: series.product?.valueProposition ?? null },
     promiseMatch: candidate ? { promise: candidate.match!.promise, sourceScriptId: candidate.script.id, eventId: candidate.match!.eventId } : null,
   });

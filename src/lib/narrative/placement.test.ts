@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decideNarrative, postRank, type NarrativeKind, type PlacementEvent, type PlacementInput, type PlacementPost } from "./placement";
+import { decideNarrative, firstSeriesOfSubject, postRank, type NarrativeKind, type PlacementEvent, type PlacementInput, type PlacementPost, type SeriesCandidate } from "./placement";
 
 const p = (date: string, narrativeKind: NarrativeKind | null = null, eventId: string | null = null): PlacementPost => ({ date, narrativeKind, eventId });
 
@@ -130,5 +130,41 @@ describe("decideNarrative — promesse tenue", () => {
   it("préfère la promesse tenue au point d'étape quand les deux se déclenchent", () => {
     const events = [ev("e1", "2026-01-01"), ev("e2", "2026-01-02"), ev("e3", "2026-01-03"), ev("e4", "2026-01-04"), ev("e9", "2026-02-01")];
     expect(decideNarrative(input({ written: fourEpisodes, events, promiseMatch }))?.kind).toBe("promise");
+  });
+});
+
+describe("firstSeriesOfSubject", () => {
+  const s = (id: string, over: Partial<SeriesCandidate> = {}): SeriesCandidate => ({ id, createdAt: 1000, hasRhythm: true, archived: false, firstPostDate: null, ...over });
+
+  it("ignore une série sans rythme, même plus ancienne : elle ne publie rien", () => {
+    expect(firstSeriesOfSubject([s("sans", { createdAt: 1, hasRhythm: false }), s("devlog", { createdAt: 9 })])).toBe("devlog");
+  });
+
+  it("ignore une série retirée", () => {
+    expect(firstSeriesOfSubject([s("retiree", { createdAt: 1, archived: true }), s("devlog", { createdAt: 9 })])).toBe("devlog");
+  });
+
+  it("à date de création égale, prend celle qui publie déjà — le cas des séries créées d'un bloc", () => {
+    const candidates = [s("autre"), s("devlog", { firstPostDate: "2026-10-21" })];
+    expect(firstSeriesOfSubject(candidates)).toBe("devlog");
+  });
+
+  it("entre deux séries qui publient, la plus ancienne par son premier post", () => {
+    expect(firstSeriesOfSubject([s("recente", { firstPostDate: "2026-11-02" }), s("ancienne", { firstPostDate: "2026-10-21" })])).toBe("ancienne");
+  });
+
+  it("sans post nulle part, la plus ancienne par date de création", () => {
+    expect(firstSeriesOfSubject([s("b", { createdAt: 20 }), s("a", { createdAt: 10 })])).toBe("a");
+  });
+
+  it("reste déterministe quand tout est à égalité", () => {
+    const tie = [s("zzz"), s("aaa")];
+    expect(firstSeriesOfSubject(tie)).toBe("aaa");
+    expect(firstSeriesOfSubject([...tie].reverse())).toBe("aaa");
+  });
+
+  it("rend null quand aucune série ne publie", () => {
+    expect(firstSeriesOfSubject([s("x", { hasRhythm: false })])).toBeNull();
+    expect(firstSeriesOfSubject([])).toBeNull();
   });
 });
