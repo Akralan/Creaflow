@@ -18,7 +18,14 @@ export const readerSchema = z.object({
   wants: z.string().trim().default(""),
   stopsFor: z.string().trim().default(""),
   turnsOff: z.string().trim().default(""),
-  words: z.array(z.string().trim().min(1)).max(MAX_WORDS).default([]),
+  // TRONQUÉ, pas rejeté : un modèle un peu bavard sur les mots du lecteur faisait échouer tout le
+  // portrait, et un sujet sans portrait n'a plus de public du tout — donc plus de ciblage nulle part
+  // (constaté en réel le 2026-10-20 : 14 mots renvoyés, 0 lecteur enregistré). Le nombre de lecteurs
+  // était déjà traité ainsi, par un `slice` après coup : les deux plafonds se comportent pareil.
+  words: z
+    .array(z.string().trim().min(1))
+    .default([])
+    .transform((w) => w.slice(0, MAX_WORDS)),
 });
 export type Reader = z.infer<typeof readerSchema>;
 

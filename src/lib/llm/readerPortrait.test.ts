@@ -55,3 +55,20 @@ describe("parseStoredReaderPortrait / portraitIsStale", () => {
     expect(portraitIsStale({ readerPortrait: { readers: [reader], basedOnAudience: "A", editedByUser: true }, targetAudience: "B" })).toBe(false);
   });
 });
+
+describe("tolérance sur ce que le modèle renvoie", () => {
+  it("tronque les mots en trop au lieu de perdre tout le portrait", async () => {
+    const bavard = { ...reader, words: Array.from({ length: 14 }, (_, i) => `mot${i}`) };
+    callStructuredMock.mockResolvedValue({ readers: [bavard] });
+    const portrait = await describeReaders(ctx);
+    expect(portrait.readers).toHaveLength(1);
+    expect(portrait.readers[0].words).toHaveLength(8);
+    expect(portrait.readers[0].words[0]).toBe("mot0");
+  });
+
+  it("garde au plus trois lecteurs, comme avant", async () => {
+    callStructuredMock.mockResolvedValue({ readers: [reader, reader, reader, reader, reader] });
+    await expect(describeReaders(ctx)).resolves.toMatchObject({ readers: expect.any(Array) });
+    expect((await describeReaders(ctx)).readers).toHaveLength(3);
+  });
+});
