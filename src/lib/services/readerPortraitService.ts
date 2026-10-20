@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { creatorProfiles, postingGoals, products, sourceMaterials } from "@/db/schema";
 import { ApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
-import { scheduleEventQualification } from "@/lib/services/materialEventService";
+import { markMaterialForReReading } from "@/lib/services/materialEventService";
 import {
   describeReaders,
   MAX_PORTRAIT_SUMMARIES,
@@ -57,7 +57,7 @@ export async function regenerateReaderPortrait(userId: string, productId: string
   if (!product) throw new ApiError(404, "Subject not found.");
   const portrait = await buildPortrait(userId, product);
   await db.update(products).set({ readerPortrait: portrait }).where(eq(products.id, product.id));
-  scheduleEventQualification(userId, product.id);
+  await markMaterialForReReading(userId, product.id).catch((err) => logger.error("Could not mark the material for re-reading", err, { productId: product.id }));
   return portrait;
 }
 
@@ -88,7 +88,7 @@ export async function refreshStaleReaderPortraits(userId: string, productIds?: s
           )
         );
       // Les événements déjà lus reçoivent leur public (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3).
-      scheduleEventQualification(userId, product.id);
+      await markMaterialForReReading(userId, product.id).catch((err) => logger.error("Could not mark the material for re-reading", err, { productId: product.id }));
     } catch (err) {
       logger.error("Reader portrait failed", err, { productId: product.id });
     }
@@ -111,6 +111,6 @@ export async function saveReaderPortrait(userId: string, productId: string, read
     basedOnAudience: product.targetAudience || null,
   };
   await db.update(products).set({ readerPortrait: portrait }).where(eq(products.id, product.id));
-  scheduleEventQualification(userId, product.id);
+  await markMaterialForReReading(userId, product.id).catch((err) => logger.error("Could not mark the material for re-reading", err, { productId: product.id }));
   return portrait;
 }

@@ -22,7 +22,7 @@ import { and, asc, eq, gte, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { calendarEntries, contentSeries, creatorProfiles, products, sourceMaterials, users } from "@/db/schema";
 import { hashPassword } from "@/lib/auth/password";
-import { readEventsForSubject, qualifyEventsForSubject, listEventsForSubject } from "@/lib/services/materialEventService";
+import { readEventsForSubject, listEventsForSubject } from "@/lib/services/materialEventService";
 import { refreshStaleReaderPortraits } from "@/lib/services/readerPortraitService";
 import { generateCategoriesForUser, listActiveCategoriesForUser } from "@/lib/services/categoryLabelsService";
 import { generateAnglesForUser, listActiveAnglesForUser } from "@/lib/services/angleService";
@@ -66,7 +66,11 @@ const SUBJECT = {
     "Le kiné prescrit un programme d'exercices ; le patient les fait chez lui devant la caméra de son téléphone ; l'app compte les répétitions, vérifie l'amplitude et l'alignement en direct, et envoie un compte-rendu de séance au kiné.",
   problem: "Environ 6 patients sur 10 ne font pas leurs exercices à la maison, et le kiné n'a aucun moyen de le savoir.",
   valueProposition: "Le kiné voit enfin ce qui se passe entre deux séances, sans que le patient ait à se filmer pour lui.",
-  targetAudience: "Kinés libéraux du sport, et développeurs qui s'intéressent à la vision sur appareil.",
+  // Volontairement étroit : des kinés libéraux du sport, et personne d'autre. Élargir ce champ aux
+  // développeurs change tout le reste — le portrait des lecteurs en tire des publics techniques, et
+  // les posts partent vers la stack au lieu du cabinet.
+  targetAudience:
+    "Des kinés libéraux du sport, en cabinet, qui suivent des patients en rééducation entre deux séances. Pas des développeurs : ils ne veulent rien savoir de la technique, seulement ce que ça change pour leurs patients et pour leur temps.",
 };
 
 function log(step: string) {
@@ -163,9 +167,6 @@ async function main() {
   const events = await listEventsForSubject(userId, productId);
   console.log(`  ligne de temps : ${events.length} événement(s), du ${events[0]?.date ?? "?"} au ${events[events.length - 1]?.date ?? "?"}`);
   if (events.length === 0) throw new Error("Ligne de temps vide : rien à raconter, inutile d'aller plus loin.");
-
-  log("Qualification des événements par public (appel modèle)");
-  console.log(`  ${await qualifyEventsForSubject(userId, productId)} événement(s) qualifiés`);
 
   log("Direction éditoriale : rôles, angles, séries");
   if ((await listActiveCategoriesForUser(userId)).length === 0) await generateCategoriesForUser(userId);

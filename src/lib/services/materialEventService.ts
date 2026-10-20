@@ -2,14 +2,11 @@ import { after } from "next/server";
 import { and, asc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { calendarEntries, creatorProfiles, materialEvents, products, scripts, sourceMaterials } from "@/db/schema";
-import { callAgentic, callStructured } from "@/lib/llm/provider";
+import { callAgentic } from "@/lib/llm/provider";
 import {
   buildEventReaderSystemPrompt,
   buildEventReaderTools,
   buildEventReaderUserMessage,
-  buildQualifyEventsPrompt,
-  buildQualifyEventsTool,
-  qualifiedEventsSchema,
   excerptIsInDocument,
   LIST_DOCUMENTS_TOOL,
   datedEntryCount,
@@ -30,6 +27,7 @@ import { parseStoredReaderPortrait } from "@/lib/llm/readerPortrait";
 import { matchPromiseToEvent } from "@/lib/llm/promiseMatch";
 import { candidateEvents, matchIsStillOpen, openPromises } from "@/lib/narrative/promises";
 import { audiencesOf, parseAudienceAngles } from "@/lib/narrative/audience";
+import { applicableFixes, synthesiseTimeline } from "@/lib/llm/timelineSynthesis";
 import { toIsoDate } from "@/lib/seriesRhythm";
 import { ApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
@@ -357,6 +355,14 @@ export async function readEventsForSubject(userId: string, productId: string): P
     reply: result.reply,
   };
   logger.info("Event reading finished", { userId, productId, ...report, reply: undefined });
+
+  // Tout est lu : la ligne de temps se relit d'un bloc (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §5).
+  // Jamais bloquant : une panne ici ne doit pas annuler une lecture qui a duré des minutes.
+  try {
+    await synthesiseTimelineForSubject(userId, productId);
+  } catch (error) {
+    logger.error("Timeline synthesis failed", error, { userId, productId });
+  }
   // De nouveaux événements, donc peut-être une promesse enfin tenable (docs/SPEC_FIL_NARRATIF.md §8).
   // Jamais bloquant : une panne ici ne doit pas faire échouer une lecture qui a duré des minutes.
   if (eventsSaved > 0) {
@@ -417,56 +423,81 @@ export function scheduleEventReading(userId: string, productId: string | null): 
   }
 }
 
-const QUALIFY_BATCH = 60;
+/**
+ * Relit la ligne de temps d'un bloc et applique ce que le code accepte (§5) : fusionner, compléter,
+ * retirer. Jamais créer. Un événement déjà raconté par un post ne bouge pas — un script pointe
+ * dessus. Rend le nombre de corrections appliquées.
+ */
+export async function synthesiseTimelineForSubject(userId: string, productId: string): Promise<number> {
+  const product = await requireOwnedProduct(userId, productId);
+  const [events, told] = await Promise.all([
+    db.query.materialEvents.findMany({
+      where: and(eq(materialEvents.userId, userId), eq(materialEvents.productId, productId)),
+      orderBy: [sql`${materialEvents.date} asc nulls last`, asc(materialEvents.createdAt)],
+    }),
+    db.query.scripts.findMany({ where: and(eq(scripts.userId, userId), isNotNull(scripts.eventId)), columns: { eventId: true } }),
+  ]);
+  if (events.length === 0) return 0;
+
+  const fixes = await synthesiseTimeline({
+    subjectName: product.name,
+    events: events.map((e) => ({ id: e.id, date: e.date, title: e.title, whatHappened: e.whatHappened, whatChanged: e.whatChanged, audiences: e.audiences })),
+  });
+  const toApply = applicableFixes(
+    fixes,
+    events.map((e) => e.id),
+    told.map((t) => t.eventId as string)
+  );
+
+  const byId = new Map(events.map((e) => [e.id, e]));
+  let applied = 0;
+  for (const fix of toApply) {
+    const event = byId.get(fix.eventId);
+    if (!event) continue;
+    if (fix.action === "drop") {
+      await db.delete(materialEvents).where(eq(materialEvents.id, fix.eventId));
+    } else if (fix.action === "merge") {
+      const into = byId.get(fix.intoEventId as string);
+      if (!into) continue;
+      // Ce que l'absorbé avait et que l'absorbant n'a pas : une date, une suite, un public de plus.
+      const set: Partial<typeof materialEvents.$inferInsert> = { updatedAt: new Date() };
+      if (!into.date && event.date) {
+        set.date = event.date;
+        set.datePrecision = event.datePrecision;
+      }
+      if (!into.whatChanged && event.whatChanged) set.whatChanged = event.whatChanged;
+      const merged = [...parseAudienceAngles(into.audienceAngles, into.audiences), ...parseAudienceAngles(event.audienceAngles, event.audiences)];
+      const unique = merged.filter((a, i) => merged.findIndex((m) => m.audience === a.audience) === i);
+      if (unique.length > 0) {
+        set.audienceAngles = unique;
+        set.audiences = audiencesOf(unique);
+      }
+      await db.update(materialEvents).set(set).where(eq(materialEvents.id, into.id));
+      await db.delete(materialEvents).where(eq(materialEvents.id, fix.eventId));
+    } else {
+      await db.update(materialEvents).set({ whatChanged: fix.whatChanged, updatedAt: new Date() }).where(eq(materialEvents.id, fix.eventId));
+    }
+    applied += 1;
+  }
+  if (applied > 0) logger.info("Timeline cleaned up", { userId, productId, applied, proposed: fixes.length });
+  return applied;
+}
 
 /**
- * Donne un public aux événements du sujet (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3) : tous, pas
- * seulement ceux sans public, parce qu'un portrait qui change peut déplacer des événements. Un appel
- * structuré par lot de 60, sans relire les documents. Sans portrait, ne fait rien. Renvoie le nombre
- * d'événements qualifiés.
+ * Un changement de public remet la matière à lire (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §3.6). On ne
+ * redistribue PAS des étiquettes sur des événements écrits pour quelqu'un d'autre : la ligne qui dit
+ * ce qu'un fait change pour un lecteur ne peut s'écrire qu'avec le document sous les yeux.
+ *
+ * Ne déclenche rien de lui-même : la relecture part à la prochaine ingestion ou sur « Relire la
+ * matière ». Une relecture dure des minutes, elle ne se lance pas en silence.
  */
-export async function qualifyEventsForSubject(userId: string, productId: string): Promise<number> {
-  const product = await requireOwnedProduct(userId, productId);
-  const readers = parseStoredReaderPortrait(product.readerPortrait)?.readers ?? [];
-  if (readers.length === 0) return 0;
-  const labels = readers.map((r) => r.label);
-  const events = await db.query.materialEvents.findMany({
-    where: and(eq(materialEvents.userId, userId), eq(materialEvents.productId, productId)),
-    columns: { id: true, date: true, title: true, whatHappened: true, kind: true },
-    orderBy: [sql`${materialEvents.date} asc nulls last`, asc(materialEvents.createdAt)],
-  });
-  let qualified = 0;
-  for (let i = 0; i < events.length; i += QUALIFY_BATCH) {
-    const batch = events.slice(i, i + QUALIFY_BATCH);
-    const { system, userMessage } = buildQualifyEventsPrompt({
-      subjectName: product.name,
-      readers: readers.map((r) => ({ label: r.label, who: r.who, wants: r.wants, stopsFor: r.stopsFor, turnsOff: r.turnsOff })),
-      events: batch,
-    });
-    const raw = await callStructured({ system, userMessage, tool: buildQualifyEventsTool(labels), maxTokens: 4096 });
-    const parsed = qualifiedEventsSchema.parse(raw);
-    const known = new Set(batch.map((e) => e.id));
-    for (const item of parsed.events) {
-      if (!known.has(item.id)) continue;
-      const audiences = item.audiences.filter((a) => labels.includes(a));
-      await db.update(materialEvents).set({ audiences, updatedAt: new Date() }).where(eq(materialEvents.id, item.id));
-      qualified++;
-    }
-  }
-  logger.info("Events qualified by audience", { userId, productId, qualified, total: events.length });
-  return qualified;
+export async function markMaterialForReReading(userId: string, productId: string): Promise<void> {
+  await db
+    .update(sourceMaterials)
+    .set({ eventsReadAt: null })
+    .where(and(eq(sourceMaterials.userId, userId), eq(sourceMaterials.productId, productId)));
+  logger.info("Material marked for re-reading after an audience change", { userId, productId });
 }
-
-/** À appeler quand le portrait des lecteurs d'un sujet naît ou change : jamais bloquant. */
-export function scheduleEventQualification(userId: string, productId: string): void {
-  const run = () => qualifyEventsForSubject(userId, productId).catch((err) => logger.error("Event qualification failed", err, { userId, productId }));
-  try {
-    after(run);
-  } catch {
-    void run();
-  }
-}
-
 /** Nombre de documents qui attendent une lecture, pour l'écran du sujet. */
 export async function countUnreadDocuments(userId: string, productId: string): Promise<number> {
   const rows = await db

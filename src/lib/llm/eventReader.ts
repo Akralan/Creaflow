@@ -289,56 +289,6 @@ export function buildEventReaderUserMessage(context: EventReaderPromptContext): 
 // Events read before the reader portrait existed have no audience; when the portrait is born or
 // changes, they are given one in a structured call per batch, without re-reading the documents.
 
-export const QUALIFY_EVENTS_TOOL = "qualify_events";
-
-export const qualifiedEventsSchema = z.object({
-  events: z.array(z.object({ id: z.string().min(1), audiences: z.array(z.string().trim().min(1)).max(5) })),
-});
-
-export function buildQualifyEventsTool(audienceLabels: string[]): LlmToolDefinition {
-  return {
-    name: QUALIFY_EVENTS_TOOL,
-    description: "Says, for each event, which of the subject's audiences it can interest.",
-    input_schema: {
-      type: "object",
-      properties: {
-        events: {
-          type: "array",
-          description: "One element per event supplied, in the same order, with its id as is.",
-          items: {
-            type: "object",
-            properties: {
-              id: { type: "string" },
-              audiences: {
-                type: "array",
-                items: { type: "string", enum: audienceLabels },
-                description: "The audiences for whom this event is worth a post. Empty if none: it will remain visible to all series.",
-              },
-            },
-            required: ["id", "audiences"],
-          },
-        },
-      },
-      required: ["events"],
-    },
-  };
-}
-
-export function buildQualifyEventsPrompt(params: {
-  subjectName: string;
-  readers: Array<{ label: string; who: string; wants: string; stopsFor: string; turnsOff: string }>;
-  events: Array<{ id: string; date: string | null; title: string; whatHappened: string; kind: string }>;
-}): { system: string; userMessage: string } {
-  const system = `You sort the events on the timeline of "${params.subjectName}" by audience. For each event, say which of the subject's audiences it can make a post that stops them: an audience is kept if the event teaches them something they come looking for, not if it might vaguely concern them. An event can target several audiences, or none. Don't modify the events, don't skip any id.`;
-  const readers = params.readers
-    .map((r) => `- ${r.label}: ${r.who}${r.wants ? ` Comes looking for: ${r.wants}` : ""}${r.stopsFor ? ` Stops for: ${r.stopsFor}` : ""}${r.turnsOff ? ` Turned off by: ${r.turnsOff}` : ""}`)
-    .join("\n");
-  const events = params.events.map((e) => `- [${e.id}] ${e.date ?? "undated"} · ${e.kind} · ${e.title} — ${e.whatHappened}`).join("\n");
-  return { system, userMessage: `Subject audiences:\n${readers}\n\nEvents:\n${events}\n\nAnswer via ${QUALIFY_EVENTS_TOOL}.` };
-}
-
-/** Turn cap for a read: each part needs at least one turn, and the saves add up (often grouped in
- *  the same turn). Bounded so that a read never runs endlessly. */
 /** Un titre daté : `## 2025-11-09`, `# 2025-11-09 — …`, ou une ligne qui commence par la date. */
 const DATED_HEADING = /^\s*(?:#{1,6}\s*|[-*]\s*)?(\d{4}-\d{2}-\d{2})\b/gm;
 
