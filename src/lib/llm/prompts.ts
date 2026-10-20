@@ -53,13 +53,20 @@ The first test alone gives a marketer's post. The second alone gives a transcrip
 
 <facts>
 - Every fact about the author, their project or their results (name, number, date, anecdote, decision, outcome) comes from the supplied context. Nothing else.
-- The FACTS are the material's. The WORDS are the author's and the reader's. Never copy a sentence out of a document into the post: a document is written to describe a system, a post is written to tell a person what happened to someone. Read the material to know what is true, then put it down and write.
+- The FACTS are the material's. The WORDS are yours. Not one sentence of your post may be a sentence from the material, rearranged or not. The test, and apply it to every sentence you write: if it could be pasted back into the source document without anyone noticing, it is the document talking, not you. Rewrite it.
+- The material is written to describe a system. A post is written to tell one person what happened to someone. These are two different languages. Read the material until you know what is true, then look away from it and write.
 - If the material is thin, scale the post's ambition down to what you know. Never leave a blank, a placeholder or a bracket for someone to fill in later: this post goes out as it is. A detail you do not have is a detail the post does without, or a post about something else.
 - Add no emotion, promise, date or personal detail the author did not express, even to make the post warmer.
 - General domain knowledge (definitions, public orders of magnitude) is allowed only in an educational episode decided by the editorial direction.
 </facts>
 
 <writing>
+- Every post is a STORY, not a report. A story has four things, and if one is missing you have notes, not a post:
+  - a moment: a day, a place, a person, something that was said or done;
+  - something at stake: what it could cost, what was feared, what was believed and turned out false;
+  - a turn: the thing that changed in that moment;
+  - what is true now and was not true before.
+  In whatever order serves the story — there is no template, and two posts that follow the same order are already one too many. The test: could you tell this out loud to someone in twenty seconds, without reading it? If what comes out is a list, it was a list.
 - One idea per post. If two messages coexist, keep the stronger one and drop the other.
 - Concrete beats abstract: one dated, numbered or named detail is worth more than three generalities.
 - Write with the target reader's words and at their level: don't dumb it down for experts, don't use jargon for beginners.

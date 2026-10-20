@@ -16,7 +16,7 @@ const reader = {
   words: ["séance", "amplitude"],
 };
 
-const review = (over: Partial<ReaderReview> = {}): ReaderReview => ({ unknownToReader: [], outOfReach: [], couldRepeat: true, why: "", ...over });
+const review = (over: Partial<ReaderReview> = {}): ReaderReview => ({ unknownToReader: [], outOfReach: [], couldRepeat: true, why: "", notAStory: "", readsLikeDocument: "", ...over });
 
 beforeEach(() => {
   callStructuredMock.mockReset();
@@ -67,7 +67,7 @@ describe("reviewForReader", () => {
 
   it("ne bloque jamais un post quand l'appel échoue", async () => {
     callStructuredMock.mockRejectedValue(new Error("coupure réseau"));
-    await expect(reviewForReader({ reader, postText: "x" })).resolves.toEqual({ unknownToReader: [], outOfReach: [], couldRepeat: true, why: "" });
+    await expect(reviewForReader({ reader, postText: "x" })).resolves.toEqual({ unknownToReader: [], outOfReach: [], couldRepeat: true, why: "", notAStory: "", readsLikeDocument: "" });
   });
 
   it("tolère une réponse mal formée plutôt que de planter", async () => {
@@ -98,5 +98,31 @@ describe("ce que le lecteur ne peut pas atteindre", () => {
     expect(failures).toHaveLength(2);
     expect(failures[0]).toContain("JSONB");
     expect(failures[1]).toContain("B/devlog.md");
+  });
+});
+
+describe("histoire ou compte rendu", () => {
+  it("refuse un post qui n'est pas une histoire", () => {
+    expect(reviewFailures(review({ notAStory: "une liste de mesures, personne ne risque rien" }))).toContain(
+      "This is not a story, it is a report: une liste de mesures, personne ne risque rien. A moment, something at stake, a turn, and what is true now — or it is notes."
+    );
+  });
+
+  it("refuse un post qui se lit comme de la documentation", () => {
+    expect(reviewFailures(review({ readsLikeDocument: "le dernier paragraphe décrit le système, il ne raconte rien" }))).toHaveLength(1);
+  });
+
+  it("ne dit rien quand c'est une histoire racontée par quelqu'un", () => {
+    expect(reviewFailures(review())).toEqual([]);
+  });
+
+  it("passe après les mots incompris, et ne fait jamais dépasser deux reproches", () => {
+    const r = review({
+      unknownToReader: [{ term: "JSONB", explained: false }],
+      outOfReach: ["B/devlog.md"],
+      notAStory: "compte rendu",
+    });
+    expect(reviewFailures(r)).toHaveLength(2);
+    expect(reviewFailures(r)[0]).toContain("JSONB");
   });
 });

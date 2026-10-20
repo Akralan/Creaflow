@@ -35,6 +35,11 @@ export interface ReaderReview {
    * simplement pas l'ouvrir. Sur LinkedIn, il n'a que le post.
    */
   outOfReach: string[];
+  /** Vide si c'en est une. Sinon, ce qui manque pour que ce soit une histoire. */
+  notAStory: string;
+  /** Vide si le post parle comme quelqu'un. Sinon, ce qui sonne comme un document.
+   *  Le relecteur ne voit pas la matière — il ne compare pas, il entend la différence. */
+  readsLikeDocument: string;
   /** Ce lecteur pourrait-il répéter ce post à un confrère avec ses mots à lui ? */
   couldRepeat: boolean;
   why: string;
@@ -54,6 +59,12 @@ Go sentence by sentence and list every word, name or reference you cannot unders
 An empty list means you went through every sentence and found none. It does not mean you did not look.
 
 Then a different question, and do not confuse it with the first: this reader has THE POST AND NOTHING ELSE. No file, no repository, no dashboard, no attachment, no earlier post. List everything the post points them at that they cannot reach from the post itself — a file name, an internal document, a screen or a report they do not have, a screenshot announced but not there, a link that does not exist. A reader can understand perfectly well what a devlog is and still never be able to open yours.
+
+Then two questions about what this text IS.
+
+Is it a story, or a report? A story has a moment (a day, a place, a person, something said or done), something at stake, a turn, and something that is true now and was not before. A report has facts in a row. If any of the four is missing, say in one line which.
+
+And does it sound like a person telling you what happened, or like a document describing a system? You have not seen any document, and you do not need to: documentation has a sound of its own — it lists, it specifies, it never has anyone in it. If a passage has that sound, say which in one line.
 
 Last, one question: could this reader repeat what this post says to a colleague, using only words they already had? If not, say in one line what stops them.
 
@@ -83,10 +94,12 @@ const TOOL: LlmToolDefinition = {
         description:
           "Everything the post points this reader at that they cannot reach from the post itself: a file name, an internal document, a screen or report they do not have, a screenshot announced but absent, a link that does not exist. Copied as it appears. Empty when the post stands on its own.",
       },
+      notAStory: { type: "string", description: "What is missing for this to be a story — a moment, a stake, a turn, or what is true now. Empty when it is one." },
+      readsLikeDocument: { type: "string", description: "The passage that sounds like a document describing a system rather than a person telling what happened. Empty when none does." },
       couldRepeat: { type: "boolean", description: "True if this reader could repeat what the post says to a colleague, using only words they already had." },
       why: { type: "string", description: "If couldRepeat is false: what stops them, in one line. Empty otherwise." },
     },
-    required: ["unknownToReader", "outOfReach", "couldRepeat", "why"],
+    required: ["unknownToReader", "outOfReach", "notAStory", "readsLikeDocument", "couldRepeat", "why"],
   },
 };
 
@@ -95,6 +108,8 @@ const answerSchema = z.object({
     .array(z.object({ term: z.string().trim().min(1), explained: z.boolean() }))
     .catch([]),
   outOfReach: z.array(z.string().trim().min(1)).catch([]),
+  notAStory: z.string().trim().catch(""),
+  readsLikeDocument: z.string().trim().catch(""),
   couldRepeat: z.boolean().catch(true),
   why: z.string().trim().catch(""),
 });
@@ -126,7 +141,12 @@ export function reviewFailures(review: ReaderReview): string[] {
   const unreachable = review.outOfReach
     .slice(0, MAX_REPORTED)
     .map((ref) => `The post points at "${ref}", which this reader cannot open: they have the post and nothing else. Say what it says, or drop it.`);
-  if (failures.length > 0 || unreachable.length > 0) return [...failures, ...unreachable];
+  const shape = [
+    review.notAStory ? `This is not a story, it is a report: ${review.notAStory}. A moment, something at stake, a turn, and what is true now — or it is notes.` : null,
+    review.readsLikeDocument ? `This reads like a document, not like someone telling what happened: ${review.readsLikeDocument}. Say it the way you would say it out loud.` : null,
+  ].filter((f): f is string => f !== null);
+  const all = [...failures, ...unreachable, ...shape];
+  if (all.length > 0) return all.slice(0, MAX_REPORTED);
   if (!review.couldRepeat) {
     return [`This reader could not repeat what this post says using only words they already had: ${review.why || "it stays on your side of the work."}`];
   }
@@ -145,6 +165,6 @@ export async function reviewForReader(input: { reader: Reader; postText: string 
     return answerSchema.parse(raw);
   } catch (error) {
     logger.warn("Reader review failed", { error: String(error) });
-    return { unknownToReader: [], outOfReach: [], couldRepeat: true, why: "" };
+    return { unknownToReader: [], outOfReach: [], notAStory: "", readsLikeDocument: "", couldRepeat: true, why: "" };
   }
 }
