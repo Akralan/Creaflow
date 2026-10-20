@@ -26,7 +26,7 @@ const ev = (id: string, title: string): BriefEvent => ({
 const brief = (over: Partial<NarrativeBrief> = {}): NarrativeBrief => ({
   kind: "checkpoint",
   scope: [ev("e1", "La démo tourne"), ev("e2", "Trois kinés ont testé")],
-  subject: { name: "MyKiné", description: "Un suivi d'exercices", problem: "les patients abandonnent", valueProposition: "ils tiennent trois semaines" },
+  subject: { name: "MyKiné", description: "Un suivi d'exercices", problem: "les patients abandonnent", valueProposition: "ils tiennent trois semaines", targetAudience: "des kinés libéraux" },
   promise: null,
   reader: { label: "Kinés", who: "des kinés libéraux", knows: "", wants: "", stopsFor: "", turnsOff: "", words: [] },
   form: { wants: "du concret", episodeShape: "un moment, un fait", avoid: "le jargon", register: "court", signature: "", words: [], jargon: [], generatedAt: null, editedByUser: false },

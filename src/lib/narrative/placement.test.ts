@@ -28,12 +28,27 @@ describe("postRank", () => {
 });
 
 describe("decideNarrative — origine", () => {
-  it("pose une origine au rang 1 de la première série", () => {
-    expect(decideNarrative(input())).toEqual({ kind: "origin", eventIds: ["e1"], marksTold: "e1", promise: null });
+  it("pose une origine au rang 1 de la première série, sur le début de l'histoire", () => {
+    expect(decideNarrative(input())).toEqual({ kind: "origin", eventIds: ["e1", "e2"], marksTold: "e1", promise: null });
   });
 
-  it("ne pose pas d'origine sans aucun événement daté", () => {
-    expect(decideNarrative(input({ events: [ev("e1", null)] }))).toBeNull();
+  it("pose une origine même sans aucun événement daté", () => {
+    expect(decideNarrative(input({ events: [ev("e1", null), ev("e2", null)] }))?.kind).toBe("origin");
+  });
+
+  it("prend les 12 plus anciens événements dans son périmètre", () => {
+    const quinze = Array.from({ length: 15 }, (_, i) => ev(`e${i}`, `2026-01-${String(i + 1).padStart(2, "0")}`));
+    const d = decideNarrative(input({ events: quinze }));
+    expect(d?.eventIds).toHaveLength(12);
+    expect(d?.eventIds[0]).toBe("e0");
+  });
+
+  it("ne marque comme raconté que le plus ancien", () => {
+    expect(decideNarrative(input())?.marksTold).toBe("e1");
+  });
+
+  it("prend tout ce qu'il y a quand la ligne de temps est courte", () => {
+    expect(decideNarrative(input({ events: [ev("e1", "2026-01-01")] }))?.eventIds).toEqual(["e1"]);
   });
 
   it("rend null quand la ligne de temps est vide", () => {

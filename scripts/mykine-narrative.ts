@@ -144,6 +144,7 @@ async function main() {
         description: series.product?.description ?? null,
         problem: series.product?.problem ?? null,
         valueProposition: series.product?.valueProposition ?? null,
+        targetAudience: series.product?.targetAudience ?? null,
       },
       promise: step.promise ? { text: step.promise, postText: previousEpisode } : null,
       reader,

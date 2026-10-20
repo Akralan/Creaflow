@@ -82,6 +82,9 @@ export function firstSeriesOfSubject(candidates: SeriesCandidate[]): string | nu
   return alive.sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id))[0].id;
 }
 
+/** Ce que l'origine a le droit de lire : le début de l'histoire, assez pour la comprendre. */
+const ORIGIN_SCOPE = 12;
+
 /** Rang de la vision : laisse un épisode normal entre elle et l'origine. */
 const VISION_RANK = 3;
 /** Plancher entre deux points d'étape — un plancher, jamais une cadence. */
@@ -110,10 +113,13 @@ export function decideNarrative(input: PlacementInput): NarrativeDecision | null
 
   const rank = postRank(written);
 
-  // Origine : le tout premier post de la première série, sur le plus ancien événement daté.
-  if (rank === 1 && isFirstSeries) {
-    const trigger = events.find((e) => e.date !== null);
-    if (trigger) return { kind: "origin", eventIds: [trigger.id], marksTold: trigger.id, promise: null };
+  // Origine : OBLIGATOIRE au premier post de la première série, dès qu'il y a quelque chose à lire.
+  // Elle prend large — le début de l'histoire, pas un seul fait — parce que c'est le post qui doit
+  // dire pourquoi le projet existe (docs/SPEC_FIL_NARRATIF.md §5 et §14-3, révisés le 2026-10-20).
+  // Elle s'ancre sur le plus ancien et ne marque que celui-là : les autres gardent leur épisode.
+  if (rank === 1 && isFirstSeries && events.length > 0) {
+    const scope = events.slice(0, ORIGIN_SCOPE);
+    return { kind: "origin", eventIds: scope.map((e) => e.id), marksTold: scope[0].id, promise: null };
   }
 
   // Vision : reportée de rang en rang tant qu'il n'y a pas de décision à quoi l'ancrer.

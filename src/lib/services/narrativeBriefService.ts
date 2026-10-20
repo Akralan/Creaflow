@@ -183,6 +183,7 @@ export async function planNarrativePost(userId: string, seriesId: string, slotDa
         description: series.product?.description ?? null,
         problem: series.product?.problem ?? null,
         valueProposition: series.product?.valueProposition ?? null,
+        targetAudience: series.product?.targetAudience ?? null,
       },
       promise: decision.promise && promiseSource ? { text: decision.promise.text, postText: postText(promiseSource) } : null,
       reader,

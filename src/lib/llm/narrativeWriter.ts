@@ -44,7 +44,7 @@ export interface NarrativeBrief {
   kind: NarrativeKind;
   /** The scope: the only events this post may read. */
   scope: BriefEvent[];
-  subject: { name: string; description: string | null; problem: string | null; valueProposition: string | null };
+  subject: { name: string; description: string | null; problem: string | null; valueProposition: string | null; targetAudience: string | null };
   /** Promise kept only: the sentence to quote and the post that made it. */
   promise: { text: string; postText: string } | null;
   reader: Reader;
@@ -133,12 +133,22 @@ export const NARRATIVE_WRITER_SYSTEM_PROMPTS: Record<NarrativeKind, string> = {
 /** What the subject is allowed to say, per type: the origin gets the problem, the vision gets all three. */
 function subjectLines(brief: NarrativeBrief): string[] {
   const s = brief.subject;
-  if (brief.kind === "origin") return s.problem ? [`The problem this exists for: ${s.problem}`] : [];
+  // L'origine et la vision reçoivent les mots de l'auteur sur son propre projet — les trois champs
+  // de `/start` (docs/SPEC_FIL_NARRATIF.md §5, révisé) : ce qu'il construit, pour qui, le problème.
+  // Le point d'étape et la promesse n'en reçoivent aucun : ils parlent de faits, pas du projet.
+  if (brief.kind === "origin") {
+    return [
+      s.problem ? `The problem this exists for: ${s.problem}` : null,
+      s.description ? `What the author ended up building: ${s.description} — this is NOT what the post is about, and it is not named before the last sentence.` : null,
+      s.targetAudience ? `Who it is for, in the author's words: ${s.targetAudience}` : null,
+    ].filter((l): l is string => l !== null);
+  }
   if (brief.kind !== "vision") return [];
   return [
     s.description ? `What is being built: ${s.description}` : null,
     s.problem ? `The problem it solves: ${s.problem}` : null,
     s.valueProposition ? `What it brings: ${s.valueProposition}` : null,
+    s.targetAudience ? `Who it is for, in the author's words: ${s.targetAudience}` : null,
   ].filter((l): l is string => l !== null);
 }
 
