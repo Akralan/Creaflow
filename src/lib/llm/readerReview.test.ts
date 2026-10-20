@@ -44,9 +44,9 @@ describe("reviewFailures", () => {
     );
   });
 
-  it("se borne à cinq termes pour que le rapport reste lisible", () => {
+  it("se borne à deux reproches : au-delà le rédacteur cesse de corriger", () => {
     const sept = Array.from({ length: 7 }, (_, i) => ({ term: `terme${i}`, explained: false }));
-    expect(reviewFailures(review({ unknownToReader: sept }))).toHaveLength(5);
+    expect(reviewFailures(review({ unknownToReader: sept }))).toHaveLength(2);
   });
 });
 

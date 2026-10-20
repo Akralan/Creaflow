@@ -67,8 +67,9 @@ export const READ_TIMELINE_TOOL = "read_timeline";
 export const REVIEW_DRAFT_TOOL = "review_draft";
 export const SUBMIT_POST_TOOL = "submit_post";
 
-/** At most two submissions: the second has read the checks report. */
-export const MAX_SUBMISSIONS = 2;
+/** Trois et non deux depuis que le relecteur (prompt 29) rend plusieurs reproches d'un coup :
+ *  une seule correction ne suffisait plus, et le post était perdu. */
+export const MAX_SUBMISSIONS = 3;
 export const MAX_DRAFTS = 3;
 
 function formatEventDate(e: BriefEvent): string {
@@ -278,9 +279,9 @@ function buildTools(context: EventWriterContext, parts: number): LlmToolDefiniti
             type: "array",
             items: { type: "string" },
             description:
-              "Every word, name or reference in this draft that this reader would not use themselves: a technical term, a tool or vendor name, a file, an address, a unit they do not use, an internal name. Go sentence by sentence. An empty list means you checked every sentence and found none — not that you did not look.",
+              "Words in this draft that this reader would not use themselves. Noting them helps you spot what to explain; leave it empty if you see none.",
           },
-          keep: { type: "boolean", description: "True ONLY if unknownToReader is empty, or if every word in it is followed, in the same sentence, by what it changes for this reader." },
+          keep: { type: "boolean", description: "True if this draft holds and can be submitted." },
           why: { type: "string", description: "Always: what you change if keep is false, or why it holds if keep is true. One line." },
         },
         required: ["draft", "readerVerdict", "keep", "why"],
@@ -404,7 +405,7 @@ export async function writeScriptFromEvent(context: EventWriterContext): Promise
         }
         // Les contrôles du code, puis le relecteur (prompt 29) : un appel SÉPARÉ qui ne voit que
         // le lecteur et le texte, jamais la matière. Seulement à la première soumission — la
-        // seconde est acceptée de toute façon, le relire coûterait un appel pour rien.
+        // par se perdre (essayé le 2026-10-20). Le rédacteur garde ensuite ses essais pour corriger.
         const codeFailures = checkGeneratedPost(script, null, checkContext);
         const readerFailures =
           codeFailures.length === 0 && submissions.length === 0

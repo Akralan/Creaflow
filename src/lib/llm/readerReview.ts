@@ -40,8 +40,12 @@ export interface ReaderReview {
   why: string;
 }
 
-/** Au-delà, le rapport renvoyé au modèle devient illisible et il corrige moins bien. */
-const MAX_REPORTED = 5;
+/**
+ * Deux reproches par tour, pas davantage. Avec cinq, le rédacteur cesse de corriger et conclut en
+ * prose au lieu de soumettre — le post est alors perdu (constaté le 2026-10-20, trois fois de
+ * suite). Il en reste pour le tour suivant s'il y en a.
+ */
+const MAX_REPORTED = 2;
 
 const SYSTEM = `You are handed a post and a description of the ONE person it is written for. You have not seen the material it came from, and that is the point: you know exactly what this reader knows, and nothing more. Judge only what is on the page.
 

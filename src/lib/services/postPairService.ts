@@ -113,7 +113,13 @@ export async function writePost(
   let firstError: unknown = null;
   for (const slot of missing) {
     try {
-      const script = await writeSlotVersion(userId, slot, eventId, plan);
+      // Un essai de plus quand le rédacteur n'a rien soumis : il lui arrive de conclure en prose
+      // au lieu d'appeler son outil, et un post ne doit pas se perdre pour un caprice de modèle.
+      const script = await writeSlotVersion(userId, slot, eventId, plan).catch(async (error) => {
+        if (!(error instanceof Error) || !error.message.includes("submitted no post")) throw error;
+        logger.warn("Writer submitted nothing, one more try", { slotId: slot.id, reason: error.message.slice(0, 200) });
+        return writeSlotVersion(userId, slot, eventId, plan);
+      });
       eventId = eventId ?? script.eventId ?? null;
       await hooks?.onVersionWritten?.(script, slot);
     } catch (error) {
