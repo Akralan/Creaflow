@@ -91,7 +91,8 @@ docs/                  Documentation (voir 09-carte-des-docs.md)
 | :--- | :--- |
 | `/assistant`, `assistantChat.ts`, `AssistantChat.tsx` | Fonctionnel, **caché** du menu |
 | Adaptateurs LLM `gemini` (texte), `anthropic`, `groq` | Existent, **non opérationnels** |
-| `narrative_state`, `scripts.beat_id`, `content_series.mode`, `content_series.framing`, `promisesMade`, `promiseHonored` | Colonnes **conservées, jamais lues** (ancien rédacteur en chef) |
+| `narrative_state`, `scripts.beat_id`, `content_series.mode`, `content_series.framing` | Colonnes **conservées, jamais lues** (ancien rédacteur en chef) |
+| `scripts.promisesMade`, `promiseHonored`, `promiseMatch`, `narrativeKind` ; `calendar_entries.kind`, `narrative_kind` | **Lues et écrites** depuis le fil narratif (`docs/SPEC_FIL_NARRATIF.md`) |
 | Instagram (`social/instagram.ts`), table `inspiration_videos` | Résidus d’avant la fin de la vidéo et des autres réseaux : à vérifier avant de les croire vivants |
 | `src/lib/verticals/types.ts` | Seul reste du registre de verticales (`users.vertical` ne choisit plus aucun parcours) |
 | `/scripts/[id]` | Ne sert plus qu'aux scripts **sans créneau** (importés, libres) ; sinon redirige vers `/calendar` |

@@ -45,6 +45,8 @@ l'animation (27), la revue sur images (vision OpenAI).
 | 25 | Fiche d'un repo | `src/lib/llm/repoCard.ts` | Lire un dépôt public (parcours `/start`) |
 | 26 | Brief visuel | `src/lib/llm/storyboardFromText.ts` | Concevoir le visuel d'un post déjà écrit |
 | 27 | Animation HTML libre | `src/lib/llm/animationHtml.ts` | Écrire la page HTML animée d'un post |
+| 28 | Rédacteur de récit | `src/lib/llm/narrativeWriter.ts` | Écrire un post d'origine, de vision, de point d'étape ou de promesse tenue |
+| 28a | Appariement d'une promesse | `src/lib/llm/promiseMatch.ts` | Trouver l'événement qui permet de tenir une promesse faite dans un post publié |
 | — | Bloc `<language>` | `src/lib/language.ts` | Imposer la langue du post |
 | — | Rappel en cas d'échec | `src/lib/llm/provider.ts` | Ajouté au system prompt à la 2e tentative |
 
@@ -1867,6 +1869,50 @@ html        : The complete corrected fragment when the verdict is "fix", an empt
 ### Contrat de temps `seek(ms)` (code, pas un prompt)
 
 Le lecteur (`src/lib/animationHtml/player.ts`) est injecté après le contenu du modèle. `seek(ms)` borne le temps à `[0, durée]`, met en pause toutes les animations du document (`document.getAnimations()`) et règle leur `currentTime`, puis appelle `window.seek(t)` si la page l'a définie ; en lecture, une boucle appelle `seek((now - début) % durée)`. Le même instant doit donc toujours donner la même image : d'où l'interdiction des minuteurs, de `requestAnimationFrame`, `Math.random`, `Date` et `performance.now`. Le document tourne dans un `iframe sandbox="allow-scripts"` sous la CSP `default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:; …` ; les polices sont intégrées en base 64.
+
+---
+
+## 28. Rédacteur de récit
+
+- **Où** : `src/lib/llm/narrativeWriter.ts` (`NARRATIVE_WRITER_SYSTEM_PROMPTS`, `buildNarrativeWriterUserMessage`, `writeNarrativePost`).
+- **Quand** : quand le fil narratif réclame le créneau (`narrativeBriefService.planNarrativePost`, règles de `src/lib/narrative/placement.ts`). Il passe **avant** le rédacteur par événements : un post de récit n'ouvre pas de brief d'événement.
+- **Pourquoi** : une série qui n'enchaîne que des épisodes ne dit jamais pourquoi le projet existe, où il va, ni où il en est (`docs/SPEC_FIL_NARRATIF.md`).
+
+### System prompt
+
+`SCRIPT_CORE_PROMPT` (le cœur partagé avec les prompts 1 et 23) + la méthode + **un seul** bloc `<what_makes_a_post>`, choisi par le type, + les règles communes.
+
+La méthode est celle du 23, à une différence près : le modèle relit **la matière de son périmètre**, et `read_timeline` ne lui montre que ce périmètre.
+
+Les quatre blocs `<what_makes_a_post>` sont le seul écart entre une origine et un point d'étape. En résumé (le texte exact est dans le code) :
+
+| Type | Ce que le bloc impose | Ce qu'il interdit |
+| :--- | :--- | :--- |
+| `origin` | Le problème, dans le moment où il a été vu ; un événement réel avec ses détails | Nommer le produit avant la dernière phrase ; décrire une fonctionnalité ; promettre que ça sera réglé |
+| `vision` | Partir d'une décision réelle : ce qui a été choisi, et ce qui a été abandonné pour ça | Roadmap, dates, chiffres promis, liste de ce que le produit fera |
+| `checkpoint` | Ce qui a changé entre le premier et le dernier événement du périmètre, en un mouvement | Re-raconter un épisode ; reprendre les chiffres des posts voisins ; l'inventaire « ces dernières semaines » |
+| `promise` | Deux temps : la phrase citée **mot pour mot**, puis l'événement qui y répond | Juger, s'excuser, pavoiser, reformuler la promesse, en faire une nouvelle |
+
+Les règles communes (`<rules>`) valent pour les quatre : ne **jamais** nommer le type de post, rien hors périmètre, pas de call to action, première personne du singulier, finir sur un fait, ne pas ressembler aux posts récents, écrire dans la langue de `<language>`.
+
+### Message utilisateur
+
+`<scope>` (la série, les événements autorisés avec ce qui s'est passé et ce que ça a changé, les champs du sujet selon le type, les documents à relire) · `<promise>` pour la promesse tenue (la phrase et le post qui l'a faite) · puis exactement les mêmes blocs que le 23 (`<reader>`, `<form>`, `<style>`, `<recent_posts>`, `<platform>`, `<format>`, `<language>`), produits par la fonction partagée `buildWriterContextSections`.
+
+Les champs du sujet dépendent du type : l'origine ne reçoit que `problem`, la vision reçoit `description`, `problem` et `valueProposition`, le point d'étape et la promesse n'en reçoivent aucun.
+
+### Outils
+
+`read_source` · `read_timeline` (**limité au périmètre**) · `read_post` (promesse tenue seulement) · `review_draft` · `submit_post`. Mêmes plafonds qu'au 23 : 14 tours, 3 brouillons, 2 soumissions. Les contrôles du code (`scriptChecks.ts`) tournent dans l'outil de soumission, comme au 23 ; la matière contre laquelle `usedExcerpts` est vérifié, ce sont les documents du périmètre, plus le post de promesse pour la promesse tenue.
+
+---
+
+## 28a. Appariement d'une promesse
+
+- **Où** : `src/lib/llm/promiseMatch.ts` (`matchPromiseToEvent`).
+- **Quand** : après chaque relecture de la matière qui a enregistré de nouveaux événements (`materialEventService.refreshPromiseMatches`). Jamais à l'écriture d'un post : le résultat est posé sur `scripts.promiseMatch` et relu plus tard.
+- **Un appel, une réponse** : l'id d'un événement, ou `null`. Un id hors de la liste donnée est traité comme `null`.
+- **Volontairement permissif** : les promesses réellement captées sont molles (« dans un prochain épisode, je montrerai comment… »). La question posée est « cet événement permet-il à l'auteur de dire ce qu'il avait annoncé ? », pas « tient-il la promesse ? ». Une lecture stricte n'apparierait jamais rien et le type de post n'existerait jamais.
 
 ---
 

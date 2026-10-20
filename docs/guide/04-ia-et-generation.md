@@ -24,6 +24,10 @@ C'est la partie qui compte le plus et qui a été le plus retravaillée. Après 
  content_series ── un LECTEUR (parmi le portrait) + une FORME écrite pour lui   seriesForm.ts
         │            + un RYTHME (jours) ── le calendrier se remplit sur 28 jours  seriesSlotSync.ts
         ▼
+ LE FIL NARRATIF passe d'abord (narrativeBriefService.ts + narrative/placement.ts) :
+        │       origine, vision, point d'étape ou promesse tenue ? Si oui → RÉDACTEUR 28
+        │       (narrativeWriter.ts), qui ne lit que son périmètre. Sinon :
+        ▼
  Un créneau = le PROCHAIN événement de la ligne de temps, filtrée sur le lecteur,
         │       dans l'ordre, en sautant ce qui a déjà été raconté
         ▼  RÉDACTEUR AGENTIQUE (jusqu'à 14 tours)                     eventWriter.ts
@@ -59,6 +63,9 @@ Agent à trois outils (`list_documents`, `read_document`, `save_event`). Il lit 
 - Il varie ouverture et fin d'un post à l'autre et ne reprend pas les chiffres des épisodes voisins.
 - Coût accepté : 3 à 6 appels par post en général (14 tours au plus).
 - Les exemples des prompts sont **fictifs et sans rapport avec un domaine** (un testeur, un joueur, un pair) pour ne pas orienter les générations.
+
+### Rédacteur de récit — `narrativeWriter.ts` (prompt 28), `narrative/placement.ts`
+Le fil, par-dessus les épisodes (`docs/SPEC_FIL_NARRATIF.md`). Quatre types : **origine** (le problème avant la solution, sur le plus ancien événement daté), **vision** (où ça va, ancré sur une décision réelle), **point d'étape** (ce qui a changé, déclenché par la matière : 3 événements racontés au `whatChanged` rempli, plancher de 4 épisodes) et **promesse tenue** (une phrase d'un post publié, puis l'événement qui l'honore). Le placement est une fonction **pure**, le rédacteur ne choisit ni son type ni son périmètre. Un post de récit ne lit **que** son périmètre : `read_timeline` ne lui montre rien d'autre.
 
 ### Contrôles du code — `scriptChecks.ts`, `platformRules.ts`
 Ce qui se mesure est vérifié par le code, pas par le modèle. Un post fautif est **renvoyé au modèle** avec la liste de ses fautes.
