@@ -140,6 +140,9 @@ export const startSchema = z.object({
   building: z.string().trim().min(1, "Say in one sentence what you're building.").max(600),
   who: z.string().trim().max(600).optional(),
   problem: z.string().trim().max(600).optional(),
+  // Pourquoi cette personne se met à publier. Aucun modèle ne peut le deviner depuis un dépôt, et
+  // c'est le sujet du post d'origine : sans lui, l'origine recopie la fiche produit.
+  why: z.string().trim().max(600).optional(),
   days: publishingDaysSchema.default(START_DEFAULT_DAYS),
   email: z.email(),
 });
@@ -199,6 +202,7 @@ export async function createStartAccount(input: StartInput): Promise<StartResult
         brandName: parsed.owner,
         activityType: input.building,
         targetAudience: input.who || null,
+        expectations: input.why || null,
         publishingDays: input.days,
       });
       const [product] = await tx

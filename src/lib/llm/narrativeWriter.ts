@@ -47,6 +47,9 @@ export interface NarrativeBrief {
   /** The scope: the only events this post may read. */
   scope: BriefEvent[];
   subject: { name: string; description: string | null; problem: string | null; valueProposition: string | null; targetAudience: string | null };
+  /** « Qu'est-ce que tu attends de nous ? » de l'onboarding (`creator_profiles.expectations`) : pourquoi
+   *  cette personne se met à publier. C'est le sujet du post d'origine. */
+  expectations?: string | null;
   /** Promise kept only: the sentence to quote and the post that made it. */
   promise: { text: string; postText: string } | null;
   reader: Reader;
@@ -92,11 +95,11 @@ const COMMON_RULES = `<rules>
 
 const WHAT_MAKES_A_POST: Record<NarrativeKind, string> = {
   origin: `<what_makes_a_post>
-- It tells ONE fateful moment: the day someone said something, or something was seen, that could not be left as it was. A place, a person, a sentence said out loud. Never "it all started when I realised that…", and never a tour of the months that followed.
-- The reader must be able to find that moment in the material, with its details. If this post could have been written from a summary, it is the wrong post.
-- It says plainly what the author set out to build and who for — the way you would tell a friend in two sentences. A reader who knows nothing about the project finishes it knowing what the thing is and why it exists.
-- What hurt comes first, the project second. The post never argues that the project will fix it: it says why it could not be left alone.
-- No feature list, no benefit promised, no figure about the future.
+- This post says what the author is building, who for, and why they are doing it in the open. Someone who knows nothing finishes it knowing what the thing is and why it exists. It is the only post of the series allowed to present the project plainly.
+- If <scope> carries an event, it is the fateful moment and the post opens on it: a place, a person, a sentence said out loud. If <scope> carries none, the post opens on the problem, told as something that was lived and not as a market.
+- Something in it costs the author to publish — a ratio they are ashamed of, a thing they got wrong, a number they would rather not give. Without that, this post is a brochure.
+- Never "it all started when I realised that…", never a tour of the months that followed, never a feature list, never a promise about the future.
+- What hurt comes first, the project second.
 </what_makes_a_post>`,
   checkpoint: `<what_makes_a_post>
 - It says what has CHANGED between the first event of the scope and the last. One movement, not a list.
@@ -131,6 +134,7 @@ function subjectLines(brief: NarrativeBrief): string[] {
     s.description ? `What the author is building: ${s.description}` : null,
     s.problem ? `The problem this exists for: ${s.problem}` : null,
     brief.kind === "origin" && s.targetAudience ? `Who it is for, in the author's words: ${s.targetAudience}` : null,
+    brief.kind === "origin" && brief.expectations ? `Why the author is publishing, in their words: ${brief.expectations}` : null,
   ].filter((l): l is string => l !== null);
 }
 
@@ -142,7 +146,7 @@ export function buildNarrativeWriterUserMessage(context: NarrativeWriterContext)
     tag("scope", [
       `Series: ${brief.seriesLabel} — ${context.subjectName}, by ${context.brandName} (${context.activityType}).`,
       ...subjectLines(brief),
-      "These events, and only these, are what you may tell:",
+      brief.scope.length > 0 ? "These events, and only these, are what you may tell:" : "No event is attached to this post: you write it from the author's own words above, and from nothing else.",
       // Depuis le 2026-10-21 : la date et le titre, rien de plus. `What happened / What it changed /
       // For this reader / What it cost` arrivaient pré-rédigés pour chacun des événements du périmètre,
       // et le post rendait autant de formulaires. Les faits sont dans les documents, qu'il relit.

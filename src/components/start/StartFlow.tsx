@@ -14,13 +14,16 @@ import { api, ApiClientError, type StartAnalysis } from "@/lib/apiClient";
  * (the repository, read by POST /api/start/analyze) and where it goes (POST /api/start, at the email).
  */
 
-type Fields = { building: string; who: string; problem: string };
+type Fields = { building: string; who: string; problem: string; why: string };
 type FieldKey = keyof Fields;
 
-const FIELDS: Array<{ field: FieldKey; id: string; label: string }> = [
+const FIELDS: Array<{ field: FieldKey; id: string; label: string; hint?: string }> = [
   { field: "building", id: "tv-b1", label: "What you're building" },
   { field: "who", id: "tv-b2", label: "Who it's for" },
   { field: "problem", id: "tv-b3", label: "The problem you solve" },
+  // Le seul champ que la lecture du dépôt ne remplit pas : personne d'autre que l'auteur ne sait
+  // pourquoi il se met à publier, et c'est de là que part le post d'origine.
+  { field: "why", id: "tv-b4", label: "Why you want to build in public", hint: "Only you know this one. What made you decide to do it in the open?" },
 ];
 
 const READ_LINES = ["Reading your README and docs", "Scanning recent commits and pull requests", "Understanding who it's for"];
@@ -57,7 +60,7 @@ type State = {
   failure: string;
 };
 
-const EMPTY: Fields = { building: "", who: "", problem: "" };
+const EMPTY: Fields = { building: "", who: "", problem: "", why: "" };
 
 const initial: State = {
   phase: "reading",
@@ -102,7 +105,8 @@ function reducer(state: State, action: Action): State {
       return { ...state, minElapsed: true };
     case "analysis": {
       const { building, who, problem } = action.analysis.card;
-      const biz = { building, who, problem };
+      // `why` n'est jamais écrasé par l'analyse du dépôt : c'est la réponse de la personne.
+      const biz = { building, who, problem, why: state.biz.why };
       return { ...state, analysis: action.analysis, biz, draft: biz };
     }
     case "failed":
@@ -264,16 +268,16 @@ function Business({ state, dispatch, onSend }: { state: State; dispatch: (a: Act
             </div>
           </div>
           <dl className="biz-rows">
-            {FIELDS.map(({ field, id, label }, i) => (
+            {FIELDS.map(({ field, id, label, hint }, i) => (
               <div className="biz-row" key={field}>
                 <dt>
                   <label htmlFor={id}>{label}</label>
                 </dt>
                 <dd>
                   {editing ? (
-                    <textarea id={id} rows={2} value={draft[field]} onChange={(e) => dispatch({ type: "draft", field, value: e.target.value })} autoFocus={i === 0} />
+                    <textarea id={id} rows={2} placeholder={hint} value={draft[field]} onChange={(e) => dispatch({ type: "draft", field, value: e.target.value })} autoFocus={i === 0} />
                   ) : (
-                    biz[field]
+                    biz[field] || <span className="biz-empty">{hint ?? "—"}</span>
                   )}
                 </dd>
               </div>
@@ -463,6 +467,7 @@ export default function StartFlow() {
         building: state.biz.building,
         who: state.biz.who,
         problem: state.biz.problem,
+        why: state.biz.why,
         days: state.days,
         email,
       });

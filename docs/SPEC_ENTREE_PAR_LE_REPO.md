@@ -8,6 +8,8 @@
 
 ---
 
+> **Mise à jour du 2026-10-21 — la carte a un quatrième champ : « Why you want to build in public ».** Il alimente `creator_profiles.expectations` et n'est **jamais** rempli par la lecture du dépôt : personne d'autre que l'auteur ne sait pourquoi il se met à publier. C'est la matière du post d'origine, qui n'a pas besoin d'événement — sans cette phrase, l'origine recopie la fiche produit (constaté en réel sur le dépôt `MyTwin-Lab/leaderboard`, dont les 47 fichiers de documentation n'ont aucun moment fondateur). Champ facultatif : il ne bloque pas l'inscription.
+
 ## 1. Décisions (journal)
 
 | # | Décision | Pourquoi | Écarté |

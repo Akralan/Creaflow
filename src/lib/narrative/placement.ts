@@ -85,7 +85,7 @@ export function firstSeriesOfSubject(candidates: SeriesCandidate[]): string | nu
 }
 
 /** Ce que l'origine a le droit de lire : le début de l'histoire, assez pour la comprendre. */
-const ORIGIN_SCOPE = 2;
+const ORIGIN_SCOPE = 1;
 
 
 /** Plancher entre deux points d'étape — un plancher, jamais une cadence. */
@@ -114,13 +114,14 @@ export function decideNarrative(input: PlacementInput): NarrativeDecision | null
 
   const rank = postRank(written);
 
-  // Origine : OBLIGATOIRE au premier post de la première série, dès qu'il y a quelque chose à lire.
-  // Son périmètre est ÉTROIT depuis le 2026-10-21 : le moment fatidique et ce que l'auteur a fait juste
-  // après. À douze événements, le post devenait la rétrospective de six mois au lieu d'un moment.
-  // Elle s'ancre sur le plus ancien et ne marque que celui-là : les autres gardent leur épisode.
-  if (rank === 1 && isFirstSeries && events.length > 0) {
+  // Origine : OBLIGATOIRE au premier post de la première série, qu'il y ait des événements ou non.
+  // Elle ne raconte PAS forcément un événement (décision du fondateur, 2026-10-21) : c'est la présentation
+  // du projet et la raison pour laquelle l'auteur se met à construire en public. Un moment fondateur, s'il
+  // existe dans la matière, lui sert d'ancre — et il est alors marqué raconté. Sinon le périmètre est vide
+  // et le post s'écrit sur les mots de l'auteur : ce qu'il construit, pour qui, le problème, ses attentes.
+  if (rank === 1 && isFirstSeries) {
     const scope = events.slice(0, ORIGIN_SCOPE);
-    return { kind: "origin", eventIds: scope.map((e) => e.id), marksTold: scope[0].id, promise: null };
+    return { kind: "origin", eventIds: scope.map((e) => e.id), marksTold: scope[0]?.id ?? null, promise: null };
   }
 
   // Promesse tenue : prioritaire sur le point d'étape, parce qu'elle a une date de péremption.

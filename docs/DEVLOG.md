@@ -159,3 +159,17 @@ Gardés exprès, avec leur raison écrite dans `src/db/schema.ts` : les colonnes
 `audience_angles` reste aussi, et c'est un cas intéressant : son **texte** n'est plus imprimé dans aucun prompt, mais demander « qu'est-ce que ce fait change pour lui » est ce qui fait décider au modèle **si** ça change quelque chose — et le tableau `audiences` qui en est dérivé décide quelle série peut raconter quel événement. Le champ gagne sa place comme raisonnement, pas comme contenu.
 
 La reproduction du prompt 21 dans `docs/PROMPTS.md` avait dérivé d'un chantier entier (elle disait encore « technical docs contain no event »). Elle est désormais **régénérée depuis le code** — system prompt et schémas d'outils. Un script permanent de synchronisation éviterait la prochaine dérive ; il n'existe pas encore.
+
+### L'origine cesse d'exiger un événement (2026-10-21, fin de journée)
+
+Trois fois dans la journée le fondateur a dit la même chose : un post d'origine n'est pas forcément basé sur un événement, ça peut être la présentation du projet, du besoin, et de la raison pour laquelle la personne se met à construire en public. Le code exigeait un événement (`events.length > 0`, puis un périmètre de 2) et je l'ai répété à l'envers une fois de trop.
+
+Ce qui change : l'origine est placée au rang 1 de la première série **qu'il y ait des événements ou non**. S'il existe un moment fondateur il sert d'ancre et est marqué raconté ; sinon le périmètre est vide et le brief porte les mots de l'auteur — ce qu'il construit, pour qui, le problème, et **pourquoi il publie**. `ORIGIN_SCOPE` : 2 → 1.
+
+Le champ « Why you want to build in public » est ajouté à la carte de `/start` (`creator_profiles.expectations`). Il n'est jamais rempli par la lecture du dépôt, exprès.
+
+**Ce que l'essai en réel a montré, et c'est la leçon du jour.** Sur `MyTwin-Lab/leaderboard` — 47 fichiers de documentation, aucun devlog — le journal de commits a été lu **en premier** (le tri `narrativeFirst` a bien marché, 8 jours datés reconnus) et a produit **zéro événement** : les commits disent « feat(home): plain section titles, links below » — vrai, daté, mais rien en jeu. Le lecteur a ensuite miné la documentation et sorti 112 réglages non datés (« Default GPU instance type set to L4-1-24G »).
+
+Et le post d'origine généré sans `expectations` est ressorti en deux phrases qui recopient `products.problem` puis `products.description` : **exactement la plaquette pour laquelle on avait supprimé la vision le matin même**. Donner à l'origine la fiche produit et rien d'autre redonne la fiche produit. La phrase qui manque ne peut venir que d'une personne, et c'est pour ça qu'on la demande maintenant.
+
+Deux défauts relevés et pas corrigés : dans le chemin `/start`, le premier post est écrit **sans plan narratif** (donc comme épisode) puis `writeSecondNetwork` en calcule un pour l'autre réseau — d'où une paire LinkedIn/X qui ne raconte pas la même chose. Et le relecteur a refusé « Rubens Valcy » et « September 16 » comme des mots que le lecteur ne comprend pas : un nom de personne et une date ne sont pas du jargon.

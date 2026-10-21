@@ -708,6 +708,8 @@ export interface StartCreateInput {
   building: string;
   who: string;
   problem: string;
+  /** Pourquoi la personne se met à publier — le sujet du post d'origine. */
+  why?: string;
   days: number[];
   email: string;
 }

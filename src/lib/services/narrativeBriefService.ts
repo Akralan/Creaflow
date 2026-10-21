@@ -1,6 +1,6 @@
 import { and, asc, eq, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { calendarEntries, contentSeries, materialEvents, scripts, sourceMaterials } from "@/db/schema";
+import { calendarEntries, contentSeries, creatorProfiles, materialEvents, scripts, sourceMaterials } from "@/db/schema";
 import { readersOfProduct } from "@/lib/services/seriesReaderService";
 
 import { decideNarrative, firstSeriesOfSubject, type NarrativeKind, type PlacementEvent, type PlacementPost } from "@/lib/narrative/placement";
@@ -155,12 +155,19 @@ export async function planNarrativePost(userId: string, seriesId: string, slotDa
 
   const byId = new Map(events.map((e) => [e.id, e]));
   const scope = decision.eventIds.map((id) => byId.get(id)).filter((e): e is typeof materialEvents.$inferSelect => Boolean(e));
-  if (scope.length === 0) return null;
+  // Un périmètre vide est légitime pour l'origine : elle se passe d'événement (voir placement.ts).
+  if (scope.length === 0 && decision.kind !== "origin") return null;
 
   const sourceIds = [...new Set(scope.map((e) => e.sourceMaterialId).filter((id): id is string => Boolean(id)))];
   const sources = sourceIds.length
     ? await db.query.sourceMaterials.findMany({ where: and(eq(sourceMaterials.userId, userId), sql`${sourceMaterials.id} in ${sourceIds}`), columns: { id: true, title: true, rawText: true } })
     : [];
+
+  // « Qu'est-ce que tu attends de nous ? » de l'onboarding : c'est le sujet du post d'origine, qui
+  // n'a pas besoin d'événement (décision du fondateur, 2026-10-21).
+  const profile = decision.kind === "origin"
+    ? await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId), columns: { expectations: true } })
+    : null;
 
   const promiseSource = decision.promise ? userScripts.find((s) => s.id === decision.promise?.sourceScriptId) : undefined;
   if (decision.kind === "promise" && !promiseSource) {
@@ -179,6 +186,7 @@ export async function planNarrativePost(userId: string, seriesId: string, slotDa
         valueProposition: series.product?.valueProposition ?? null,
         targetAudience: series.product?.targetAudience ?? null,
       },
+      expectations: profile?.expectations ?? null,
       promise: decision.promise && promiseSource ? { text: decision.promise.text, postText: postText(promiseSource) } : null,
       reader,
       seriesLabel: series.label,

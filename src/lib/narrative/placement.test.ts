@@ -27,31 +27,32 @@ describe("postRank", () => {
 });
 
 describe("decideNarrative — origine", () => {
-  it("pose une origine au rang 1 de la première série, sur le début de l'histoire", () => {
-    expect(decideNarrative(input())).toEqual({ kind: "origin", eventIds: ["e1", "e2"], marksTold: "e1", promise: null });
+  it("pose une origine au rang 1 de la première série, ancrée sur le moment fondateur", () => {
+    expect(decideNarrative(input())).toEqual({ kind: "origin", eventIds: ["e1"], marksTold: "e1", promise: null });
   });
 
   it("pose une origine même sans aucun événement daté", () => {
     expect(decideNarrative(input({ events: [ev("e1", null), ev("e2", null)] }))?.kind).toBe("origin");
   });
 
-  it("prend le moment fatidique et ce que l'auteur a fait juste après", () => {
+  // Un post d'origine n'est pas un post d'événement : c'est la présentation du projet et la raison
+  // pour laquelle l'auteur publie. Un dépôt de documentation sans journal n'a aucun moment fondateur,
+  // et doit quand même avoir son origine.
+  it("pose une origine même quand la ligne de temps est VIDE, avec un périmètre vide", () => {
+    const d = decideNarrative(input({ events: [] }));
+    expect(d?.kind).toBe("origin");
+    expect(d?.eventIds).toEqual([]);
+    expect(d?.marksTold).toBeNull();
+  });
+
+  it("n'ancre que sur le moment fondateur, pas sur ce qui a suivi", () => {
     const quinze = Array.from({ length: 15 }, (_, i) => ev(`e${i}`, `2026-01-${String(i + 1).padStart(2, "0")}`));
     const d = decideNarrative(input({ events: quinze }));
-    expect(d?.eventIds).toHaveLength(2);
-    expect(d?.eventIds[0]).toBe("e0");
+    expect(d?.eventIds).toEqual(["e0"]);
   });
 
-  it("ne marque comme raconté que le plus ancien", () => {
+  it("marque raconté le moment fondateur quand il y en a un", () => {
     expect(decideNarrative(input())?.marksTold).toBe("e1");
-  });
-
-  it("prend tout ce qu'il y a quand la ligne de temps est courte", () => {
-    expect(decideNarrative(input({ events: [ev("e1", "2026-01-01")] }))?.eventIds).toEqual(["e1"]);
-  });
-
-  it("rend null quand la ligne de temps est vide", () => {
-    expect(decideNarrative(input({ events: [] }))).toBeNull();
   });
 
   it("ne pose pas d'origine sur une série qui n'est pas la première du sujet", () => {

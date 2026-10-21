@@ -55,3 +55,10 @@
   gap: 10px;
   align-items: flex-start;
 }
+
+/* L'état vide d'un champ de la carte : la question « pourquoi tu publies » n'est pas devinée par la
+   lecture du dépôt, elle attend une réponse. */
+.biz-empty {
+  color: color-mix(in srgb, currentColor 45%, transparent);
+  font-style: italic;
+}
