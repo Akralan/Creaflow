@@ -44,7 +44,7 @@ l'animation (27), la revue sur images (vision OpenAI).
 | 25 | Fiche d'un repo | `src/lib/llm/repoCard.ts` | Lire un dépôt public (parcours `/start`) |
 | 26 | Brief visuel | `src/lib/llm/storyboardFromText.ts` | Concevoir le visuel d'un post déjà écrit |
 | 27 | Animation HTML libre | `src/lib/llm/animationHtml.ts` | Écrire la page HTML animée d'un post |
-| 28 | Rédacteur de récit | `src/lib/llm/narrativeWriter.ts` | Écrire un post d'origine, de vision, de point d'étape ou de promesse tenue |
+| 28 | Rédacteur de récit | `src/lib/llm/narrativeWriter.ts` | Écrire un post d'origine, de point d'étape ou de promesse tenue |
 | 28a | Appariement d'une promesse | `src/lib/llm/promiseMatch.ts` | Trouver l'événement qui permet de tenir une promesse faite dans un post publié |
 | — | Bloc `<language>` | `src/lib/language.ts` | Imposer la langue du post |
 | — | Rappel en cas d'échec | `src/lib/llm/provider.ts` | Ajouté au system prompt à la 2e tentative |
@@ -1805,6 +1805,8 @@ Le lecteur (`src/lib/animationHtml/player.ts`) est injecté après le contenu du
 ---
 
 ## 28. Rédacteur de récit
+
+> **Trois types depuis le 2026-10-21, et non quatre : la vision est retirée** (voir `docs/SPEC_FIL_NARRATIF.md`). Son périmètre ne donne plus, par événement, que `date — titre` : `What happened / What it changed / For this reader / What it cost` arrivaient pré-rédigés pour chacun des douze, et le post rendait autant de formulaires. Le périmètre de l'**origine** passe de 12 événements à 2 (le moment fatidique et ce que l'auteur a fait juste après), et son bloc de prompt demande maintenant d'expliquer simplement le projet — l'ancienne règle disait « nommé à la dernière phrase, ou pas du tout ».
 
 - **Où** : `src/lib/llm/narrativeWriter.ts` (`NARRATIVE_WRITER_SYSTEM_PROMPTS`, `buildNarrativeWriterUserMessage`, `writeNarrativePost`).
 - **Quand** : quand le fil narratif réclame le créneau (`narrativeBriefService.planNarrativePost`, règles de `src/lib/narrative/placement.ts`). Il passe **avant** le rédacteur par événements : un post de récit n'ouvre pas de brief d'événement.

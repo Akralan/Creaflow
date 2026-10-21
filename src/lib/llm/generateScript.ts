@@ -46,8 +46,6 @@ export async function generateScript(context: ScriptGenerationContext): Promise<
       brandName: context.creatorProfile.brandName,
       activityType: context.creatorProfile.activityType,
       subjectName: context.product?.name ?? context.creatorProfile.brandName,
-      subjectDescription: context.product?.description ?? null,
-      subjectProblem: context.product?.problem ?? null,
       platform: context.platform,
       contentType: context.contentType,
       visual: context.visual,

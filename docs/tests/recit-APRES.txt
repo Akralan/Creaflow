@@ -1,0 +1,50 @@
+POSTS — APRÈS — périmètre de 2, faits retirés, bloc origine réécrit
+
+================================================================================================
+RÉCIT — origin · linkedin
+================================================================================================
+6 patients sur 10 ne font pas leurs exercices à la maison — Julien m'a demandé si mon proto caméra pouvait compter des squats.
+
+J'ai monté une page web avec MediaPipe Pose en JS (un modèle qui renvoie la position des articulations) et un compteur qui déclenche quand l'angle hanche‑genou‑cheville — l'angle entre la hanche, le genou et la cheville, utilisé pour repérer la flexion — passe sous 100°.
+
+Sur mon laptop, ça compte correctement ; sur l'iPhone 11 de Julien, le prototype tourne à ~6 fps et manque une répétition sur trois.
+
+[#poseestimation #mobiledev]
+
+================================================================================================
+ÉPISODE · linkedin
+================================================================================================
+Julien a fait 20 squats dans son salon pour tester le proto.
+
+Sur mon laptop ça compte proprement ; sur son iPhone 11 le prototype tourne à ~6 fps et manque une répétition sur trois.
+
+Le prototype était une page web qui exécute MediaPipe Pose en JavaScript. Le compteur détecte le bas du squat quand l'angle hanche→genou→cheville descend sous 100°.
+
+Sur un laptop moderne la chaîne pose→angle→seuil tient la cadence. Sur l'iPhone 11, MediaPipe JS n'atteint pas le débit nécessaire : les poses arrivent trop espacées et le comptage saute des cycles.
+
+Ce qui se joue là n'est pas une précision théorique mais la confiance du kiné. Si le compteur rate 1 répétition sur 3, le kiné ne peut pas s'appuyer sur ces chiffres pour suivre la rééducation.
+
+Bilan du jour : la démo prouve le concept, mais pas la solution déployable sur tous les téléphones. Résultat mesuré : laptop OK, iPhone 11 ≈6 fps, répétitions manquantes ≈33 %.
+
+[#productdev #edgevscloud]
+
+================================================================================================
+RÉCIT — vision · linkedin
+================================================================================================
+J'ai rejeté des téléphones patients à la porte de l'app — et je n'ai aucune métrique pour dire combien.
+
+Je fais toute l'inférence de pose sur l'appareil. J'ai embarqué deux modèles TFLite : "full" et "lite". Le choix se fait au démarrage selon la cadence mesurée.
+
+Mes mesures réelles : Pixel 7 — lite 24 fps / full 19 fps ; Pixel 4a — lite 15 / full 9 ; iPhone 11 — lite 14 / full 8.
+
+Règles : si full < 12 fps on saute des images (FRAME_SKIP = 2). Si on reste < 8 fps on passe sur lite. Le compteur devient fiable à partir d'environ 8 images traitées/s.
+
+L'écran de cadrage vérifie la cadence avant la séance et refuse l'appareil si on mesure moins de 4 angles/s. Autrement dit, certains téléphones sont exclus avant le premier exercice.
+
+Coût pratique : j'utilise Expo SDK 52 + dev client pour supporter les modules TFLite — impossible dans Expo Go — ce qui complique les tests.
+
+Problème ouvert : il n'y a pas d'analytics ni de crash reporting dans l'app patient en v0.4. Je sais pourquoi je bloque des appareils, pas combien de patients ça touche.
+
+Aujourd'hui : deux modèles embarqués, bascule au lancement, cadrage qui bloque les téléphones lents, et pas d'analytics en v0.4.
+
+[#mobiledev #ondevice #ml]

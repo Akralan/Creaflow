@@ -123,3 +123,29 @@ Le brief se réduit au projet (nom, description, problème), à l'événement (d
 - Mon scoreur d'étiquettes comptait comme défaut de vraies phrases (« Le problème n'est pas la formule : c'est le bruit »). Une métrique automatique sur la ponctuation ne distingue pas un intertitre d'un deux-points narratif : c'est pourquoi la règle est restée dans le prompt et n'est pas descendue dans `scriptChecks`.
 - J'ai qualifié une branche de « régression » en la comparant à la branche précédente au lieu de la comparer aux posts que le fondateur juge bons. Ses trois exemples portent 7 étiquettes sur 3 posts ; la branche accusée en portait 6. La référence était fausse, pas la branche.
 - `node --env-file=.env` lit un `.env` que `source .env` casse (une valeur contient `<` et `>`).
+
+### Le modèle comptait plus que les règles
+
+Même banc, mêmes trois événements, même brief, **seul `OPENAI_MODEL` change** : `gpt-5-mini` → `gpt-6-luna`.
+
+| | `gpt-5-mini` | `gpt-6-luna` |
+|---|---|---|
+| paragraphes étiquetés | 6 / 17 | **0 / 12** |
+| détails humains gardés | 2 / 10 | **6 / 10** |
+| longueur moyenne | 1044 car. | **671 car.** |
+
+Le « quand même » de « il a quand même fait 20 squats dans son salon » — le mot qui porte toute l'histoire — n'est sorti d'**aucune** des six branches sur `gpt-5-mini`, et sort du premier essai sur `gpt-6-luna`, avec la bière de l'entrée du 9 novembre (« Bière avec Julien. ») que personne n'avait jamais vue. Les quatre jours de retraits n'étaient pas vains (les rubriques venaient bien du prompt, 9 → 1), mais l'écart entre « inacceptable » et « bon » était surtout le modèle. Relevé dans `docs/tests/bench-brief-G-gpt6-luna.txt`.
+
+Ce que le modèle ne règle pas : la **sélection**. Quels moments méritent un post reste décidé en amont, et c'est là que la ligne de temps compte — pas pour la tension, qui se lit dans les documents.
+
+### Le post de vision est retiré
+
+Constat du fondateur, et le code lui donne raison : un post de vision est juste un post d'événement dont l'événement est gros. Les trois preuves sont dans `docs/SPEC_FIL_NARRATIF.md`. Et un bug partait avec : son ancrage `decisions.slice(-VISION_SCOPE)` opérait sur un tableau trié `date asc nulls last`, donc il prenait les décisions **sans date** — 0 datée sur 12 dans le pack MyKiné, d'où un post de vision sur une colonne JSONB sans index, pendant que la vraie décision récente (« le devis d'hébergement HDS dépasse le revenu → anonymiser les données patient », 3 octobre) n'a jamais été vue.
+
+Erreur de raisonnement à noter, relevée par le fondateur : j'avais écrit que « personne ne veut lire une décision de schéma de base de données ». Faux — le lecteur de cette série est « Solo product devs » et le portrait contient « Backend / infra engineers ». Le défaut n'était pas le sujet mais le **type** (un bon épisode présenté comme une vision), l'enjeu au conditionnel dans la matière, et un nom de table livré tel quel.
+
+### Reste ouvert
+
+- Le périmètre de l'origine est à 2 : le post commence sur le plus spectaculaire des deux moments, et le moment fondateur passe en flashback. À 1, il commencerait sur la bière.
+- Le point d'étape et la promesse tenue se recouvrent (« récapituler » vs « ce que j'avais dit que je ferais »). Question non tranchée.
+- `ORIGIN_SCOPE = 2` et le bloc d'origine réécrit ont été réglés contre les défauts de `gpt-5-mini` : à re-juger sur `gpt-6-luna`.

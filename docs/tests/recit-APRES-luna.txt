@@ -1,0 +1,42 @@
+POSTS — APRÈS — périmètre 2 + bloc réécrit, modèle gpt-6-luna
+
+================================================================================================
+RÉCIT — origin · linkedin
+================================================================================================
+Sur l’iPhone 11 de Julien, mon prototype ne suivait pas ses squats : il n’analysait que six images de caméra par seconde et ratait des répétitions.
+
+Une semaine plus tôt, autour d’une bière, Julien m’avait dit qu’environ 6 patients sur 10 ne faisaient pas leurs exercices à la maison. Il m’a demandé si mon prototype caméra pouvait repérer les squats et compter chaque répétition.
+
+J’ai monté une page web avec MediaPipe Pose. Sur mon ordinateur, le comptage fonctionnait. Sur son iPhone, le prototype ratait une répétition sur trois.
+
+MyKiné doit permettre au patient de faire son programme chez lui devant son téléphone, puis d’envoyer un compte-rendu au kiné. Mais à ce stade, le prototype ne comptait pas assez précisément pour être utile.
+
+Julien a quand même fait 20 squats dans son salon pour tester.
+
+[]
+
+================================================================================================
+ÉPISODE · linkedin
+================================================================================================
+J’ai pris le « ça marche sur mon laptop » pour un bon signe.
+
+Pour le patient qui ferait ses exercices sur un iPhone, ça ne l’était pas.
+
+Le 16 novembre, j’ai monté une page web avec un modèle qui repérait les articulations, puis un compteur qui utilisait la flexion de la jambe pour reconnaître les squats. Sur mon ordinateur, le compteur fonctionnait.
+
+Sur l’iPhone 11 de Julien, le traitement tombait à 6 images par seconde et le compteur ratait une répétition sur trois. La démo passait sur mon poste, mais pas sur le téléphone qui devait servir à faire les exercices.
+
+À ce stade, j’avais un compteur de squats en JavaScript, pas encore un prototype utilisable sur iPhone.
+
+[]
+
+================================================================================================
+RÉCIT — vision · linkedin
+================================================================================================
+Je stocke les séries d’angles en JSONB sans index : dans MyKiné, elles se lisent avec la séance, pas en recherche séparée.
+
+Chaque série contient des mesures échantillonnées dix fois par seconde et reste rattachée aux exercices de la séance. L’API retrouve les séances par patient ; elle ne cherche pas dans toute la base à partir d’une valeur d’angle.
+
+J’ai donc laissé `angle_series` sans index. Quand le kiné ouvre une séance, le compte-rendu affiche les angles de ses exercices.
+
+[]

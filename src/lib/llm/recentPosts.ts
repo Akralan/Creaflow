@@ -16,7 +16,7 @@ export interface RecentPostCard {
   ending: string | null;
   /** Story post rather than episode (docs/SPEC_FIL_NARRATIF.md §9): the next episode must not
    *  retell it — a checkpoint in particular already summed up a whole stretch. */
-  narrativeKind: "origin" | "vision" | "checkpoint" | "promise" | null;
+  narrativeKind: "origin" | "checkpoint" | "promise" | null;
 }
 
 export interface RecentPostSource {
@@ -30,6 +30,7 @@ export interface RecentPostSource {
 
 const MAX_ENDING = 160;
 
+// « vision » reste accepté en lecture : des posts déjà écrits le portent en base (type retiré le 2026-10-21).
 const NARRATIVE_KINDS: string[] = ["origin", "vision", "checkpoint", "promise"];
 
 interface TraceShape {

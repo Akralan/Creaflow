@@ -10,7 +10,7 @@
  * SUBSTANCE — ce qui a changé depuis le dernier — jamais sur une cadence.
  */
 
-export type NarrativeKind = "origin" | "vision" | "checkpoint" | "promise";
+export type NarrativeKind = "origin" | "checkpoint" | "promise";
 
 /** Un post déjà écrit de la série. `eventId` est l'événement qu'il a raconté, s'il en a raconté un. */
 export interface PlacementPost {
@@ -31,9 +31,11 @@ export interface PlacementInput {
   written: PlacementPost[];
   /** Ligne de temps du sujet, par date croissante, les non datés en dernier. */
   events: PlacementEvent[];
-  /** La série est la plus ancienne non archivée de son sujet : seule celle-là porte origine et vision. */
+  /** La série est la plus ancienne non archivée de son sujet : seule celle-là porte l'origine. */
   isFirstSeries: boolean;
-  subject: { problem: string | null; valueProposition: string | null };
+  /** RETIRÉ avec la vision le 2026-10-21 : c'était sa seule lectrice (elle exigeait un problème et
+   *  une proposition de valeur renseignés). Les mots de l'auteur sur son projet vont au rédacteur par le
+   *  brief, pas au placement. */
   /** Appariement trouvé par la relecture de la matière (§8), déjà validé. */
   promiseMatch: { promise: string; sourceScriptId: string; eventId: string } | null;
 }
@@ -59,7 +61,7 @@ export interface SeriesCandidate {
 }
 
 /**
- * La « première série d'un sujet » — celle qui porte l'origine et la vision (§7).
+ * La « première série d'un sujet » — celle qui porte l'origine (§7).
  *
  * Pas simplement la plus ancienne : les séries proposées en fin d'onboarding sont toutes créées dans
  * la même insertion et portent la MÊME date à la microseconde, si bien qu'un tri par date désigne
@@ -83,13 +85,9 @@ export function firstSeriesOfSubject(candidates: SeriesCandidate[]): string | nu
 }
 
 /** Ce que l'origine a le droit de lire : le début de l'histoire, assez pour la comprendre. */
-const ORIGIN_SCOPE = 12;
+const ORIGIN_SCOPE = 2;
 
-/** Ce que la vision a le droit de lire : quelques décisions récentes pour l'ancrer, pas davantage. */
-const VISION_SCOPE = 12;
 
-/** Rang de la vision : laisse un épisode normal entre elle et l'origine. */
-const VISION_RANK = 3;
 /** Plancher entre deux points d'étape — un plancher, jamais une cadence. */
 const MIN_EPISODES_SINCE_NARRATIVE = 4;
 /** Ce qui fait qu'il « faut » un point d'étape : assez de choses ont changé. */
@@ -109,7 +107,7 @@ function sinceLastNarrative(written: PlacementPost[]): PlacementPost[] {
 }
 
 export function decideNarrative(input: PlacementInput): NarrativeDecision | null {
-  const { written, events, isFirstSeries, subject, promiseMatch } = input;
+  const { written, events, isFirstSeries, promiseMatch } = input;
 
   // Jamais deux posts de récit à la suite : le fil respire entre deux.
   if (written[written.length - 1]?.narrativeKind) return null;
@@ -117,26 +115,12 @@ export function decideNarrative(input: PlacementInput): NarrativeDecision | null
   const rank = postRank(written);
 
   // Origine : OBLIGATOIRE au premier post de la première série, dès qu'il y a quelque chose à lire.
-  // Elle prend large — le début de l'histoire, pas un seul fait — parce que c'est le post qui doit
-  // dire pourquoi le projet existe (docs/SPEC_FIL_NARRATIF.md §5 et §14-3, révisés le 2026-10-20).
+  // Son périmètre est ÉTROIT depuis le 2026-10-21 : le moment fatidique et ce que l'auteur a fait juste
+  // après. À douze événements, le post devenait la rétrospective de six mois au lieu d'un moment.
   // Elle s'ancre sur le plus ancien et ne marque que celui-là : les autres gardent leur épisode.
   if (rank === 1 && isFirstSeries && events.length > 0) {
     const scope = events.slice(0, ORIGIN_SCOPE);
     return { kind: "origin", eventIds: scope.map((e) => e.id), marksTold: scope[0].id, promise: null };
-  }
-
-  // Vision : reportée de rang en rang tant qu'il n'y a pas de décision à quoi l'ancrer.
-  if (isFirstSeries && rank >= VISION_RANK && subject.problem && subject.valueProposition && !written.some((w) => w.narrativeKind === "vision")) {
-    // Les décisions les plus RÉCENTES, et pas toutes : où ça va se dit par ce qui vient d'être
-    // décidé, pas par ce qui l'a été il y a un an. Et sans plafond, un sujet à 46 décisions noyait
-    // la vision sous 195 000 caractères de matière — le rédacteur n'arrivait même plus à soumettre
-    // (constaté en réel le 2026-10-20). Les trois champs du sujet portent le post, ces décisions
-    // ne font que l'ancrer.
-    const decisions = events.filter((e) => e.kind === "decision");
-    if (decisions.length > 0) {
-      const anchors = decisions.slice(-VISION_SCOPE);
-      return { kind: "vision", eventIds: anchors.map((e) => e.id), marksTold: null, promise: null };
-    }
   }
 
   // Promesse tenue : prioritaire sur le point d'étape, parce qu'elle a une date de péremption.

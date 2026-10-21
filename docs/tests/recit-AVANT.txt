@@ -1,0 +1,52 @@
+POSTS — AVANT — rédacteur de récit non touché (commit 61d7933)
+
+================================================================================================
+RÉCIT — origin · linkedin
+================================================================================================
+Un soir, Julien m'a dit qu'environ 6 patients sur 10 ne font pas leurs exercices et m'a demandé si mon proto pouvait compter des squats sur son iPhone.
+
+J'ai porté MediaPipe en JS : sur laptop OK, sur l'iPhone 11 ~6 fps — le compteur ratait 1 répétition sur 3. Envoyer les frames au serveur ajoutait 300–600 ms en 4G et stockait des images privées sur mon VPS. Décision : tout tourner sur le téléphone.
+
+Conséquence : forte hétérogénéité des téléphones — Pixel 7 ≈24 fps, Pixel 4a ≈15 fps ; le modèle "lite" vibrait ±6° au bas du squat, le "full" était stable mais ≈9 fps sur le 4a. Pour fiabiliser j'ai ajouté une hystérésis (92°/108°) et un saut d'images sous 12 fps. Sur 120 répétitions filmées, les surcomptes sont passés de 22 (18 %) à 5 (4 %).
+
+Une démo a aussi montré l'occlusion : profil = genou arrière masqué = faux positifs. J'ai donc rendu obligatoire un angle caméra trois quarts (45°) et une vérification que hanches+genoux soient visibles à >0,6 de confiance pendant 2 s. Coût : 10–20 s de friction au démarrage, mais moins d'erreurs critiques.
+
+Le principal apprentissage : latence réseau et vie privée interdisent l'inférence serveur pour un rep counter en temps réel sur 4G. L'option viable impose l'on‑device, des compromis de performance et des vérifications UX.
+
+[#edgecompute #mobiledev #proddev]
+
+================================================================================================
+ÉPISODE · linkedin
+================================================================================================
+Ça marchait sur mon laptop.
+
+Sur l'iPhone 11 de Julien, MediaPipe Pose en JS tournait à 6 fps et le compteur ratait une répétition sur trois.
+
+Je mesurais l'angle formé par la jambe au niveau du genou (hanche → genou → cheville) et je considérais qu'on était "en bas" quand cet angle passait sous 100° : c'est ce passage qui incrémente le compteur. Pour vérifier, Julien a fait 20 squats dans son salon.
+
+Si on ne peut pas compter de façon fiable sur l'iPhone d'un patient, le kinésithérapeute qui prescrit les exercices n'a aucun moyen objectif de savoir si l'exercice a été fait — et donc l'outil perd sa raison d'être.
+
+J'ai ensuite testé d'envoyer les frames au serveur pour y exécuter le modèle. Sur sa 4G, la latence mesurée a été entre 300 et 600 ms, et j'ai réalisé aussi que je stockais des images sur mon VPS — problème de confidentialité.
+
+Décision prise : tout s'exécutera sur le téléphone.
+
+[#mobile #poseestimation #productdev]
+
+================================================================================================
+RÉCIT — vision · linkedin
+================================================================================================
+« Ton téléphone est trop lent pour cet exercice. »
+
+Je l'ai affiché volontairement à l'onboarding.
+
+Nous avons mesuré la cadence d'inférence pendant 3 secondes au démarrage du modèle « full ». Si la cadence est trop basse, on active le saut d'images (une image sur deux) ; si ça ne suffit pas, on bascule sur le modèle « lite ». Malgré ça, certains appareils n'atteignent pas le rythme minimal utile.
+
+Plutôt que laisser ces séances tourner au ralenti et produire de mauvais compteurs, j'ai choisi de refuser les appareils qui génèrent moins de 4 échantillons d'angle par seconde pendant le cadrage. Le message donné à l'utilisateur est celui cité plus haut.
+
+Ce choix coûte de l'assistance et des explications au kiné : il faut prévoir comment gérer les patients qui ont un téléphone trop ancien. Il coûte aussi une option possible — exécuter l'inférence côté serveur — que j'ai refusée par conception (pas de traitement vidéo sur le serveur).
+
+En pratique : l'app vérifie le cadrage (corps entier, angle de prise ≥ 45°), mesure la cadence 3 s, applique frame-skip ou bascule sur le modèle lite si nécessaire, puis bloque si la cadence reste sous 4 angles/s.
+
+Aujourd'hui, l'onboarding stoppe explicitement les appareils incapables d'atteindre 4 angles/s.
+
+[#devsolo #mobiledev #edgeML]

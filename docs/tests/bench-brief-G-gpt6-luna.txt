@@ -1,0 +1,62 @@
+BANC D'ESSAI DU BRIEF — branche « G — même brief que F, modèle gpt-6-luna »
+2026-10-21T15:30:35.608Z · modèle gpt-6-luna · sujet MyKiné · série Build log · lecteur Solo product devs
+Mémoire des derniers posts neutralisée (recentPosts = []) pour que les branches ne se contaminent pas.
+
+====================================================================================================
+2025-11-16 — Prototype web with MediaPipe counts squats but is too slow on iPhone
+at_stake en base : ∅
+====================================================================================================
+Sur l’iPhone 11 de Julien, mon compteur de squats tournait à 6 images par seconde.
+
+Je testais une première version web de MyKiné, l’application où un kiné prescrit des exercices à faire chez soi et reçoit ensuite le compte-rendu. La caméra devait repérer les mouvements et compter les squats. Sur mon laptop, ça marchait ; sur son iPhone, le compteur ratait une répétition sur trois.
+
+Julien a quand même fait 20 squats dans son salon pour tester le prototype.
+
+HASHTAGS : 
+TRACE : 2 brouillon(s), 2 soumission(s), fautes restantes []
+ACCROCHE RECOPIÉE EN TÊTE DU TEXTE : non
+SCORE : 3 paragraphes, 0 étiquetés [], code [], détails humains gardés ["quand même","salon","20 squats"] sur ["quand même","salon","20 squats"], 461 car., phrases moy. 91 ± 29
+
+====================================================================================================
+2025-11-23 — Server-side inference had high latency and exposed privacy risk; decision to move processing on-device
+at_stake en base : The trade‑off is that older phones will be slow; moving inference to device sacrifices performance on low‑end hardware.
+====================================================================================================
+Sur la connexion mobile de Julien, le compteur de squats répondait parfois en 600 ms.
+
+Et pour compter ces exercices faits à la maison, j’envoyais au serveur des images de patients en sous-vêtements.
+
+Environ six patients sur dix ne font pas les exercices prescrits chez eux, et leur kiné ne peut pas le savoir. MyKiné utilise la caméra du téléphone pour compter les répétitions, vérifier l’amplitude et l’alignement, puis transmettre un compte-rendu au kiné.
+
+Le 23 novembre, j’ai déplacé le calcul de la caméra sur le téléphone. Le proto web envoyait les images à MediaPipe côté serveur ; chez Julien, le délai montait jusqu’à 600 ms sur sa connexion mobile.
+
+Le compromis, c’est que les téléphones anciens risquent d’être lents. Désormais, je ne transmets au serveur que les angles du mouvement et les répétitions comptées.
+
+HASHTAGS : 
+TRACE : 2 brouillon(s), 2 soumission(s), fautes restantes []
+ACCROCHE RECOPIÉE EN TÊTE DU TEXTE : non
+SCORE : 5 paragraphes, 0 étiquetés [], code [], détails humains gardés ["sous-vetement"] sur ["caleçon","sous-vetement","en slip"], 826 car., phrases moy. 102 ± 26
+
+====================================================================================================
+2025-12-06 — Knee flexion angle computed but tremor causes multiple rep counts
+at_stake en base : ∅
+====================================================================================================
+Le 6 décembre, un tremblement au bas d’un squat a fait compter trois répétitions à mon compteur.
+
+Je développe MyKiné, une app où les patients font chez eux les exercices prescrits par leur kinésithérapeute, qui reçoit ensuite un compte-rendu de séance. Pour compter un squat, je calcule l’angle de flexion du genou : au-dessous de 100°, le mouvement est en bas.
+
+Le calcul de l’angle était correct. Mais quand la valeur repassait plusieurs fois autour de 100° à cause du tremblement, le compteur interprétait chaque passage comme une nouvelle répétition.
+
+À ce stade, mon traitement sur le téléphone savait mesurer l’angle, mais pas encore distinguer un squat d’un signal qui oscille. Je n’avais pas corrigé ce faux positif.
+
+HASHTAGS : 
+TRACE : 2 brouillon(s), 2 soumission(s), fautes restantes []
+ACCROCHE RECOPIÉE EN TÊTE DU TEXTE : non
+SCORE : 4 paragraphes, 0 étiquetés [], code [], détails humains gardés ["tremble","tremblement"] sur ["tremble","tremblement","compte trois","trois fois"], 725 car., phrases moy. 102 ± 46
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TOTAL branche « G — même brief que F, modèle gpt-6-luna » sur 3 posts
+────────────────────────────────────────────────────────────────────────────────────────────────────
+paragraphes étiquetés : 0 / 12
+identifiants de code  : 0
+détails humains gardés: 6 / 10
+longueur de phrase    : moyenne 98, écart-type moyen 34

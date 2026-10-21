@@ -59,8 +59,6 @@ export interface NarrativeWriterContext {
   brandName: string;
   activityType: string;
   subjectName: string;
-  subjectDescription?: string | null;
-  subjectProblem?: string | null;
   platform: Platform;
   contentType: ContentType;
   visual?: VisualFormatSpec | null;
@@ -94,20 +92,11 @@ const COMMON_RULES = `<rules>
 
 const WHAT_MAKES_A_POST: Record<NarrativeKind, string> = {
   origin: `<what_makes_a_post>
-- It tells the problem, long before any solution. What was seen, heard or lived that could not stay as it was.
-- It starts in the moment it happened: a place, a person, a sentence someone said. Not "it all started when I realised that…".
-- The reader must be able to recognise that moment in the material: it is one real event, with its details, not a summary of a year.
-- What the author is building is named in the LAST sentence, or not at all. Never before.
-- No feature is described. No benefit is promised. The reader should finish it understanding what hurt, not what the product does.
-- It does not say the project will fix it. It says why it could not be left alone.
-</what_makes_a_post>`,
-  vision: `<what_makes_a_post>
-- The backbone of this post is ALREADY WRITTEN, in the author's own words, in <scope>: what they are building, who it is for, the problem it solves. Those three sentences are the post. The decisions below are not the subject — they are what stops it from being a pitch.
-- It says where this is going and for whom, and every claim about the future rests on a decision that was actually taken.
-- It starts from one of those decisions, told concretely: what was chosen, and what was given up to choose it. What is given up is what makes a vision credible.
-- No roadmap, no dates, no numbers promised. "Next quarter", "by summer", "10,000 users" do not appear.
-- It does not list what the product will do. It says what the author refuses to build, and what that leaves.
-- It is written for the person in <reader>, not for investors.
+- It tells ONE fateful moment: the day someone said something, or something was seen, that could not be left as it was. A place, a person, a sentence said out loud. Never "it all started when I realised that…", and never a tour of the months that followed.
+- The reader must be able to find that moment in the material, with its details. If this post could have been written from a summary, it is the wrong post.
+- It says plainly what the author set out to build and who for — the way you would tell a friend in two sentences. A reader who knows nothing about the project finishes it knowing what the thing is and why it exists.
+- What hurt comes first, the project second. The post never argues that the project will fix it: it says why it could not be left alone.
+- No feature list, no benefit promised, no figure about the future.
 </what_makes_a_post>`,
   checkpoint: `<what_makes_a_post>
 - It says what has CHANGED between the first event of the scope and the last. One movement, not a list.
@@ -129,30 +118,19 @@ const WHAT_MAKES_A_POST: Record<NarrativeKind, string> = {
 
 export const NARRATIVE_WRITER_SYSTEM_PROMPTS: Record<NarrativeKind, string> = {
   origin: `${SCRIPT_CORE_PROMPT}\n\n${METHOD_PROMPT}\n\n${WHAT_MAKES_A_POST.origin}\n\n${COMMON_RULES}`,
-  vision: `${SCRIPT_CORE_PROMPT}\n\n${METHOD_PROMPT}\n\n${WHAT_MAKES_A_POST.vision}\n\n${COMMON_RULES}`,
   checkpoint: `${SCRIPT_CORE_PROMPT}\n\n${METHOD_PROMPT}\n\n${WHAT_MAKES_A_POST.checkpoint}\n\n${COMMON_RULES}`,
   promise: `${SCRIPT_CORE_PROMPT}\n\n${METHOD_PROMPT}\n\n${WHAT_MAKES_A_POST.promise}\n\n${COMMON_RULES}`,
 };
 
-/** What the subject is allowed to say, per type: the origin gets the problem, the vision gets all three. */
+/** Les mots de l'auteur sur son propre projet, donnés à tous les types de récit. */
 function subjectLines(brief: NarrativeBrief): string[] {
   const s = brief.subject;
-  // L'origine et la vision reçoivent les mots de l'auteur sur son propre projet — les trois champs
-  // de `/start` (docs/SPEC_FIL_NARRATIF.md §5, révisé) : ce qu'il construit, pour qui, le problème.
-  // Le point d'étape et la promesse n'en reçoivent aucun : ils parlent de faits, pas du projet.
-  if (brief.kind === "origin") {
-    return [
-      s.problem ? `The problem this exists for: ${s.problem}` : null,
-      s.description ? `What the author ended up building: ${s.description} — this is NOT what the post is about, and it is not named before the last sentence.` : null,
-      s.targetAudience ? `Who it is for, in the author's words: ${s.targetAudience}` : null,
-    ].filter((l): l is string => l !== null);
-  }
-  if (brief.kind !== "vision") return [];
+  // Ce que le projet est et le problème qu'il règle vont à TOUS les types : un post doit se tenir
+  // seul (docs/DEVLOG.md du 2026-10-21). L'origine ajoute pour qui c'est, dans les mots de l'auteur.
   return [
-    s.description ? `What is being built: ${s.description}` : null,
-    s.problem ? `The problem it solves: ${s.problem}` : null,
-    s.valueProposition ? `What it brings: ${s.valueProposition}` : null,
-    s.targetAudience ? `Who it is for, in the author's words: ${s.targetAudience}` : null,
+    s.description ? `What the author is building: ${s.description}` : null,
+    s.problem ? `The problem this exists for: ${s.problem}` : null,
+    brief.kind === "origin" && s.targetAudience ? `Who it is for, in the author's words: ${s.targetAudience}` : null,
   ].filter((l): l is string => l !== null);
 }
 
@@ -163,15 +141,12 @@ export function buildNarrativeWriterUserMessage(context: NarrativeWriterContext)
   sections.push(
     tag("scope", [
       `Series: ${brief.seriesLabel} — ${context.subjectName}, by ${context.brandName} (${context.activityType}).`,
-      context.subjectDescription ? `What ${context.subjectName} is: ${context.subjectDescription}` : "",
-      context.subjectProblem ? `The problem it solves: ${context.subjectProblem}` : "",
-      "These events, and only these, are what you may tell:",
-      ...brief.scope.map(
-        (e) =>
-          `- ${eventLine(e)}\n  What happened: ${e.whatHappened}${e.whatChanged ? `\n  What it changed: ${e.whatChanged}` : ""}${e.angle ? `\n  For this reader: ${e.angle}` : ""}${e.atStake ? `
-  What it cost: ${e.atStake}` : ""}`
-      ),
       ...subjectLines(brief),
+      "These events, and only these, are what you may tell:",
+      // Depuis le 2026-10-21 : la date et le titre, rien de plus. `What happened / What it changed /
+      // For this reader / What it cost` arrivaient pré-rédigés pour chacun des événements du périmètre,
+      // et le post rendait autant de formulaires. Les faits sont dans les documents, qu'il relit.
+      ...brief.scope.map((e) => `- ${eventLine(e)}`),
       brief.sources.length
         ? `Sources to reread with ${READ_SOURCE_TOOL}: ${brief.sources.map((s, i) => `${i + 1}. "${s.title ?? "document"}"`).join(", ")}.`
         : "No source document: you only have what is above.",
@@ -308,7 +283,7 @@ export async function writeNarrativePost(context: NarrativeWriterContext): Promi
     // Le plafond suit la matière : lire une partie coûte un tour, et il faut qu'il en reste pour
     // trois brouillons et deux soumissions. Une constante à 14 rendait certains périmètres
     // littéralement impossibles — 17 parties à lire, 14 tours, aucune soumission jamais
-    // (constaté en réel le 2026-10-20 sur la vision).
+    // (constaté en réel le 2026-10-20).
     maxTurns: Math.min(40, 10 + parts.length * 2),
     effort: "medium",
     onToolCall: async ({ name, input }) => {

@@ -23,6 +23,10 @@ export const calendarStatusEnum = pgEnum("calendar_status", ["planned", "shot", 
 // Narrative thread (docs/SPEC_FIL_NARRATIF.md §11): a post is either an episode — one event, the
 // default — or one of the four story posts that hold the series together.
 export const calendarEntryKindEnum = pgEnum("calendar_entry_kind", ["event", "narrative"]);
+// « vision » RETIRÉ du produit le 2026-10-21 : c'était le seul type de récit sans événement à lui
+// (`marksTold: null` sur des décisions appartenant à d'autres posts), et son propre prompt admettait que
+// le post était la fiche du sujet. Un vrai virage se raconte comme épisode — le 23 novembre de MyKiné
+// le prouve. Rien ne le remplace. La valeur reste dans l'enum : des posts en base la portent.
 export const narrativeKindEnum = pgEnum("narrative_kind", ["origin", "vision", "checkpoint", "promise"]);
 export const assistantProposalKindEnum = pgEnum("assistant_proposal_kind", [
   "product_create",

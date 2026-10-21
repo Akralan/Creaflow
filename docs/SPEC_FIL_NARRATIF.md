@@ -3,6 +3,8 @@
 Statut : cadrage arrêté, 2026-10-20. Périmètre : **une seule livraison**, les quatre types ensemble.
 Les décisions laissées ouvertes dans le brouillon du 19 sont tranchées en §14, avec leur raison.
 
+> **Le post de vision est RETIRÉ le 2026-10-21, et rien ne le remplace.** C'était le seul type de récit sans événement à lui : `marksTold: null` sur douze décisions appartenant à d'autres posts. Son propre prompt l'avouait — « the backbone of this post is ALREADY WRITTEN… those three sentences are the post », les événements n'étant là que pour l'empêcher de ressembler à une plaquette. Un vrai virage se raconte très bien comme épisode : le 23 novembre de MyKiné (latence serveur de 300-600 ms, images de patients en transit, tout passe sur le téléphone) porte le moment, le coût et la direction du produit sans aucun type dédié. Ce qu'elle servait en sous-main — réexpliquer le projet — est couvert depuis que la description et le problème du sujet arrivent dans tous les briefs. Deux bugs partent avec elle : son ancrage `decisions.slice(-12)` sur un tableau trié `nulls last` ne voyait **jamais** une décision datée (0 sur 12 sur le pack MyKiné), d'où un post sur une colonne JSONB sans index.
+
 ## 1. Le problème
 
 Le rédacteur par événements produit de bons posts, mais chacun est une tranche : un événement, un

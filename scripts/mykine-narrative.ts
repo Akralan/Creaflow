@@ -35,7 +35,6 @@ type Step =
 const SERIES: Step[] = [
   { kind: "origin", dates: ["2025-11-16"] },
   { kind: "episode", date: "2025-11-23" },
-  { kind: "vision", dates: ["2025-11-23", "2025-12-06"] },
   { kind: "episode", date: "2025-12-06" },
   { kind: "checkpoint", dates: ["2025-11-16", "2025-11-23", "2025-12-06"] },
   // La promesse doit exister pour de vrai dans un post d'épisode : celle-ci est reprise mot pour mot

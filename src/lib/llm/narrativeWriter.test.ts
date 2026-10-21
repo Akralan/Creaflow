@@ -79,11 +79,11 @@ describe("message utilisateur", () => {
     expect(message).not.toContain("Un événement hors périmètre");
   });
 
-  it("donne problème et proposition de valeur pour la vision, pas pour le point d'étape", () => {
-    const vision = buildNarrativeWriterUserMessage(context({ brief: brief({ kind: "vision" }) }));
-    expect(vision).toContain("les patients abandonnent");
-    expect(vision).toContain("ils tiennent trois semaines");
-    expect(buildNarrativeWriterUserMessage(context())).not.toContain("ils tiennent trois semaines");
+  it("donne le projet et son problème à tous les types de récit", () => {
+    for (const kind of ["origin", "checkpoint", "promise"] as const) {
+      const msg = buildNarrativeWriterUserMessage(context({ brief: brief({ kind }) }));
+      expect(msg).toContain("les patients abandonnent");
+    }
   });
 
   it("donne le problème du sujet à l'origine, sans la proposition de valeur", () => {
@@ -103,7 +103,7 @@ describe("message utilisateur", () => {
 
 describe("système", () => {
   it("a un bloc par type, dans l'ordre de l'enum", () => {
-    expect(Object.keys(NARRATIVE_WRITER_SYSTEM_PROMPTS)).toEqual(["origin", "vision", "checkpoint", "promise"]);
+    expect(Object.keys(NARRATIVE_WRITER_SYSTEM_PROMPTS)).toEqual(["origin", "checkpoint", "promise"]);
   });
 
   it("interdit partout de nommer le type dans le post", () => {
@@ -167,16 +167,13 @@ describe("writeNarrativePost", () => {
   });
 });
 
-describe("l'angle du lecteur", () => {
-  it("donne au rédacteur l'angle du lecteur à côté des faits", () => {
-    const withAngle = { ...ev("e1", "La démo tourne"), angle: "le patient voit son compteur bouger tout de suite" };
+describe("le périmètre donné au rédacteur", () => {
+  it("ne donne du périmètre que la date et le titre : les faits sont dans les documents", () => {
+    const withAngle = { ...ev("e1", "La démo tourne"), angle: "le patient voit son compteur bouger tout de suite", whatHappened: "La démo a tourné devant Marion.", atStake: "la confiance du cabinet" };
     const msg = buildNarrativeWriterUserMessage(context({ brief: brief({ scope: [withAngle] }) }));
-    expect(msg).toContain("For this reader: le patient voit son compteur bouger tout de suite");
-  });
-
-  it("se passe d'angle quand il n'y en a pas", () => {
-    const msg = buildNarrativeWriterUserMessage(context());
-    expect(msg).not.toContain("For this reader:");
     expect(msg).toContain("La démo tourne");
+    expect(msg).not.toContain("For this reader:");
+    expect(msg).not.toContain("What happened:");
+    expect(msg).not.toContain("What it cost:");
   });
 });

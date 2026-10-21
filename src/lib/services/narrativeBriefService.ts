@@ -153,7 +153,6 @@ export async function planNarrativePost(userId: string, seriesId: string, slotDa
     written,
     events: events.map(toPlacementEvent),
     isFirstSeries: firstSeriesId === seriesId,
-    subject: { problem: series.product?.problem ?? null, valueProposition: series.product?.valueProposition ?? null },
     promiseMatch: candidate ? { promise: candidate.match!.promise, sourceScriptId: candidate.script.id, eventId: candidate.match!.eventId } : null,
   });
   if (!decision) return null;

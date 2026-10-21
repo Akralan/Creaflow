@@ -9,7 +9,6 @@ const input = (over: Partial<PlacementInput> = {}): PlacementInput => ({
   written: [],
   events: [ev("e1", "2026-01-01"), ev("e2", "2026-02-01")],
   isFirstSeries: true,
-  subject: { problem: "les notes se perdent", valueProposition: "elles deviennent des posts" },
   promiseMatch: null,
   ...over,
 });
@@ -36,10 +35,10 @@ describe("decideNarrative — origine", () => {
     expect(decideNarrative(input({ events: [ev("e1", null), ev("e2", null)] }))?.kind).toBe("origin");
   });
 
-  it("prend les 12 plus anciens événements dans son périmètre", () => {
+  it("prend le moment fatidique et ce que l'auteur a fait juste après", () => {
     const quinze = Array.from({ length: 15 }, (_, i) => ev(`e${i}`, `2026-01-${String(i + 1).padStart(2, "0")}`));
     const d = decideNarrative(input({ events: quinze }));
-    expect(d?.eventIds).toHaveLength(12);
+    expect(d?.eventIds).toHaveLength(2);
     expect(d?.eventIds[0]).toBe("e0");
   });
 
@@ -57,35 +56,6 @@ describe("decideNarrative — origine", () => {
 
   it("ne pose pas d'origine sur une série qui n'est pas la première du sujet", () => {
     expect(decideNarrative(input({ isFirstSeries: false }))).toBeNull();
-  });
-});
-
-describe("decideNarrative — vision", () => {
-  const twoEpisodes = [p("2026-01-05", null, "e1"), p("2026-01-07", null, "e2")];
-
-  it("pose la vision au rang 3 quand une décision existe et que le sujet est rempli", () => {
-    const events = [ev("e1", "2026-01-01"), ev("e2", "2026-01-02", "decision"), ev("e3", "2026-01-03", "decision")];
-    expect(decideNarrative(input({ written: twoEpisodes, events }))).toEqual({ kind: "vision", eventIds: ["e2", "e3"], marksTold: null, promise: null });
-  });
-
-  it("ne pose pas la vision quand le sujet n'a ni problème ni proposition de valeur", () => {
-    const events = [ev("e1", "2026-01-01"), ev("e2", "2026-01-02", "decision")];
-    expect(decideNarrative(input({ written: twoEpisodes, events, subject: { problem: null, valueProposition: null } }))).toBeNull();
-  });
-
-  it("reporte la vision tant qu'aucun événement de genre décision n'existe", () => {
-    const sansDecision = [ev("e1", "2026-01-01"), ev("e2", "2026-01-02"), ev("e3", "2026-01-03")];
-    expect(decideNarrative(input({ written: twoEpisodes, events: sansDecision }))).toBeNull();
-
-    const troisEpisodes = [...twoEpisodes, p("2026-01-09", null, "e3")];
-    const avecDecision = [...sansDecision, ev("e4", "2026-01-04", "decision")];
-    expect(decideNarrative(input({ written: troisEpisodes, events: avecDecision }))).toEqual({ kind: "vision", eventIds: ["e4"], marksTold: null, promise: null });
-  });
-
-  it("ne repose pas une vision déjà écrite", () => {
-    const written = [p("2026-01-05", null, "e1"), p("2026-01-07", "vision", null), p("2026-01-09", null, "e2")];
-    const events = [ev("e1", "2026-01-01"), ev("e2", "2026-01-02", "decision")];
-    expect(decideNarrative(input({ written, events }))).toBeNull();
   });
 });
 
@@ -181,30 +151,5 @@ describe("firstSeriesOfSubject", () => {
   it("rend null quand aucune série ne publie", () => {
     expect(firstSeriesOfSubject([s("x", { hasRhythm: false })])).toBeNull();
     expect(firstSeriesOfSubject([])).toBeNull();
-  });
-});
-
-describe("decideNarrative — vision, périmètre borné", () => {
-  const twoEpisodes = [p("2026-01-05", null, "e1"), p("2026-01-07", null, "e2")];
-
-  it("ne lit que 12 décisions au plus", () => {
-    const vingt = Array.from({ length: 20 }, (_, i) => ev(`d${i}`, `2026-02-${String(i + 1).padStart(2, "0")}`, "decision"));
-    const d = decideNarrative(input({ written: twoEpisodes, events: vingt }));
-    expect(d?.kind).toBe("vision");
-    expect(d?.eventIds).toHaveLength(12);
-  });
-
-  it("garde les décisions les plus RÉCENTES : où ça va se dit par ce qui vient d'être décidé", () => {
-    const vingt = Array.from({ length: 20 }, (_, i) => ev(`d${i}`, `2026-02-${String(i + 1).padStart(2, "0")}`, "decision"));
-    const ids = decideNarrative(input({ written: twoEpisodes, events: vingt }))?.eventIds ?? [];
-    expect(ids).toContain("d19");
-    expect(ids).not.toContain("d0");
-  });
-
-  it("les rend dans l'ordre du temps, la plus ancienne d'abord", () => {
-    const vingt = Array.from({ length: 20 }, (_, i) => ev(`d${i}`, `2026-02-${String(i + 1).padStart(2, "0")}`, "decision"));
-    const ids = decideNarrative(input({ written: twoEpisodes, events: vingt }))?.eventIds ?? [];
-    expect(ids[0]).toBe("d8");
-    expect(ids[ids.length - 1]).toBe("d19");
   });
 });
