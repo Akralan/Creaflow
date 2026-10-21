@@ -59,6 +59,8 @@ export interface NarrativeWriterContext {
   brandName: string;
   activityType: string;
   subjectName: string;
+  subjectDescription?: string | null;
+  subjectProblem?: string | null;
   platform: Platform;
   contentType: ContentType;
   visual?: VisualFormatSpec | null;
@@ -161,6 +163,8 @@ export function buildNarrativeWriterUserMessage(context: NarrativeWriterContext)
   sections.push(
     tag("scope", [
       `Series: ${brief.seriesLabel} — ${context.subjectName}, by ${context.brandName} (${context.activityType}).`,
+      context.subjectDescription ? `What ${context.subjectName} is: ${context.subjectDescription}` : "",
+      context.subjectProblem ? `The problem it solves: ${context.subjectProblem}` : "",
       "These events, and only these, are what you may tell:",
       ...brief.scope.map(
         (e) =>
@@ -171,7 +175,7 @@ export function buildNarrativeWriterUserMessage(context: NarrativeWriterContext)
       brief.sources.length
         ? `Sources to reread with ${READ_SOURCE_TOOL}: ${brief.sources.map((s, i) => `${i + 1}. "${s.title ?? "document"}"`).join(", ")}.`
         : "No source document: you only have what is above.",
-    ])
+    ].filter(Boolean))
   );
 
   if (brief.promise) {

@@ -75,9 +75,9 @@ const describeReadersTool: LlmToolDefinition = {
             wants: {
               type: "string",
               description:
-                "What they come looking for by following this project, and what we'd like them to do (try, buy, follow, add to their wishlist…).",
+                "What they come looking for by following this project, and what we'd like them to do (try, buy, follow, add to their wishlist…). A subject and a kind of fact, never a format: 'diagrams', 'code snippets', 'bullet lists', 'something to copy' describe the shape of a post, which is none of this reader's business.",
             },
-            stopsFor: { type: "string", description: "What stops them from scrolling." },
+            stopsFor: { type: "string", description: "What stops them from scrolling: a subject, a kind of fact, a number that settles a doubt. Never a format or an artefact." },
             turnsOff: { type: "string", description: "What makes them leave." },
             words: {
               type: "array",

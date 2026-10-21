@@ -1,0 +1,64 @@
+{
+  "productId": "8a60ecfd-785c-4b21-a7ad-a89c19cf1cc1",
+  "readerPortrait": {
+    "readers": [
+      {
+        "who": "Independent developers (one or two people) building consumer-facing mobile apps who are responsible for product, code, and ops.",
+        "knows": "Comfortable with end-to-end product development: mobile and backend stacks, trade-offs, and pragmatic engineering; not specialists in physiotherapy.",
+        "label": "Solo product devs",
+        "wants": "Post‑mortems of decisions, concrete technical trade‑offs, performance numbers, what broke and why, and enough context to copy or avoid the same mistakes; they should come away able to reuse code ideas or architecture patterns.",
+        "words": [
+          "latency",
+          "edge vs cloud",
+          "trade‑off",
+          "throughput",
+          "90th percentile",
+          "rep counter",
+          "pose model",
+          "false positive"
+        ],
+        "stopsFor": "Clear technical diagrams, measured results (latency, error rates, accuracy), concrete code snippets, and concise “what we would change” bullets.",
+        "turnsOff": "Overly high-level marketing language, vague commitments, hand‑wavy ML claims, and long clinical explanations unrelated to engineering."
+      },
+      {
+        "who": "Engineers focused on computer vision or machine learning, often contributors or contractors, who want to understand pose estimation, model choices, and evaluation.",
+        "knows": "They know pose estimation models, metrics (precision/recall, F1, AUC), data annotation issues, and model deployment constraints on mobile or serverless infra.",
+        "label": "CV / ML engineers",
+        "wants": "Architecture of the pose pipeline, model sizes and inference times, sample failure cases, dataset and annotation practices, and reproducible benchmarks to compare with their own work.",
+        "words": [
+          "pose estimation",
+          "keypoints",
+          "IOU",
+          "FPS",
+          "quantization",
+          "latency",
+          "ground truth",
+          "annotator instructions"
+        ],
+        "stopsFor": "Quantified model evaluations, dataset descriptions, code or model checkpoints, and examples of edge cases with visuals.",
+        "turnsOff": "Vague accuracy claims, missing evaluation methodology, lack of reproducible steps, or anonymized/noisy data descriptions."
+      },
+      {
+        "who": "Engineers responsible for APIs, scaling, privacy, and deployment who read the repo to learn operational and architectural decisions for similar small teams.",
+        "knows": "Experienced with REST/gRPC APIs, database schemas, monitoring, CI/CD, k8s or serverless, GDPR/privacy basics; they value operational simplicity for small teams.",
+        "label": "Backend / infra engineers",
+        "wants": "Clear API contracts, data retention and privacy tradeoffs, deployment steps, monitoring/SLIs, cost estimates, and failure recovery patterns they can adapt.",
+        "words": [
+          "SLO",
+          "latency budget",
+          "RBAC",
+          "data retention",
+          "encryption at rest",
+          "backup",
+          "autoscaling",
+          "cost per 1k sessions"
+        ],
+        "stopsFor": "Clear diagrams of data flow, schema examples, deployment scripts, and cost/perf numbers.",
+        "turnsOff": "Undocumented APIs, missing privacy justification, hand‑wavy scaling claims, or opaque stateful architectures."
+      }
+    ],
+    "generatedAt": "2026-10-20T13:54:52.051Z",
+    "editedByUser": false,
+    "basedOnAudience": "Des développeurs qui construisent des produits seuls ou à deux : ils veulent voir les arbitrages techniques, ce qui a cassé, les chiffres de perf et les décisions d'architecture. Pas des kinés."
+  }
+}

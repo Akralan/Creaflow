@@ -1,0 +1,74 @@
+BANC D'ESSAI DU BRIEF — branche « E — D + la source est des notes, accroche non recopiée »
+2026-10-20T21:18:06.206Z · modèle gpt-5-mini · sujet MyKiné · série Build log · lecteur Solo product devs
+Mémoire des derniers posts neutralisée (recentPosts = []) pour que les branches ne se contaminent pas.
+
+====================================================================================================
+2025-11-16 — Prototype web with MediaPipe counts squats but is too slow on iPhone
+at_stake en base : ∅
+====================================================================================================
+Il a fait 20 squats dans son salon. Sur mon laptop le prototype les comptait ; sur l'iPhone 11 de Julien il tournait à 6 fps et ratait une répétition sur trois.
+
+Il a fait 20 squats dans son salon. Sur mon laptop le prototype les comptait ; sur l'iPhone 11 de Julien il tournait à 6 fps et ratait une répétition sur trois.
+
+J'ai mis en place une page web avec MediaPipe Pose en JS et un compteur qui détecte le bas du squat quand l'angle hanche‑genou‑cheville descend sous 100°. La logique tient en quelques lignes et marche bien en environnement desktop.
+
+Le problème est purement performance côté client : le navigateur iOS de son téléphone n'arrive pas à fournir assez de frames. À 6 fps, le détecteur saute des positions clés et le compteur sous‑estime systématiquement les répétitions.
+
+La tension était simple et nette : Julien voulait savoir si la caméra pouvait réellement mesurer l'adhésion de ses patients. Ce test m'a pris une heure et m'a répondu : techniquement oui, pratiquement pas encore sur tous les téléphones.
+
+Sur l'iPhone 11, le proto web tourne à 6 fps et manque environ une répétition sur trois.
+
+HASHTAGS : #proddev #poseestimation
+TRACE : 1 brouillon(s), 1 soumission(s), fautes restantes []
+ACCROCHE RECOPIÉE EN TÊTE DU TEXTE : oui
+SCORE : 6 paragraphes, 1 étiquetés ["La tension était simple et nette :"], code [], détails humains gardés ["salon","20 squats"] sur ["quand même","salon","20 squats"], 1118 car., phrases moy. 100 ± 36
+
+====================================================================================================
+2025-11-23 — Server-side inference had high latency and exposed privacy risk; decision to move processing on-device
+at_stake en base : The trade‑off is that older phones will be slow; moving inference to device sacrifices performance on low‑end hardware.
+====================================================================================================
+300–600 ms de latence sur la connexion mobile et des images de patients qui transitent : on a arrêté d'envoyer les images et basculé l'estimation de pose sur le téléphone.
+
+Le 9 novembre, Julien m'a dit que 6 patients sur 10 ne faisaient pas leurs exercices et a demandé si le prototype pouvait compter les squats.
+
+Le 16 novembre, le prototype web envoyait chaque image capturée par la caméra au serveur pour MediaPipe. Il comptait les répétitions mais était trop lent sur iPhone — et sur la connexion mobile de Julien on mesurait 300–600 ms de latence.
+
+Au-delà de la latence, c'était un risque de confidentialité : des images personnelles transitaient par notre serveur.
+
+Le 23 novembre j'ai choisi de tout faire tourner sur le téléphone. Le serveur ne reçoit plus d'images ; il ne récupère que des angles et des compteurs.
+
+Coût immédiat : les téléphones anciens seront plus lents. On le traitera au cas par cas.
+
+Depuis la décision, aucune image patient n'est envoyée au serveur — et la latence réseau n'empêche plus le comptage des répétitions.
+
+HASHTAGS : edgeai mobiledev confidentialité
+TRACE : 2 brouillon(s), 2 soumission(s), fautes restantes []
+ACCROCHE RECOPIÉE EN TÊTE DU TEXTE : non
+SCORE : 7 paragraphes, 1 étiquetés ["Coût immédiat :"], code [], détails humains gardés [] sur ["caleçon","sous-vetement","en slip"], 1050 car., phrases moy. 104 ± 41
+
+====================================================================================================
+2025-12-06 — Knee flexion angle computed but tremor causes multiple rep counts
+at_stake en base : ∅
+====================================================================================================
+J'ai calculé l'angle de flexion du genou (produit scalaire entre hanche→genou et cheville→genou).
+
+J'ai défini les seuils à 160° pour la position haute et 100° pour la position basse. Sur des mouvements stables le comptage semblait correct.
+
+Quand la jambe tremble en bas, l'angle oscille autour de 100° et traverse la limite plusieurs fois; le compteur incrémente jusqu'à trois fois pour un seul squat.
+
+J'avais déjà choisi de tout faire sur l'appareil après avoir écarté l'inférence serveur, donc je dépends directement des mesures instantanées du modèle de pose.
+
+Je ne l'ai pas corrigé.
+
+HASHTAGS : #edge #mobiledev #devlog
+TRACE : 1 brouillon(s), 1 soumission(s), fautes restantes []
+ACCROCHE RECOPIÉE EN TÊTE DU TEXTE : non
+SCORE : 5 paragraphes, 0 étiquetés [], code [], détails humains gardés ["tremble","trois fois"] sur ["tremble","tremblement","compte trois","trois fois"], 590 car., phrases moy. 97 ± 51
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TOTAL branche « E — D + la source est des notes, accroche non recopiée » sur 3 posts
+────────────────────────────────────────────────────────────────────────────────────────────────────
+paragraphes étiquetés : 2 / 18
+identifiants de code  : 0
+détails humains gardés: 4 / 10
+longueur de phrase    : moyenne 100, écart-type moyen 43

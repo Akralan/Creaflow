@@ -212,6 +212,7 @@ export async function buildGenerationContext(
       ? {
           name: product.name,
           description: product.description,
+          problem: product.problem,
           valueProposition: product.valueProposition,
           targetAudience: product.targetAudience,
         }

@@ -53,6 +53,10 @@ export interface EventWriterContext {
   brandName: string;
   activityType: string;
   subjectName: string;
+  /** Ce qu'est le projet et le problème qu'il règle (`products.description`, `products.problem`).
+   *  Le rédacteur n'avait que le nom, donc ses posts ne pouvaient pas se tenir seuls. */
+  subjectDescription?: string | null;
+  subjectProblem?: string | null;
   platform: Platform;
   contentType: ContentType;
   visual?: VisualFormatSpec | null;
@@ -108,31 +112,57 @@ You tell ONE event to ONE person. Everything else serves that.
 </method>
 
 <what_makes_a_post>
-- It starts inside the event: no announcement, no "in this series". The first sentence is already in it, and it only has one job: make the reader read the second. By the end of the second sentence the reader knows who, what, and what is at stake, in a few words, never a paragraph of context.
+- It starts inside the event: no announcement, no "in this series". The first sentence is already in it, and it only has one job: make the reader read the second. By the end of the second sentence the reader knows who, what, and what is at stake.
 - It tells ONE turning point, with something at stake. If nothing is at stake, there is no post.
 - It tells what happened, then what it changed. With the details from the source: people's exact words, the numbers, the date if it matters.
 - It uses only details found in the source. A precise detail that is true builds trust, a false one destroys it. If the source doesn't have it, leave it out.
 - A win is stated plainly, or a problem is told plainly.
 - A feeling is shown through a fact.
 - Sentence lengths vary. A regular rhythm reads as machine-written.
-- It doesn't explain the product. If the reader understands what the product does, it's because they saw what happened, not because it was described to them.
-- It ends on the last thing that happened, or on one concrete fact that is still true: a number, an action taken, a sentence someone said. Then it stops. If the facts alone don't say why it mattered, one sentence is allowed: what the author thinks or feels now, never a lesson for everyone. No call to action.
-- It tells THIS event and stops before the next one. The events before and after only serve to situate in half a sentence ("a week after the demo"), without their numbers or details: they had or will have their own post.
+- It stands on its own. A reader who has never seen another post of the series still learns what the project is and who it is for, in a sentence or two carried by the story — with the real names and numbers, never as a pitch.
+- It ends on the last thing that happened, or on one concrete fact that is still true: a number, an action taken, a sentence someone said. Then it stops. If the facts alone don't say why it mattered, one sentence is allowed: what the author thinks or feels now, never a lesson for everyone. A next step, a question to the reader or an invitation is allowed when the author is really committing to something they will have to keep — never as a tease, never as a line added because the post had to end somewhere.
+- The event of the day is the one it tells. What came before serves to make it understandable, as briefly or as fully as that takes; the event of the day is never shared with another one, which will have its own post.
 - It doesn't look like the previous post. Look at <recent_posts>: if the last one opened with a number, this one opens differently; if it ended on "the next step", this one ends on something else, or stops dead.
 - Hashtags, if any, change with the post: the event's, not the project's.
 - It is written for ONE person, in their words, at their length. What they wouldn't understand isn't in it, or is explained through its effect.
-- The author speaks in the first person singular. "We" only if the brief or the source says there is a team, and to refer to that team.
+- The author speaks as themselves: "I", or "we" when someone else really worked on it.
 - Everything is written in the language given in <language>.
 </what_makes_a_post>
 
 <examples_of_form>
-Three short posts, from trades that have nothing to do with the author's. Read them for ONE thing: in each, someone risked or lost something, and paid for it. 14 bowls thrown away. A survey that lied about 22 frames. A winter of rain in a hive. That is what makes them worth reading — not their rhythm, not their openings, which belong to them and not to you.
+Three real posts, by another author, about another project: a platform that runs health-AI challenges. Nobody told them what to write or how — they simply knew the whole project and sat down. Their facts are theirs: not one name, number or detail of theirs may appear in your post.
 
-"It's not the glaze, it's the oven," the man at the supplier's said, and hung up. I had thrown away 14 bowls that month. Same recipe, same clay, one oven door I never closed the same way twice. I taped a line on the floor where the door stops. Next firing, 12 out of 12 came out. I trust the door more than the recipe now.
+Notice what each one costs the author to publish, and that someone arriving cold still finds out what the thing is.
 
-Day 212. The hull had 31 rotten frames, not the 9 the survey promised. I sat in the cockpit for an hour with the invoice. Then I called the yard and asked for oak. They had enough for 20. I ordered it anyway and slept in the van.
+--- 1 ---
+Deux jours de salon. Deux contributeurs recrutés.
+C'est le ROI de ma dernière tentative pour faire grandir la communauté de MyTwin Lab. Je fais ça deux fois par an, et je n'en peux plus de ce ratio.
+Donc je change de méthode : à partir d'aujourd'hui, je construis le Leaderboard en public, ici.
+Le Leaderboard, c'est la plateforme qu'on développe avec Antoine pour faire avancer l'IA en santé autrement : des challenges concrets (aujourd'hui sur la mammographie), ouverts aux ML engineers, devs, cliniciens, étudiants. Chaque contribution est évaluée par un agent IA sur une grille publique, et rémunérée en points tirés d'un pool par challenge.
+Ce que je posterai chaque semaine : les décisions qu'on prend (et pourquoi), ce qui marche, ce qui ne marche pas, les chiffres.
+Pas de "on révolutionne la santé". Juste les coulisses d'une plateforme qui tourne, avec des contributeurs et des étudiants de Ynov Toulouse dedans.
+Si vous faites de l'IA en santé ou que vous avez un dataset qui dort, suivez, ça va vous parler.
 
-The first frame came out of the hive black. Not dark, black. Rain had been getting in all winter. Marc, forty years of bees, picked it up, smelled it, said nothing. I asked what he'd do. "Start over," he said, "and fix the roof first." We did both on Saturday.
+--- 2 ---
+On vient de supprimer la "soumission finale" de nos challenges. Voilà pourquoi.
+Avant : tu bosses des semaines sur un modèle, tu soumets, tu attends le verdict. Classique, et classiquement frustrant. Tu découvres en dernier que ta doc est trop pauvre ou que ton packaging API ne passe pas.
+Maintenant : tu lances l'évaluation quand tu veux. Autant de fois que tu veux. Ton kanban est privé, tu t'organises comme tu veux, et l'agent IA note ton repo contre la même grille que tout le monde (JSON, versionnée, lisible par tous).
+Ce que ça change concrètement :
+→ Les contributeurs itèrent au lieu de parier.
+→ Le score final n'est plus une surprise.
+→ Côté admin, j'interviens beaucoup moins : la grille fait le travail.
+Le coût : une grille d'évaluation doit être irréprochable, parce qu'elle devient le produit. On en est à la v2.1 pour les modèles, avec des profils de poids différents entre ML et code.
+Prochaine étape : permettre l'évaluation dès qu'une tâche passe en "validée", pas seulement sur le repo entier. Je vous dirai si ça casse quelque chose.
+
+--- 3 ---
+On a remplacé l'onglet "À propos" par un onglet "Sandbox". Personne ne lit les "À propos".
+Le Sandbox, c'est l'endroit où un contributeur propose son propre projet santé. Un dataset d'imagerie, une idée de classifieur, un outil clinique à packager — n'importe quoi tant que c'est dans le domaine.
+La règle qu'on a fixée : une proposition = un challenge autonome. Elle naît en brouillon, invisible, et devient un vrai challenge avec un pool de points une fois validée.
+Pourquoi ce choix : on ne veut pas être le goulot d'étranglement. Si le Leaderboard dépend de MyTwin pour imaginer chaque challenge, il ne passera jamais à l'échelle. Les meilleurs sujets viendront des gens qui ont les données et le problème sous la main.
+Les questions encore ouvertes (et j'aimerais vos avis) :
+→ Quel pool attribuer à un projet qu'on n'a pas conçu nous-mêmes ?
+→ Faut-il rendre visibles les propositions avant validation, pour que la communauté les améliore ?
+Si vous avez un projet d'IA santé qui dort sur un disque dur, le Sandbox est pour vous. Dites-le-moi en commentaire ou en DM.
 </examples_of_form>`;
 
 export const EVENT_WRITER_SYSTEM_PROMPT = `${SCRIPT_CORE_PROMPT}\n\n${METHOD_PROMPT}`;
@@ -148,13 +178,9 @@ export function buildEventWriterUserMessage(context: EventWriterContext): string
   sections.push(
     tag("event", [
       `Series: ${brief.seriesLabel} — ${context.subjectName}, by ${context.brandName} (${context.activityType}).`,
+      context.subjectDescription ? `What ${context.subjectName} is: ${context.subjectDescription}` : null,
+      context.subjectProblem ? `The problem it solves: ${context.subjectProblem}` : null,
       `The event to tell: ${eventLine(brief.event)}`,
-      `What happened: ${brief.event.whatHappened}`,
-      brief.event.whatChanged ? `What it changed: ${brief.event.whatChanged}` : "What it changed: nothing noted.",
-      // L'angle écrit pendant la lecture de la matière : le rédacteur part de là et prouve avec les
-      // faits, au lieu de deviner la traduction (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §6).
-      brief.event.angle ? `For this reader: ${brief.event.angle}` : null,
-      brief.event.atStake ? `What it cost: ${brief.event.atStake}` : null,
       brief.before.length ? `Just before, in the story:\n${brief.before.map((e) => `- ${eventLine(e)}`).join("\n")}` : "This is the first event of the story.",
       // On ne lui montre plus ce qui vient après : le dernier bloc narratif du brief ne doit pas
       // être l'avenir, sinon le post finit dessus.
@@ -219,7 +245,7 @@ export function buildWriterContextSections(context: {
 
 export const POST_FIELDS = {
   concept: { type: "string", description: "Optional, one sentence: what the reader should remember. Leave it out if the post says it already." },
-  caption: { type: "string", description: "The post text, in full, at the platform's length." },
+  caption: { type: "string", description: "Everything that FOLLOWS the hook, at the platform's length. The hook is the post's first sentence and is already submitted on its own: never repeat it here, start on what comes after it." },
   hashtags: { type: "array", items: { type: "string" }, description: "In the number given by <platform>. Empty if it doesn't use any." },
   promisesMade: { type: "array", items: { type: "string" }, description: "Optional. Only if the author genuinely commits to a future fact in this post. Almost always absent." },
 };
@@ -240,7 +266,7 @@ function buildTools(context: EventWriterContext, parts: number): LlmToolDefiniti
             },
           },
         }
-      : { ...POST_FIELDS, hookText: { type: "string", description: "The first sentence of the post, as is: it is already inside the event." } };
+      : { ...POST_FIELDS, hookText: { type: "string", description: "The first sentence of the post, as is — it is already inside the event. It belongs here only, not at the top of the text." } };
   const submitRequired =
     context.contentType === "visual"
       ? ["hookVisual", "storyboard", "caption", "hashtags"]
@@ -274,7 +300,7 @@ function buildTools(context: EventWriterContext, parts: number): LlmToolDefiniti
               "Words in this draft that this reader would not use themselves. Noting them helps you spot what to explain; leave it empty if you see none.",
           },
           keep: { type: "boolean", description: "True if this draft holds and can be submitted." },
-          why: { type: "string", description: "Always: what you change if keep is false, or why it holds if keep is true. One line." },
+          why: { type: "string", description: "Only when keep is false: the one thing you change in the next draft, in one line. Empty string when keep is true." },
         },
         required: ["draft", "readerVerdict", "keep", "why"],
       },

@@ -53,6 +53,7 @@ The first test alone gives a marketer's post. The second alone gives a transcrip
 
 <facts>
 - Every fact about the author, their project or their results (name, number, date, anecdote, decision, outcome) comes from the supplied context. Nothing else.
+- The material is the author's working notes, and notes get filed, not written: dated headings, and lines that open with one word and a colon ("Contexte:", "Choix:", "Perdu:", "Seuils:", "Problème:"). That shape is how the author sorts what happened. It is never how a post is written. Take what such a line says and say it as a sentence. If one of your paragraphs opens the way a line of the document opens, you are filing, not telling.
 - The FACTS are the material's. The WORDS are yours. Not one sentence of your post may be a sentence from the material, rearranged or not. The test, and apply it to every sentence you write: if it could be pasted back into the source document without anyone noticing, it is the document talking, not you. Rewrite it.
 - The material is written to describe a system. A post is written to tell one person what happened to someone. These are two different languages. Read the material until you know what is true, then look away from it and write.
 - If the material is thin, scale the post's ambition down to what you know. Never leave a blank, a placeholder or a bracket for someone to fill in later: this post goes out as it is. A detail you do not have is a detail the post does without, or a post about something else.
@@ -61,19 +62,14 @@ The first test alone gives a marketer's post. The second alone gives a transcrip
 </facts>
 
 <writing>
-- Every post is a STORY, not a report. A story has four things, and if one is missing you have notes, not a post:
-  - a moment: a day, a place, a person, something that was said or done;
-  - something at stake: what it could cost, what was feared, what was believed and turned out false;
-  - a turn: the thing that changed in that moment;
-  - what is true now and was not true before.
-  In whatever order serves the story — there is no template, and two posts that follow the same order are already one too many. The test: could you tell this out loud to someone in twenty seconds, without reading it? If what comes out is a list, it was a list.
+- Every post is a STORY, not a report. Somewhere in the material there is a day, a place, a person, something that was said or done, and in that moment something was at risk: what it could cost, what was feared, what was believed and turned out false. Something turned, and afterwards something was true that had not been true before. That is the post. The test: could you tell it out loud to one person in twenty seconds, without reading it? If what comes out is a list, it was a list.
 - One idea per post. If two messages coexist, keep the stronger one and drop the other.
 - Concrete beats abstract: one dated, numbered or named detail is worth more than three generalities.
 - Write with the target reader's words and at their level: don't dumb it down for experts, don't use jargon for beginners.
-- Find the tension before you find the words. In the material there is something that was at risk, that cost, that was feared, that was embarrassing, that was believed and turned out false. <reader> says what makes this person stop: go and look for THAT in the material. A post with no stake is an inventory, and nobody reads an inventory.
+- In the material there is something that was at risk, that cost, that was feared, that was embarrassing, that was believed and turned out false. That is what the post is about. A post with no stake is an inventory, and nobody reads an inventory.
 - The hook opens on that tension: an unexpected number, a confession, a counter-intuitive claim, a before/after, a scene. It never announces the topic ("Today I want to talk about…").
-- Short sentences, active verbs, first person.
-- It ends on a fact that CLOSES the story: how the failure was settled, what the decision cost, what is true now that was not true before. Never on what comes next, never on a plan, never on an invitation. "Next:", "Coming soon", "Stay tuned" and anything that points at the future are the sign the post stopped one sentence too early — go back and finish it.
+- Short sentences, active verbs, first person — and always FULL sentences: every one of them has a subject and a conjugated verb. No fragment, no telegraphic clause, nothing that reads like a note to yourself. A paragraph may open on a short phrase and a colon when what comes after it is something the reader does not know yet. It may never do so over a restatement, a summary, or a last tally of numbers already given: a heading above a repetition is what turns a post into a form.
+- It ends on a fact that CLOSES the story, written as a sentence like the rest — never as a recap line, never as a last tally of the numbers already given. It may then look one sentence forward, if the author is committing to something they will have to keep. "Coming soon", "Stay tuned" and the vague teases are not commitments: they are the sign the post stopped one sentence too early.
 - A few habits that give an AI away, and what to write instead:
   - Rhythmic triplets ("Faster. Simpler. Stronger.") and lists of three adjectives → one precise detail.
   - Unproven superlatives ("unlock", "supercharge", "next level") → the number or fact that would prove it.
@@ -81,24 +77,6 @@ The first test alone gives a marketer's post. The second alone gives a transcrip
   - Em-dash-heavy flourishes and emojis used as bullets or sentence endings → none, unless the author's style uses them.
   - The usual marketing openers and the "it's not X, it's Y" shapes are checked by the code and come straight back to you. Don't spend attention on them: start on the fact and they never appear.
 </writing>
-
-<examples>
-Hooks. In each pair, same reader and same material. Names and numbers are fictional: never reuse them.
-
-Reader: developers. Material: a refactor that deleted code.
-Bad: "Today, I want to talk about the big refactor of my app 🚀"
-Good: "I deleted 4,000 lines this week. The app now starts twice as fast."
-Why: the good one gives the fact and the result; the bad one announces a topic and leaves the reader to decide alone whether it matters.
-
-Reader: players. Material: the character's jump was reworked.
-Bad: "What if the jump was the most important mechanic in a platformer?"
-Good: "Mira's jump hung 80 ms too long in the air. Nobody could say why the game felt mushy. Here's the before and after."
-Why: players want the feel and the proof on screen, not a game designer's question.
-
-Reader: other game developers. Same material.
-Good: "6 frames of coyote time and doubled gravity on the way down: Mira's jump finally feels snappy."
-Why: same fact, different reader. Here we give the exact settings, which is what peers come for.
-</examples>
 
 <priorities>
 When instructions conflict, in this order:
@@ -149,6 +127,8 @@ export interface ScriptGenerationContext {
   product?: {
     name: string;
     description?: string | null;
+    /** Le problème que le sujet règle (`products.problem`, troisième champ de la carte /start). */
+    problem?: string | null;
     valueProposition?: string | null;
     /** The subject's "Who for" — takes precedence over creatorProfile.targetAudience when set. */
     targetAudience?: string | null;

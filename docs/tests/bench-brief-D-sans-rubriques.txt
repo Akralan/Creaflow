@@ -1,0 +1,74 @@
+BANC D'ESSAI DU BRIEF — branche « D — C + portrait sans prescription, enjeu et fins non énumérés »
+2026-10-20T21:11:08.276Z · modèle gpt-5-mini · sujet MyKiné · série Build log · lecteur Solo product devs
+Mémoire des derniers posts neutralisée (recentPosts = []) pour que les branches ne se contaminent pas.
+
+====================================================================================================
+2025-11-16 — Prototype web with MediaPipe counts squats but is too slow on iPhone
+at_stake en base : ∅
+====================================================================================================
+Le 16 novembre j'ai poussé un prototype web qui compte les squats.
+
+Le 16 novembre j'ai poussé un prototype web qui compte les squats.
+
+Je l'ai fait avec MediaPipe Pose — une librairie qui estime des points clés du corps dans la vidéo — et un rep‑counter qui déclenche quand la flexion du genou (angle hanche‑genou‑cheville) descend sous 100°, soit le « bas » du squat.
+
+Sur mon laptop, il détecte et incrémente correctement. Sur l'iPhone 11 de Julien, l'app tournait à 6 images par seconde et le compteur ratait une répétition sur trois. Il a fait 20 squats dans son salon pour le test.
+
+Concret : le prototype fonctionne en navigateur, mais sur l'iPhone 11 il est trop lent pour être fiable — 6 fps et 1 répétition manquée sur 3.
+
+HASHTAGS : devsolo mobiledev
+TRACE : 2 brouillon(s), 2 soumission(s), fautes restantes []
+ACCROCHE RECOPIÉE EN TÊTE DU TEXTE : oui
+SCORE : 5 paragraphes, 1 étiquetés ["Concret :"], code [], détails humains gardés ["salon","20 squats"] sur ["quand même","salon","20 squats"], 731 car., phrases moy. 103 ± 62
+
+====================================================================================================
+2025-11-23 — Server-side inference had high latency and exposed privacy risk; decision to move processing on-device
+at_stake en base : The trade‑off is that older phones will be slow; moving inference to device sacrifices performance on low‑end hardware.
+====================================================================================================
+300–600 ms de latence et des images de patients en transit. Le 23 novembre j'ai basculé l'inférence côté téléphone.
+
+300–600 ms de latence et des images de patients en transit. Le 23 novembre j'ai basculé l'inférence côté téléphone.
+
+Le 9 novembre, Julien m'avait dit : 6 patients sur 10 ne font pas leurs exercices. Le 16 novembre le proto web qui estimait la pose côté serveur comptait bien les squats, mais sur iPhone c'était trop lent.
+
+Le prototype envoyait des frames au serveur. Sur la 4G de Julien on mesurait 300–600 ms de délai, et ces frames montraient des patients en sous‑vêtements qui transitaient sur nos serveurs.
+
+Décision : l'estimation de pose s'exécute sur le téléphone. Le serveur ne reçoit plus d'images, seulement des angles et les compteurs de répétitions.
+
+Coût : les téléphones anciens vont ramer. On traitera les cas lents au cas par cas.
+
+Ce qui change maintenant : moins de latence réseau et un risque de vie privée réduit — on ne transmet plus les images brutes. Et c'est la décision que j'ai prise le 23/11.
+
+HASHTAGS : EdgeML privacy mobiledev
+TRACE : 2 brouillon(s), 2 soumission(s), fautes restantes []
+ACCROCHE RECOPIÉE EN TÊTE DU TEXTE : oui
+SCORE : 7 paragraphes, 4 étiquetés ["Le 9 novembre, Julien m'avait dit :","Décision :","Coût :","Ce qui change maintenant :"], code [], détails humains gardés ["sous-vetement"] sur ["caleçon","sous-vetement","en slip"], 1038 car., phrases moy. 73 ± 33
+
+====================================================================================================
+2025-12-06 — Knee flexion angle computed but tremor causes multiple rep counts
+at_stake en base : ∅
+====================================================================================================
+Le 6 décembre, j'ai obtenu l'angle de flexion du genou par produit scalaire entre hanche→genou et cheville→genou.
+
+Le 6 décembre, j'ai obtenu l'angle de flexion du genou par produit scalaire entre hanche→genou et cheville→genou.
+
+Seuils retenus : "haut" >160°, "bas" <100°.
+
+Sur le papier, ça suffisait pour compter une descente. Mais dès qu'il y a un tremblement en bas, l'angle oscille autour de 100° et le compteur incrémente plusieurs fois pour la même descente.
+
+Concrètement, une répétition devient trois et ça fausse le compteur — donc le taux d'adhésion que Julien regarde.
+
+Pas corrigé.
+
+HASHTAGS : EdgeML MobileDev
+TRACE : 2 brouillon(s), 2 soumission(s), fautes restantes []
+ACCROCHE RECOPIÉE EN TÊTE DU TEXTE : oui
+SCORE : 6 paragraphes, 1 étiquetés ["Seuils retenus :"], code [], détails humains gardés ["tremble","tremblement"] sur ["tremble","tremblement","compte trois","trois fois"], 595 car., phrases moy. 83 ± 43
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TOTAL branche « D — C + portrait sans prescription, enjeu et fins non énumérés » sur 3 posts
+────────────────────────────────────────────────────────────────────────────────────────────────────
+paragraphes étiquetés : 6 / 18
+identifiants de code  : 0
+détails humains gardés: 5 / 10
+longueur de phrase    : moyenne 86, écart-type moyen 46

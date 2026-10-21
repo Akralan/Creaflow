@@ -1,0 +1,72 @@
+BANC D'ESSAI DU BRIEF — branche « F — E + contexte du projet + tes 3 posts en exemples + règles assouplies »
+2026-10-20T22:15:54.318Z · modèle gpt-5-mini · sujet MyKiné · série Build log · lecteur Solo product devs
+Mémoire des derniers posts neutralisée (recentPosts = []) pour que les branches ne se contaminent pas.
+
+====================================================================================================
+2025-11-16 — Prototype web with MediaPipe counts squats but is too slow on iPhone
+at_stake en base : ∅
+====================================================================================================
+J'ai fait compter 20 squats à Julien depuis une page web. L'iPhone en a validé 14.
+
+Le 9 novembre Julien m'a demandé si mon prototype de détection de pose pouvait compter des squats : il estime que 6 patients sur 10 ne font pas leurs exercices et il veut pouvoir le vérifier.
+
+Le 16 novembre j'ai monté une page web avec MediaPipe Pose en JS — un modèle qui extrait les points du squelette depuis la caméra. Le compteur déclenche le « bas » quand l'angle hanche‑genou‑cheville passe sous 100°.
+
+Sur mon laptop, ça marche. Sur l'iPhone 11 de Julien, la caméra tourne à 6 fps et le compteur manque environ une répétition sur trois. Julien a fait 20 squats pour le test.
+
+Conclusion factuelle : MediaPipe en JS suffit pour une démo sur ordinateur, mais sur cet iPhone la fréquence d'images est trop basse pour un comptage fiable.
+
+HASHTAGS : #mobiledev #performancemetrics
+TRACE : 2 brouillon(s), 2 soumission(s), fautes restantes []
+ACCROCHE RECOPIÉE EN TÊTE DU TEXTE : non
+SCORE : 5 paragraphes, 1 étiquetés ["Conclusion factuelle :"], code [], détails humains gardés ["20 squats"] sur ["quand même","salon","20 squats"], 826 car., phrases moy. 90 ± 57
+
+====================================================================================================
+2025-11-23 — Server-side inference had high latency and exposed privacy risk; decision to move processing on-device
+at_stake en base : The trade‑off is that older phones will be slow; moving inference to device sacrifices performance on low‑end hardware.
+====================================================================================================
+300 à 600 ms de latence sur la 4G de Julien — un délai qui rendait le feedback en direct inutilisable. Le 23/11/2025, on a décidé de déplacer la pose estimation sur l'appareil.
+
+Julien, kiné pilote, m'avait dit le 9 novembre que 6 patients sur 10 ne faisaient pas leurs exercices et m'avait demandé si le prototype caméra pouvait compter des squats.
+
+Le 16 novembre, le proto web basé sur MediaPipe savait compter des squats, mais il était trop lent sur iPhone.
+
+En test, le client envoyait des images au serveur pour évaluer la pose. Sur la 4G de Julien, le tour aller-retour générait 300 à 600 ms de latence, et des images sensibles transitaient par notre infrastructure.
+
+Nous avons choisi que tout le calcul de pose tourne désormais sur le téléphone. Le serveur reçoit uniquement les angles et les compteurs.
+
+Ce qu'on perd : les téléphones anciens seront plus lents. On traitera ces cas au cas par cas.
+
+Décision prise le 23/11/2025 : plus d'images côté serveur, seulement des angles et des compteurs.
+
+HASHTAGS : #edge #mobile #vieprivée
+TRACE : 2 brouillon(s), 2 soumission(s), fautes restantes []
+ACCROCHE RECOPIÉE EN TÊTE DU TEXTE : non
+SCORE : 7 paragraphes, 2 étiquetés ["Ce qu'on perd :","Décision prise le 23/11/2025 :"], code [], détails humains gardés [] sur ["caleçon","sous-vetement","en slip"], 1006 car., phrases moy. 90 ± 37
+
+====================================================================================================
+2025-12-06 — Knee flexion angle computed but tremor causes multiple rep counts
+at_stake en base : ∅
+====================================================================================================
+6 décembre 2025 — l'angle de flexion du genou était calculé correctement, mais le compteur créait jusqu'à trois répétitions quand le patient tremblait en bas.
+
+J'ai calculé l'angle entre la cuisse et la jambe par produit scalaire — segments hanche→genou et genou→cheville — une méthode simple et rapide à exécuter sur le téléphone. Seuils : haut >160°, bas <100°. Le problème apparu ce jour‑là : quand le genou tremble autour de 100°, l'angle franchit la limite plusieurs fois et l'algorithme incrémente le compteur à chaque oscillation.
+
+C'est un vrai enjeu produit : un rep counter qui invente des répétitions ruine la confiance du kiné et du patient. Je ne pouvais pas résoudre ça côté serveur — j'avais déjà choisi le traitement on‑device pour la latence (300–600 ms en 4G) et pour la confidentialité.
+
+Les essais suivants ont montré le trade‑off : le modèle "lite" vibre d'environ ±6° en bas et double les comptes; le modèle "full" est stable mais tombe à 9 fps sur mon Pixel 4a. J'ai retenu une solution simple et robuste : une hystérésis de 8° autour des seuils (passer en bas à 92°, repasser en haut à 108°) et prioriser le modèle full quand le framerate le permet.
+
+Mesures en condition réelle : avant hystérésis 22 répétitions comptées en trop sur 120 (18 %), après 5 en trop sur 120 (4 %).
+
+HASHTAGS : #edge #poseestimation
+TRACE : 1 brouillon(s), 2 soumission(s), fautes restantes []
+ACCROCHE RECOPIÉE EN TÊTE DU TEXTE : non
+SCORE : 5 paragraphes, 3 étiquetés ["C'est un vrai enjeu produit :","Les essais suivants ont montré le trade‑off :","Mesures en condition réelle :"], code [], détails humains gardés ["tremble"] sur ["tremble","tremblement","compte trois","trois fois"], 1300 car., phrases moy. 143 ± 46
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TOTAL branche « F — E + contexte du projet + tes 3 posts en exemples + règles assouplies » sur 3 posts
+────────────────────────────────────────────────────────────────────────────────────────────────────
+paragraphes étiquetés : 6 / 17
+identifiants de code  : 0
+détails humains gardés: 2 / 10
+longueur de phrase    : moyenne 108, écart-type moyen 47

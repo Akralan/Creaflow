@@ -1,0 +1,79 @@
+BANC D'ESSAI DU BRIEF — branche « C — B + phrases entières, pas d'étiquette »
+2026-10-20T20:59:04.502Z · modèle gpt-5-mini · sujet MyKiné · série Build log · lecteur Solo product devs
+Mémoire des derniers posts neutralisée (recentPosts = []) pour que les branches ne se contaminent pas.
+
+====================================================================================================
+2025-11-16 — Prototype web with MediaPipe counts squats but is too slow on iPhone
+at_stake en base : ∅
+====================================================================================================
+16 novembre — j'ai monté un prototype web qui compte les squats.
+
+16 novembre — j'ai monté un prototype web qui compte les squats.
+Sur mon laptop, c'était propre ; sur l'iPhone 11 de Julien : 6 fps et le compteur rate une répétition sur trois.
+
+J'ai utilisé MediaPipe Pose en JavaScript. Il fournit les points articulaires (hanche, genou, cheville) que j'utilise pour calculer l'angle hanche→genou→cheville < 100° = bas du squat.
+
+Sur le navigateur du laptop la détection est fluide. Sur iPhone 11 la capture et l'inférence tournent à ~6 fps, la lecture des angles est saccadée et le compteur saute.
+
+Conséquence immédiate : la démo côté patient était bruyante (retours erratiques) et inutilisable sur le téléphone de Julien.
+
+Le test a été rapide — Julien a fait 20 squats dans son salon pour vérifier — mais assez pour montrer la limite : le prototype web suffit pour prototyper, pas pour une app patient sur vieux iPhone.
+
+Si vous testez pareil : notez la fréquence d'images réelle sur le device cible avant d'optimiser le modèle ; un seuil angulaire simple suffit pour un premier compteur, mais il faudra traiter le bruit temporel ensuite.
+
+Sur l'iPhone 11 de Julien : 6 fps, compteur qui manque ~1 répetition sur 3.
+
+HASHTAGS : #devsolo #poseestimation
+TRACE : 2 brouillon(s), 2 soumission(s), fautes restantes []
+ACCROCHE RECOPIÉE EN TÊTE DU TEXTE : oui
+SCORE : 8 paragraphes, 3 étiquetés ["Conséquence immédiate :","Si vous testez pareil :","Sur l'iPhone 11 de Julien :"], code [], détails humains gardés ["salon","20 squats"] sur ["quand même","salon","20 squats"], 1220 car., phrases moy. 109 ± 55
+
+====================================================================================================
+2025-11-23 — Server-side inference had high latency and exposed privacy risk; decision to move processing on-device
+at_stake en base : The trade‑off is that older phones will be slow; moving inference to device sacrifices performance on low‑end hardware.
+====================================================================================================
+J'ai arrêté d'envoyer les images des patients au serveur.
+
+J'ai arrêté d'envoyer les images des patients au serveur. Entre le proto web qui comptait les squats et les 300–600 ms de latence sur la 4G de Julien, laisser transiter des frames devenait un risque trop grand.
+
+Le 9 novembre Julien m'a dit que 6 patients sur 10 ne faisaient pas leurs exercices et a demandé si la caméra pouvait compter les répétitions. Le 16 novembre le prototype web utilisait MediaPipe — l'estimation de pose qui transforme une image en squelette/angles — et il comptait bien, mais il peinait sur iPhone.
+
+Le 23 novembre, j'ai basculé tout le calcul sur le téléphone. Plus aucune image ne quitte l'app : le serveur ne reçoit que des séries d'angles et les compteurs de reps.
+
+Ce que ça coûte : les téléphones anciens vont être plus lents. On accepte cette perte de performance pour réduire la surface d'exposition des données.
+
+Depuis le 23/11, c'est effectif en production : inference on-device, serveur = angles + compteurs.
+
+HASHTAGS : #mobiledev #edgecomputing #privacy
+TRACE : 2 brouillon(s), 2 soumission(s), fautes restantes []
+ACCROCHE RECOPIÉE EN TÊTE DU TEXTE : oui
+SCORE : 6 paragraphes, 2 étiquetés ["Ce que ça coûte :","Depuis le 23/11, c'est effectif en production :"], code [], détails humains gardés [] sur ["caleçon","sous-vetement","en slip"], 1006 car., phrases moy. 99 ± 40
+
+====================================================================================================
+2025-12-06 — Knee flexion angle computed but tremor causes multiple rep counts
+at_stake en base : ∅
+====================================================================================================
+6 déc. 2025 — j'ai calculé l'angle de flexion du genou (angle entre la cuisse et la jambe) en local. Le compteur a quand même composé trois répétitions quand le patient a tremblé en bas.
+
+6 déc. 2025 — j'ai calculé l'angle de flexion du genou (l'angle entre la cuisse et la jambe) en local. Le compteur a quand même composé trois répétitions quand le patient a tremblé en bas.
+
+J'ai obtenu l'angle avec un produit scalaire entre les vecteurs hanche→genou (cuisse) et cheville→genou (tibia). Deux seuils simples : "haut" si l'angle > 160°, "bas" si l'angle < 100°.
+
+Le problème n'est pas la formule : c'est le bruit. Quand le genou tremble au voisinage de 100°, l'angle oscille et franchit le seuil plusieurs fois en quelques dizaines de millisecondes. Le compteur déclenche à chaque franchissement.
+
+Ce bug casse la confiance : un patient voit le compteur monter sans savoir si c'est bien fait. C'était un risque que j'avais sous-estimé en passant l'inférence sur l'app (décision du 23 nov.).
+
+Je ne l'ai pas encore corrigé.
+
+HASHTAGS : #mobiledev #edgeai
+TRACE : 1 brouillon(s), 2 soumission(s), fautes restantes []
+ACCROCHE RECOPIÉE EN TÊTE DU TEXTE : non
+SCORE : 6 paragraphes, 2 étiquetés ["Le problème n'est pas la formule :","Ce bug casse la confiance :"], code [], détails humains gardés ["tremble"] sur ["tremble","tremblement","compte trois","trois fois"], 1024 car., phrases moy. 72 ± 37
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+TOTAL branche « C — B + phrases entières, pas d'étiquette » sur 3 posts
+────────────────────────────────────────────────────────────────────────────────────────────────────
+paragraphes étiquetés : 7 / 20
+identifiants de code  : 0
+détails humains gardés: 3 / 10
+longueur de phrase    : moyenne 93, écart-type moyen 44
