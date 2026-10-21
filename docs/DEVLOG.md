@@ -90,3 +90,36 @@
 ### État des branches
 
 `feature/entree-par-le-repo` et `feature/app-design-tellovo` (qui l'inclut) : migrations `0047` à `0050` appliquées en **dev seulement**, **pas encore sur le VPS** (qui sert toujours la landing et les stories de la version précédente). Un déploiement demande : clé OpenAI, `GITHUB_TOKEN`, `START_DAILY_CAP`, les migrations, et la vérification des polices dans l'image.
+
+
+## 2026-10-21 — Pourquoi les posts étaient des inventaires
+
+Deux jours sur une seule question : les posts générés étaient des rapports à rubriques (« Bilan factuel : », « Ce que ça coûte : », « À retenir pour un prototype : »), jamais des histoires. Chaque resserrage du prompt empirait les choses. Le diagnostic a été fait au banc d'essai (`scripts/bench-brief.ts`), six branches sur les mêmes trois événements du devlog MyKiné, relevés dans `docs/tests/bench-brief-*.txt`.
+
+### La loi qu'on en retire
+
+**Tout élément nommé comme obligatoire dans le prompt ressort dans le texte.** En titre de paragraphe si on le laisse faire ; en phrase qui récite la règle si on interdit le titre. Preuve : le prompt disait *« Find the tension before you find the words »* et le post sortait « La tension était simple et nette : … ». Le prompt disait *« it ends on a fact that is still true »* et le post sortait « Ce qui est vrai maintenant : … ». Les étiquettes étaient les noms des règles.
+
+Corollaire : **une règle de plus, c'est une rubrique de plus**. La seule direction qui marche est le retrait, et la démonstration par l'exemple — qui ne nomme rien.
+
+### Les trois causes, dans l'ordre où elles ont été mesurées
+
+1. **Le brief était un formulaire, et le post en était le rendu.** Cinq lignes de brief donnaient cinq paragraphes, dans l'ordre, chacun étiqueté du nom de son champ traduit. `whatHappened` arrivait « 2 to 5 sentences » déjà rédigées, en anglais : le rédacteur traduisait. La trace montre qu'il **avait lu le document source** et avait traduit le résumé quand même — on lui donnait la réponse à côté de la question.
+2. **Les rubriques étaient recopiées, pas inventées.** `docs/tests/mykine-pack/B/decisions.md` est écrit « Contexte : / Choix : / Perdu : », le devlog porte des « Seuils : » et des « Problème : », et le post ressortait « Décision : / Coût : / Ce qui change maintenant : ». 47 des 69 événements du sujet viennent de ce fichier. Dire au rédacteur que sa source est un classement, pas un modèle d'écriture, a fait tomber les étiquettes de 9 à 1 sur trois posts.
+3. **Le portrait des lecteurs prescrivait la forme.** Le prompt 18 demandait « ce qui l'arrête de scroller » et le modèle répondait « des diagrammes, des bouts de code, des listes concises de ce qu'on changerait ». C'était la maladie du brief de série (supprimé la veille) dans une autre table. Les portraits **déjà écrits** gardent ces prescriptions : un recalcul reste à faire.
+
+### Ce qui a été changé
+
+Le brief se réduit au projet (nom, description, problème), à l'événement (date et titre), à ce qui précède et au document source. Les trois exemples inventés du prompt sont remplacés par trois vrais posts de l'auteur, en français, qui portent le contexte global de leur projet ; les paires d'accroches fictives du prompt coeur sont retirées. L'accroche n'est plus recopiée en tête du texte (3 posts sur 3 avant, 0 sur 3 après) : le champ `caption` demandait « le texte du post, en entier ». Et les règles que les vrais posts contredisaient sautent — interdiction d'expliquer le produit, interdiction absolue de call to action et de fin tournée vers l'avenir, première personne du singulier obligatoire, contexte rationné à une demi-phrase.
+
+### Ce qui reste ouvert
+
+- **Le rédacteur de récit (prompt 28) n'a pas été traité.** Il reçoit toujours `What happened / What it changed / For this reader / What it cost` pré-rédigés pour chacun de ses douze événements. Deux des trois posts d'une semaine viennent de lui, et ce sont eux qui gardent la forme de formulaire.
+- **Le lecteur d'événements désamorce la tension.** La description de `whatHappened` dit *« the facts … Nothing else »*, et « Nothing else » efface ce qui rend un fait racontable : la source dit « des images de lui **en caleçon** sur mon VPS », l'événement enregistre « images of Julien were being stored on the VPS ». 54 des 69 événements ont un `at_stake` vide, et quand il est rempli c'est souvent de l'analyse (« implied a clinical need and potential product market ») au lieu du détail qui gêne.
+- **Les portraits de lecteurs déjà en base** gardent leurs prescriptions de forme (celui du compte de démo a été corrigé à la main, sauvegarde dans `docs/tests/portrait-lecteurs-mykine-avant.json`).
+
+### Pièges de méthode
+
+- Mon scoreur d'étiquettes comptait comme défaut de vraies phrases (« Le problème n'est pas la formule : c'est le bruit »). Une métrique automatique sur la ponctuation ne distingue pas un intertitre d'un deux-points narratif : c'est pourquoi la règle est restée dans le prompt et n'est pas descendue dans `scriptChecks`.
+- J'ai qualifié une branche de « régression » en la comparant à la branche précédente au lieu de la comparer aux posts que le fondateur juge bons. Ses trois exemples portent 7 étiquettes sur 3 posts ; la branche accusée en portait 6. La référence était fausse, pas la branche.
+- `node --env-file=.env` lit un `.env` que `source .env` casse (une valeur contient `<` et `>`).

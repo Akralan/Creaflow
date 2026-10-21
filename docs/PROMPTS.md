@@ -36,7 +36,7 @@ l'animation (27), la revue sur images (vision OpenAI).
 | 15 | Interview de matière | `src/lib/llm/materialInterviewChat.ts` | Faire parler l'auteur pour en tirer de la matière |
 | 16 | Assistant éditorial | `src/lib/llm/assistantChat.ts` | Chat « rédacteur en chef assistant » avec outils |
 | 17 | Description des photos | `src/lib/llm/captionPrompts.ts` | Indexer une photo de marque |
-| 18 | Portrait des lecteurs | `src/lib/llm/readerPortrait.ts` | Décrire les 1 à 3 publics d'un sujet |
+| 18 | Portrait des lecteurs | `src/lib/llm/readerPortrait.ts` | Décrire les 1 à 3 publics d'un sujet (ce dont ils se soucient, jamais la forme d'un post) |
 | 19 | Veille d'inspiration | `src/lib/llm/inspirationResearch.ts` | Chercher sur le web ce qui marche pour ces publics |
 | 21 | Lecteur d'événements | `src/lib/llm/eventReader.ts` | Lire toute la matière et tenir la ligne de temps datée |
 | 23 | Rédacteur par événements | `src/lib/llm/eventWriter.ts` | Écrire le post d'un événement (agent) |
@@ -1412,7 +1412,7 @@ excerpt          : The exact passage from the document that proves the event, co
 ## 23. Rédacteur par événements
 
 - **Où** : `src/lib/llm/eventWriter.ts` (`EVENT_WRITER_SYSTEM_PROMPT` = `SCRIPT_CORE_PROMPT` + `METHOD_PROMPT`, `buildEventWriterUserMessage`, `writeScriptFromEvent`) ; brief assemblé par `buildEventBriefForSeries` (`seriesReaderService.ts`) ; branché dans `generateScript` (`context.eventBrief`). Le bloc `<language>` vient de `buildLanguageBlock` (`src/lib/language.ts`).
-- **À quoi il sert** : écrire un post à partir d'UN événement, pour UN lecteur (`docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md` §5). Il reçoit le projet, l'événement, le document source et le lecteur — rien d'autre : le brief d'écriture de la série est retiré (voir plus haut), et le reste est à lui. Remplace le prompt 1 dès qu'une série a un lecteur ; le chef (prompts 6 et 7), l'angle, le rôle, les fiches d'inspiration et le cadrage ne lui sont pas transmis.
+- **À quoi il sert** : écrire un post à partir d'UN événement, pour UN lecteur (`docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md` §5). Son brief contient **le projet** (nom, `products.description`, `products.problem`), **l'événement** (sa date et son titre, rien de plus), **ce qui précède** dans la ligne de temps, et **le document source** à relire avec `read_source`. Les faits rédigés (`whatHappened`, `whatChanged`, l'angle du lecteur) ont été **retirés le 2026-10-21** : ils arrivaient tout écrits en anglais et le rédacteur les traduisait au lieu d'écrire, alors qu'il avait le document sous les yeux. Le brief d'écriture de la série est retiré lui aussi (voir plus haut). Remplace le prompt 1 dès qu'une série a un lecteur ; le chef (prompts 6 et 7), l'angle, le rôle, les fiches d'inspiration et le cadrage ne lui sont pas transmis.
 - **Quand** : génération depuis un créneau d'une telle série. Boucle agentique (`callAgentic`, effort `medium`, `maxTokens` 4096, **14 tours** au plus) avec quatre outils : `read_source` (le document source de l'événement, par parties de 12 000 caractères), `read_timeline`, `review_draft` (le brouillon et le verdict du lecteur, trois brouillons au plus), `submit_post`. Les contrôles de `scriptChecks.ts` (langue comprise) tournent dans `submit_post` : un post refusé revient au modèle avec ses fautes, **deux soumissions au plus** (`MAX_SUBMISSIONS`), la moins fautive est gardée (à égalité, la dernière). Trace V4 sur `scripts.generationTrace` (brouillons, verdicts, parties lues, tours, `stoppedAtMaxTurns`). `EVENT_WRITER_ENABLED=false` rend le prompt 1.
 
 ### System prompt
@@ -1446,7 +1446,7 @@ You tell ONE event to ONE person. Everything else serves that.
 - Everything is written in the language given in <language>.
 </what_makes_a_post>
 
-<examples_of_form>
+<examples_of_form>   ← depuis le 2026-10-21 : trois VRAIS posts de l'auteur, en français, qui portent le contexte global de leur projet. Ils remplacent trois exemples inventés (poterie, bateau, ruche) qui étaient courts, sans contexte et sans étiquette — ils enseignaient donc la forme qu'on subissait. Le bloc `<examples>` du prompt coeur (paires d'accroches fictives) a été retiré : un seul jeu d'exemples.
 Three short posts, from trades that have nothing to do with the author's. They show the level of precision and the rhythm, nothing else. Do not reuse their openings, their structure or their turns of phrase: each post finds its own shape from its own event.
 
 "It's not the glaze, it's the oven," the man at the supplier's said, and hung up. I had thrown away 14 bowls that month. Same recipe, same clay, one oven door I never closed the same way twice. I taped a line on the floor where the door stops. Next firing, 12 out of 12 came out. I trust the door more than the recipe now.
@@ -1464,17 +1464,11 @@ Dates formatées en anglais (« October 12, 2026 », « October 2026 », « unkn
 ```text
 <event>
 Series: ${seriesLabel} — ${subjectName}, by ${brandName} (${activityType}).
+What ${subjectName} is: ${products.description}        (si renseigné)
+The problem it solves: ${products.problem}             (si renseigné)
 The event to tell: ${date} — ${title}
-What happened: ${whatHappened}
-What it changed: ${whatChanged}   ou : What it changed: nothing noted.
-Just before, in the story:
-- ${date} — ${title}  (les deux événements précédents)
-   ou : This is the first event of the story.
-Just after:
-- ${date} — ${title}
-   ou : Nothing recorded after, for now.
-Source: "${document title | document}", to reread with read_source.
-   ou : No source document: the author wrote this event themselves. You only have what is above.
+Just before, in the story: (les 2 événements datés précédents, titres seuls)
+Source: "${titre du document}", to reread with read_source.
 </event>
 
 <reader>
