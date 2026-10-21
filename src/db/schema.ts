@@ -296,6 +296,7 @@ export const contentSeries = pgTable("content_series", {
   skippedSlots: jsonb("skipped_slots").$type<string[]>().notNull().default([]),
   archived: boolean("archived").notNull().default(false),
   // Lot B2: column + manual toggle. LLM inference at creation (Annexe B.8) arrives in Lot B3.
+  // REMOVED avec les modes de série (2026-10-17) : ni lu ni écrit depuis. Colonne conservée.
   mode: contentSeriesModeEnum("mode").notNull().default("rendez_vous"),
   // Topic the series draws its material from (docs/SPEC_REDACTEUR_EN_CHEF.md, topic selector added
   // after Lot B3) — nullable: a series may be attached to no specific topic, in which case
@@ -494,6 +495,9 @@ export const materialEvents = pgTable("material_events", {
   // enregistrait ce qui s'est passé et ce que ça a changé, jamais la tension — et le rédacteur ne
   // peut pas l'inventer. Le bon post sur l'abandon des vidéos tenait à « j'avais des photos de lui
   // en caleçon sur mon VPS », une phrase qui n'était que dans le document source.
+  // REMOVED on 2026-10-21 : plus aucun prompt ne le lisait. Il a été retiré du brief du rédacteur
+  // (la tension se lit dans le document source) puis du périmètre du récit, et le lecteur d'événements
+  // le remplissait mal — 54 vides sur 69, et de l'analyse quand il était rempli. Colonne conservée.
   atStake: text("at_stake"),
   kind: materialEventKindEnum("kind").notNull(),
   // Labels of the topic's reader portrait (products.readerPortrait) for whom this is interesting.
@@ -709,6 +713,7 @@ export const scripts = pgTable("scripts", {
   // (deliberate detour). Written at generation (Lot B3), moves the beat to "drafted" then "published"
   // depending on this script's status (Lot B4).
   // REMOVED with the chief (Lot 4): never written any more, replaced by eventId.
+  // REMOVED avec le rédacteur en chef (2026-10-17) : ni lu ni écrit depuis. Colonne conservée.
   beatId: text("beat_id"),
   // Explicit promises made by this script to the audience (Annexe B.6) — consolidated in
   // NarrativeState.openPromises when moving to "published" (§5, Lot B4).

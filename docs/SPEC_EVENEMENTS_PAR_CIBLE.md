@@ -1,8 +1,10 @@
 # SPEC — Les événements sont lus pour une cible
 
-Statut : cadrage arrêté, 2026-10-20. Suite directe du premier lancement réel du fil narratif
+Statut : **implémenté** (9 tâches), migrations `0055`-`0056` appliquées en base de dev, essayé en réel les 20 et 21 octobre. Cadrage arrêté le 2026-10-20.
 (`docs/SPEC_FIL_NARRATIF.md`), qui a sorti trois posts qu'un kiné ne peut pas lire.
 
+
+> **Mise à jour du 2026-10-21 — `at_stake` est retiré.** Le champ né de ce chantier (« ce que ça a coûté, le détail qu'on dirait à voix basse ») n'est plus rempli ni lu : il a d'abord quitté le brief du rédacteur, parce que la tension se lit dans le document source bien mieux que dans un champ, puis le périmètre du récit. Le lecteur d'événements ne savait de toute façon pas le remplir — 54 vides sur 69 sur le pack MyKiné, et de l'analyse (« implied a clinical need and potential product market ») quand il l'était, là où la source disait « des images de lui en caleçon sur mon VPS ». Colonne conservée en base, plus écrite. **`audience_angles` reste** : son texte n'est plus imprimé, mais c'est lui qui produit `audiences`, et `audiences` décide quelle série peut raconter quel événement.
 ## 1. Ce qui s'est passé
 
 Compte de démonstration monté sur le pack MyKiné (15 documents : 13 de documentation technique,

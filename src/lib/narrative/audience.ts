@@ -52,8 +52,3 @@ export function tellableTo(event: TellableEvent, readerLabel: string | null, por
   return parseAudienceAngles(event.audienceAngles, portraitLabels).some((a) => a.audience === readerLabel);
 }
 
-/** La ligne à poser devant le rédacteur, à côté des faits. Null quand il n'y en a pas. */
-export function angleFor(event: TellableEvent, readerLabel: string | null, portraitLabels: string[]): string | null {
-  if (!readerLabel) return null;
-  return parseAudienceAngles(event.audienceAngles, portraitLabels).find((a) => a.audience === readerLabel)?.whatItChanges ?? null;
-}

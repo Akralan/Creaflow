@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { contentSeries, materialEvents, products, scripts, sourceMaterials } from "@/db/schema";
 import type { BriefEvent, EventBrief } from "@/lib/llm/eventWriter";
 import { parseStoredReaderPortrait, type Reader } from "@/lib/llm/readerPortrait";
-import { angleFor, tellableTo } from "@/lib/narrative/audience";
+import { tellableTo } from "@/lib/narrative/audience";
 import { listActiveSeriesForUser } from "@/lib/services/seriesService";
 import { ApiError } from "@/lib/api/errors";
 
@@ -62,10 +62,6 @@ export interface PlannedEvent {
   whatChanged: string | null;
   kind: "failure" | "decision" | "result" | "feedback" | "milestone";
   audiences: string[];
-  /** Ce que ça a coûté, ce qui était en jeu : c'est là qu'est l'histoire. */
-  atStake: string | null;
-  /** Ce que ce fait change pour le lecteur de cette série, dans ses mots. Null sans angle. */
-  angle: string | null;
   /** Déjà raconté par un post de cette série. */
   told: boolean;
   scriptId: string | null;
@@ -112,8 +108,6 @@ export async function planForSeries(userId: string, seriesId: string): Promise<S
     whatChanged: e.whatChanged,
     kind: e.kind,
     audiences: e.audiences,
-    atStake: e.atStake,
-    angle: angleFor(e, series.readerLabel, portraitLabels),
     told: scriptByEvent.has(e.id),
     scriptId: scriptByEvent.get(e.id) ?? null,
   }));
@@ -122,7 +116,7 @@ export async function planForSeries(userId: string, seriesId: string): Promise<S
 }
 
 function toBriefEvent(e: PlannedEvent): BriefEvent {
-  return { id: e.id, date: e.date, datePrecision: e.datePrecision, title: e.title, whatHappened: e.whatHappened, whatChanged: e.whatChanged, atStake: e.atStake, kind: e.kind, angle: e.angle };
+  return { id: e.id, date: e.date, datePrecision: e.datePrecision, title: e.title, whatHappened: e.whatHappened, whatChanged: e.whatChanged, kind: e.kind };
 }
 
 /**

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { angleFor, audiencesOf, parseAudienceAngles, tellableTo, type TellableEvent } from "./audience";
+import { audiencesOf, parseAudienceAngles, tellableTo, type TellableEvent } from "./audience";
 
 const PORTRAIT = ["Kinés du sport", "Patients en rééducation"];
 
@@ -67,16 +67,5 @@ describe("tellableTo", () => {
 
   it("ne raconte rien d'un événement jamais passé par un lecteur qui connaissait la cible", () => {
     expect(tellableTo(ev({ qualifiedAt: null }), "Kinés du sport", PORTRAIT)).toBe(false);
-  });
-});
-
-describe("angleFor", () => {
-  it("rend la phrase écrite pour ce lecteur", () => {
-    expect(angleFor(ev(), "Kinés du sport", PORTRAIT)).toBe("le compteur suit le patient sans décalage");
-  });
-
-  it("rend null pour un lecteur sans angle, et pour une série sans lecteur", () => {
-    expect(angleFor(ev(), "Patients en rééducation", PORTRAIT)).toBeNull();
-    expect(angleFor(ev(), null, PORTRAIT)).toBeNull();
   });
 });

@@ -28,12 +28,7 @@ export interface BriefEvent {
   title: string;
   whatHappened: string;
   whatChanged: string | null;
-  /** Ce que ça a coûté, ce qui était en jeu : c'est là qu'est l'histoire. */
-  atStake?: string | null;
   kind: string;
-  /** Ce que ce fait change pour le lecteur de CETTE série, dans ses mots
-   *  (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §6). Null quand le lecteur n'a pas d'angle dessus. */
-  angle?: string | null;
 }
 
 export interface EventBrief {

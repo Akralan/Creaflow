@@ -115,7 +115,7 @@ Le brief se réduit au projet (nom, description, problème), à l'événement (d
 ### Ce qui reste ouvert
 
 - **Le rédacteur de récit (prompt 28) n'a pas été traité.** Il reçoit toujours `What happened / What it changed / For this reader / What it cost` pré-rédigés pour chacun de ses douze événements. Deux des trois posts d'une semaine viennent de lui, et ce sont eux qui gardent la forme de formulaire.
-- **Le lecteur d'événements désamorce la tension.** La description de `whatHappened` dit *« the facts … Nothing else »*, et « Nothing else » efface ce qui rend un fait racontable : la source dit « des images de lui **en caleçon** sur mon VPS », l'événement enregistre « images of Julien were being stored on the VPS ». 54 des 69 événements ont un `at_stake` vide, et quand il est rempli c'est souvent de l'analyse (« implied a clinical need and potential product market ») au lieu du détail qui gêne.
+- ~~Le lecteur d'événements désamorce la tension.~~ **Réglé le 2026-10-21 par suppression** : `at_stake` n'était plus lu par aucun prompt, il n'est plus rempli non plus. Trace du raisonnement : La description de `whatHappened` dit *« the facts … Nothing else »*, et « Nothing else » efface ce qui rend un fait racontable : la source dit « des images de lui **en caleçon** sur mon VPS », l'événement enregistre « images of Julien were being stored on the VPS ». 54 des 69 événements ont un `at_stake` vide, et quand il est rempli c'est souvent de l'analyse (« implied a clinical need and potential product market ») au lieu du détail qui gêne.
 - **Les portraits de lecteurs déjà en base** gardent leurs prescriptions de forme (celui du compte de démo a été corrigé à la main, sauvegarde dans `docs/tests/portrait-lecteurs-mykine-avant.json`).
 
 ### Pièges de méthode
@@ -149,3 +149,13 @@ Erreur de raisonnement à noter, relevée par le fondateur : j'avais écrit que 
 - Le périmètre de l'origine est à 2 : le post commence sur le plus spectaculaire des deux moments, et le moment fondateur passe en flashback. À 1, il commencerait sur la bière.
 - Le point d'étape et la promesse tenue se recouvrent (« récapituler » vs « ce que j'avais dit que je ferais »). Question non tranchée.
 - `ORIGIN_SCOPE = 2` et le bloc d'origine réécrit ont été réglés contre les défauts de `gpt-5-mini` : à re-juger sur `gpt-6-luna`.
+
+### Nettoyage du 2026-10-21
+
+Audit du code laissé derrière par quatre jours de retraits. Supprimés : `at_stake` (champ de l'outil du lecteur, son paragraphe de prompt, ses écritures et ses champs de brief), `angleFor()` et le champ `angle` des briefs (calculés dans deux services, imprimés nulle part), et cinq scripts périmés (`baseline-lot0-*`, `baseline-lot1-run`, `baseline-lot2-run`, `mykine-compare` — remplacé par `bench-brief.ts`).
+
+Gardés exprès, avec leur raison écrite dans `src/db/schema.ts` : les colonnes `at_stake`, `beat_id`, `mode`, `form`, `framing`, `chosen_voice` (convention du repo — on marque `REMOVED`, on ne migre pas), la valeur `vision` de l'enum `narrative_kind` et sa lecture dans `recentPosts` (des posts en base la portent), et la table `narrative_state`, morte pour le produit mais lue par l'export RGPD de `accountService`.
+
+`audience_angles` reste aussi, et c'est un cas intéressant : son **texte** n'est plus imprimé dans aucun prompt, mais demander « qu'est-ce que ce fait change pour lui » est ce qui fait décider au modèle **si** ça change quelque chose — et le tableau `audiences` qui en est dérivé décide quelle série peut raconter quel événement. Le champ gagne sa place comme raisonnement, pas comme contenu.
+
+La reproduction du prompt 21 dans `docs/PROMPTS.md` avait dérivé d'un chantier entier (elle disait encore « technical docs contain no event »). Elle est désormais **régénérée depuis le code** — system prompt et schémas d'outils. Un script permanent de synchronisation éviterait la prochaine dérive ; il n'existe pas encore.

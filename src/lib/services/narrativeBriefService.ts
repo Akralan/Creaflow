@@ -2,7 +2,7 @@ import { and, asc, eq, isNotNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { calendarEntries, contentSeries, materialEvents, scripts, sourceMaterials } from "@/db/schema";
 import { readersOfProduct } from "@/lib/services/seriesReaderService";
-import { angleFor } from "@/lib/narrative/audience";
+
 import { decideNarrative, firstSeriesOfSubject, type NarrativeKind, type PlacementEvent, type PlacementPost } from "@/lib/narrative/placement";
 import type { NarrativeBrief } from "@/lib/llm/narrativeWriter";
 import type { BriefEvent } from "@/lib/llm/eventWriter";
@@ -26,7 +26,7 @@ export interface NarrativePlan {
   promiseSourceScriptId: string | null;
 }
 
-function toBriefEvent(e: typeof materialEvents.$inferSelect, readerLabel: string | null, portraitLabels: string[]): BriefEvent {
+function toBriefEvent(e: typeof materialEvents.$inferSelect): BriefEvent {
   return {
     id: e.id,
     date: e.date,
@@ -34,10 +34,7 @@ function toBriefEvent(e: typeof materialEvents.$inferSelect, readerLabel: string
     title: e.title,
     whatHappened: e.whatHappened,
     whatChanged: e.whatChanged,
-    atStake: e.atStake,
     kind: e.kind,
-    // Ce que ce fait change pour le lecteur de cette série (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §6).
-    angle: angleFor(e, readerLabel, portraitLabels),
   };
 }
 
@@ -80,7 +77,6 @@ export async function planNarrativePost(userId: string, seriesId: string, slotDa
   });
   // Mêmes gardes que le brief d'événement : sans sujet ni lecteur, pas de récit.
   if (!series?.productId || !series.readerLabel) return null;
-  const portraitLabels = readersOfProduct(series.product).map((r) => r.label);
   const reader = readersOfProduct(series.product).find((r) => r.label === series.readerLabel);
   if (!reader) return null;
 
@@ -175,7 +171,7 @@ export async function planNarrativePost(userId: string, seriesId: string, slotDa
   return {
     brief: {
       kind: decision.kind,
-      scope: scope.map((e) => toBriefEvent(e, series.readerLabel, portraitLabels)),
+      scope: scope.map(toBriefEvent),
       subject: {
         name: series.product?.name ?? series.label,
         description: series.product?.description ?? null,

@@ -46,7 +46,6 @@ export const saveEventInputSchema = z.object({
   title: z.string().trim().min(1).max(160),
   whatHappened: z.string().trim().min(1).max(1500),
   whatChanged: z.string().trim().max(1000),
-  atStake: z.string().trim().max(600),
   kind: z.enum(EVENT_KINDS),
   audienceAngles: z
     .array(z.object({ audience: z.string().trim().min(1), whatItChanges: z.string().trim().min(1).max(400) }))
@@ -62,7 +61,6 @@ export const completeEventInputSchema = z.object({
   date: z.string().trim().optional(),
   datePrecision: z.enum(DATE_PRECISIONS).optional(),
   whatChanged: z.string().trim().max(1000).optional(),
-  atStake: z.string().trim().max(600).optional(),
   excerpt: z.string().trim().min(1).max(MAX_EXCERPT_CHARS * 2).optional(),
   audienceAngles: z
     .array(z.object({ audience: z.string().trim().min(1), whatItChanges: z.string().trim().min(1).max(400) }))
@@ -178,17 +176,12 @@ export function buildEventReaderTools(params: { audienceLabels: string[] }): Llm
           title: { type: "string", description: "The moment, not a theme. \"The tester drops the controller after 40 seconds\", never \"The test\". Written in English." },
           whatHappened: { type: "string", description: "2 to 5 sentences: the facts, with the numbers and names as they are in the text. Nothing else. Written in English." },
           whatChanged: { type: "string", description: "What it changed afterwards according to the text (a decision, an abandonment, a number that moves). Empty string if the text doesn't say. Written in English." },
-          atStake: {
-            type: "string",
-            description:
-              "What it cost, what was at risk, what was embarrassing or almost lost — in the text's own words. The detail a person would lower their voice to tell. Empty string when the text gives none: do not invent one.",
-          },
           kind: { type: "string", enum: [...EVENT_KINDS], description: "failure: something broke or failed. decision: a choice made. result: a measurement, a number. feedback: what a person said or did. milestone: a step crossed, a first time." },
           audienceAngles: audienceAnglesProperty,
           sourceMaterialId: { type: "string", description: "Id of the document where the event is found." },
           excerpt: { type: "string", description: `The exact passage from the document that proves the event, copied as is (in its original language), ${MAX_EXCERPT_CHARS} characters at most.` },
         },
-        required: ["date", "datePrecision", "title", "whatHappened", "whatChanged", "atStake", "kind", "audienceAngles", "sourceMaterialId", "excerpt"],
+        required: ["date", "datePrecision", "title", "whatHappened", "whatChanged", "kind", "audienceAngles", "sourceMaterialId", "excerpt"],
       },
     },
     {
@@ -202,7 +195,6 @@ export function buildEventReaderTools(params: { audienceLabels: string[] }): Llm
           date: { type: "string", description: "YYYY-MM-DD, if this document dates a fact that had no date." },
           datePrecision: { type: "string", enum: [...DATE_PRECISIONS], description: "Precision of the date you are adding." },
           whatChanged: { type: "string", description: "The follow-up this document gives, if the first one did not." },
-          atStake: { type: "string", description: "What it cost or what was at risk, if this document says it and the first did not." },
           excerpt: { type: "string", description: "A passage that proves it better, copied as is from this document." },
           audienceAngles: audienceAnglesProperty,
         },
@@ -251,7 +243,6 @@ All the text you write (titles, descriptions) is in English, even if the documen
 - A document that describes how the system works yields an event every time one of its facts changes something for one of the audiences — a guarantee, a constraint they will feel, a number that settles a doubt, a choice made and what it gave up. With precision unknown if nothing dates it. What it does not yield: plumbing nobody feels.
 - A commit log: not one event per commit. Group them, and keep what tells something: a decision, a failure, a number, an abandonment, a first time. A plain "add page X" is not an event.
 - An event already saved (list below) is told better by the document you are reading now? ${COMPLETE_EVENT_TOOL} it: add the date it was missing, what it changed, a closer excerpt, one more audience. Don't save it twice, and don't skip the better version either — the most precise framing wins, not the first one read.
-- atStake is what the fact COST: the money, the time, the trust, the thing thrown away, what was feared, what was embarrassing. It is almost never in the summary of a document and almost always in its details — a sentence someone said, a number that hurt, a confession. It is what makes the difference between a fact and a story, and nobody downstream can invent it. Empty string when the text truly gives none.
 - whatChanged gives the follow-up that the text gives ("a week later, the 45° camera is mandatory"). If the text says nothing, empty string: don't guess.
 - excerpt is copied as is from the document, ${MAX_EXCERPT_CHARS} characters at most. It is the proof. A passage that can't be found gets the event refused: copy again shorter and more exactly.
 - audienceAngles: only audiences from the list below, and for each one the line of what this fact changes for them, in their words. Empty when the fact changes nothing for anyone.
