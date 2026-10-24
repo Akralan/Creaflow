@@ -400,6 +400,20 @@
       "when": 1792508161089,
       "tag": "0056_enjeu_des_evenements",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1792826894715,
+      "tag": "0057_evenement_pointeur_retraits",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1792826933738,
+      "tag": "0058_evenement_pointeur_ligne",
+      "breakpoints": true
     }
   ]
 }

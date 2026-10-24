@@ -119,9 +119,8 @@ export const contentSeriesModeEnum = pgEnum("content_series_mode", ["feuilleton"
 export const inspirationStatusEnum = pgEnum("inspiration_status", ["active", "dismissed"]);
 // Material event (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3): what happened, read in the
 // material by the event reader, or added by hand by the author.
-export const materialEventKindEnum = pgEnum("material_event_kind", ["failure", "decision", "result", "feedback", "milestone"]);
-export const materialEventDatePrecisionEnum = pgEnum("material_event_date_precision", ["day", "month", "unknown"]);
-export const materialEventOriginEnum = pgEnum("material_event_origin", ["reader", "user"]);
+// RETIRÉS le 2026-10-24 (docs/SPEC_EVENEMENT_POINTEUR.md §2) : un événement n'a plus ni genre, ni
+// précision de date, ni origine. Il a un document, une ligne, une date.
 export const subscriptionPlanEnum = pgEnum("subscription_plan", ["starter", "pro"]);
 // Subset of Stripe statuses (Subscription.status) actually distinguished on the product side —
 // "paused" is not used (no self-service pause feature in v1). The webhook
@@ -485,39 +484,18 @@ export const materialEvents = pgTable("material_events", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
-  // ISO day (YYYY-MM-DD); to the month, the 1st of the month; null when the material dates nothing.
+  // ISO day (YYYY-MM-DD), or null when the line carries no date.
   date: text("date"),
-  datePrecision: materialEventDatePrecisionEnum("date_precision").notNull().default("unknown"),
-  title: text("title").notNull(),
-  whatHappened: text("what_happened").notNull(),
-  whatChanged: text("what_changed"),
-  // Ce que ça a coûté, ce qui était en jeu, le détail qui gêne. C'est ce qui manquait : on
-  // enregistrait ce qui s'est passé et ce que ça a changé, jamais la tension — et le rédacteur ne
-  // peut pas l'inventer. Le bon post sur l'abandon des vidéos tenait à « j'avais des photos de lui
-  // en caleçon sur mon VPS », une phrase qui n'était que dans le document source.
-  // REMOVED on 2026-10-21 : plus aucun prompt ne le lisait. Il a été retiré du brief du rédacteur
-  // (la tension se lit dans le document source) puis du périmètre du récit, et le lecteur d'événements
-  // le remplissait mal — 54 vides sur 69, et de l'analyse quand il était rempli. Colonne conservée.
-  atStake: text("at_stake"),
-  kind: materialEventKindEnum("kind").notNull(),
-  // Labels of the topic's reader portrait (products.readerPortrait) for whom this is interesting.
-  // DERIVED from audienceAngles since docs/SPEC_EVENEMENTS_PAR_CIBLE.md §4: kept because the series
-  // plan and the UI already read it. Written at the same time as the angles, never on its own.
-  audiences: text("audiences").array().notNull().default(sql`'{}'::text[]`),
-  // What this fact changes FOR EACH audience it speaks to, in that audience's own words
-  // (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §4): [{ audience, whatItChanges }]. Written by the event
-  // reader at extraction, document in front of it — the same fact becomes "the counter follows the
-  // patient with no lag" for a physio and "200 ms response" for a developer. Empty = speaks to
-  // nobody, which is a normal answer and means no series tells it.
-  audienceAngles: jsonb("audience_angles").notNull().default([]),
-  // Null = never went through a reader that knew who the posts are for. Distinguishes "not sorted
-  // yet" from "sorted, nobody" (§4): both untellable, but only the first deserves a re-read.
-  qualifiedAt: timestamp("qualified_at"),
-  // SET NULL: an event added by hand has no document; and a deleted document does not
-  // erase what was learned from it (the passage stays in `excerpt`).
-  sourceMaterialId: uuid("source_material_id").references(() => sourceMaterials.id, { onDelete: "set null" }),
-  excerpt: text("excerpt"),
-  origin: materialEventOriginEnum("origin").notNull().default("reader"),
+  // Line number in the document, from 1. With source_material_id, this IS the event
+  // (docs/SPEC_EVENEMENT_POINTEUR.md §2): whoever wants to know what happened opens the
+  // document at that line. No title, no summary, no consequence, no audience — and nothing
+  // to add later, which is the whole point of the chantier.
+  line: integer("line").notNull(),
+  // CASCADE, and no longer SET NULL: a pointer without its document addresses nothing. The
+  // event dies with the document it points into, and the material is simply reread.
+  sourceMaterialId: uuid("source_material_id")
+    .notNull()
+    .references(() => sourceMaterials.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -763,9 +741,14 @@ export const scripts = pgTable("scripts", {
   // target reader, candidate moments, hooks, selfCheck, result of the checks. Never published,
   // serves to understand a failed post. Rewritten on every full generation; null outside V3 generation.
   generationTrace: jsonb("generation_trace"),
-  // The event told by this post (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5). SET NULL: the post
-  // survives the deletion of the event. Null for posts predating the work and for imports.
+  // The FIRST pointer this post was built from. SET NULL: the post survives the deletion of the
+  // event. Kept because screens and queries already read it; `eventIds` is the real answer.
   eventId: uuid("event_id").references(() => materialEvents.id, { onDelete: "set null" }),
+  // Every pointer the post was built from, in the order the writer handed them in
+  // (docs/SPEC_EVENEMENT_POINTEUR.md §4). No FK: a deleted event leaves a dangling id here,
+  // which resolves to nothing and is harmless — the array is a record of what was told, not a
+  // reference. It is what marks a pointer `used` for the next post of the series.
+  eventIds: jsonb("event_ids").notNull().default([]),
   // Null as long as no style learning pass has read this script. Set by the pass that
   // read it, whether or not the resulting proposal is accepted (refusing rules is not a
   // reason to propose the same scripts again). The "scripts corrected since the last
