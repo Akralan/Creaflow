@@ -17,12 +17,11 @@ export async function GET() {
 }
 
 const deleteSchema = z.object({
-  password: z.string().optional(),
   emailConfirmation: z.string().optional(),
 });
 
-// Account deletion (docs/SPEC_LEGAL_EMAIL_RGPD.md §4.2): confirmation by password, or by
-// re-typing the address for an account without a password. The cookie is cleared afterwards — and
+// Account deletion (docs/SPEC_LEGAL_EMAIL_RGPD.md §4.2): confirmation by re-typing the address
+// (no password any more, docs/SPEC_CONNEXION_PAR_LIEN.md). The cookie is cleared afterwards — and
 // getCurrentUserId would no longer recognize a user who no longer exists anyway.
 export async function DELETE(request: NextRequest) {
   try {

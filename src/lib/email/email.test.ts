@@ -3,7 +3,7 @@ import { logger } from "@/lib/logger";
 import { createBrevoSender } from "./brevo";
 import { getEmailSender, parseSenderIdentity } from "./index";
 import { consoleSender } from "./console";
-import { accountDeletedEmail, firstPostEmail, loginLinkEmail, passwordChangedEmail, passwordResetEmail } from "./templates";
+import { accountDeletedEmail, firstPostEmail, loginLinkEmail } from "./templates";
 
 describe("parseSenderIdentity", () => {
   it("reads a \"Name <address>\" form and a bare address", () => {
@@ -84,17 +84,12 @@ describe("createBrevoSender", () => {
 });
 
 describe("templates", () => {
-  it("the reset link is in the text and in the HTML, escaped", () => {
-    const url = "https://app.example/reinitialiser-mot-de-passe?token=abc&x=1";
-    const email = passwordResetEmail({ resetUrl: url, expiresInMinutes: 60 });
+  it("the sign-in link is in the text and in the HTML, escaped", () => {
+    const url = "https://app.example/connexion/lien?token=abc&x=1";
+    const email = loginLinkEmail({ loginUrl: url, expiresInHours: 24, fresh: false });
     expect(email.text).toContain(url);
     expect(email.html).toContain("token=abc&amp;x=1");
-    expect(email.text).toContain("60 minutes");
-  });
-
-  it("the change notice mentions the contact address only when it exists", () => {
-    expect(passwordChangedEmail({ contactEmail: "contact@example.com" }).text).toContain("contact@example.com");
-    expect(passwordChangedEmail({ contactEmail: null }).text).not.toContain("write to us");
+    expect(email.text).toContain("24 hours");
   });
 
   it("the deletion email contains no personal data", () => {

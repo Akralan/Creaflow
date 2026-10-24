@@ -16,7 +16,7 @@ function errorMessage(err: unknown, fallback: string): string {
 
 /**
  * "Account" tab of /settings (docs/SPEC_LEGAL_EMAIL_RGPD.md §4.1): the person, not their brand.
- * Four blocks — email, password, export, deletion.
+ * Three blocks — email, export, deletion. No password: signing in is a link (docs/SPEC_CONNEXION_PAR_LIEN.md).
  */
 export default function AccountPanel() {
   const [account, setAccount] = useState<AccountSummary | null>(null);
@@ -50,91 +50,9 @@ export default function AccountPanel() {
         </p>
       </Card>
 
-      <PasswordBlock hasPassword={account.hasPassword} onChanged={() => setAccount({ ...account, hasPassword: true })} />
       <ExportBlock />
-      <DeleteBlock hasPassword={account.hasPassword} />
+      <DeleteBlock />
     </div>
-  );
-}
-
-function PasswordBlock({ hasPassword, onChanged }: { hasPassword: boolean; onChanged: () => void }) {
-  const [current, setCurrent] = useState("");
-  const [next, setNext] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setDone(false);
-    if (next !== confirm) {
-      setError("The two passwords don't match.");
-      return;
-    }
-    setSaving(true);
-    try {
-      await api.changePassword(hasPassword ? current : undefined, next);
-      setDone(true);
-      setCurrent("");
-      setNext("");
-      setConfirm("");
-      onChanged();
-    } catch (err) {
-      setError(errorMessage(err, "Error while changing the password."));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Card style={{ padding: 28 }}>
-      <h2 style={blockTitle}>{hasPassword ? "Password" : "Set a password"}</h2>
-      <p style={blockHint}>
-        {hasPassword
-          ? "Changing it signs you out of your other open sessions, and you'll get a confirmation by email."
-          : "Your account was created through a third-party service. A password will also let you sign in with your email."}
-      </p>
-      <form onSubmit={handleSubmit} style={{ display: "grid", gap: 14, maxWidth: 400 }}>
-        {hasPassword && (
-          <TextField
-            label="Current password"
-            type="password"
-            required
-            autoComplete="current-password"
-            value={current}
-            onChange={(e) => setCurrent(e.target.value)}
-          />
-        )}
-        <TextField
-          label="New password"
-          type="password"
-          required
-          minLength={8}
-          autoComplete="new-password"
-          value={next}
-          onChange={(e) => setNext(e.target.value)}
-          helper="At least 8 characters"
-        />
-        <TextField
-          label="Confirm"
-          type="password"
-          required
-          minLength={8}
-          autoComplete="new-password"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-        />
-        {error && <p style={{ color: color.danger, fontSize: 13, margin: 0 }}>{error}</p>}
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Button type="submit" disabled={saving} style={{ padding: "11px 22px", fontSize: 14 }}>
-            {saving ? "..." : hasPassword ? "Change password" : "Set password"}
-          </Button>
-          {done && <span style={{ fontSize: 13, color: "oklch(0.5 0.14 150)" }}>Password changed.</span>}
-        </div>
-      </form>
-    </Card>
   );
 }
 
@@ -177,7 +95,7 @@ function ExportBlock() {
   );
 }
 
-function DeleteBlock({ hasPassword }: { hasPassword: boolean }) {
+function DeleteBlock() {
   const [open, setOpen] = useState(false);
   const [confirmation, setConfirmation] = useState("");
   const [loading, setLoading] = useState(false);
@@ -188,7 +106,7 @@ function DeleteBlock({ hasPassword }: { hasPassword: boolean }) {
     setLoading(true);
     setError(null);
     try {
-      await api.deleteAccount(hasPassword ? { password: confirmation } : { emailConfirmation: confirmation });
+      await api.deleteAccount({ emailConfirmation: confirmation });
       // Full navigation rather than router.push: we start from a clean state, with nothing from the account left in memory.
       window.location.assign("/login?deleted=1");
     } catch (err) {
@@ -213,10 +131,10 @@ function DeleteBlock({ hasPassword }: { hasPassword: boolean }) {
       ) : (
         <form onSubmit={handleDelete} style={{ display: "grid", gap: 14, maxWidth: 400 }}>
           <TextField
-            label={hasPassword ? "Your password, to confirm" : "Re-enter your email address, to confirm"}
-            type={hasPassword ? "password" : "email"}
+            label="Re-enter your email address, to confirm"
+            type="email"
             required
-            autoComplete={hasPassword ? "current-password" : "off"}
+            autoComplete="off"
             value={confirmation}
             onChange={(e) => setConfirmation(e.target.value)}
           />

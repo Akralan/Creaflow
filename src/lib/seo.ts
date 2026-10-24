@@ -31,7 +31,6 @@ export const PRIVATE_ROUTE_PREFIXES = [
   "/settings",
   "/onboarding",
   "/login",
-  "/reinitialiser-mot-de-passe",
   "/start",
   "/connexion",
 ] as const;

@@ -3,15 +3,16 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { hashPassword } from "@/lib/auth/password";
 import { setSessionCookie } from "@/lib/auth/session";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 import { enforceRateLimit, getClientIp } from "@/lib/services/rateLimitService";
 
 const signupSchema = z.object({
   email: z.email(),
-  password: z.string().min(8, "Password must be at least 8 characters."),
 });
+
+// Sans mot de passe depuis le 2026-10-25 (docs/SPEC_CONNEXION_PAR_LIEN.md) : la session s'ouvre ici
+// pour finir l'onboarding, et on revient ensuite par un lien envoyé à cette adresse.
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,10 +33,9 @@ export async function POST(request: NextRequest) {
       throw new ApiError(409, "An account already exists with this email.");
     }
 
-    const passwordHash = await hashPassword(body.password);
     const [user] = await db
       .insert(users)
-      .values({ email, passwordHash })
+      .values({ email, passwordHash: null })
       .returning({ id: users.id, email: users.email });
 
     await setSessionCookie(user.id);

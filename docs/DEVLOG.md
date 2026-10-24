@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-10-25 — On se connecte par un lien, le mot de passe disparaît
+
+`/start` créait des comptes sans mot de passe et envoyait un lien de connexion, mais `/login` ne connaissait que l'email et le mot de passe : une personne venue par `/start` qui revenait par `/login` restait à la porte, avec un message qui lui parlait de GitHub. Décision de l'utilisateur : **connexion par lien email seulement**. `/login` demande un email et envoie le même lien que `/start` (24 h, un seul usage) ; la porte « Paste my notes » crée le compte sans mot de passe ; l'onglet Account perd son bloc mot de passe, et la suppression se confirme en recopiant l'adresse. Routes et page du mot de passe retirées, pages légales corrigées. La colonne `password_hash` reste en base sans être lue : la supprimer détruit des données, c'est une décision à part. `docs/SPEC_CONNEXION_PAR_LIEN.md`.
+
+---
+
 ## 2026-10-24 (soir) — Une source rejoint un projet, au lieu d'en créer un
 
 ### Le constat

@@ -24,7 +24,7 @@ const tabs: Array<{ id: Tab; label: string }> = [
   { id: "assets", label: "Visual assets" },
   { id: "connexions", label: "Social connections" },
   { id: "billing", label: "Billing" },
-  // The person, not their brand (docs/SPEC_LEGAL_EMAIL_RGPD.md §1): password, export, deletion.
+  // The person, not their brand (docs/SPEC_LEGAL_EMAIL_RGPD.md §1): email, export, deletion.
   { id: "account", label: "Account" },
 ];
 
