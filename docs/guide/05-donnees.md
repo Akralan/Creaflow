@@ -28,7 +28,7 @@ MESURE & ASSISTANT ─  post_metrics · post_metrics_snapshots · post_match_can
 
 | Objet (table) | Ce que c'est | Pièges |
 | :--- | :--- | :--- |
-| **users** | Un compte. `passwordHash` **nullable** (comptes OAuth et comptes nés de `/start`). Quotas perso : `scriptLimit`, `microEditLimit`, `weekLimit`. | `vertical` est posé à la création et **n'aiguille plus rien**. Le login refuse proprement un compte sans mot de passe. |
+| **users** | Un compte. `passwordHash` n'est **plus ni lu ni écrit** depuis le 2026-10-25 (connexion par lien email, `SPEC_CONNEXION_PAR_LIEN`) ; la colonne et `password_reset_tokens` restent en base en attendant une décision. Quotas perso : `scriptLimit`, `microEditLimit`, `weekLimit`. | `vertical` est posé à la création et **n'aiguille plus rien**. Le login refuse proprement un compte sans mot de passe. |
 | **creator_profiles** | Profil (1:1) : activité, audience, jours de publication, langue, pseudo X, `style_profile` appris. | Plus de ton, valeurs, matériel, temps disponible. |
 | **products** | Un **sujet** (l'UI dit « sujet », le code dit « product » : renommage purement visuel). Porte `description`, `targetAudience`, `problem`, `readerPortrait` (1-3 publics). | `valueProposition` dit ce qu'on offre, `problem` le mal qu'on soigne : ne pas mélanger. |
 | **material_sources** | Une source connectée (dépôt GitHub, page Notion, projet Linear) rattachée à un sujet. Unique sur `(userId, type, externalId)`. | Pas de colonnes GitHub sur `products` — voulu. |
