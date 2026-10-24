@@ -98,6 +98,13 @@ export interface MaterialSource {
   createdAt: string;
 }
 
+/** Events of a project counted by genre — the « Understand it » modal of Business context. */
+export interface EventSummary {
+  total: number;
+  byGenre: Record<string, number>;
+  unreadDocuments: number;
+}
+
 export interface SourceReadingStatus {
   documents: number;
   unread: number;
@@ -762,6 +769,7 @@ export const api = {
 
   getMaterialSources: (productId: string) =>
     apiFetch<{ sources: MaterialSource[] }>(`/api/material-sources?productId=${productId}`),
+  getEventSummary: (productId: string) => apiFetch<EventSummary>(`/api/events/summary?productId=${productId}`),
   /** Where the reading of a source stands: its documents, those not read yet, the events found so far. */
   getMaterialSourceStatus: (id: string) => apiFetch<SourceReadingStatus>(`/api/material-sources/${id}/status`),
   syncMaterialSource: (id: string) => post<{ report: SyncReport }>(`/api/material-sources/${id}/sync`),
