@@ -1235,7 +1235,7 @@ readers : 1 to 3 audiences, the main one first.
 
 ## 19. Veille d'inspiration — retirée le 2026-10-25
 
-Le code est supprimé (`inspirationResearch.ts`, `inspirationService.ts`, les routes `/api/products/[id]/inspirations` et `/api/inspirations/[id]`, `callWebResearch`), avec le bloc `<inspiration>` du prompt 1 et ses champs `inspirationsUsed` / `inspirationsToDrop`. Elle ne nourrissait plus que le prompt 1, et son panneau était parti avec l'onglet Topics la veille. Décision de l'utilisateur : on ne s'en servira plus. La table `inspirations` reste en base, lue seulement par l'export du compte.
+Le code est supprimé (`inspirationResearch.ts`, `inspirationService.ts`, les routes `/api/products/[id]/inspirations` et `/api/inspirations/[id]`, `callWebResearch`), avec le bloc `<inspiration>` du prompt 1 et ses champs `inspirationsUsed` / `inspirationsToDrop`. Elle ne nourrissait plus que le prompt 1, et son panneau était parti avec l'onglet Topics la veille. Décision de l'utilisateur : on ne s'en servira plus. La table `inspirations`, son type `inspiration_status` et `products.inspiration_refreshed_at` sont supprimés par la migration `0060_retrait_veille`.
 
 ## 29. Extracteur de pointeurs
 

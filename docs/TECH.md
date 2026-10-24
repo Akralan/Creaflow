@@ -144,10 +144,9 @@ et types TS gardent "Product", zéro migration pour ce renommage)
 - readerPortrait (jsonb, nullable — 1 à 3 publics `{label, who, situation, wants, alreadyKnows, convincedBy, turnOffs}`
   + `generatedAt, editedByUser, basedOnAudience`, `docs/SPEC_PROMPT_GENERATION_V3.md` §2. Régénéré en tâche de
   fond quand l'audience change, sauf s'il a été édité à la main. Migration `0038`)
-- inspirationRefreshedAt (timestamp, nullable — dernière veille d'inspiration ; relancée en tâche de fond
   au-delà de 7 jours, `docs/SPEC_MEMOIRE_ET_VEILLE.md`. Migration `0039`)
 
-Inspiration (fiche de veille d'un sujet, `docs/SPEC_MEMOIRE_ET_VEILLE.md` §3, migrations `0039`-`0040`) — **plus écrite depuis le 2026-10-25**, la veille est retirée ; lue par l'export du compte
+Inspiration (fiche de veille d'un sujet, `docs/SPEC_MEMOIRE_ET_VEILLE.md` §3, migrations `0039`-`0040`) — **table supprimée le 2026-10-25** (migration `0060_retrait_veille`)
 - id, userId, productId (FK cascade)
 - url (page réellement consultée par la recherche web), title, insight (ce qu'on en retient)
 - kind, readerLabel (public visé, nullable), platform (nullable)
@@ -526,7 +525,7 @@ Les trois reçoivent `expectations` (« Ce que l'auteur attend de CreaFlow : …
 
 ### 5.15 Portrait des lecteurs (la veille d'inspiration et le cadrage de série sont retirés)
 - `src/lib/llm/readerPortrait.ts` — 1 à 3 publics par sujet, tirés de l'audience et de la matière du sujet. Le rédacteur en chef choisit chaque jour le public visé (`readerLabel`), en évitant celui des derniers posts.
-- La **veille d'inspiration** (`inspirationResearch.ts`, `inspirationService.ts`, `callWebResearch`, ses routes et le bloc `<inspiration>` du prompt V3) est **retirée le 2026-10-25**, code supprimé ; la table `inspirations` et `products.inspiration_refreshed_at` restent en base sans être écrites, lues par l'export du compte.
+- La **veille d'inspiration** (`inspirationResearch.ts`, `inspirationService.ts`, `callWebResearch`, ses routes et le bloc `<inspiration>` du prompt V3) est **retirée le 2026-10-25**, code supprimé ; la table `inspirations`, le type `inspiration_status` et `products.inspiration_refreshed_at` sont supprimés par la migration `0060_retrait_veille`, appliquée en dev.
 - Le cadrage de série (`seriesFraming.ts`, `seriesFramingService.ts`, routes `/api/series/[id]/framing*`, panneau) est **retiré le 2026-10-17** : il n'était lu que par le prompt V3, et la forme de la série (5.16) couvrait ce qu'il faisait — avant d'être retirée elle-même le 2026-10-20.
 
 ### 5.16 L'événement-pointeur et le rédacteur qui choisit — `pointerExtractor.ts`, `pointerPostWriter.ts` (`docs/SPEC_EVENEMENT_POINTEUR.md`)

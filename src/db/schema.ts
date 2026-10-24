@@ -120,8 +120,6 @@ export const materialSourceStatusEnum = pgEnum("material_source_status", ["ok", 
 // REMOVED (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md Lot 4): no more mode, every series tells its
 // timeline. Column kept without a destructive migration, no longer read.
 export const contentSeriesModeEnum = pgEnum("content_series_mode", ["feuilleton", "rendez_vous"]);
-// Inspiration card (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.1): dismissed, never erased outright.
-export const inspirationStatusEnum = pgEnum("inspiration_status", ["active", "dismissed"]);
 // Material event (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3): what happened, read in the
 // material by the event reader, or added by hand by the author.
 // RETIRÉS le 2026-10-24 (docs/SPEC_EVENEMENT_POINTEUR.md §2) : un événement n'a plus ni genre, ni
@@ -371,38 +369,6 @@ export const products = pgTable("products", {
   // from targetAudience and the material by describeReaders, correctable by the author. Null as long
   // as no portrait has been produced: generation falls back on targetAudience.
   readerPortrait: jsonb("reader_portrait"),
-  // Last inspiration watch of the topic (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.1) — relaunched on its own in the
-  // background after a generation when it is more than 7 days old.
-  inspirationRefreshedAt: timestamp("inspiration_refreshed_at"),
-});
-
-// RETIRED 2026-10-25: the inspiration watch code is gone; the table stays, read only by the
-// account export, until a decision to drop its data. Was: Inspiration cards of a topic (docs/SPEC_MEMOIRE_ET_VEILLE.md §3): what the watch found on
-// the web and what we learn from it about FORM, reinjected into the prompts of later posts. The
-// writer can dismiss one; the author can restore it.
-export const inspirations = pgTable("inspirations", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  productId: uuid("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
-  url: text("url").notNull(),
-  title: text("title").notNull(),
-  insight: text("insight").notNull(),
-  // format | hook | structure | topic | account — free text rather than an enum: the list is a
-  // prompt instruction, not a data invariant.
-  kind: text("kind").notNull(),
-  readerLabel: text("reader_label"),
-  platform: text("platform"),
-  status: inspirationStatusEnum("status").notNull().default("active"),
-  // model | user | system
-  dismissedBy: text("dismissed_by"),
-  dismissReason: text("dismiss_reason"),
-  shownCount: integer("shown_count").notNull().default(0),
-  usedCount: integer("used_count").notNull().default(0),
-  // Generations that flagged it as useless since its last use: dismissed by the writer
-  // only on the 2nd — a single post confuses "not for this post" and "never for this topic".
-  dropVotes: integer("drop_votes").notNull().default(0),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 // Connected source feeding a topic's corpus (docs/superpowers/specs/2026-08-31-onboarding-dev-github-design.md
