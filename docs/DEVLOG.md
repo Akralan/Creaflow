@@ -3,6 +3,61 @@
 > Journal daté du chantier : ce qui a été fait, **ce qui a été décidé et pourquoi**, ce qui a cassé et ce qu'on en a appris. Écrit pour être relu plus tard, et comme matière pour la série « devlog » de l'application elle-même (CreaFlow parle de CreaFlow). Le détail de chaque décision est dans sa spec (`docs/SPEC_*.md`, section « Décisions ») ; ici, le fil.
 
 ---
+## 2026-10-24 — L'événement perd tous ses champs, et le rédacteur choisit lui-même
+
+### Ce qui a déclenché le chantier
+
+Un test du chemin réel de l'app sur le dépôt de tellovo lui-même, avec le vrai lecteur d'événements. Le relevé :
+
+```
+43 documents, 966 688 caractères
+documentsRead : 4        partsRead : 11 sur ~82
+eventsSaved   : 75       eventsRejected : 21 (tous sur l'excerpt)
+turns         : 107      stoppedAtMaxTurns : false
+```
+
+Il n'a pas été coupé par le plafond : il s'est **arrêté tout seul** et sa réponse finale demandait la permission de continuer — « *Which would you prefer: continue now, or pause and review the events already saved?* » — dans un travail de fond où personne ne lirait jamais la question. Les 39 autres documents n'ont jamais été lus.
+
+Sur MyTwin Leaderboard, le même lecteur avait produit 112 événements dont **4 datés** et **107 sans `whatChanged`**, tirés de documentation de référence qui décrit comment le système marche et ne raconte rien. Le `find` chronologique du plan n'avait donc le choix qu'entre quatre décisions de politique éditoriale des news du projet. Les posts étaient mauvais, et aucun choisisseur n'aurait pu les sauver.
+
+### La décision, prise par l'expérience
+
+Un événement est **un document, une ligne, une date**. Aucun autre champ, et rien à rajouter plus tard : `title`, `whatHappened`, `whatChanged`, `kind`, `audiences`, `audienceAngles`, `excerpt`, `qualifiedAt`, `datePrecision` et `origin` sont **supprimés, pas conservés**. La convention du repo (garder la colonne en la commentant « retirée ») a été écartée exprès : le point du chantier est qu'aucun champ ne revienne par la petite porte.
+
+Et il n'y a plus de choisisseur : **le rédacteur choisit**. Il reçoit la ligne de temps en adresses nues, la liste des posts publiés, sa cible, le contexte du projet, et il ouvre ce qu'il veut avec `read_file`.
+
+### Ce que les quinze runs du banc ont appris
+
+Le banc (`scripts/bench-pointeurs.ts`) a tourné sur trois sujets, puis quatre fois douze posts enchaînés sur tellovo, à modèle de rédaction constant (`gpt-6-luna`). Quatre états du prompt, mesurés :
+
+| | paragraphes | longueur moy. | fins = pitch produit |
+| :--- | :--- | --: | --: |
+| A — aucune règle de forme | **4 partout** | 714 | 0 / 12 |
+| B — + variation de forme | 3 ou 4 | 624 | 0 / 12 |
+| **C — + accroche + aucun post mort** | 4 ou 5 | 816 | 0 / 12 |
+| D — + porte d'entrée pour un inconnu | 4 ou 3 | 822 | **6 / 12** |
+
+**Le run A est la démonstration que sans aucune règle de forme, le modèle s'en donne une** : douze posts sur douze à quatre paragraphes exactement, tous finissant sur une leçon généralisée.
+
+**Le run D est la démonstration la plus nette de la loi du 21 octobre.** La phrase demandait qu'un inconnu puisse entrer dans n'importe quel post, et disait littéralement « *never from a paragraph of presentation bolted onto the end* ». Six posts sur douze ont fini par une description quasi copiée du produit. Nommer l'exigence suffit à la faire ressortir comme un bloc, et l'interdire dans la même phrase n'y change rien. La phrase est rejetée ; l'état retenu est le **run C**.
+
+Deux autres choses apprises en route :
+
+- **Une règle qui suppose quelque chose de faux fabrique un faux « pourquoi ».** L'origine disait d'abord que le lecteur devait se sentir concerné « *because they have the same problem* ». Vrai pour tellovo (un outil pour des devs indie, raconté à des devs indie), faux pour MyKiné (un outil pour des kinés, raconté à des devs). Le modèle a fabriqué le pont : il a ouvert le post d'origine de MyKiné sur « le piège du laptop », qui n'est pas la raison d'exister de MyKiné. Les quatre mots sont retirés.
+- **La cible décide du registre.** Les deux sujets dont le lecteur est un pair qui construit donnent du récit ; MyTwin, dont les trois publics sont des opérateurs du produit, donne de la documentation d'admin. Le rédacteur obéissait à sa seule règle.
+
+### Ce qui a cassé, et ce que le lint a trouvé
+
+Le fil narratif entier est parti — `src/lib/narrative/`, les prompts 21, 23 et 28, `narrativeBriefService`, `timelineSynthesis`, `promiseMatch`. En nettoyant, un avertissement d'ESLint sur un paramètre devenu inutilisé (`sameEventId`) a révélé un vrai défaut : **LinkedIn et X ne partageaient plus leurs pointeurs**, donc chaque réseau rechoisissait les siens et les deux versions du même post racontaient autre chose. Corrigé par `restrictToLocked`, qui réduit la ligne de temps du second réseau aux pointeurs du premier — il n'a donc rien d'autre à choisir.
+
+Deux conséquences assumées : le calendrier **n'annonce plus** le titre des prochains posts (il les prenait dans l'ordre des dates, qui n'est plus l'ordre du choix), et un événement **ne se saisit plus à la main** (c'est une adresse produite par la lecture, pas une fiche).
+
+### Ce qui reste
+
+Les deux migrations sont écrites mais **pas appliquées** : la base de dev est partagée avec le checkout principal, et ces `DROP COLUMN` y casseraient `main`. Le chantier n'a donc **jamais tourné dans l'app** — seulement au banc. Restent aussi : le style appris qui ne va plus au rédacteur, les citations qui n'ont plus d'entrée, et `docs/PROMPTS.md` / `docs/TECH.md` à mettre à jour.
+
+---
+
 
 ## 2026-10-18 — De la landing à une application qui écrit pour LinkedIn et X, et une animation qui n'est plus un diaporama
 
