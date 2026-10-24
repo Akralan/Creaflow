@@ -335,21 +335,18 @@ export interface ContentSeries {
 /** An event as seen by a series plan. */
 export interface PlannedEvent {
   id: string;
+  /** Le document du pointeur, tel qu'il est déposé dans la matière. */
+  file: string;
+  /** Le numéro de ligne, à partir de 1. */
+  line: number;
   date: string | null;
-  datePrecision: MaterialEventDatePrecision;
-  title: string;
-  whatHappened: string;
-  whatChanged: string | null;
-  kind: MaterialEventKind;
-  audiences: string[];
-  told: boolean;
-  scriptId: string | null;
+  /** Déjà servi par un post de la série. */
+  used: boolean;
 }
 
 export interface SeriesPlan {
   readerLabel: string | null;
   events: PlannedEvent[];
-  next: PlannedEvent | null;
 }
 
 /** What saving changed in the calendar for a series (docs/SPEC_RYTHME_DES_SERIES.md §4). */
@@ -464,34 +461,27 @@ export interface SourceMaterial {
 export type MaterialEventKind = "failure" | "decision" | "result" | "feedback" | "milestone";
 export type MaterialEventDatePrecision = "day" | "month" | "unknown";
 
-/** Event on a topic's timeline (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3). */
+/** Pointeur sur la ligne de temps d'un sujet (docs/SPEC_EVENEMENT_POINTEUR.md §2) : un document,
+ *  une ligne, une date. Aucun autre champ. */
 export interface MaterialEvent {
   id: string;
   productId: string;
-  /** YYYY-MM-DD, the 1st of the month when only the month is known, null without a date. */
+  /** YYYY-MM-DD, ou null quand la ligne ne porte pas de date. */
   date: string | null;
-  datePrecision: MaterialEventDatePrecision;
-  title: string;
-  whatHappened: string;
-  whatChanged: string | null;
-  kind: MaterialEventKind;
-  audiences: string[];
-  sourceMaterialId: string | null;
+  line: number;
+  sourceMaterialId: string;
   sourceMaterial?: { id: string; title: string | null } | null;
-  excerpt: string | null;
-  origin: "reader" | "user";
   createdAt: string;
 }
 
 export interface EventReadingReport {
   documents: number;
   documentsRead: number;
-  partsRead: number;
-  eventsSaved: number;
-  eventsRejected: number;
-  turns: number;
-  stoppedAtMaxTurns: boolean;
-  reply: string;
+  /** Appels au modèle : une part de document par appel. */
+  calls: number;
+  pointers: number;
+  /** Documents dont la lecture a échoué, laissés non lus pour la prochaine passe. */
+  failed: number;
 }
 
 /** Post-generation citation (docs/SPEC_MATIERE_EDITEUR.md §3) — passage of the corpus reported as
@@ -1006,20 +996,10 @@ export const api = {
   // Timeline of a topic (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3).
   getEvents: (productId: string) =>
     apiFetch<{ events: MaterialEvent[]; unreadDocuments: number }>(`/api/events?productId=${productId}`),
-  createEvent: (data: {
-    productId: string;
-    date?: string;
-    datePrecision?: MaterialEventDatePrecision;
-    title: string;
-    whatHappened: string;
-    whatChanged?: string;
-    kind: MaterialEventKind;
-    audiences?: string[];
-  }) => post<{ event: MaterialEvent }>("/api/events", data),
-  updateEvent: (id: string, data: Partial<Omit<MaterialEvent, "id" | "productId" | "sourceMaterialId" | "sourceMaterial" | "excerpt" | "origin" | "createdAt">>) =>
-    patch<{ event: MaterialEvent }>(`/api/events/${id}`, data),
+  // RETIRÉS avec le chantier (docs/SPEC_EVENEMENT_POINTEUR.md §2) : un pointeur ne se crée ni ne
+  // s'édite à la main, c'est une adresse produite par la lecture. Seule la suppression reste.
   deleteEvent: (id: string) => del<{ ok: true }>(`/api/events/${id}`),
-  /** Reads the topic's documents not yet read and records their events. Long: several minutes possible. */
+  /** Lit les documents du sujet pas encore lus et enregistre leurs pointeurs. */
   readEvents: (productId: string) => post<{ report: EventReadingReport }>("/api/events/read", { productId }),
   getMaterials: (productId?: string) =>
     apiFetch<{ materials: SourceMaterial[] }>(`/api/materials${productId ? `?productId=${productId}` : ""}`),

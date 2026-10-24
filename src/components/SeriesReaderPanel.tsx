@@ -11,14 +11,6 @@ import { GenerationOrb } from "@/components/GenerationAnimation";
  * rewrites the shape; the shape can be corrected by hand.
  */
 
-function formatDate(date: string | null, precision: string): string {
-  if (!date || precision === "unknown") return "no date";
-  const d = new Date(`${date}T00:00:00.000Z`);
-  return precision === "month"
-    ? d.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" })
-    : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
-}
-
 export default function SeriesReaderPanel({ series, onSeriesUpdate }: { series: ContentSeries; onSeriesUpdate: (series: ContentSeries) => void }) {
   const [readers, setReaders] = useState<PortraitReader[]>([]);
   const [plan, setPlan] = useState<SeriesPlan | null>(null);
@@ -67,7 +59,7 @@ export default function SeriesReaderPanel({ series, onSeriesUpdate }: { series: 
     resize: "vertical" as const,
   };
 
-  const upcoming = plan ? plan.events.filter((e) => !e.told) : [];
+  const upcoming = plan ? plan.events.filter((e) => !e.used) : [];
   const shown = showAll ? upcoming : upcoming.slice(0, 6);
 
   return (
@@ -114,8 +106,8 @@ export default function SeriesReaderPanel({ series, onSeriesUpdate }: { series: 
             <ol style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 4 }}>
               {shown.map((e) => (
                 <li key={e.id} style={{ fontSize: 13, color: color.text2 }}>
-                  <span style={{ color: color.textFaint, fontSize: 12 }}>{formatDate(e.date, e.datePrecision)} · </span>
-                  {e.title}
+                  <span style={{ color: color.textFaint, fontSize: 12 }}>{e.date ?? "no date"} · </span>
+                  <span style={{ fontFamily: "ui-monospace, monospace" }}>{e.file}:{e.line}</span>
                 </li>
               ))}
             </ol>
