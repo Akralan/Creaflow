@@ -3,7 +3,31 @@
 > Journal daté du chantier : ce qui a été fait, **ce qui a été décidé et pourquoi**, ce qui a cassé et ce qu'on en a appris. Écrit pour être relu plus tard, et comme matière pour la série « devlog » de l'application elle-même (CreaFlow parle de CreaFlow). Le détail de chaque décision est dans sa spec (`docs/SPEC_*.md`, section « Décisions ») ; ici, le fil.
 
 ---
-## 2026-10-24 — L'événement perd tous ses champs, et le rédacteur choisit lui-même
+
+## 2026-10-24 (soir) — Une source rejoint un projet, au lieu d'en créer un
+
+### Le constat
+
+Après l'onboarding, brancher Notion créait **un sujet par page cochée**. Les décisions, les choix, les clients potentiels notés dans Notion tombaient dans une autre ligne de temps que celle du dépôt GitHub du même projet, et aucune série ne les voyait. Le seul code qui déplaçait une source vers un sujet était le regroupement de l'onboarding. Le branchement vivait en plus dans Settings › Catalogue, ancien design.
+
+### Ce qu'on a décidé
+
+- **Depuis Business context, une source rejoint toujours un projet existant.** Pas de « New subject » dans ce panneau : créer un projet sera un parcours à part (nouveau dépôt GitHub d'abord, puis les autres sources), à spécifier. Settings › Catalogue reste un temps parce que c'est aujourd'hui le seul endroit qui crée un projet.
+- **Cocher suffit.** Première maquette : une puce à droite ouvrait un menu de destination. L'utilisateur a demandé que cocher ouvre tout de suite les projets sous la ligne, celui de l'écran déjà choisi, et que le bouton du bas fasse tout. Avec un seul projet, il n'y a pas de blocs du tout.
+- **Le panneau vit dans l'écran**, au-dessus de la grille, pas dans Settings.
+- **La lecture des bases Notion est un chantier séparé.** Le lecteur suit les sous-pages mais aucun bloc de base ni ses lignes ; la promesse « tout ce qui est dessous » le demande, à chiffrer à part.
+
+### Ce qui a été fait
+
+Spec `docs/SPEC_RATTACHEMENT_SOURCES.md` et maquette cliquable dans le CSS de l'app (`docs/tests/notion-rattachement-mockup/`), validées. Puis cinq tâches sur `feature/rattachement-sources` : `createSourcesFromCandidates` accepte un `productId` par candidat ; la route des candidats dit le projet qui lit déjà chacun et accepte le projet cible ; `GET /api/material-sources/:id/status` pour sonder la lecture ; `SourcePanel` dans `ContextScreen`, ouvert au clic ou au retour OAuth sur `/context?connect=` ; docs. 665 tests verts. **Pas essayé en réel** : pas d'intégration Notion configurée en dev.
+
+### Au passage : la carte du back-end
+
+Une carte de tout ce que le back-end fait d'un post, dressée le même jour, a montré que **les chiffres de performance ne reviennent dans aucun prompt de série** : ils nourrissent l'écran Performance, l'outil de lecture de l'assistant et une phrase du prompt V3 (posts libres, presque plus servi). Profil de style, veille et fiches des cinq derniers posts ne sont pas branchés non plus sur le rédacteur à pointeurs, par choix du 21 octobre. Et `readerReview.ts`, un relecteur hors contexte, est testé mais appelé nulle part. Rien de décidé là-dessus : c'est de la matière pour la suite.
+
+---
+
+## 2026-10-24 — L'événement perd tous ses champs, et le rédacteur choisit lui-même
 
 ### Ce qui a déclenché le chantier
 

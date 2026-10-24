@@ -1,6 +1,6 @@
 # SPEC — Rattacher une source à un projet existant depuis Business context
 
-Statut : **fonctionnement validé sur maquette le 2026-10-24**, pas implémenté. Maquette cliquable : `docs/tests/notion-rattachement-mockup/index.html` (CSS de l'app copié tel quel, six étapes). Se pose par-dessus `SPEC_CONNECTEURS_ET_SUJETS.md` (ce qu'est un candidat chez chaque fournisseur) et `SPEC_APP_DESIGN_TELLOVO.md` (l'écran Business context). Journal des décisions en fin de document.
+Statut : **implémenté le 2026-10-24** sur `feature/rattachement-sources` (tâches 1 à 5 du plan `docs/superpowers/plans/2026-10-24-rattachement-sources.md`, 665 tests verts, lint propre), **pas encore essayé en réel** : les six essais listés en fin de spec sont à faire avec une intégration Notion configurée (`NOTION_CLIENT_ID`/`NOTION_CLIENT_SECRET` absents du `.env` de dev). Fonctionnement validé sur maquette le même jour. Maquette cliquable : `docs/tests/notion-rattachement-mockup/index.html` (CSS de l'app copié tel quel, six étapes). Se pose par-dessus `SPEC_CONNECTEURS_ET_SUJETS.md` (ce qu'est un candidat chez chaque fournisseur) et `SPEC_APP_DESIGN_TELLOVO.md` (l'écran Business context). Journal des décisions en fin de document.
 
 ## Le problème
 
