@@ -14,8 +14,13 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
+import { FORMS, GENRES } from "../lib/llm/postForms";
 
 export const scriptStatusEnum = pgEnum("script_status", ["draft", "planned", "shot", "published"]);
+// The genre of a pointer and the form of a post (docs/FORMES_ET_GENRES.md). The values live in
+// src/lib/llm/postForms.ts so that spec, prompt, database and bench use the same words.
+export const materialEventGenreEnum = pgEnum("material_event_genre", GENRES);
+export const postFormEnum = pgEnum("post_form", FORMS);
 // "video" removed on 2026-10-16 (docs/SPEC_ONBOARDING_MVP.md §6): the product no longer makes video scripts.
 // The animation of a visual post is not one: it is a visualFormat.
 export const contentTypeEnum = pgEnum("content_type", ["visual", "text"]);
@@ -488,9 +493,19 @@ export const materialEvents = pgTable("material_events", {
   date: text("date"),
   // Line number in the document, from 1. With source_material_id, this IS the event
   // (docs/SPEC_EVENEMENT_POINTEUR.md §2): whoever wants to know what happened opens the
-  // document at that line. No title, no summary, no consequence, no audience — and nothing
-  // to add later, which is the whole point of the chantier.
+  // document at that line. No title, no summary, no consequence, no audience.
   line: integer("line").notNull(),
+  // The ONE exception to "no field" (docs/FORMES_ET_GENRES.md, journal des décisions): what kind
+  // of fact this is, one of thirteen closed values, set by the reader in the same call that finds
+  // the line. A classification, not a summary — nothing that was removed comes back through it.
+  // The form of the post that tells this event follows from it (postForms.ts, `formFor`).
+  genre: materialEventGenreEnum("genre").notNull().default("livraison"),
+  // A `livraison` others can use (the source says where / for whom / how): its post is a launch.
+  disponible: boolean("disponible").notNull().default(false),
+  // The earlier event this one fulfills or looks back on — an `engagement`, an `annonce` or a
+  // `décision` (spec, rule 14). Set by the reader, never inferred later. SET NULL: the follow-up
+  // survives the deletion of what it followed up on.
+  tient: uuid("tient").references((): AnyPgColumn => materialEvents.id, { onDelete: "set null" }),
   // CASCADE, and no longer SET NULL: a pointer without its document addresses nothing. The
   // event dies with the document it points into, and the material is simply reread.
   sourceMaterialId: uuid("source_material_id")
@@ -749,6 +764,11 @@ export const scripts = pgTable("scripts", {
   // which resolves to nothing and is harmless — the array is a record of what was told, not a
   // reference. It is what marks a pointer `used` for the next post of the series.
   eventIds: jsonb("event_ids").notNull().default([]),
+  // The form the writer declared when handing the post in (docs/FORMES_ET_GENRES.md): it follows
+  // from the genre of the event the post was built from, checked by the code in publish_post.
+  // `episode` is stored as such; null means a post from before the chantier or from the V3 path.
+  // The screens show FORM_LABELS[form], nothing for `episode`.
+  form: postFormEnum("form"),
   // Null as long as no style learning pass has read this script. Set by the pass that
   // read it, whether or not the resulting proposal is accepted (refusing rules is not a
   // reason to propose the same scripts again). The "scripts corrected since the last

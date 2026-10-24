@@ -414,6 +414,13 @@
       "when": 1792826933738,
       "tag": "0058_evenement_pointeur_ligne",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1792839777488,
+      "tag": "0059_formes_et_genres",
+      "breakpoints": true
     }
   ]
 }
