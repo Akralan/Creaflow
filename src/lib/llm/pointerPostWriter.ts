@@ -61,6 +61,9 @@ export interface WriterContext {
 export interface WrittenResult {
   text: string;
   eventIds: string[];
+  /** `publish_post` a bien été appelé. Faux = le modèle a conclu en prose, et `text` est sa réponse
+   *  conversationnelle, pas un post : l'appelant doit refuser et réessayer. */
+  handed: boolean;
   turns: number;
   toolCalls: AgenticToolCall[];
   stoppedAtMaxTurns: boolean;
@@ -217,10 +220,11 @@ export async function writePost(c: WriterContext, maxTurns = 40): Promise<Writte
 
   const final = handed as { text: string; eventIds: string[] } | null;
   return {
-    // Sans publish_post, on garde la réponse finale : le banc doit montrer ce qui s'est passé,
-    // pas échouer en silence.
+    // Sans publish_post, on garde la réponse finale pour que le banc montre ce qui s'est passé —
+    // mais `handed` à faux dit à l'appelant que ce n'est PAS un post.
     text: final?.text ?? result.reply,
     eventIds: final?.eventIds ?? [],
+    handed: final !== null,
     turns: result.turns,
     toolCalls: result.toolCalls,
     stoppedAtMaxTurns: result.stoppedAtMaxTurns,

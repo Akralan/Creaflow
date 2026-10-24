@@ -103,11 +103,19 @@ export function toldPointerIds(posts: Array<{ eventIds: unknown; eventId: string
  *
  * Si AUCUN id imposé n'existe plus (document supprimé entre les deux versions), on rend la ligne de
  * temps entière : un post écrit sur autre chose vaut mieux qu'un créneau vide.
+ *
+ * La marque `used` est EFFACÉE sur les pointeurs imposés. Elle dit au rédacteur « un post publié
+ * est déjà parti de là, ne le réécris pas » — or ici on lui demande exactement de le raconter, sur
+ * l'autre réseau ou autrement. La laisser revenait à lui donner un seul choix en le lui
+ * déconseillant.
  */
 export function restrictToLocked(timeline: TimelineEntry[], lockedIds: string[]): TimelineEntry[] {
   if (lockedIds.length === 0) return timeline;
   const byId = new Map(timeline.map((e) => [e.id, e]));
-  const kept = lockedIds.map((id) => byId.get(id)).filter((e): e is TimelineEntry => e !== undefined);
+  const kept = lockedIds
+    .map((id) => byId.get(id))
+    .filter((e): e is TimelineEntry => e !== undefined)
+    .map((e) => ({ ...e, used: false }));
   return kept.length > 0 ? kept : timeline;
 }
 

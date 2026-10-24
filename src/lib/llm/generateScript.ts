@@ -57,10 +57,12 @@ export async function generateScript(context: ScriptGenerationContext): Promise<
       posts: brief.posts,
       files: brief.files,
     });
-    // Sans publish_post, le rédacteur a conclu en prose. Le message porte « submitted no post »
-    // exprès : c'est ce que postPairService cherche pour armer son second essai.
-    if (written.eventIds.length === 0 && written.text.trim().length === 0) {
-      throw new Error("The writer submitted no post.");
+    // Sans publish_post, le rédacteur a conclu en prose : `written.text` est sa réponse
+    // conversationnelle, pas un post, et l'enregistrer publierait « Voici le post que je propose… ».
+    // Le message porte « submitted no post » exprès — c'est ce que postPairService cherche pour
+    // armer son second essai.
+    if (!written.handed) {
+      throw new Error(`The writer submitted no post: ${written.text.slice(0, 200)}`);
     }
     const { hookText, caption } = splitHookAndCaption(written.text);
     return {

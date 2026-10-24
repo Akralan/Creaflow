@@ -63,6 +63,12 @@ describe("restrictToLocked", () => {
   it("rend la ligne de temps entière si AUCUN id verrouillé n'existe plus : mieux vaut un post que rien", () => {
     expect(restrictToLocked(timeline, ["parti"])).toHaveLength(3);
   });
+
+  it("efface la marque used sur un pointeur verrouillé : la version X doit le RACONTER, pas l'éviter", () => {
+    const told = pointerTimeline([row({ id: "e1" })], new Set(["e1"]), new Set(["doc-1"]));
+    expect(told[0].used).toBe(true);
+    expect(restrictToLocked(told, ["e1"])[0].used).toBe(false);
+  });
 });
 
 describe("toldPointerIds", () => {
