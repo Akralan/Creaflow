@@ -21,6 +21,10 @@ Après l'onboarding, brancher Notion créait **un sujet par page cochée**. Les 
 
 Spec `docs/SPEC_RATTACHEMENT_SOURCES.md` et maquette cliquable dans le CSS de l'app (`docs/tests/notion-rattachement-mockup/`), validées. Puis cinq tâches sur `feature/rattachement-sources` : `createSourcesFromCandidates` accepte un `productId` par candidat ; la route des candidats dit le projet qui lit déjà chacun et accepte le projet cible ; `GET /api/material-sources/:id/status` pour sonder la lecture ; `SourcePanel` dans `ContextScreen`, ouvert au clic ou au retour OAuth sur `/context?connect=` ; docs. 665 tests verts. **Pas essayé en réel** : pas d'intégration Notion configurée en dev.
 
+### Et la nuit : les sources se relisent toutes seules
+
+Dans la foulée, la synchro quotidienne (`docs/SPEC_SYNCHRO_QUOTIDIENNE.md`) : une route protégée par `CRON_SECRET`, appelée par le cron du VPS comme la sauvegarde, qui passe toutes les sources par le `syncSource` du bouton, les plus anciennes d'abord, 25 minutes de budget. L'app n'a toujours pas de planificateur, par choix : rien dans le processus, rejouable, visible dans les logs, jamais en double. En la préparant, un défaut est sorti : **un document changé était relu sans perdre ses anciens pointeurs**, qui se doublaient et n'adressaient plus la bonne ligne. Corrigé : ils tombent avant la relecture. Et un badge dans l'en-tête de Business context dit de quand date la matière la moins fraîche.
+
 ### Au passage : la carte du back-end
 
 Une carte de tout ce que le back-end fait d'un post, dressée le même jour, a montré que **les chiffres de performance ne reviennent dans aucun prompt de série** : ils nourrissent l'écran Performance, l'outil de lecture de l'assistant et une phrase du prompt V3 (posts libres, presque plus servi). Profil de style, veille et fiches des cinq derniers posts ne sont pas branchés non plus sur le rédacteur à pointeurs, par choix du 21 octobre. Et `readerReview.ts`, un relecteur hors contexte, est testé mais appelé nulle part. Rien de décidé là-dessus : c'est de la matière pour la suite.

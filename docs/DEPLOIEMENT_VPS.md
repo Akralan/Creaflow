@@ -22,8 +22,9 @@ Le `docker-compose.yml` sans suffixe reste celui du poste de dev et n'est pas to
 
 ## 0. Les choix faits, et pourquoi
 
-- **Un seul serveur, Docker Compose.** L'app n'a ni cron, ni file d'attente, ni écriture sur
-  disque : un Node et un Postgres suffisent. Compose est déjà la façon de lancer la base en dev.
+- **Un seul serveur, Docker Compose.** L'app n'a ni planificateur, ni file d'attente, ni écriture
+  sur disque : un Node et un Postgres suffisent. Les deux tâches de nuit (sauvegarde, synchro des
+  sources) sont des crons de l'hôte qui appellent un script (§7, §7 bis). Compose est déjà la façon de lancer la base en dev.
 - **Postgres sur le VPS**, pas chez un hébergeur de base. C'est l'option la moins chère et la plus
   simple à exploiter avec une sauvegarde nocturne (§7). La variante Neon est décrite en §9.
 - **Caddy** comme reverse proxy : certificat Let's Encrypt obtenu et renouvelé sans rien
@@ -242,6 +243,29 @@ une sauvegarde jamais restaurée n'est pas une sauvegarde.
 
 Les vignettes et exports de la bibliothèque visuelle vivent déjà dans R2, pas sur le VPS : rien à
 sauvegarder de ce côté.
+
+---
+
+## 7 bis. Synchronisation quotidienne des sources
+
+Les sources connectées (GitHub, Notion, Linear) sont relues chaque nuit (`docs/SPEC_SYNCHRO_QUOTIDIENNE.md`) :
+`deploy/sync.sh` appelle `POST /api/cron/sync` avec le `CRON_SECRET` du `.env`, l'app compare chaque
+document par empreinte, insère les nouveaux, relit ceux qui ont changé, puis relance la lecture des
+événements. La route s'arrête d'elle-même après 25 minutes et reprend la nuit suivante, les plus
+anciennes d'abord.
+
+```bash
+# dans .env : CRON_SECRET=$(openssl rand -hex 32), puis redémarrer l'app
+./deploy/sync.sh                       # un essai à la main : le rapport JSON s'affiche
+sudo touch /var/log/creaflow-sync.log && sudo chown creaflow /var/log/creaflow-sync.log
+crontab -e
+# ajouter :
+15 4 * * * /opt/creaflow/deploy/sync.sh >> /var/log/creaflow-sync.log 2>&1
+```
+
+Sans `CRON_SECRET`, la route répond 503 et rien n'est synchronisé la nuit ; le bouton de l'app
+continue de marcher. Le badge de Business context (« Synced 5 h ago », « Needs reconnect ») lit la
+date de dernière synchro des sources : c'est lui qui dit si le cron tourne.
 
 ---
 

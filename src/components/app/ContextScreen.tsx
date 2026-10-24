@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import AppIcon from "@/components/app/AppIcon";
 import SourcePanel from "@/components/app/SourcePanel";
 import { api, ApiClientError, type CreatorProfile, type MaterialSource, type Product } from "@/lib/apiClient";
+import { syncBadge } from "@/lib/syncBadge";
 
 /** « Business context » (docs/SPEC_APP_DESIGN_TELLOVO.md §2): what Tellovo knows about the project, and its sources. */
 
@@ -89,6 +90,8 @@ export default function ContextScreen() {
   const who = product?.targetAudience ?? profile?.targetAudience ?? "";
   const problem = product?.problem ?? "";
   const repo = sources.find((s) => s.type === "github_repo")?.label ?? "";
+  // La fraîcheur de la matière, d'après les sources du projet (docs/SPEC_SYNCHRO_QUOTIDIENNE.md).
+  const badge = useMemo(() => syncBadge(sources), [sources]);
 
   function startEdit() {
     setDraft({ building, who, problem });
@@ -168,7 +171,14 @@ export default function ContextScreen() {
                 {initials(name)}
               </span>
               <div>
-                <h2 className="biz-name">{name}</h2>
+                <h2 className="biz-name">
+                  {name}
+                  {badge && (
+                    <span className={`sync-pill ${badge.tone}`} title="When Tellovo last read your sources. They are read again every night.">
+                      {badge.label}
+                    </span>
+                  )}
+                </h2>
                 {repo && <p className="biz-tag">{repo}</p>}
               </div>
             </div>
