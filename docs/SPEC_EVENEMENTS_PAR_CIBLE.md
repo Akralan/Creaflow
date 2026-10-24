@@ -1,5 +1,8 @@
 # SPEC — Les événements sont lus pour une cible
 
+> ⚪ **ARCHIVE — retirée le 2026-10-24** par `docs/SPEC_EVENEMENT_POINTEUR.md`. `audienceAngles`, `audiences` et `tellableTo` sont supprimés. Une série raconte la ligne de temps de son sujet, entière, sans tri par public ; le lecteur de la série ne sert plus qu'à dire au rédacteur pour qui il écrit. Ce document reste pour le `pourquoi` des décisions de l'époque ; il ne décrit plus le code.
+
+
 Statut : **implémenté** (9 tâches), migrations `0055`-`0056` appliquées en base de dev, essayé en réel les 20 et 21 octobre. Cadrage arrêté le 2026-10-20.
 (`docs/SPEC_FIL_NARRATIF.md`), qui a sorti trois posts qu'un kiné ne peut pas lire.
 

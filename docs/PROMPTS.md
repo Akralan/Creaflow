@@ -38,14 +38,12 @@ l'animation (27), la revue sur images (vision OpenAI).
 | 17 | Description des photos | `src/lib/llm/captionPrompts.ts` | Indexer une photo de marque |
 | 18 | Portrait des lecteurs | `src/lib/llm/readerPortrait.ts` | Décrire les 1 à 3 publics d'un sujet (ce dont ils se soucient, jamais la forme d'un post) |
 | 19 | Veille d'inspiration | `src/lib/llm/inspirationResearch.ts` | Chercher sur le web ce qui marche pour ces publics |
-| 21 | Lecteur d'événements | `src/lib/llm/eventReader.ts` | Lire toute la matière et tenir la ligne de temps datée |
-| 23 | Rédacteur par événements | `src/lib/llm/eventWriter.ts` | Écrire le post d'un événement (agent) |
-| 24 | Qualification des événements | `src/lib/llm/eventReader.ts` | Donner un public à chaque événement |
+| 29 | Extracteur de pointeurs | `src/lib/llm/pointerExtractor.ts` | Dire **où** sont les événements d'un document : un numéro de ligne, une date |
+| 30 | Rédacteur à pointeurs | `src/lib/llm/pointerPostWriter.ts` | Choisir lui-même ses pointeurs dans la ligne de temps, et écrire le post (agent) |
 | 25 | Fiche d'un repo | `src/lib/llm/repoCard.ts` | Lire un dépôt public (parcours `/start`) |
 | 26 | Brief visuel | `src/lib/llm/storyboardFromText.ts` | Concevoir le visuel d'un post déjà écrit |
 | 27 | Animation HTML libre | `src/lib/llm/animationHtml.ts` | Écrire la page HTML animée d'un post |
-| 28 | Rédacteur de récit | `src/lib/llm/narrativeWriter.ts` | Écrire un post d'origine, de point d'étape ou de promesse tenue |
-| 28a | Appariement d'une promesse | `src/lib/llm/promiseMatch.ts` | Trouver l'événement qui permet de tenir une promesse faite dans un post publié |
+| ~~21, 23, 24, 28, 28a~~ | — | — | **Retirés le 2026-10-24** avec le fil narratif et les champs de l'événement : lecteur d'événements, rédacteur par événements, qualification par public, rédacteur de récit, appariement d'une promesse |
 | — | Bloc `<language>` | `src/lib/language.ts` | Imposer la langue du post |
 | — | Rappel en cas d'échec | `src/lib/llm/provider.ts` | Ajouté au system prompt à la 2e tentative |
 
@@ -1323,265 +1321,117 @@ Le code remet `readerLabel` et `platform` à `null` s'ils ne figurent pas dans l
 
 ---
 
-## 21. Lecteur d'événements
+## 29. Extracteur de pointeurs
 
-- **Où** : `src/lib/llm/eventReader.ts` (`buildEventReaderSystemPrompt`, `buildEventReaderUserMessage`, `buildEventReaderTools`, `maxTurnsForParts`) ; orchestration dans `src/lib/services/materialEventService.ts` (`readEventsForSubject`) ; déclenché à chaque ingestion de matière (`scheduleEventReading`) et par `POST /api/events/read`.
-- **À quoi il sert** : lire TOUTE la matière d'un sujet, document par document et en entier, et en sortir une ligne de temps d'événements (`material_events`) : date, ce qui s'est passé, ce que ça a changé, pour qui, et le passage qui le prouve. Tout ce que le lecteur écrit (titres, descriptions) est en **anglais**, même si les documents sont dans une autre langue ; seul l'extrait reste dans les mots du document. Remplace le rédacteur en chef (prompts 6 et 7), qui ne voyait qu'un résumé d'une phrase par document (`docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md` §3).
-- **Quand** : après chaque collage, fichier, interview, proposition de l'assistant, synchro de connecteur, fin d'onboarding ; et sur le bouton « Relire la matière » du panneau de matière. Boucle agentique (`callAgentic`, effort `medium`, `maxTokens` 4096, plafond de tours `maxTurnsForParts(parties)` = `min(160, 12 + 4 × parties)`) avec trois outils : `list_documents`, `read_document` (parties de 12 000 caractères, `DOCUMENT_PART_CHARS`), `save_event`. Les 150 premiers événements déjà enregistrés sont donnés au modèle pour qu'il ne les refasse pas. Un événement dont le passage (`excerpt`, 300 caractères au plus) n'est pas retrouvé tel quel dans le document est refusé et renvoyé au modèle ; une date impossible aussi (`normalizeEventDate`).
+> **Remplace le prompt 21 (lecteur d'événements), retiré le 2026-10-24** — `docs/SPEC_EVENEMENT_POINTEUR.md`.
+
+- **Où** : `src/lib/llm/pointerExtractor.ts` (`buildExtractorSystemPrompt`, `buildExtractorTool`, `numberAndSplit`, `extractPointers`) ; orchestration dans `src/lib/services/materialEventService.ts` (`readEventsForSubject`) ; déclenché à chaque ingestion de matière (`scheduleEventReading`) et par `POST /api/events/read`.
+- **À quoi il sert** : dire **où** sont les événements d'un document, et rien de plus. Il rend des numéros de ligne et des dates. Aucun titre, aucun résumé, aucune conséquence, aucun public, aucun extrait — un événement est un document, une ligne, une date, et celui qui veut savoir ce qu'il contient ouvre le document à cette ligne.
+- **Quand** : après chaque collage, fichier, interview, proposition de l'assistant, synchro de connecteur, fin d'onboarding ; et sur le bouton « Relire la matière ». **Pas de boucle agentique** : le document est numéroté ligne par ligne, coupé en parts de 40 000 caractères (`PART_CHARS`) sur des lignes entières, et chaque part fait un `callStructured` indépendant. Les numéros sont ceux du document complet, jamais ceux de la part — sinon le pointeur ne pointe sur rien. Un document qui échoue reste non lu et n'empêche pas les autres.
+- **Pourquoi non agentique** : le prompt 21 tenait tout dans une seule conversation et calait. Mesuré le 2026-10-22 sur le dépôt de tellovo (43 documents, 966 688 caractères) : **4 documents lus sur 43**, 11 parts sur 82, arrêt de lui-même au 107e tour en demandant la permission de continuer, 21 enregistrements refusés sur 96 (tous sur la contrainte d'`excerpt`). L'extracteur, lui, a vu les 43 documents en 50 appels et rendu 581 pointeurs.
+- **Contrôles du code** : ligne hors du document ignorée, date non conforme à `AAAA-MM-JJ` ramenée à `null`, même numéro de ligne rendu deux fois dédoublonné.
 
 ### System prompt
 
 ```text
-You are the material reader for ${brandName}, on the subject "${subjectName}". You read everything that was uploaded and extract the events from it: what happened, when, and what it changed. You never write a post: others will use your events to tell the story.
+You read one document and you mark where its events are.
 
-An event is a fact that CHANGES SOMETHING FOR SOMEONE. Before saving anything, the question is always the same: does this fact change something for someone in the audiences below? If it changes nothing for anyone, it is not an event, however true it may be.
+An event is a line of this document where something happened.
 
-It is a precise moment, not a theme and not a feature: "The first tester drops the controller after 40 seconds because the jump feels mushy", never "The test" nor "The jump mechanic". (Fictional example: never reuse it.)
+You record nothing about an event: no title, no summary, no consequence, no audience. Only its line number, and the date if the line carries one. Whoever uses it later opens the document at that line and reads it themselves.
 
-A technical document can perfectly well contain events, and some of the best ones. What matters is not where the fact comes from, it is whether it changes something for someone. "Nothing the camera films ever leaves the phone, the server only receives degrees" comes from a privacy document and it changes everything for someone who worries about their patients. "The angle series are stored in a JSONB column" comes from the same kind of document and changes nothing for anyone: it is not an event.
-
-For each audience the fact speaks to, you write ONE line: what it changes FOR THEM, in THEIR words. The same fact becomes "the counter follows the patient with no lag" for one and "200 ms response time" for another. That line is what the writer will start from, so it is never a translation of the title: it says the consequence, not the mechanism. No audience it speaks to: empty list, and that is a normal answer.
-
-All the text you write (titles, descriptions) is in English, even if the documents are in another language. Only the excerpt stays in the document's own words.
-
-<method>
-1. Call list_documents.
-2. Read every document that remains to be read, in full, part by part and in order, with read_document. Skip no part.
-3. As soon as you meet an event, save it with save_event, before reading on. Several events in the same part: several calls.
-4. When everything is read, answer in one or two sentences what you read and how many events you saved.
-</method>
-
-<rules>
-- The facts come from the text, and only from the text. Numbers, names, dates: as is. Nothing is deduced, nothing is rounded, nothing is added.
-- The date is the one the text gives. A dated log: the date of the entry (precision day). A text that says "in March": the month (precision month). Technical docs without a date: unknown, even if you have a hunch. "Last updated: October 2026" dates the document, not what it reports: a fact taken from such a doc is unknown, unless the text gives it its own date.
-- In a log, every dated entry that reports something is an event: don't skip one because it looks small. The very first moment of a project (the conversation or realization that triggered it, the first prototype) is an event, and often the most important.
-- The same document can yield several events on the same date if it tells several things that day (a decision and a failure, for example).
-- A document that describes how the system works yields an event every time one of its facts changes something for one of the audiences — a guarantee, a constraint they will feel, a number that settles a doubt, a choice made and what it gave up. With precision unknown if nothing dates it. What it does not yield: plumbing nobody feels.
-- A commit log: not one event per commit. Group them, and keep what tells something: a decision, a failure, a number, an abandonment, a first time. A plain "add page X" is not an event.
-- An event already saved (list below) is told better by the document you are reading now? complete_event it: add the date it was missing, what it changed, a closer excerpt, one more audience. Don't save it twice, and don't skip the better version either — the most precise framing wins, not the first one read.
-- whatChanged gives the follow-up that the text gives ("a week later, the 45° camera is mandatory"). If the text says nothing, empty string: don't guess.
-- excerpt is copied as is from the document, 300 characters at most. It is the proof. A passage that can't be found gets the event refused: copy again shorter and more exactly.
-- audienceAngles: only audiences from the list below, and for each one the line of what this fact changes for them, in their words. Empty when the fact changes nothing for anyone.
-</rules>
+Answer with record_events.
 ```
+
+La phrase de définition est isolée dans la constante `EVENT_DEFINITION` : c'est le seul endroit où le modèle apprend ce qu'est un événement, donc le seul levier si un relevé est mauvais.
 
 ### Message utilisateur
 
 ```text
-Subject: ${subjectName} — ${subjectDescription}
-Subject audiences:
-- ${label}: ${who}
-   ou : Subject audiences: none defined for now (leave audiences empty).
-Documents to read: ${n}. Already read in a previous pass: ${m}, don't read them again.   (2e phrase seulement si m > 0)
-Events already saved (${k}), not to be redone:
-- ${date | unknown date}: ${title}
-   ou : No event saved for now.
+Document: ${file}
+Part ${i} of ${n}. Line numbers are those of the whole document.
 
-Start with list_documents.
+1	<première ligne du document>
+2	<deuxième ligne>
+…
 ```
 
-### Outil `list_documents`
+### Outil `record_events`
 
-```text
-description   : The subject's documents that remain to be read, with their number of parts.
-(aucun paramètre)
-```
-
-### Outil `read_document`
-
-```text
-description   : The full text of one part of a document. Read all the parts of a document, in order.
-
-documentId : Id of the document, as list_documents gives it.
-part       : Number of the part, starting at 1.
-
-obligatoires : documentId, part
-```
-
-### Outil `save_event`
-
-```text
-description   : Saves ONE event found in the document being read. Call it as soon as you meet the event, before reading on.
-
-date             : YYYY-MM-DD. To the month: YYYY-MM-01. Empty string if the precision is unknown.
-datePrecision    : day: the text gives the day. month: the month only. unknown: no date in the text. (day | month | unknown)
-title            : The moment, not a theme. "The tester drops the controller after 40 seconds", never "The test". Written in English.
-whatHappened     : 2 to 5 sentences: the facts, with the numbers and names as they are in the text. Nothing else. Written in English.
-whatChanged      : What it changed afterwards according to the text (a decision, an abandonment, a number that moves). Empty string if the text doesn't say. Written in English.
-kind             : failure: something broke or failed. decision: a choice made. result: a measurement, a number. feedback: what a person said or did. milestone: a step crossed, a first time. (failure | decision | result | feedback | milestone)
-audienceAngles   : One entry per audience this fact speaks to: what it changes FOR THEM, in THEIR words. Empty array when it changes nothing for anyone — a normal answer, not a failure.
-sourceMaterialId : Id of the document where the event is found.
-excerpt          : The exact passage from the document that proves the event, copied as is (in its original language), 300 characters at most.
-
-obligatoires : date, datePrecision, title, whatHappened, whatChanged, kind, audienceAngles, sourceMaterialId, excerpt
-```
+| Champ | Description |
+| :--- | :--- |
+| `events[].line` | `The line number of the event, as printed at the start of the line.` |
+| `events[].date` | `The date the line carries, as YYYY-MM-DD. Empty string if the line carries none.` |
 
 ---
 
----
+## 30. Rédacteur à pointeurs
 
-## 23. Rédacteur par événements
+> **Remplace les prompts 23 (rédacteur par événements) et 28 (rédacteur de récit), retirés le 2026-10-24.** État arrêté au « run C » du banc, après quinze runs sur trois sujets — `docs/SPEC_EVENEMENT_POINTEUR.md` §4, et `docs/DEVLOG.md` du 2026-10-24 pour les mesures.
 
-- **Où** : `src/lib/llm/eventWriter.ts` (`EVENT_WRITER_SYSTEM_PROMPT` = `SCRIPT_CORE_PROMPT` + `METHOD_PROMPT`, `buildEventWriterUserMessage`, `writeScriptFromEvent`) ; brief assemblé par `buildEventBriefForSeries` (`seriesReaderService.ts`) ; branché dans `generateScript` (`context.eventBrief`). Le bloc `<language>` vient de `buildLanguageBlock` (`src/lib/language.ts`).
-- **À quoi il sert** : écrire un post à partir d'UN événement, pour UN lecteur (`docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md` §5). Son brief contient **le projet** (nom, `products.description`, `products.problem`), **l'événement** (sa date et son titre, rien de plus), **ce qui précède** dans la ligne de temps, et **le document source** à relire avec `read_source`. Les faits rédigés (`whatHappened`, `whatChanged`, l'angle du lecteur) ont été **retirés le 2026-10-21** : ils arrivaient tout écrits en anglais et le rédacteur les traduisait au lieu d'écrire, alors qu'il avait le document sous les yeux. Le brief d'écriture de la série est retiré lui aussi (voir plus haut). Remplace le prompt 1 dès qu'une série a un lecteur ; le chef (prompts 6 et 7), l'angle, le rôle, les fiches d'inspiration et le cadrage ne lui sont pas transmis.
-- **Quand** : génération depuis un créneau d'une telle série. Boucle agentique (`callAgentic`, effort `medium`, `maxTokens` 4096, **14 tours** au plus) avec quatre outils : `read_source` (le document source de l'événement, par parties de 12 000 caractères), `read_timeline`, `review_draft` (le brouillon et le verdict du lecteur, trois brouillons au plus), `submit_post`. Les contrôles de `scriptChecks.ts` (langue comprise) tournent dans `submit_post` : un post refusé revient au modèle avec ses fautes, **deux soumissions au plus** (`MAX_SUBMISSIONS`), la moins fautive est gardée (à égalité, la dernière). Trace V4 sur `scripts.generationTrace` (brouillons, verdicts, parties lues, tours, `stoppedAtMaxTurns`). `EVENT_WRITER_ENABLED=false` rend le prompt 1.
-
-### System prompt
-
-`SCRIPT_CORE_PROMPT` (prompt 1 : identité du ghostwriter, règle de langue renvoyant à `<language>`, `<facts>`, `<writing>`, `<examples>`, `<priorities>`), suivi de `METHOD_PROMPT` :
-
-```text
-<method>
-You tell ONE event to ONE person. Everything else serves that.
-1. Reread the source with read_source: the document the event comes from, in full. That's where the true details are (the exact words, the numbers, what happened just before and just after). If you need to place the event in the story, read_timeline.
-2. Write a complete draft, for this one person, from this one event.
-3. Submit it to review_draft with your honest verdict, phrased the way the reader would say it: do they read the second sentence? do they make it to the end? do they learn something they didn't know? does it sound like the author, or like a marketing department? If the verdict is bad, say in one line what's wrong and start again at step 2. Three drafts at most.
-4. When a draft holds, submit_post. If the checks reject it, fix exactly what is flagged and resubmit.
-</method>
-
-<what_makes_a_post>
-- It starts inside the event: no announcement, no "in this series". The first sentence is already in it, and it only has one job: make the reader read the second. By the end of the second sentence the reader knows who, what, and what is at stake, in a few words, never a paragraph of context.
-- It tells ONE turning point, with something at stake. If nothing is at stake, there is no post.
-- It tells what happened, then what it changed. With the details from the source: people's exact words, the numbers, the date if it matters.
-- It uses only details found in the source. A precise detail that is true builds trust, a false one destroys it. If the source doesn't have it, leave it out.
-- A win is stated plainly, or a problem is told plainly.
-- A feeling is shown through a fact.
-- Sentence lengths vary. A regular rhythm reads as machine-written.
-- It doesn't explain the product. If the reader understands what the product does, it's because they saw what happened, not because it was described to them.
-- It ends on the last thing that happened, or on one concrete fact that is still true: a number, an action taken, a sentence someone said. Then it stops. If the facts alone don't say why it mattered, one sentence is allowed: what the author thinks or feels now, never a lesson for everyone. No call to action.
-- It tells THIS event and stops before the next one. The events before and after only serve to situate in half a sentence ("a week after the demo"), without their numbers or details: they had or will have their own post.
-- It doesn't look like the previous post. Look at <recent_posts>: if the last one opened with a number, this one opens differently; if it ended on "the next step", this one ends on something else, or stops dead.
-- Hashtags, if any, change with the post: the event's, not the project's.
-- It is written for ONE person, in their words, at their length. What they wouldn't understand isn't in it, or is explained through its effect.
-- The author speaks in the first person singular. "We" only if the brief or the source says there is a team, and to refer to that team.
-- Everything is written in the language given in <language>.
-</what_makes_a_post>
-
-<examples_of_form>   ← depuis le 2026-10-21 : trois VRAIS posts de l'auteur, en français, qui portent le contexte global de leur projet. Ils remplacent trois exemples inventés (poterie, bateau, ruche) qui étaient courts, sans contexte et sans étiquette — ils enseignaient donc la forme qu'on subissait. Le bloc `<examples>` du prompt coeur (paires d'accroches fictives) a été retiré : un seul jeu d'exemples.
-Three short posts, from trades that have nothing to do with the author's. They show the level of precision and the rhythm, nothing else. Do not reuse their openings, their structure or their turns of phrase: each post finds its own shape from its own event.
-
-"It's not the glaze, it's the oven," the man at the supplier's said, and hung up. I had thrown away 14 bowls that month. Same recipe, same clay, one oven door I never closed the same way twice. I taped a line on the floor where the door stops. Next firing, 12 out of 12 came out. I trust the door more than the recipe now.
-
-Day 212. The hull had 31 rotten frames, not the 9 the survey promised. I sat in the cockpit for an hour with the invoice. Then I called the yard and asked for oak. They had enough for 20. I ordered it anyway and slept in the van.
-
-The first frame came out of the hive black. Not dark, black. Rain had been getting in all winter. Marc, forty years of bees, picked it up, smelled it, said nothing. I asked what he'd do. "Start over," he said, "and fix the roof first." We did both on Saturday.
-</examples_of_form>
-```
-
-### Message utilisateur (blocs, dans cet ordre)
-
-Dates formatées en anglais (« October 12, 2026 », « October 2026 », « unknown date »). Les blocs `<style>`, `<recent_posts>`, `<platform>` et `<format>` sont ceux du prompt 1 ; `<style>` et `<format>` n'apparaissent que s'ils ont du contenu (`<format>` : post visuel seulement) ; `<language>` seulement si la langue est connue.
-
-```text
-<event>
-Series: ${seriesLabel} — ${subjectName}, by ${brandName} (${activityType}).
-What ${subjectName} is: ${products.description}        (si renseigné)
-The problem it solves: ${products.problem}             (si renseigné)
-The event to tell: ${date} — ${title}
-Just before, in the story: (les 2 événements datés précédents, titres seuls)
-Source: "${titre du document}", to reread with read_source.
-</event>
-
-<reader>
-${label}: ${who}
-Already knows: ${knows}
-Comes looking for: ${wants}
-Stops for: ${stopsFor}
-Turned off by: ${turnsOff}
-Their words: ${words}
-</reader>
-
-<style> … </style>
-<recent_posts> … </recent_posts>
-<platform> (règles chiffrées de la plateforme, `platformRuleText`) </platform>
-<format> … </format>
-
-<language>
-Write the whole post in ${langue}: title, hook, text, slides and hashtags. The documents and the timeline may be in another language: read them as they are, but nothing of that language ends up in the post, except the exact words of a quote.
-</language>
-
-Start with read_source.
-```
-
-### Outil `read_source`
-
-```text
-description : The event's source document, in ${parts} part(s). Read at least the part that contains the event; the whole document if you need the context.
-              (sans source : No source: this event was written by hand by the author.)
-part        : Number of the part, starting at 1.
-```
-
-### Outil `read_timeline`
-
-```text
-description : The subject's timeline: all its dated events, in order. To situate, never to tell two events.
-(aucun paramètre ; renvoie date, titre et un drapeau `current` pour l'événement à raconter)
-```
-
-### Outil `review_draft`
-
-```text
-description    : Submit a complete draft to your own review, as the reader. Keep an honest record: a draft judged good will be submitted, a draft judged weak will be redone.
-draft          : The complete draft of the post text.
-readerVerdict  : What the reader would say while reading it, in two or three sentences, in their words.
-keep           : True if this draft holds and can be submitted.
-why            : If keep is false: what's wrong, in one line, and what you change.
-```
-
-Retours de l'outil au modèle : « Draft N kept. Submit it with submit_post. » / « Draft N discarded. Rewrite it, fixing: … » / au 3e brouillon : « Three drafts: submit the best one with submit_post, fixing what you noted. »
-
-### Outil `submit_post`
-
-```text
-description : Submits the final post. The code checks verify it: if it is rejected, the report comes back to you and you fix it.
-concept     : In one sentence: what the reader should remember from this event.
-title       : The name of the idea, short, impossible to reuse for another post.
-caption     : The post text, in full, in the series form and the platform's length.
-hashtags    : In the number given by <platform>. Empty if it doesn't use any.
-usedExcerpts: The passages of the source copied WORD FOR WORD that ground the post's facts, one per fact. Empty array if the event has no source.
-promisesMade: The explicit promises made to the reader in the post, copied as is. Empty otherwise.
-```
-
-Post texte : en plus `hookText` — « The first sentence of the post, as is: it is already inside the event. »
-Post visuel : en plus `hookVisual` — « The visual composition that stops the reader (single image or first slide). » — et `storyboard` — « The slides, numbered, in the number given by <format>. » (éléments `planNumber`, `description` : « What is seen and the text displayed. »).
-
-Retours en cas de refus : « Post rejected, incomplete format (…): return all the required fields. » / « Post rejected by the checks: - … Fix exactly these points and resubmit the complete post. »
-
----
-
-## 24. Qualification des événements par public
-
-- **Où** : `src/lib/llm/eventReader.ts` (`buildQualifyEventsPrompt`, `buildQualifyEventsTool`, outil `qualify_events`, schéma `qualifiedEventsSchema`) ; appelé par `qualifyEventsForSubject` dans `src/lib/services/materialEventService.ts` ; route `POST /api/events/qualify`.
-- **À quoi il sert** : dire, pour chaque événement de la ligne de temps d'un sujet, à quels publics (lecteurs du portrait, `products.readerPortrait`) il peut offrir un post qui les arrête. Sans relire les documents. Un événement sans public reste visible pour toutes les séries. Un public n'est gardé que si l'événement lui apprend quelque chose qu'il vient chercher.
-- **Quand** : à la naissance ou au changement du portrait des lecteurs (`scheduleEventQualification`, depuis `readerPortraitService.ts`, en arrière-plan), et sur `POST /api/events/qualify`. Ne fait rien sans portrait. Traite TOUS les événements du sujet (un portrait qui change peut en déplacer), triés par date, par lots de 60 : un `callStructured` par lot, `maxTokens` 4096. Les identifiants inconnus sont ignorés et les publics hors enum filtrés avant écriture.
+- **Où** : `src/lib/llm/pointerPostWriter.ts` (`buildWriterSystemPrompt`, `buildWriterUserMessage`, `buildWriterTools`, `writePost`, `splitHookAndCaption`) ; brief construit par `seriesReaderService.buildPointerBrief` ; branché dans `generateScript` via `context.pointerBrief`.
+- **À quoi il sert** : écrire le prochain post d'une série — **et choisir lui-même de quoi il parle**. Il n'y a plus de choix côté code : `planForSeries` ne désigne plus « le prochain événement ».
+- **Quand** : à chaque génération d'un post de série en `contentType: "text"`. Un post visuel garde le chemin V3 (prompt 11), qui sert aussi aux posts libres sans série. `callAgentic`, effort `medium`, `maxTokens` 4096, **40 tours** au plus.
+- **Ce qu'il reçoit** : la ligne de temps **en adresses nues** (`document:ligne` + date, marquées `(already used)` quand un post publié en est parti), la liste des posts publiés — **identifiants et dates seulement**, donc il doit appeler l'outil pour savoir ce qu'ils disaient —, son lecteur, le contexte du projet, la langue et les règles du réseau.
+- **Ce qu'il ne reçoit pas**, et qui n'est pas un oubli : aucun résumé d'événement, aucun « ce que ça change », aucun angle par public, aucun type de post, aucune consigne d'alternance, aucun ordre à respecter, et **pas le style appris** (le run C validé ne l'avait pas).
+- **Outils** : `read_file(file, from_line, to_line)` (fenêtre de 120 lignes au plus, bornes ramenées dans le document), `read_post(id)`, `publish_post(post, event_ids)`.
+- **Sortie** : le texte se découpe en `hook_text` / `caption` sur sa première phrase, qui **est** l'accroche par construction (règle 3). `publish_post` non appelé ⇒ erreur « submitted no post » et second essai de `postPairService` ; sa réponse conversationnelle n'est jamais enregistrée comme post.
 
 ### System prompt
 
 ```text
-You sort the events on the timeline of "${subjectName}" by audience. For each event, say which of the subject's audiences it can make a post that stops them: an audience is kept if the event teaches them something they come looking for, not if it might vaguely concern them. An event can target several audiences, or none. Don't modify the events, don't skip any id.
+You write build in public posts for ${brandName}, about ${projectName}.
+
+Your reader is ${readerLabel}: ${readerWho}
+
+${projectContext}
+
+That is your only rule: build in public, for that reader. There is no other one, except this: if no post has been published yet, that first post is the origin. On a young project it presents the project and why it exists; on one that already has a long trail of material behind it, it can instead be the reason its author is starting to build in public, when the material or the author's own words say it. That reason is the one they give, never one chosen to fit the reader — and your reader must understand at once that it is for them.
+
+Your first sentence is a hook and nothing else: it has to stop the scroll and make someone want the next line. Put something in it — a number, an hour, an admission, a line with some nerve in it, even a touch of madness. Never a summary of the post, never a question you answer yourself.
+
+And no post of yours is allowed to be dead: it has to be worth the read on its own, to someone who knows nothing about this project. If you name a table, a function, a library, a tool or any piece of the machinery, say what it is or what it does in the same breath — never leave your reader in front of a word that means nothing to them.
+
+The timeline below is a list of addresses — a document and a line — and nothing else. Each address is a place in the project's own material where something happened. An address does not tell you what is at it: open it with read_file, and read around it as widely as you want. An address marked (already used) is one a published post was built from; you can read any published post in full with read_post. You read them to find out what has already been said, so you do not write it again — never to copy their shape. Posts that all open the same way, run the same number of paragraphs and close on the same kind of lesson read like a template; let each one take the form its own material calls for.
+
+<language>…</language>
+
+<platform>…</platform>
+
+When your post is written, hand it in with publish_post, with the addresses it was built from.
 ```
+
+`<language>` vient de `buildLanguageBlock` (`src/lib/language.ts`), `<platform>` de `platformRuleText` — les mêmes blocs que les autres prompts, pour que `scriptChecks` reste cohérent.
 
 ### Message utilisateur
 
 ```text
-Subject audiences:
-- ${label}: ${who} Comes looking for: ${wants} Stops for: ${stopsFor} Turned off by: ${turnsOff}   (les trois derniers segments seulement s'ils sont renseignés)
+<timeline>
+[e341] 2026-10-21 · docs/DEVLOG.md:97
+[e342] 2026-10-21 · docs/DEVLOG.md:118  (already used)
+[e512] no date · commit-log.txt:12
+</timeline>
 
-Events:
-- [${id}] ${date | undated} · ${kind} · ${title} — ${whatHappened}
-
-Answer via qualify_events.
+<published_posts>
+No post has been published yet. This is the first one.
+</published_posts>
 ```
 
-### Outil `qualify_events`
+Avec des posts publiés, le bloc liste `[p1] 2026-10-22` … et marque le dernier `<- the most recent`.
 
-```text
-description : Says, for each event, which of the subject's audiences it can interest.
-events      : One element per event supplied, in the same order, with its id as is.
-  id        : (chaîne)
-  audiences : The audiences for whom this event is worth a post. Empty if none: it will remain visible to all series.
-              (tableau, items en enum des labels des lecteurs du sujet)
-```
+### Ce qui a été essayé et rejeté
+
+| Essai | Résultat mesuré sur 12 posts enchaînés | Décision |
+| :--- | :--- | :--- |
+| Aucune règle de forme | les 12 posts à **4 paragraphes exactement**, tous finissant sur une leçon | rejeté |
+| « *because they have the same problem* » dans l'origine | faux « pourquoi » fabriqué : le post d'origine de MyKiné ouvrait sur « le piège du laptop », qui n'est pas la raison d'exister du projet | **retiré** |
+| Une phrase demandant qu'un inconnu puisse entrer dans n'importe quel post | **6 posts sur 12** finissent par une description quasi copiée du produit — alors que la phrase disait « *never from a paragraph of presentation bolted onto the end* » | **rejeté** |
+
+---
+
+## 24, 28, 28a — retirés le 2026-10-24
+
+La **qualification des événements par public** (24), le **rédacteur de récit** (28) et l'**appariement d'une promesse** (28a) sont partis avec le fil narratif et les champs de l'événement (`docs/SPEC_EVENEMENT_POINTEUR.md` §5). Ils lisaient `audienceAngles`, `whatChanged` et `promisesMade`, qui n'existent plus. Leur texte est dans l'historique git et dans `docs/SPEC_EVENEMENTS_PAR_CIBLE.md` / `docs/SPEC_FIL_NARRATIF.md`, conservées comme archives.
 
 ---
 
@@ -1812,51 +1662,6 @@ html        : The complete corrected fragment when the verdict is "fix", an empt
 ### Contrat de temps `seek(ms)` (code, pas un prompt)
 
 Le lecteur (`src/lib/animationHtml/player.ts`) est injecté après le contenu du modèle. `seek(ms)` borne le temps à `[0, durée]`, met en pause toutes les animations du document (`document.getAnimations()`) et règle leur `currentTime`, puis appelle `window.seek(t)` si la page l'a définie ; en lecture, une boucle appelle `seek((now - début) % durée)`. Le même instant doit donc toujours donner la même image : d'où l'interdiction des minuteurs, de `requestAnimationFrame`, `Math.random`, `Date` et `performance.now`. Le document tourne dans un `iframe sandbox="allow-scripts"` sous la CSP `default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:; …` ; les polices sont intégrées en base 64.
-
----
-
-## 28. Rédacteur de récit
-
-> **Trois types depuis le 2026-10-21, et non quatre : la vision est retirée** (voir `docs/SPEC_FIL_NARRATIF.md`). Son périmètre ne donne plus, par événement, que `date — titre` : `What happened / What it changed / For this reader / What it cost` arrivaient pré-rédigés pour chacun des douze, et le post rendait autant de formulaires. Le périmètre de l'**origine** passe de 12 événements à 2 (le moment fatidique et ce que l'auteur a fait juste après), et son bloc de prompt demande maintenant d'expliquer simplement le projet — l'ancienne règle disait « nommé à la dernière phrase, ou pas du tout ».
-
-- **Où** : `src/lib/llm/narrativeWriter.ts` (`NARRATIVE_WRITER_SYSTEM_PROMPTS`, `buildNarrativeWriterUserMessage`, `writeNarrativePost`).
-- **Quand** : quand le fil narratif réclame le créneau (`narrativeBriefService.planNarrativePost`, règles de `src/lib/narrative/placement.ts`). Il passe **avant** le rédacteur par événements : un post de récit n'ouvre pas de brief d'événement.
-- **Pourquoi** : une série qui n'enchaîne que des épisodes ne dit jamais pourquoi le projet existe, où il va, ni où il en est (`docs/SPEC_FIL_NARRATIF.md`).
-
-### System prompt
-
-`SCRIPT_CORE_PROMPT` (le cœur partagé avec les prompts 1 et 23) + la méthode + **un seul** bloc `<what_makes_a_post>`, choisi par le type, + les règles communes.
-
-La méthode est celle du 23, à une différence près : le modèle relit **la matière de son périmètre**, et `read_timeline` ne lui montre que ce périmètre.
-
-Les quatre blocs `<what_makes_a_post>` sont le seul écart entre une origine et un point d'étape. En résumé (le texte exact est dans le code) :
-
-| Type | Ce que le bloc impose | Ce qu'il interdit |
-| :--- | :--- | :--- |
-| `origin` | Le problème, dans le moment où il a été vu ; un événement réel avec ses détails | Nommer le produit avant la dernière phrase ; décrire une fonctionnalité ; promettre que ça sera réglé |
-| `checkpoint` | Ce qui a changé entre le premier et le dernier événement du périmètre, en un mouvement | Re-raconter un épisode ; reprendre les chiffres des posts voisins ; l'inventaire « ces dernières semaines » |
-| `promise` | Deux temps : la phrase citée **mot pour mot**, puis l'événement qui y répond | Juger, s'excuser, pavoiser, reformuler la promesse, en faire une nouvelle |
-
-Les règles communes (`<rules>`) valent pour les quatre : ne **jamais** nommer le type de post, rien hors périmètre, pas de call to action, première personne du singulier, finir sur un fait, ne pas ressembler aux posts récents, écrire dans la langue de `<language>`.
-
-### Message utilisateur
-
-`<scope>` (la série, le projet et le problème qu'il règle, puis les événements autorisés — **leur date et leur titre seulement depuis le 2026-10-21**, les champs du sujet selon le type, les documents à relire) · `<promise>` pour la promesse tenue (la phrase et le post qui l'a faite) · puis exactement les mêmes blocs que le 23 (`<reader>`, `<form>`, `<style>`, `<recent_posts>`, `<platform>`, `<format>`, `<language>`), produits par la fonction partagée `buildWriterContextSections`.
-
-Les mots de l'auteur sur son projet (`description`, `problem`) vont à **tous** les types depuis le 2026-10-21, pour qu'un post se tienne seul ; l'origine reçoit en plus `targetAudience`. Ancien comportement : l'origine ne recevait que `problem`, la vision `description`, `problem` et `valueProposition`, le point d'étape et la promesse n'en reçoivent aucun.
-
-### Outils
-
-`read_source` · `read_timeline` (**limité au périmètre**) · `read_post` (promesse tenue seulement) · `review_draft` · `submit_post`. Mêmes plafonds qu'au 23 : 14 tours, 3 brouillons, 2 soumissions. Les contrôles du code (`scriptChecks.ts`) tournent dans l'outil de soumission, comme au 23 ; la matière contre laquelle `usedExcerpts` est vérifié, ce sont les documents du périmètre, plus le post de promesse pour la promesse tenue.
-
----
-
-## 28a. Appariement d'une promesse
-
-- **Où** : `src/lib/llm/promiseMatch.ts` (`matchPromiseToEvent`).
-- **Quand** : après chaque relecture de la matière qui a enregistré de nouveaux événements (`materialEventService.refreshPromiseMatches`). Jamais à l'écriture d'un post : le résultat est posé sur `scripts.promiseMatch` et relu plus tard.
-- **Un appel, une réponse** : l'id d'un événement, ou `null`. Un id hors de la liste donnée est traité comme `null`.
-- **Volontairement permissif** : les promesses réellement captées sont molles (« dans un prochain épisode, je montrerai comment… »). La question posée est « cet événement permet-il à l'auteur de dire ce qu'il avait annoncé ? », pas « tient-il la promesse ? ». Une lecture stricte n'apparierait jamais rien et le type de post n'existerait jamais.
 
 ---
 

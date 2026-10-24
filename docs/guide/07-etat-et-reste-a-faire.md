@@ -4,7 +4,7 @@
 
 ## Ce qui est validé en conditions réelles
 
-La plupart des chantiers anciens (séries et rôles, rédacteur en chef — depuis retiré —, assistant agentique, connecteurs Notion/Linear, onboarding GitHub, légal/email/RGPD en curl) ont été validés par l'utilisateur. Dernier jugement sur la génération : les posts par événements sont « **bien mieux** » (2026-10-17, pack de test MyKiné, kiné puis dev).
+La plupart des chantiers anciens (séries et rôles, rédacteur en chef — depuis retiré —, assistant agentique, connecteurs Notion/Linear, onboarding GitHub, légal/email/RGPD en curl) ont été validés par l'utilisateur. Dernier jugement sur la génération : les posts de l'**événement-pointeur** sont « **bien mieux** » (2026-10-24, quinze runs du banc sur MyKiné, MyTwin Leaderboard et tellovo lui-même, relevés dans `docs/tests/pointeurs/`). Ce chantier est **sur la branche `worktree-evenements-pointeurs`, pas sur `main`** : ses deux migrations (`0057`, `0058`) sont écrites mais **non appliquées**, et il n'a **jamais tourné dans l'application** — seulement au banc.
 
 ## Ce qui est implémenté mais **jamais essayé pour de vrai**
 

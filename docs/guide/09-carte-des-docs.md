@@ -17,7 +17,9 @@ Légende : 🟢 vivant, fiable pour sa zone · 🟡 utile mais en partie périm�
 ### Génération (le cœur)
 | Fichier | Statut | Pourquoi / quoi |
 | :--- | :--- | :--- |
-| `SPEC_REDACTEUR_PAR_EVENEMENTS.md` | 🟢 | **Le plus important.** Lecteur d'événements, lecteur et forme de série, rédacteur agentique. Source de `04-ia-et-generation.md` |
+| `SPEC_EVENEMENT_POINTEUR.md` | 🟢 | **Le plus important.** L'événement réduit à un document + une ligne + une date, l'extracteur non agentique, le rédacteur qui choisit lui-même. Source de `04-ia-et-generation.md` |
+| `SPEC_REDACTEUR_PAR_EVENEMENTS.md` | ⚪ | **Archive** (remplacée le 2026-10-24) : le lecteur d'événements à champs et le rédacteur par événement |
+| `SPEC_FIL_NARRATIF.md` | ⚪ | **Archive** (retirée le 2026-10-24) : origine, point d'étape et promesse tenue. L'origine est devenue une phrase du prompt du rédacteur |
 | `SPEC_PROMPT_GENERATION_V3.md` | 🟡 | Ne sert plus qu'aux posts libres. Garde la logique des contrôles du code et des règles par plateforme |
 | `CHOIX_TECHNIQUES_PROMPT_V3.md` | 🟡 | Le pourquoi des choix de V3, mémoire/veille, cadrage (retiré), séries |
 | `SPEC_MEMOIRE_ET_VEILLE.md` | 🟡 | 5 derniers posts + veille d'inspiration (actifs) |
@@ -84,7 +86,7 @@ Légende : 🟢 vivant, fiable pour sa zone · 🟡 utile mais en partie périm�
 | :--- | :--- |
 | `docs/tests/` | Rapports d'essais réels : `mykine-pack/` (pack kiné/dev, **résultats de la génération par événements**), `2026-10-17/` (`essais.html`), `animation-html/`, `performance-mockup/` (référence visuelle validée de Performance), `performance-screens/` |
 | `docs/baseline/` | Comparaisons de l'ancien prompt (lots 0-2, V2 contre V3) — historique |
-| `docs/recherche-ghostwriting/` | Trois notes de recherche sur les pratiques de ghostwriting, les bons posts par plateforme, le récit d'événement — **source des principes de `eventWriter.ts`** |
+| `docs/recherche-ghostwriting/` | Trois notes de recherche sur les pratiques de ghostwriting, les bons posts par plateforme, le récit d'événement — **source des principes du rédacteur** (`pointerPostWriter.ts` depuis le 2026-10-24) |
 | `docs/founder/` | **Pas du code du produit** : brief, analyse concurrents, panels de consommateurs et pitchs produits par le pack « founder ». Non suivi par git — ne pas le pousser |
 | `docs/WhatsApp Image …jpeg` | Image de référence (maquette de la landing Tellovo). Non suivie par git |
 

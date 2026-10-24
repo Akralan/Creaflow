@@ -1,5 +1,8 @@
 # SPEC — Fil narratif (posts de récit dans une série)
 
+> ⚪ **ARCHIVE — retirée le 2026-10-24** par `docs/SPEC_EVENEMENT_POINTEUR.md`. Les trois types de post de récit n'existent plus. L'origine est devenue une phrase du prompt du rédacteur ; le point d'étape et la promesse tenue n'ont pas de remplaçant — ils lisaient `whatChanged`, supprimé. Ce document reste pour le `pourquoi` des décisions de l'époque ; il ne décrit plus le code.
+
+
 Statut : **implémenté et essayé en réel** les 20 et 21 octobre (compte de démo MyKiné). Périmètre livré : **trois** types, pas quatre — la vision est retirée le 2026-10-21, voir l'encadré ci-dessous. Cadrage arrêté le 2026-10-20.
 Les décisions laissées ouvertes dans le brouillon du 19 sont tranchées en §14, avec leur raison.
 
