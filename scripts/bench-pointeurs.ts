@@ -285,8 +285,7 @@ async function run(key: string, postCount: number) {
       ""
     );
     // Écrit après chaque post : un banc arrêté en route (mémoire, réseau) garde ce qui est sorti.
-    fs.writeFileSync(path.join(outDir, `posts-${process.env.OPENAI_MODEL ?? "modele"}.txt`), report.join("
-"));
+    fs.writeFileSync(path.join(outDir, `posts-${process.env.OPENAI_MODEL ?? "modele"}.txt`), report.join("\n"));
   }
 
   // Relevé machine, pour placer les posts sur la ligne de temps (scripts/carte-ligne-de-temps.mjs).
