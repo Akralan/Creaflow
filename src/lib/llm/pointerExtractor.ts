@@ -26,6 +26,11 @@ export const PART_CHARS = 40_000;
 /** Plafond de la liste ouverte envoyée à chaque appel (règle 14) : les plus récents d'abord. */
 export const OPEN_CAP = 40;
 
+/** Budget de sortie par part. À 4 096, une part de 40 000 caractères riche en événements débordait
+ *  depuis que chaque entrée porte cinq champs (mesuré le 2026-10-24 sur le dépôt de tellovo : JSON
+ *  tronqué à ~12 700 caractères, le document entier perdu). */
+export const MAX_OUTPUT_TOKENS = 16_384;
+
 export interface Pointer {
   /** Nom du document, tel qu'il est déposé dans la matière. */
   file: string;
@@ -219,7 +224,7 @@ export async function extractPointers(
       system,
       userMessage: `Document: ${doc.file}\nPart ${i + 1} of ${parts.length}. Line numbers are those of the whole document.${openBlock(open)}\n\n${part}`,
       tool,
-      maxTokens: 4096,
+      maxTokens: MAX_OUTPUT_TOKENS,
       strict: true,
     });
     const parsed = recordedSchema.safeParse(raw);

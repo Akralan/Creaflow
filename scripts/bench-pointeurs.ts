@@ -169,22 +169,45 @@ async function buildTimeline(corpus: Corpus, outDir: string): Promise<BenchPoint
     console.log(`  cache sans genre ignoré : ${cache}`);
   }
   const texts = new Map(corpus.docs.map((d) => [d.file, d.text.split("\n")]));
-  const all: BenchPointer[] = [];
+  // Reprise : l'extraction en cours est écrite après chaque document, pour qu'un run coupé (mémoire,
+  // réseau, un document qui échoue) ne refasse pas les appels déjà payés.
+  const partial = path.join(outDir, "timeline-v2.partial.json");
+  const progress: { done: string[]; all: BenchPointer[] } = fs.existsSync(partial)
+    ? (JSON.parse(fs.readFileSync(partial, "utf8")) as { done: string[]; all: BenchPointer[] })
+    : { done: [], all: [] };
+  const all = progress.all;
+  if (progress.done.length > 0) console.log(`  reprise : ${progress.done.length} document(s) déjà extraits, ${all.length} pointeurs`);
   let calls = 0;
+  let failed = 0;
   for (const doc of sortDocs(corpus.docs)) {
+    if (progress.done.includes(doc.file)) continue;
     const held = new Set(all.map((p) => p.tient).filter((t): t is string => t !== null));
     const rows: GenreEventRow[] = all.map((p) => ({ id: p.id, genre: p.genre, date: p.date, line: p.line, sourceMaterialId: p.file, heldBy: held.has(p.id) }));
     const open = openEventsFor(rows, texts);
-    const { pointers, calls: n } = await extractPointers(doc, open);
-    calls += n;
-    for (const p of pointers) all.push({ ...p, id: `e${all.length + 1}` });
-    console.log(`  ${doc.file} — ${doc.text.length} car., ${n} appel(s), ${open.length} ouvert(s) → ${pointers.length} pointeurs`);
+    try {
+      const { pointers, calls: n } = await extractPointers(doc, open);
+      calls += n;
+      for (const p of pointers) all.push({ ...p, id: `e${all.length + 1}` });
+      console.log(`  ${doc.file} — ${doc.text.length} car., ${n} appel(s), ${open.length} ouvert(s) → ${pointers.length} pointeurs`);
+    } catch (err) {
+      // Comme le service : un document qui échoue n'empêche pas les autres. Il n'est pas marqué fait,
+      // le prochain run le retentera.
+      failed += 1;
+      console.log(`  !! ${doc.file} — extraction échouée, document sauté : ${String(err).slice(0, 160)}`);
+      continue;
+    }
+    progress.done.push(doc.file);
+    fs.writeFileSync(partial, JSON.stringify(progress, null, 2));
   }
+  if (failed > 0) console.log(`  ${failed} document(s) non extraits — relancer pour les retenter avant de figer la ligne de temps`);
   const demoted = new Set(keepOldestTrigger(all.map((p, i) => ({ id: p.id, genre: p.genre, date: p.date, createdAt: new Date(i) }))));
   for (const p of all) if (demoted.has(p.id)) p.genre = "livraison";
   all.sort((a, b) => (a.date ?? "9999").localeCompare(b.date ?? "9999") || a.file.localeCompare(b.file) || a.line - b.line);
-  fs.writeFileSync(cache, JSON.stringify(all, null, 2));
-  console.log(`  ${all.length} pointeurs au total, ${calls} appels d'extraction`);
+  if (failed === 0) {
+    fs.writeFileSync(cache, JSON.stringify(all, null, 2));
+    fs.rmSync(partial, { force: true });
+  }
+  console.log(`  ${all.length} pointeurs au total, ${calls} appels d'extraction${failed > 0 ? " (ligne de temps NON figée)" : ""}`);
   return all;
 }
 
