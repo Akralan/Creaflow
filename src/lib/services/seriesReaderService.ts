@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { contentSeries, materialEvents, products, scripts, sourceMaterials } from "@/db/schema";
 import { parseStoredReaderPortrait, type Reader } from "@/lib/llm/readerPortrait";
 import type { TimelineEntry, WrittenPost } from "@/lib/llm/pointerPostWriter";
+import type { Form, Genre } from "@/lib/llm/postForms";
 import { listActiveSeriesForUser } from "@/lib/services/seriesService";
 import { ApiError } from "@/lib/api/errors";
 
@@ -63,6 +64,10 @@ export interface PointerRow {
   date: string | null;
   sourceMaterialId: string;
   documentTitle: string | null;
+  /** Le genre et ses compléments (docs/FORMES_ET_GENRES.md) : ce que le rédacteur voit sur l'adresse. */
+  genre: Genre;
+  disponible: boolean;
+  tient: string | null;
 }
 
 /**
@@ -81,6 +86,9 @@ export function pointerTimeline(pointers: PointerRow[], toldIds: Set<string>, do
       line: p.line,
       date: p.date,
       used: toldIds.has(p.id),
+      genre: p.genre,
+      disponible: p.disponible,
+      tient: p.tient,
     }));
 }
 
@@ -153,7 +161,16 @@ async function loadTimeline(userId: string, productId: string, seriesId: string)
 
   const documents = new Set(docs.map((d) => d.id));
   const timeline = pointerTimeline(
-    rows.map((r) => ({ id: r.id, line: r.line, date: r.date, sourceMaterialId: r.sourceMaterialId, documentTitle: r.sourceMaterial?.title ?? null })),
+    rows.map((r) => ({
+      id: r.id,
+      line: r.line,
+      date: r.date,
+      sourceMaterialId: r.sourceMaterialId,
+      documentTitle: r.sourceMaterial?.title ?? null,
+      genre: r.genre,
+      disponible: r.disponible,
+      tient: r.tient,
+    })),
     toldPointerIds(posts),
     documents
   );
@@ -167,6 +184,9 @@ export interface PointerBrief {
   files: Map<string, string[]>;
   reader: Reader;
   projectContext: string;
+  /** La forme imposée avec les pointeurs verrouillés (docs/FORMES_ET_GENRES.md, plan) : la forme
+   *  suit les pointeurs, donc l'autre réseau et « another idea, same story » la reprennent. */
+  lockedForm: Form | null;
 }
 
 /**
@@ -174,7 +194,12 @@ export interface PointerBrief {
  * pas de lecteur, pas de sujet, ou que sa ligne de temps est vide — la génération retombe alors sur
  * le chemin V3, comme avant.
  */
-export async function buildPointerBrief(userId: string, seriesId: string, lockedIds: string[] = []): Promise<PointerBrief | null> {
+export async function buildPointerBrief(
+  userId: string,
+  seriesId: string,
+  lockedIds: string[] = [],
+  lockedForm: Form | null = null
+): Promise<PointerBrief | null> {
   const series = await loadSeriesWithProduct(userId, seriesId);
   if (!series.readerLabel || !series.productId) return null;
   const reader = readersOfProduct(series.product).find((r) => r.label === series.readerLabel);
@@ -207,6 +232,8 @@ export async function buildPointerBrief(userId: string, seriesId: string, locked
     files,
     reader,
     projectContext,
+    // Sans pointeur verrouillé, la forme ne peut pas être imposée : le rédacteur la prend du genre.
+    lockedForm: lockedIds.length > 0 ? lockedForm : null,
   };
 }
 

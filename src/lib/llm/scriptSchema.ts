@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { LlmToolDefinition } from "./types";
 import type { ContentType } from "./prompts";
+import type { Form } from "./postForms";
 
 // Annex A.4 of docs/SPEC_PROMPT_GENERATION_TECH.md — text to copy as is, identical on the
 // 2 generation tools.
@@ -90,6 +91,9 @@ export type GeneratedScript = (VisualGeneratedScript | TextGeneratedScript) & {
   /** The pointers the writer built this post from (docs/SPEC_EVENEMENT_POINTEUR.md §4), in the order
    *  it handed them in. Absent on the V3 path, which has no pointers. */
   eventIds?: string[];
+  /** The form the writer declared when handing the post in (docs/FORMES_ET_GENRES.md), checked by
+   *  the code against the genre of its events. Absent on the V3 path. */
+  form?: Form | null;
 };
 
 export const GENERATE_VISUAL_POST_TOOL_NAME = "generate_visual_post";

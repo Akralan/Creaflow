@@ -2,6 +2,7 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { calendarEntries, scripts } from "@/db/schema";
 import { generateScript } from "@/lib/llm/generateScript";
+import type { Form } from "@/lib/llm/postForms";
 import { defaultContentTypeForPlatform } from "@/lib/llm/prompts";
 import { enforceScriptQuota } from "@/lib/services/billingService";
 import { buildGenerationContext, createScriptRecord, deleteScriptForUser } from "@/lib/services/scriptService";
@@ -43,9 +44,23 @@ export async function entriesOfPost(userId: string, entry: Pick<SlotEntry, "seri
  * `POST /api/scripts/generate`). `sameEventId` impose l'événement d'une version déjà écrite.
  * Ne vérifie pas le quota : l'appelant le fait une fois pour tout le post.
  */
-export async function writeSlotVersion(userId: string, entry: SlotEntry, samePointerIds: string[] = []) {
+export async function writeSlotVersion(userId: string, entry: SlotEntry, samePointerIds: string[] = [], sameForm: Form | null = null) {
   const contentType = defaultContentTypeForPlatform(entry.platform);
-  const context = await buildGenerationContext(userId, entry.platform, entry.contentCategoryId, contentType, null, undefined, entry.seriesId, undefined, undefined, undefined, null, samePointerIds);
+  const context = await buildGenerationContext(
+    userId,
+    entry.platform,
+    entry.contentCategoryId,
+    contentType,
+    null,
+    undefined,
+    entry.seriesId,
+    undefined,
+    undefined,
+    undefined,
+    null,
+    samePointerIds,
+    sameForm
+  );
   const generated = await generateScript(context);
   const script = await createScriptRecord(userId, entry.platform, context.contentCategory, context.resolvedProductId ?? null, generated, {
     angleId: context.angle?.id ?? null,
@@ -70,19 +85,19 @@ export async function writeSlotVersion(userId: string, entry: SlotEntry, samePoi
   return script;
 }
 
-/** Les pointeurs racontés par une version déjà écrite du post, s'il y en a une. */
-async function pointersOfWrittenVersion(userId: string, entries: SlotEntry[]): Promise<string[]> {
+/** Les pointeurs racontés par une version déjà écrite du post, et sa forme, s'il y en a une. */
+async function pointersOfWrittenVersion(userId: string, entries: SlotEntry[]): Promise<{ ids: string[]; form: Form | null }> {
   for (const e of entries) {
     if (!e.scriptId) continue;
     const script = await db.query.scripts.findFirst({
       where: and(eq(scripts.id, e.scriptId), eq(scripts.userId, userId)),
-      columns: { eventId: true, eventIds: true },
+      columns: { eventId: true, eventIds: true, form: true },
     });
     const ids = Array.isArray(script?.eventIds) ? (script.eventIds as string[]) : [];
-    if (ids.length > 0) return ids;
-    if (script?.eventId) return [script.eventId];
+    if (ids.length > 0) return { ids, form: script?.form ?? null };
+    if (script?.eventId) return { ids: [script.eventId], form: script.form ?? null };
   }
-  return [];
+  return { ids: [], form: null };
 }
 
 /**
@@ -100,21 +115,22 @@ export async function writePost(
   if (missing.length === 0) return;
   if (missing.length === entries.length) await enforceScriptQuota(userId, { date: entry.scheduledDate });
 
-  let pointerIds = await pointersOfWrittenVersion(userId, entries);
+  let { ids: pointerIds, form } = await pointersOfWrittenVersion(userId, entries);
   let firstError: unknown = null;
   for (const slot of missing) {
     try {
       // Un essai de plus quand le rédacteur n'a rien soumis : il lui arrive de conclure en prose
       // au lieu d'appeler son outil, et un post ne doit pas se perdre pour un caprice de modèle.
-      const script = await writeSlotVersion(userId, slot, pointerIds).catch(async (error) => {
+      const script = await writeSlotVersion(userId, slot, pointerIds, form).catch(async (error) => {
         if (!(error instanceof Error) || !error.message.includes("submitted no post")) throw error;
         logger.warn("Writer submitted nothing, one more try", { slotId: slot.id, reason: error.message.slice(0, 200) });
-        return writeSlotVersion(userId, slot, pointerIds);
+        return writeSlotVersion(userId, slot, pointerIds, form);
       });
-      // La première version écrite fixe les pointeurs ; les suivantes les reprennent.
+      // La première version écrite fixe les pointeurs et la forme ; les suivantes les reprennent.
       if (pointerIds.length === 0) {
         const written = Array.isArray(script.eventIds) ? (script.eventIds as string[]) : [];
         pointerIds = written.length > 0 ? written : script.eventId ? [script.eventId] : [];
+        form = script.form ?? null;
       }
       await hooks?.onVersionWritten?.(script, slot);
     } catch (error) {

@@ -56,6 +56,9 @@ export async function generateScript(context: ScriptGenerationContext): Promise<
       timeline: brief.timeline,
       posts: brief.posts,
       files: brief.files,
+      // La forme de la version déjà écrite (X après LinkedIn) ou du post remplacé (« another idea,
+      // same story ») : la forme suit les pointeurs (docs/FORMES_ET_GENRES.md, plan).
+      lockedForm: brief.lockedForm ?? null,
     });
     // Sans publish_post, le rédacteur a conclu en prose : `written.text` est sa réponse
     // conversationnelle, pas un post, et l'enregistrer publierait « Voici le post que je propose… ».
@@ -81,6 +84,7 @@ export async function generateScript(context: ScriptGenerationContext): Promise<
       // Le fil est parti : plus personne ne les relit.
       promisesMade: [],
       eventIds: written.eventIds,
+      form: written.form,
     };
   }
 
