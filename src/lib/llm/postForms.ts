@@ -13,6 +13,7 @@
  * Les identifiants de genre sont ceux de la spec, en français, pour que spec, prompt, base et banc
  * parlent le même mot. Les formes et les étiquettes sont en anglais, comme l'app.
  */
+import { POST_EXAMPLES } from "./postExamples.generated";
 
 export const GENRES = [
   "livraison",
@@ -256,7 +257,18 @@ const FORM_SPECS: Record<Exclude<Form, "looking_back">, FormSpec> = {
   },
 };
 
-/** Le texte que `read_form` rend : qui parle, puis la forme en cinq rubriques. */
+/**
+ * Les modèles d'une forme : de vrais posts du relevé LinkedIn (postExamples.generated.ts), donnés
+ * pour leur construction. Vide pour une forme sans modèle dans le relevé.
+ */
+export function formExamples(form: Form): string {
+  const list = POST_EXAMPLES[form] ?? [];
+  if (list.length === 0) return "";
+  const items = list.map((e, i) => `<example n="${i + 1}" author="${e.author}" reactions="${e.reactions}" author_median="${e.median}">\n${e.text}\n</example>`);
+  return `\n\nReal posts of this form, by other authors, in their own words and language. Read them for how they open, what the body carries and where they stop — never copy a line, a turn of phrase or a situation: your post is about your own material, in the language asked of you.\n${items.join("\n")}`;
+}
+
+/** Le texte que `read_form` rend : qui parle, la forme en cinq rubriques, puis ses modèles. */
 export function formText(form: Form): string {
   const spec = FORM_SPECS[form === "looking_back" ? "promise_kept" : form];
   return `${WHO_SPEAKS}
@@ -266,5 +278,5 @@ Reads: ${spec.reads}
 Opens: ${spec.opens}
 Body: ${spec.body}
 Ends: ${spec.ends}
-Never: ${spec.never}`;
+Never: ${spec.never}${formExamples(form)}`;
 }

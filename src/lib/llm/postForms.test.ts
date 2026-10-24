@@ -37,6 +37,13 @@ describe("formText", () => {
     const strip = (s: string) => s.split("\n").filter((l) => !l.startsWith("Form:")).join("\n");
     expect(strip(formText("promise_kept"))).toBe(strip(formText("looking_back")));
   });
+
+  it("porte de vrais posts en modèles pour les formes qui en ont dans le relevé", () => {
+    for (const f of ["episode", "launch", "failure", "proof", "promise_kept", "lesson", "curation", "backstage", "origin"] as const) {
+      expect(formText(f)).toContain('<example n="1"');
+      expect(formText(f)).toContain("never copy a line");
+    }
+  });
 });
 
 describe("genreToFormTable", () => {
