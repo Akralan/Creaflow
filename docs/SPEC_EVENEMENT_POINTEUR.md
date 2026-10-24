@@ -41,6 +41,8 @@ Disparaissent : `title`, `what_happened`, `what_changed`, `kind`, `audiences`, `
 
 Qui veut savoir ce qu'il y a dans un événement ouvre le document à cette ligne. C'est ce que fait le rédacteur.
 
+> **Une exception, décidée le 2026-10-24 après ce chantier** (`docs/FORMES_ET_GENRES.md`, journal des décisions) : le pointeur porte un `genre` — ce qu'est le fait, parmi treize valeurs fermées — avec ses compléments `disponible` et `tient`. C'est une classification faite dans le même appel que la ligne, pas un résumé ; rien de ce qui est listé ci-dessus ne revient. La forme du post qui raconte l'événement en découle. Migration `0059`.
+
 Pas de table nouvelle, pas de partitionnement : l'invariant de `docs/ARCHITECTURE_VERTICALES.md` chantier 4 (`src/db/schemaInvariants.test.ts`) tient.
 
 ---

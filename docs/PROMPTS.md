@@ -1326,24 +1326,53 @@ Le code remet `readerLabel` et `platform` à `null` s'ils ne figurent pas dans l
 > **Remplace le prompt 21 (lecteur d'événements), retiré le 2026-10-24** — `docs/SPEC_EVENEMENT_POINTEUR.md`.
 
 - **Où** : `src/lib/llm/pointerExtractor.ts` (`buildExtractorSystemPrompt`, `buildExtractorTool`, `numberAndSplit`, `extractPointers`) ; orchestration dans `src/lib/services/materialEventService.ts` (`readEventsForSubject`) ; déclenché à chaque ingestion de matière (`scheduleEventReading`) et par `POST /api/events/read`.
-- **À quoi il sert** : dire **où** sont les événements d'un document, et rien de plus. Il rend des numéros de ligne et des dates. Aucun titre, aucun résumé, aucune conséquence, aucun public, aucun extrait — un événement est un document, une ligne, une date, et celui qui veut savoir ce qu'il contient ouvre le document à cette ligne.
+- **À quoi il sert** : dire **où** sont les événements d'un document, et **ce qu'est chaque fait** (`docs/FORMES_ET_GENRES.md`, 2026-10-24). Il rend des numéros de ligne, des dates, et un `genre` parmi treize (avec `available` sur une livraison utilisable par d'autres, et `fulfills` vers un engagement, une annonce ou une décision de la liste ouverte du sujet). Aucun titre, aucun résumé, aucune conséquence, aucun public, aucun extrait — le genre est la seule exception à « un événement n'a aucun champ », parce que c'est une classification fermée et pas un résumé. Celui qui veut savoir ce que contient un événement ouvre le document à cette ligne.
 - **Quand** : après chaque collage, fichier, interview, proposition de l'assistant, synchro de connecteur, fin d'onboarding ; et sur le bouton « Relire la matière ». **Pas de boucle agentique** : le document est numéroté ligne par ligne, coupé en parts de 40 000 caractères (`PART_CHARS`) sur des lignes entières, et chaque part fait un `callStructured` indépendant. Les numéros sont ceux du document complet, jamais ceux de la part — sinon le pointeur ne pointe sur rien. Un document qui échoue reste non lu et n'empêche pas les autres.
 - **Pourquoi non agentique** : le prompt 21 tenait tout dans une seule conversation et calait. Mesuré le 2026-10-22 sur le dépôt de tellovo (43 documents, 966 688 caractères) : **4 documents lus sur 43**, 11 parts sur 82, arrêt de lui-même au 107e tour en demandant la permission de continuer, 21 enregistrements refusés sur 96 (tous sur la contrainte d'`excerpt`). L'extracteur, lui, a vu les 43 documents en 50 appels et rendu 581 pointeurs.
-- **Contrôles du code** : ligne hors du document ignorée, date non conforme à `AAAA-MM-JJ` ramenée à `null`, même numéro de ligne rendu deux fois dédoublonné.
+- **Contrôles du code** (`normalizePointer`) : ligne hors du document ignorée, date non conforme à `AAAA-MM-JJ` ramenée à `null`, même numéro de ligne rendu deux fois dédoublonné ; genre hors des treize → `livraison` ; `engagement` dont la ligne ne porte aucun chiffre → `décision` (règle 4 de la spec : le genre à ne pas inventer) ; `available` gardé sur `livraison` seulement ; `fulfills` qui n'est pas dans la liste ouverte → `null`. Après le dernier document, le service ne garde qu'un `déclencheur` par sujet, le plus ancien (`keepOldestTrigger`).
+- **La liste ouverte** (`openEventsFor`, `src/lib/services/eventGenres.ts`) : avant chaque document, les `engagement` et `annonce` du sujet qu'aucun `tient` ne vise encore, et toutes ses `décision`, avec le texte de leur ligne, les plus récents d'abord, 40 au plus. C'est ce qui permet au lecteur de poser `fulfills` sur un document qui réalise ce qu'un document lu avant a promis.
 
 ### System prompt
 
 ```text
-You read one document and you mark where its events are.
+You read one document and you mark where its events are, and what kind of fact each one is.
 
 An event is a line of this document where something happened.
 
-You record nothing about an event: no title, no summary, no consequence, no audience. Only its line number, and the date if the line carries one. Whoever uses it later opens the document at that line and reads it themselves.
+You record nothing about an event — no title, no summary, no consequence, no audience — except its line number, the date if the line carries one, and its genre: what kind of fact it is, one of thirteen, defined below. Whoever uses it later opens the document at that line and reads it themselves.
+
+<genres>
+Each event has exactly one genre: what kind of fact it is. Each genre has a minimum condition; without it, it is not that genre. The condition must be met in the line or its immediate neighbourhood, not inferred from the rest of the material.
+
+On the product:
+- livraison — something works or exists that did not before. Condition: a before and an after in the source. The DEFAULT for any fact about the product.
+- annonce — a delivery whose availability date is set but not reached. Condition: a precise date or delay, and the thing is not accessible yet. An announcement without a date is nothing (a livraison not yet available).
+- décision — a choice between at least two options, one of them taken. Condition: the option taken and at least one discarded are named.
+- question — a choice the author has not made yet and asks about. Condition: options named AND an explicit sentence of doubt or request. A decision taken is never a question.
+- chiffre — a number that situates the project (not the market). Condition: the number is about the author's project, with its date. Market data is a leçon, not a chiffre.
+- échec — what was expected did not happen. Condition: the expectation and the gap are both in the source.
+- leçon — the author states a rule drawn from a fact. Condition: the rule is written by the author. If you would have to phrase it yourself, it is a livraison or an échec.
+- engagement — the author commits to a future fact. Condition: first person, future, AND a deadline or a number in the line. "We'll soon…", "we're thinking about…", "I'd like…" are NOT engagements; when in doubt, décision.
+- offre — the author offers something to specific people in exchange for an action. Condition: what is offered, to whom, and the expected action. "We launched a promo" without the action is a livraison available.
+- retour_utilisateur — someone outside the team did or said something with the product. Condition: the person is identifiable (first name, role or company). "Users love it" is not one.
+- déclencheur — the fact that started the project. Condition: earlier than any delivery; tells a problem, not a solution.
+
+On the author and their surroundings:
+- coulisse — a dated fact lived by the author that is not about the product. The DEFAULT for any fact not about the product. A character trait is not an event.
+- réaction — the author commented on content that is not theirs. Condition: the content is identified (title, author or link) AND the author wrote at least one sentence about it. A saved link without a comment is not an event.
+
+Rules:
+1. One genre per event. A line holding a delivery and a number is two events, not one event with two genres.
+2. When a fact hesitates between genres, the rarer wins: engagement > échec > retour_utilisateur > offre > annonce > question > chiffre > décision > leçon > réaction > coulisse > livraison.
+3. The genre is never empty.
+4. available: true only on a livraison, and only when the line says where, for whom or how others reach it.
+5. fulfills: the <open> list gives the subject's open engagements, annonces and décisions. Set fulfills to one of their ids ONLY if this event realises what was promised or announced, or explicitly looks back on that decision (the line says it is kept, dropped, or what it gave). No interpretation. A partially kept engagement is not kept. Otherwise empty.
+</genres>
 
 Answer with record_events.
 ```
 
-La phrase de définition est isolée dans la constante `EVENT_DEFINITION` : c'est le seul endroit où le modèle apprend ce qu'est un événement, donc le seul levier si un relevé est mauvais.
+La phrase de définition est isolée dans la constante `EVENT_DEFINITION` : c'est le seul endroit où le modèle apprend ce qu'est un événement, donc le seul levier si un relevé est mauvais. Le bloc `<genres>` est la constante `GENRE_RULES`, première version pour le banc (Partie 1 de `docs/FORMES_ET_GENRES.md` en anglais) ; ce qui sort du banc fait foi.
 
 ### Message utilisateur
 
@@ -1351,10 +1380,17 @@ La phrase de définition est isolée dans la constante `EVENT_DEFINITION` : c'es
 Document: ${file}
 Part ${i} of ${n}. Line numbers are those of the whole document.
 
+<open>
+[e12] engagement · 2026-10-14 · Je m'engage : 50 kinés actifs au 31 janvier 2027. …
+[e7] décision · 2026-08-30 · Retirer les exercices au sol du catalogue …
+</open>
+
 1	<première ligne du document>
 2	<deuxième ligne>
 …
 ```
+
+Le bloc `<open>` est absent quand la liste est vide.
 
 ### Outil `record_events`
 
@@ -1362,6 +1398,9 @@ Part ${i} of ${n}. Line numbers are those of the whole document.
 | :--- | :--- |
 | `events[].line` | `The line number of the event, as printed at the start of the line.` |
 | `events[].date` | `The date the line carries, as YYYY-MM-DD. Empty string if the line carries none.` |
+| `events[].genre` | enum des treize genres — `What kind of fact this is. One of the thirteen genres, by their rules.` |
+| `events[].available` | `True only for a livraison that others than the author can use, when the line says where, for whom or how. False otherwise.` |
+| `events[].fulfills` | `The id of an open engagement, annonce or décision (from the <open> list) that this event fulfills or looks back on. Empty string if none.` |
 
 ---
 
@@ -1372,10 +1411,11 @@ Part ${i} of ${n}. Line numbers are those of the whole document.
 - **Où** : `src/lib/llm/pointerPostWriter.ts` (`buildWriterSystemPrompt`, `buildWriterUserMessage`, `buildWriterTools`, `writePost`, `splitHookAndCaption`) ; brief construit par `seriesReaderService.buildPointerBrief` ; branché dans `generateScript` via `context.pointerBrief`.
 - **À quoi il sert** : écrire le prochain post d'une série — **et choisir lui-même de quoi il parle**. Il n'y a plus de choix côté code : `planForSeries` ne désigne plus « le prochain événement ».
 - **Quand** : à chaque génération d'un post de série en `contentType: "text"`. Un post visuel garde le chemin V3 (prompt 11), qui sert aussi aux posts libres sans série. `callAgentic`, effort `medium`, `maxTokens` 4096, **40 tours** au plus.
-- **Ce qu'il reçoit** : la ligne de temps **en adresses nues** (`document:ligne` + date, marquées `(already used)` quand un post publié en est parti), la liste des posts publiés — **identifiants et dates seulement**, donc il doit appeler l'outil pour savoir ce qu'ils disaient —, son lecteur, le contexte du projet, la langue et les règles du réseau.
-- **Ce qu'il ne reçoit pas**, et qui n'est pas un oubli : aucun résumé d'événement, aucun « ce que ça change », aucun angle par public, aucun type de post, aucune consigne d'alternance, aucun ordre à respecter, et **pas le style appris** (le run C validé ne l'avait pas).
-- **Outils** : `read_file(file, from_line, to_line)` (fenêtre de 120 lignes au plus, bornes ramenées dans le document), `read_post(id)`, `publish_post(post, event_ids)`.
-- **Sortie** : le texte se découpe en `hook_text` / `caption` sur sa première phrase, qui **est** l'accroche par construction (règle 3). `publish_post` non appelé ⇒ erreur « submitted no post » et second essai de `postPairService` ; sa réponse conversationnelle n'est jamais enregistrée comme post.
+- **Ce qu'il reçoit** : la ligne de temps **en adresses** (`document:ligne` + date + **genre**, `(available)` sur une livraison utilisable, `fulfills <id>` quand l'événement en réalise un autre, `(already used)` quand un post publié en est parti), la liste des posts publiés — **identifiants et dates seulement**, donc il doit appeler l'outil pour savoir ce qu'ils disaient —, son lecteur, le contexte du projet, la **table genre → forme** (une ligne par genre, `genreToFormTable`), la langue et les règles du réseau.
+- **Ce qu'il ne reçoit pas**, et qui n'est pas un oubli : aucun résumé d'événement, aucun « ce que ça change », aucun angle par public, **aucun texte de forme dans le prompt** (loi du DEVLOG 2026-10-21 : tout élément nommé ressort dans le texte — il lit la sienne avec `read_form`), aucune consigne d'alternance, aucun ordre à respecter, et **pas le style appris** (le run C validé ne l'avait pas).
+- **Outils** : `read_file(file, from_line, to_line)` (fenêtre de 120 lignes au plus, bornes ramenées dans le document), `read_post(id)`, `read_form(form)` (le texte de la forme, `postForms.ts` → `formText`), `publish_post(post, event_ids, form)`.
+- **Le contrôle de `publish_post`** (`docs/FORMES_ET_GENRES.md`, plan) : refus rendu au modèle, qui réessaie dans la même boucle, si la forme n'a pas été lue par `read_form` ; si elle diffère de `expectedForm` — `lockedForm` quand la forme est imposée (version X, « another idea, same story »), `origin` au premier post d'un sujet, sinon `formFor` sur le premier événement déclaré (un événement qui `tient` un autre décide où qu'il soit dans la liste). Déterministe, sans modèle.
+- **Sortie** : le texte se découpe en `hook_text` / `caption` sur sa première phrase, qui **est** l'accroche par construction (règle 3) ; la forme acceptée va dans `scripts.form`. `publish_post` jamais accepté ⇒ erreur « submitted no post » et second essai de `postPairService` ; sa réponse conversationnelle n'est jamais enregistrée comme post.
 
 ### System prompt
 
@@ -1390,26 +1430,63 @@ That is your only rule: build in public, for that reader. There is no other one,
 
 Your first sentence is a hook and nothing else: it has to stop the scroll and make someone want the next line. Put something in it — a number, an hour, an admission, a line with some nerve in it, even a touch of madness. Never a summary of the post, never a question you answer yourself.
 
-And no post of yours is allowed to be dead: it has to be worth the read on its own, to someone who knows nothing about this project. If you name a table, a function, a library, a tool or any piece of the machinery, say what it is or what it does in the same breath — never leave your reader in front of a word that means nothing to them.
+The timeline below is a list of addresses — a document and a line — and the genre of what happened there: what kind of fact it is. An address does not tell you what is at it: open it with read_file, and read around it as widely as you want. The form of your post is decided by the genre of the event you build it from, and by nothing else: the table below gives it. Once you have chosen your event, read its form with read_form and write inside it. If an address says it fulfills an earlier one, open that earlier address too: your post is about both. An address marked (already used) is one a published post was built from; you can read any published post in full with read_post. You read them to find out what has already been said, so you do not write it again. And if you name a table, a function, a library, a tool or any piece of the machinery, say what it is or what it does in the same breath — never leave your reader in front of a word that means nothing to them.
 
-The timeline below is a list of addresses — a document and a line — and nothing else. Each address is a place in the project's own material where something happened. An address does not tell you what is at it: open it with read_file, and read around it as widely as you want. An address marked (already used) is one a published post was built from; you can read any published post in full with read_post. You read them to find out what has already been said, so you do not write it again — never to copy their shape. Posts that all open the same way, run the same number of paragraphs and close on the same kind of lesson read like a template; let each one take the form its own material calls for.
+<forms>
+livraison → episode
+livraison, marked (available) → launch
+annonce → teaser
+décision → episode
+question → question
+chiffre → number
+échec → failure
+leçon → lesson
+engagement → promise
+offre → offer
+retour_utilisateur → proof
+déclencheur → origin
+coulisse → backstage
+réaction → curation
+an event that fulfills an earlier engagement → promise_kept
+an event that fulfills an earlier annonce → launch
+an event that looks back on an earlier décision → looking_back
+</forms>
 
 <language>…</language>
 
 <platform>…</platform>
 
-When your post is written, hand it in with publish_post, with the addresses it was built from.
+When your post is written, hand it in with publish_post, with the addresses it was built from and its form.
 ```
 
-`<language>` vient de `buildLanguageBlock` (`src/lib/language.ts`), `<platform>` de `platformRuleText` — les mêmes blocs que les autres prompts, pour que `scriptChecks` reste cohérent.
+Quand la forme est imposée (`lockedForm`), une phrase suit `</forms>` : *« The form of this post is already set: ${form}. Read it with read_form and keep it. »*
+
+Le quatrième paragraphe est **la règle de forme du chantier `docs/FORMES_ET_GENRES.md`** (2026-10-24) ; il remplace celui du run C (« *And no post of yours is allowed to be dead… never to copy their shape…* »), dont il garde la relecture des posts publiés et l'explication de la machinerie. `<language>` vient de `buildLanguageBlock` (`src/lib/language.ts`), `<platform>` de `platformRuleText` — les mêmes blocs que les autres prompts, pour que `scriptChecks` reste cohérent.
+
+### Ce que `read_form` rend
+
+Le texte commence toujours par **qui parle**, puis la forme en cinq rubriques (`Reads`, `Opens`, `Body`, `Ends`, `Never`), traduction rubrique par rubrique de la Partie 2 de la spec, sans les lignes « Observé » ni les chiffres de performance. `promise_kept` et `looking_back` partagent le même texte.
+
+```text
+Who speaks. The post is written by the author, not about them. Say "I" when the notes you read say "I", say "we" when they say "we" or name a team, and keep the person of the notes you read for this post — a solo author who writes "we" in their devlog keeps their "we". Three forms are always in the first person singular, because the author is the one exposed: promise, failure, backstage. Never the institutional "we are thrilled to announce", and never the product as the subject of a sentence where the author acted ("X now lets you" where the notes say "I wired").
+
+Form: failure
+Reads: one event.
+Opens: on what was expected, then the gap, in two dry sentences ("AI was supposed to make us work less. I have never been this tired."; "Sending everyone to self-serve. That was a mistake.").
+Body: the facts of what happened, in order, with the numbers if there are any. No single cause assigned, no culprit.
+Ends: on the current state, unresolved if it is. No "but we learned that", no promise to do better.
+Never: a lesson, an excuse, a positive turn in the last sentence.
+```
+
+Les quinze textes sont dans `src/lib/llm/postForms.ts` (`FORM_SPECS`).
 
 ### Message utilisateur
 
 ```text
 <timeline>
-[e341] 2026-10-21 · docs/DEVLOG.md:97
-[e342] 2026-10-21 · docs/DEVLOG.md:118  (already used)
-[e512] no date · commit-log.txt:12
+[e341] 2026-10-21 · docs/DEVLOG.md:97 · livraison (available)
+[e342] 2026-10-21 · docs/DEVLOG.md:118 · décision  (already used)
+[e512] no date · commit-log.txt:12 · livraison · fulfills e342
 </timeline>
 
 <published_posts>

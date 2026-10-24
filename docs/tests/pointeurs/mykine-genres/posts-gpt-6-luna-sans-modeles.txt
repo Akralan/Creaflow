@@ -1,0 +1,183 @@
+BANC POINTEURS — mykine-genres
+modèle : gpt-6-luna
+13 documents, 158 pointeurs, 59 datés
+genres : livraison 72 · annonce 1 · décision 29 · question 1 · chiffre 21 · échec 10 · leçon 3 · engagement 1 · offre 1 · retour_utilisateur 6 · déclencheur 1 · coulisse 11 · réaction 1 · (available) 5 · (fulfills) 16
+cible : Kinés du sport libéraux — Des kinés qui suivent des patients en cabinet et veulent vérifier l’exécution des exercices prescrits entre deux rendez-vous.
+
+================================================================================================
+POST 1 — forme : origin — 15s, 4 tours
+read_file : 1 · read_post : 0 · read_form : 1 · publish_post refusés : 0
+événements choisis : e1 2025-11-09 devlog.md:7 [déclencheur] | e2 2025-11-16 devlog.md:11 [livraison]
+================================================================================================
+
+6 patients sur 10 : c’est le chiffre qu’un kiné m’a donné autour d’une bière.
+Et entre deux rendez-vous, il n’avait aucun moyen de vérifier ce qui se passait chez eux.
+
+Julien suivait 40 patients. Pour savoir s’ils faisaient leurs exercices, il devait leur demander — et il savait que les réponses n’étaient pas toujours fiables.
+
+Il m’a demandé si mon prototype de caméra pouvait compter les squats. J’ai fait une première page web qui repère le mouvement et compte les répétitions.
+
+C’est de cette question très concrète, celle du suivi des exercices à la maison, qu’est parti MyKiné.
+
+================================================================================================
+POST 2 — forme : looking_back — 28s, 6 tours
+read_file : 5 · read_post : 1 · read_form : 3 · publish_post refusés : 1
+événements choisis : e51 2026-10-16 genres.md:27 [décision, fulfills e44] | e158 no date Mes notes:84 [échec, fulfills e51]
+================================================================================================
+
+Le 3 octobre, j’ai décidé : « Pas d'hébergeur HDS pour l'instant. »
+
+La décision tient ; le suivi reste limité à 14 mouvements reconnus.
+
+Les devis HDS allaient de 150 à 400 € par mois, pour 8 kinés à 29 € par mois. J’ai donc choisi d’anonymiser les séances : pas de nom, de date de naissance ni de pathologie sur le serveur ; le kiné identifie chaque patient par un pseudonyme.
+
+En travaillant sur le catalogue, une autre limite est apparue : au sol, le modèle perd le bassin et ne peut plus calculer les angles de hanche et de genou. Le pont fessier, le gainage et le relevé de jambe allongé ne sont donc pas proposés.
+
+Pour l’instant, MyKiné suit les mouvements reconnus et les séances restent anonymisées ; la question de l’hébergement HDS sera reposée au-delà de 30 kinés.
+
+================================================================================================
+POST 3 — forme : launch — 27s, 6 tours
+read_file : 7 · read_post : 2 · read_form : 1 · publish_post refusés : 0
+événements choisis : e50 2026-10-15 genres.md:23 [livraison, available]
+================================================================================================
+
+Un clic pour exporter les séances d’un patient : le CSV est disponible dans MyKiné.
+
+Si vous préparez un bilan de fin de rééducation, vous pouvez récupérer l’historique des séances dans un fichier ouvrable avec un tableur, plutôt que de le reconstituer à la main.
+
+Marion me le demandait depuis juillet. Je l’ai fait en une soirée ; elle l’a utilisé dès le lendemain pour son bilan.
+
+L’export est accessible à tous les kinés dans le dashboard, onglet « Patients », bouton « Exporter ».
+
+================================================================================================
+POST 4 — forme : backstage — 10s, 3 tours
+read_file : 2 · read_post : 1 · read_form : 1 · publish_post refusés : 0
+événements choisis : e59 2026-10-24 genres.md:59 [coulisse]
+================================================================================================
+
+J’ai dit « pas encore bien » devant 42 futurs kinés.
+
+À l’école de kiné de Lyon, j’ai montré trois squats de profil — où le squelette saute — puis à 45°. Une étudiante m’a demandé si l’app marchait pour les épaules. Pour ce mouvement, je ne peux pas encore lui promettre une analyse fiable.
+
+Six étudiants m’ont laissé leur mail.
+
+================================================================================================
+POST 5 — forme : promise — 23s, 4 tours
+read_file : 3 · read_post : 4 · read_form : 1 · publish_post refusés : 0
+événements choisis : e49 2026-10-14 genres.md:19 [engagement]
+================================================================================================
+
+50 kinés actifs sur MyKiné au 31 janvier 2027 : je m’engage à atteindre ce chiffre.
+
+Pour un kiné libéral, le vrai enjeu est de savoir si les exercices prescrits sont faits entre deux rendez-vous. MyKiné aide à suivre cette adhésion ; encore faut-il que les kinés puissent y accéder.
+
+Mon plan : donner leur accès aux 12 kinés en attente avant le 15 novembre, ouvrir ensuite aux kinés du groupe Facebook en décembre, puis m’appuyer sur un partenariat avec une école de kiné en janvier.
+
+Aujourd’hui, le point de départ est de 8 kinés actifs.
+
+================================================================================================
+POST 6 — forme : number — 20s, 5 tours
+read_file : 7 · read_post : 5 · read_form : 1 · publish_post refusés : 0
+événements choisis : e52 2026-10-17 genres.md:31 [chiffre]
+================================================================================================
+
+70 séances sur 412 s’arrêtent avant le premier exercice : 17 % des patients ne vont pas jusqu’à leur première répétition.
+
+En septembre, c’était 21 %. La plupart abandonnent au moment de régler la caméra à 45° : ils n’arrivent pas à se placer et quittent l’app.
+
+Le changement est minuscule : remplacer « placez-vous de trois quarts » par « reculez d’un pas ». Depuis, la part des séances abandonnées baisse.
+
+La consigne aide plus de patients à démarrer, mais 70 séances restent sans premier exercice.
+
+================================================================================================
+POST 7 — forme : lesson — 31s, 6 tours
+read_file : 3 · read_post : 1 · read_form : 2 · publish_post refusés : 0
+événements choisis : e57 2026-10-22 genres.md:51 [leçon]
+================================================================================================
+
+4,1 séances par semaine contre 1,3 : l’écart apparaît dès le délai avant la première.
+
+Sur 412 séances, les patients qui commencent dans les 48 h après la prescription en font en moyenne 4,1 par semaine. Ceux qui attendent plus de 48 h en font 1,3.
+
+La leçon pour le suivi entre deux rendez-vous : ne pas laisser le premier exercice devenir une tâche « pour plus tard ». Le moment où le patient commence est un signal fort de son adhésion ensuite.
+
+Le rappel a donc plus de chances d’aider s’il part du cabinet, pendant la consultation, plutôt que le soir depuis le dashboard.
+
+À retenir : faciliter la première séance, c’est déjà mieux suivre la suite.
+
+================================================================================================
+POST 8 — forme : launch — 27s, 5 tours
+read_file : 4 · read_post : 7 · read_form : 1 · publish_post refusés : 0
+événements choisis : e58 2026-10-23 genres.md:55 [livraison, available]
+================================================================================================
+
+12 kinés actifs sur MyKiné : les 4 premiers de la liste d’attente ont reçu leur accès ce matin.
+
+Pour un kiné du sport, l’enjeu est de savoir si les exercices prescrits sont faits entre deux rendez-vous — pas seulement de les envoyer.
+
+Jusqu’ici, les accès étaient limités aux 8 premiers kinés. J’ouvre maintenant par vagues aux 12 cabinets en attente : les 8 autres recevront leur accès demain.
+
+Ils pourront suivre l’adhésion de leurs patients dans MyKiné, au lieu de devoir se fier uniquement à leurs réponses au rendez-vous.
+
+C’est le début du chemin vers 50 kinés actifs au 31 janvier : il en reste 38 à accompagner en 100 jours.
+
+================================================================================================
+POST 9 — forme : teaser — 15s, 3 tours
+read_file : 1 · read_post : 1 · read_form : 1 · publish_post refusés : 0
+événements choisis : e54 2026-10-19 genres.md:39 [annonce]
+================================================================================================
+
+Le 3 novembre, 20 kinés pourront suivre plus facilement les exercices réalisés entre deux rendez-vous.
+
+Je déploie la version 2 du dashboard MyKiné aux 8 kinés actifs et aux 12 kinés en attente d’accès.
+
+Au programme : un tableau d’adhésion par patient, un filtre par programme et l’export CSV intégré. De quoi repérer plus vite quels patients suivent le programme prescrit.
+
+Je ne peux pas encore montrer les écrans : Marion valide les couleurs des taux d’adhésion.
+
+Rendez-vous le 3 novembre.
+
+================================================================================================
+POST 10 — forme : question — 25s, 5 tours
+read_file : 4 · read_post : 2 · read_form : 4 · publish_post refusés : 0
+événements choisis : e55 2026-10-20 genres.md:43 [question]
+================================================================================================
+
+29 € : deux kinés sur quatre ont déjà dit qu’ils paieraient. Et je bloque quand même depuis trois jours.
+
+Pour les 12 kinés en liste d’attente, je ne sais pas s’il faut facturer dès l’ouverture ou offrir un mois gratuit. Ils n’ont encore jamais vu MyKiné ; un mois gratuit représenterait 348 € que je ne toucherais pas.
+
+Aux 4 kinés du pilote 2 : qu’auriez-vous préféré à l’ouverture — payer dès le départ, ou avoir un mois gratuit ?
+
+================================================================================================
+POST 11 — forme : offer — 16s, 4 tours
+read_file : 3 · read_post : 3 · read_form : 2 · publish_post refusés : 0
+événements choisis : e56 2026-10-21 genres.md:47 [offre]
+================================================================================================
+
+10 cabinets de kiné du sport : je viens installer MyKiné avec votre premier patient.
+
+Je cherche 10 cabinets qui utilisent le suivi avant d’ouvrir l’accès à tous. MyKiné aide à vérifier à distance si les exercices prescrits sont réalisés entre deux rendez-vous.
+
+Pour les 10 premiers kinés du groupe « Kinés du sport France » qui m’écrivent avec le nom de leur cabinet : trois mois à 15 € HT au lieu de 29 €, et une installation en visio avec votre premier patient.
+
+Écrivez-moi avec le nom de votre cabinet avant le 15 novembre.
+
+================================================================================================
+POST 12 — forme : launch — 32s, 6 tours
+read_file : 4 · read_post : 8 · read_form : 1 · publish_post refusés : 0
+événements choisis : e156 no date Mes notes:7 [livraison, available]
+================================================================================================
+
+14 exercices dans le catalogue MyKiné : le patient et le kiné partent des mêmes repères.
+
+Quand vous prescrivez un mouvement à faire entre deux rendez-vous, l’analyse doit correspondre à l’exercice que vous avez choisi — pas à une liste figée dans l’app du patient.
+
+J’ai centralisé les paramètres du catalogue côté serveur. L’app patient les télécharge avec le programme : les seuils de comptage et les consignes visuelles viennent donc de la même définition que celle utilisée pour prescrire.
+
+Le catalogue v0.4 est disponible avec 14 mouvements debout, assis ou contre un mur. Les exercices au sol restent exclus : l’analyse ne suit pas correctement le bassin en position allongée. Les seuils ne sont pas encore modifiables par le kiné.
+
+------------------------------------------------------------------------------------------------
+14 pointeurs utilisés sur 158
+formes : origin 1 · looking_back 1 · launch 3 · backstage 1 · promise 1 · number 1 · lesson 1 · teaser 1 · question 1 · offer 1
+durée totale : 267s
