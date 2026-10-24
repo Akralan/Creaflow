@@ -12,7 +12,7 @@ Après l'onboarding, brancher Notion créait **un sujet par page cochée**. Les 
 
 ### Ce qu'on a décidé
 
-- **Depuis Business context, une source rejoint toujours un projet existant.** Pas de « New subject » dans ce panneau : créer un projet sera un parcours à part (nouveau dépôt GitHub d'abord, puis les autres sources), à spécifier. Settings › Catalogue reste un temps parce que c'est aujourd'hui le seul endroit qui crée un projet.
+- **Depuis Business context, une source rejoint toujours un projet existant.** Pas de « New subject » dans ce panneau : créer un projet sera un parcours à part (nouveau dépôt GitHub d'abord, puis les autres sources), à spécifier. L'onglet Topics de Settings, d'abord gardé « un temps », est retiré le soir même après inventaire : ce qu'il seul affichait (créer un projet, notes, fichiers, interview, resync et déliage d'une source) reviendra ailleurs petit à petit ; la liste des documents et la veille ne reviennent pas ; `ReaderPortraitPanel` et `EventTimeline` gardent leur code.
 - **Cocher suffit.** Première maquette : une puce à droite ouvrait un menu de destination. L'utilisateur a demandé que cocher ouvre tout de suite les projets sous la ligne, celui de l'écran déjà choisi, et que le bouton du bas fasse tout. Avec un seul projet, il n'y a pas de blocs du tout.
 - **Le panneau vit dans l'écran**, au-dessus de la grille, pas dans Settings.
 - **La lecture des bases Notion est un chantier séparé.** Le lecteur suit les sous-pages mais aucun bloc de base ni ses lignes ; la promesse « tout ce qui est dessous » le demande, à chiffrer à part.

@@ -5,9 +5,6 @@ import { useSearchParams } from "next/navigation";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { TextField, TextAreaField, SelectField, heading1Style } from "@/components/ui/TextField";
-import ProductCatalogue from "@/components/ProductCatalogue";
-import RepoPicker from "@/components/RepoPicker";
-import SourcePicker from "@/components/SourcePicker";
 import ConnectionRow from "@/components/ConnectionRow";
 import PublishingDaysPicker from "@/components/PublishingDaysPicker";
 import StyleAnalysisPanel from "@/components/StyleAnalysisPanel";
@@ -20,11 +17,10 @@ import { color } from "@/lib/design/tokens";
 import { DEFAULT_PUBLISHING_DAYS } from "@/lib/validation";
 import { POST_LANGUAGES, isPostLanguage } from "@/lib/language";
 
-type Tab = "identity" | "catalogue" | "assets" | "connexions" | "billing" | "account";
+type Tab = "identity" | "assets" | "connexions" | "billing" | "account";
 
 const tabs: Array<{ id: Tab; label: string }> = [
   { id: "identity", label: "Brand identity" },
-  { id: "catalogue", label: "Topics" },
   { id: "assets", label: "Visual assets" },
   { id: "connexions", label: "Social connections" },
   { id: "billing", label: "Billing" },
@@ -184,67 +180,6 @@ function ConnexionsTab() {
   );
 }
 
-/** One card per connected provider, above the manual catalogue: plug in new
- *  sources as topics without redoing onboarding. The catalogue is remounted (key) after each
- *  connection to reflect the freshly created topics. */
-function ConnectorCard({
-  provider,
-  onConnected,
-}: {
-  provider: { id: string; displayName: string };
-  onConnected: () => void;
-}) {
-  const [showPicker, setShowPicker] = useState(false);
-  const isGithub = provider.id === "github";
-  const label = provider.displayName;
-
-  return (
-    <Card style={{ padding: 20, marginBottom: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <div>
-          <div style={{ fontWeight: 600, fontSize: 15 }}>Add from {label}</div>
-          <div style={{ fontSize: 13, color: color.textMuted, marginTop: 2 }}>
-            Each item you pick becomes a topic, with its content as material.
-          </div>
-        </div>
-        <Button variant="secondary" onClick={() => setShowPicker((v) => !v)}>
-          {showPicker ? "Hide" : "Choose"}
-        </Button>
-      </div>
-      {showPicker && (
-        <div style={{ marginTop: 18 }}>
-          {/* GitHub keeps its legacy picker: its route carries the "repo" shape, tested separately. */}
-          {isGithub ? (
-            <RepoPicker variant="settings" onConnected={onConnected} />
-          ) : (
-            <SourcePicker key={provider.id} provider={provider.id} variant="settings" onConnected={onConnected} />
-          )}
-        </div>
-      )}
-    </Card>
-  );
-}
-
-function CatalogueTab() {
-  const [providers, setProviders] = useState<Array<{ id: string; displayName: string }>>([]);
-  const [catalogueKey, setCatalogueKey] = useState(0);
-
-  useEffect(() => {
-    // The providers actually linked to the account, not the vertical: "dev" covers GitHub
-    // as well as Linear (docs/SPEC_CONNECTEURS_ET_SUJETS.md §7.2).
-    api.getProfile().then(({ connectedProviders }) => setProviders(connectedProviders));
-  }, []);
-
-  return (
-    <div>
-      {providers.map((provider) => (
-        <ConnectorCard key={provider.id} provider={provider} onConnected={() => setCatalogueKey((k) => k + 1)} />
-      ))}
-      <ProductCatalogue key={catalogueKey} />
-    </div>
-  );
-}
-
 function SettingsContent() {
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>(() => {
@@ -265,7 +200,6 @@ function SettingsContent() {
       </div>
 
       {tab === "identity" && <IdentityTab />}
-      {tab === "catalogue" && <CatalogueTab />}
       {tab === "assets" && <BrandAssetLibrary />}
       {tab === "connexions" && <ConnexionsTab />}
       {tab === "billing" && <BillingPanel />}

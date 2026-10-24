@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import AppIcon from "@/components/app/AppIcon";
 import SourcePanel from "@/components/app/SourcePanel";
@@ -148,10 +147,7 @@ export default function ContextScreen() {
       {loaded && !product ? (
         <div className="card">
           <h2>No project yet</h2>
-          <p className="sub">Add a project in Settings to start.</p>
-          <Link className="link" href="/settings?tab=catalogue">
-            Open Settings <span aria-hidden="true">→</span>
-          </Link>
+          <p className="sub">Your project appears here once its first source has been read.</p>
         </div>
       ) : (
         <>
@@ -271,9 +267,8 @@ export default function ContextScreen() {
                           Connected
                         </span>
                       ) : (
-                        <Link className="conn" href="/settings?tab=catalogue">
-                          Add
-                        </Link>
+                        // Coller des notes et déposer des fichiers reviendront ici (l'onglet Topics de Settings est parti le 2026-10-24).
+                        <span className="conn on">Soon</span>
                       )}
                     </div>
                   );
