@@ -1,8 +1,8 @@
-import type { AgenticCallParams, AgenticResult, StructuredCallParams, WebResearchParams, WebResearchResult } from "./types";
+import type { AgenticCallParams, AgenticResult, StructuredCallParams } from "./types";
 import { callAnthropic } from "./providers/anthropic";
 import { callGemini } from "./providers/gemini";
 import { callGroq } from "./providers/groq";
-import { callOpenAI, callOpenAIAgentic, callOpenAIWebResearch } from "./providers/openai";
+import { callOpenAI, callOpenAIAgentic } from "./providers/openai";
 import { logger } from "@/lib/logger";
 
 // Reminder added to the system prompt for the retry — some models (notably via Groq)
@@ -46,14 +46,6 @@ export async function callAgentic(params: AgenticCallParams): Promise<AgenticRes
   return callOpenAIAgentic(params);
 }
 
-/** Web search for the inspiration watch (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.2) — hard-wired to OpenAI,
- *  same stance as callAgentic: it doesn't depend on LLM_PROVIDER. */
-export async function callWebResearch(params: WebResearchParams): Promise<WebResearchResult> {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error("OPENAI_API_KEY is required for the inspiration watch: the web search goes through OpenAI, regardless of LLM_PROVIDER.");
-  }
-  return callOpenAIWebResearch(params);
-}
 
 export async function callStructured(params: StructuredCallParams): Promise<unknown> {
   const provider = process.env.LLM_PROVIDER || "gemini";

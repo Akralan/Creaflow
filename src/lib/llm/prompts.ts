@@ -95,23 +95,11 @@ You fill in the tool's fields in order. The first ones are your preparation: the
 3. chosenMoment — The one you keep, and why: the strongest for this reader, not already used, compatible with the role, the series and the direction.
 4. concept — What the reader should remember or do after reading.
 5. hookOptions then chosenHook — 2 or 3 hooks of different types, then the one you keep and why it will stop THIS reader.
-5 bis. inspirationsUsed and inspirationsToDrop — If an <inspiration> block is supplied: the ones you used for form, and the ones that will NEVER serve this topic (foreign audience, generic advice, off-topic). A card that doesn't serve THIS post may serve the next one: don't drop it for that. Empty arrays otherwise.
 6. The post, built from chosenMoment, concept and chosenHook.
 7. selfCheck — Reread the post as the target reader, then as someone who knows the author. Answer honestly: a flagged miss will be fixed by a new draft, a hidden miss will be published.
 </method>`;
 
 export const SCRIPT_SYSTEM_PROMPT = `${SCRIPT_CORE_PROMPT}\n\n${SCRIPT_METHOD_PROMPT}`;
-
-/** Inspiration card as shown to the model (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.3). */
-export interface InspirationCard {
-  ref: string;
-  id: string;
-  url: string;
-  insight: string;
-  kind: string;
-  readerLabel: string | null;
-  platform: string | null;
-}
 
 export interface ScriptGenerationContext {
   creatorProfile: {
@@ -140,8 +128,6 @@ export interface ScriptGenerationContext {
   recentReaderLabels?: string[];
   /** Cards of the subject's latest posts, newest first (docs/SPEC_MEMOIRE_ET_VEILLE.md §2). */
   recentPosts?: RecentPostCard[];
-  /** Active cards from the subject's inspiration watch, numbered i1…i10 (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.3). */
-  inspirations?: InspirationCard[];
   platform: Platform;
   contentCategory: ContentCategoryContext;
   contentType: ContentType;
@@ -181,7 +167,7 @@ export interface ScriptGenerationContext {
   /** What the pointer writer reads (docs/SPEC_EVENEMENT_POINTEUR.md §4): the series' timeline as
    *  bare addresses, its published posts, the addressable corpus, the reader and the project.
    *  Present when the series has a reader and a non-empty timeline; generation then goes through
-   *  pointerPostWriter.ts, which chooses its own pointers and ignores angle, role and inspirations.
+   *  pointerPostWriter.ts, which chooses its own pointers and ignores angle and role.
    *  A visual post keeps the V3 path even with a brief (plan of 2026-10-24). */
   pointerBrief?: PointerBrief | null;
   /** Language the post must be written in (src/lib/language.ts): the profile's, else the notes'. */
@@ -243,19 +229,6 @@ export function buildRecentPostsBlock(cards: RecentPostCard[] | undefined): stri
     lines.push(`- ${head}: ${parts.join(" · ") || "(post without text)"}`);
   }
   return tag("recent_posts", lines);
-}
-
-/** <inspiration> block (docs/SPEC_MEMOIRE_ET_VEILLE.md Annex A.1) — empty without an active card. */
-export function buildInspirationBlock(cards: InspirationCard[] | undefined): string {
-  if (!cards?.length) return "";
-  return tag("inspiration", [
-    "What already works for these audiences, found through monitoring. Take inspiration from the FORM (format, structure, hook type, rhythm), never the substance: reuse no number, anecdote or formula. You are not required to use any.",
-    ...cards.map((c) => {
-      const meta = [c.readerLabel, c.platform, c.kind].filter(Boolean).join(" · ");
-      return `- [${c.ref}] (${meta}) ${c.insight} — ${c.url}`;
-    }),
-    "In your preparation, inspirationsUsed lists the ones you used. inspirationsToDrop lists only those that will never serve this subject (foreign audience, generic advice, off-topic), with the reason: they will be removed. Don't drop a card just because it doesn't serve this post.",
-  ]);
 }
 
 // docs/SPEC_PROMPT_GENERATION_V3.md §4.2, Annex A.3 text: tags separate the data (material, profile)
@@ -335,9 +308,6 @@ export function buildScriptUserMessage(context: ScriptGenerationContext): string
     briefLines.push(`Idea suggested by the author (a lead to interpret, not text to copy nor a source of facts): ${directive}`);
   }
   sections.push(tag("brief", briefLines));
-
-  const inspirationBlock = buildInspirationBlock(context.inspirations);
-  if (inspirationBlock) sections.push(inspirationBlock);
 
   const visualOnly = contentType === "visual" && context.visual?.withText === false;
   sections.push(tag("platform", [platformRuleText(platform, { visualOnly })]));

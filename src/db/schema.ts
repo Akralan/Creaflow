@@ -376,7 +376,8 @@ export const products = pgTable("products", {
   inspirationRefreshedAt: timestamp("inspiration_refreshed_at"),
 });
 
-// Inspiration cards of a topic (docs/SPEC_MEMOIRE_ET_VEILLE.md §3): what the watch found on
+// RETIRED 2026-10-25: the inspiration watch code is gone; the table stays, read only by the
+// account export, until a decision to drop its data. Was: Inspiration cards of a topic (docs/SPEC_MEMOIRE_ET_VEILLE.md §3): what the watch found on
 // the web and what we learn from it about FORM, reinjected into the prompts of later posts. The
 // writer can dismiss one; the author can restore it.
 export const inspirations = pgTable("inspirations", {

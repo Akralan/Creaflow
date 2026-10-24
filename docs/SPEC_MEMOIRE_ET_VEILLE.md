@@ -1,5 +1,7 @@
 # SPEC — MÉMOIRE DES DERNIERS POSTS ET VEILLE D'INSPIRATION
 
+> **2026-10-25 — la veille d'inspiration (§1, §3, annexes) est retirée**, code supprimé. Ce qui en est dit ici est historique. La mémoire des derniers posts (§2) reste, sur le seul chemin V3.
+
 > **Statut : implémenté (Lots A-C) le 2026-10-17** sur la branche `feature/prompt-generation-v3`, non mergé. Migrations `0039`-`0040` appliquées en base de dev. Veille et génération essayées en réel ; panneau « Inspirations » pas ouvert dans un navigateur. Écarts : §5.
 >
 > Rédigée à la suite de `docs/SPEC_PROMPT_GENERATION_V3.md`, dont elle reprend les conventions : préparation dans l'outil, contrôles du code, textes verbatim en annexe.

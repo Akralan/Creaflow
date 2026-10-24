@@ -66,9 +66,6 @@ export const generationPrepSchema = z.object({
   chosenMoment: pickSchema,
   hookOptions: z.array(z.object({ kind: z.string(), text: z.string() })).default([]),
   chosenHook: pickSchema,
-  // docs/SPEC_MEMOIRE_ET_VEILLE.md §3.3 — references i1…i10 of the inspiration cards.
-  inspirationsUsed: z.array(z.string()).default([]),
-  inspirationsToDrop: z.array(z.object({ ref: z.string(), why: z.string().default("") })).default([]),
   selfCheck: z.object({
     factsFromMaterial: z.boolean(),
     bannedPhrasesFound: z.array(z.string()).default([]),
@@ -81,8 +78,6 @@ export type GenerationPrep = z.infer<typeof generationPrepSchema>;
 /** Persisted on `scripts.generationTrace`: the preparation, the review and the result of the checks. */
 export type GenerationTrace = GenerationPrep & {
   version: 3;
-  /** Inspiration cards shown to this generation, to apply the feedback after saving. */
-  inspirationsShown?: Array<{ ref: string; id: string }>;
   checks: { failures: string[]; retried: boolean };
 };
 
@@ -162,26 +157,6 @@ const HOOK_PREP_FIELDS = {
     "hookOptions",
     "Why it will stop this reader, in one sentence. The hookText or hookVisual field reuses or refines it."
   ),
-  // docs/SPEC_MEMOIRE_ET_VEILLE.md Annexe A.5.
-  inspirationsUsed: {
-    type: "array",
-    description: "The references (i1, i2…) of the inspiration cards you used for form. Empty array if none, or if there is no <inspiration> block.",
-    items: { type: "string" },
-  },
-  inspirationsToDrop: {
-    type: "array",
-    description:
-      "The cards that will never serve this subject (foreign audience, generic advice, off-topic), to be removed. Not those that simply don't serve this post. Empty array if none.",
-    items: {
-      type: "object",
-      properties: {
-        ref: { type: "string", description: "The reference (i1, i2…)." },
-        why: { type: "string", description: "Why it doesn't serve, in one sentence." },
-      },
-      required: ["ref", "why"],
-      additionalProperties: false,
-    },
-  },
 };
 
 // Last, after promisesMade.
@@ -207,7 +182,7 @@ const SELF_CHECK_FIELD = {
   },
 };
 
-const PREP_REQUIRED = ["reader", "candidateMoments", "chosenMoment", "concept", "hookOptions", "chosenHook", "inspirationsUsed", "inspirationsToDrop"];
+const PREP_REQUIRED = ["reader", "candidateMoments", "chosenMoment", "concept", "hookOptions", "chosenHook"];
 
 export const generateVisualPostTool: LlmToolDefinition = {
   name: GENERATE_VISUAL_POST_TOOL_NAME,

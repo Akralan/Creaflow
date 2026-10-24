@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-10-25 — « Understand it », et la veille d'inspiration disparaît
+
+Dans la carte du projet de Business context, un bouton **Understand it** ouvre une modale : les publics du portrait des lecteurs, et le nombre d'événements par genre trouvé dans la matière (`GET /api/events/summary`). Pas la ligne de temps. L'inventaire de ce que l'ancien onglet Topics montrait d'autre a été présenté ; l'utilisateur n'en garde rien d'autre. La **veille d'inspiration** est supprimée du code : recherche web, service, routes, et le bloc `<inspiration>` du prompt V3 avec ses deux champs de préparation. La table `inspirations` reste en base, lue par l'export du compte. Photos de la modale prises sur la vraie app ; la base de dev n'ayant aucun événement (rien n'a été relu depuis le passage aux pointeurs), les comptes du banc tellovo ont été injectés dans le navigateur pour la capture. `docs/SPEC_COMPRENDRE_LE_PROJET.md`.
+
+---
+
 ## 2026-10-25 — On se connecte par un lien, le mot de passe disparaît
 
 `/start` créait des comptes sans mot de passe et envoyait un lien de connexion, mais `/login` ne connaissait que l'email et le mot de passe : une personne venue par `/start` qui revenait par `/login` restait à la porte, avec un message qui lui parlait de GitHub. Décision de l'utilisateur : **connexion par lien email seulement**. `/login` demande un email et envoie le même lien que `/start` (24 h, un seul usage) ; la porte « Paste my notes » crée le compte sans mot de passe ; l'onglet Account perd son bloc mot de passe, et la suppression se confirme en recopiant l'adresse. Routes et page du mot de passe retirées, pages légales corrigées. La colonne `password_hash` reste en base sans être lue : la supprimer détruit des données, c'est une décision à part. `docs/SPEC_CONNEXION_PAR_LIEN.md`. Le guide (produit, données, carte des docs), `PRODUCT.md`, le guide Brevo et le README sont repassés pour ne plus parler de mot de passe ; la carte des docs gagne aussi les specs du 24 (formes et genres, rattachement, synchro) qui y manquaient.

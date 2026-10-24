@@ -1,6 +1,6 @@
 # SPEC — « Understand it » : ce que Tellovo a compris du projet
 
-Statut : **première version implémentée le 2026-10-25** sur `feature/comprendre-le-projet`, pas mergée. La liste de ce qui s'y ajoute est en cours de décision avec l'utilisateur.
+Statut : **implémenté le 2026-10-25** sur `feature/comprendre-le-projet`, pas mergé. Rien d'autre ne s'y ajoute.
 
 ## Ce qu'on fait
 
@@ -15,3 +15,4 @@ Sans public : une phrase qui dit qu'il viendra avec la lecture de la matière. S
 
 - **2026-10-25 — Une modale, pas une page.** Demande de l'utilisateur : comprendre le projet sans quitter Business context.
 - **2026-10-25 — Les publics et les comptes par genre sont obligatoires**, le reste de l'ancien onglet Topics se décide au cas par cas.
+- **2026-10-25 — Le reste de l'ancien onglet Topics ne revient pas.** Inventaire présenté à l'utilisateur : modifier ou régénérer les publics, « Who it's for » propre au projet, délier une source, relire la matière, la ligne de temps détaillée avec suppression d'un événement, la liste des documents, l'ajout de matière à la main, créer ou supprimer un projet. Aucun n'est réaffiché. La veille d'inspiration est supprimée du code.

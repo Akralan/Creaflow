@@ -12,7 +12,6 @@ se décide).
 Les appels passent par trois primitives de `src/lib/llm/provider.ts` :
 - `callStructured` — un outil imposé, réponse structurée, fournisseur choisi par `LLM_PROVIDER` (en pratique OpenAI). C'est le cas de presque tous les prompts ;
 - `callAgentic` — boucle multi-tours avec plusieurs outils, OpenAI en dur : l'assistant (16), le lecteur d'événements (21) et le rédacteur par événements (23) ;
-- `callWebResearch` — recherche web, OpenAI en dur : la veille d'inspiration (19).
 
 Deux appels sortent de ces primitives : la description des photos (17, Gemini en dur) et, dans
 l'animation (27), la revue sur images (vision OpenAI).
@@ -37,7 +36,7 @@ l'animation (27), la revue sur images (vision OpenAI).
 | 16 | Assistant éditorial | `src/lib/llm/assistantChat.ts` | Chat « rédacteur en chef assistant » avec outils |
 | 17 | Description des photos | `src/lib/llm/captionPrompts.ts` | Indexer une photo de marque |
 | 18 | Portrait des lecteurs | `src/lib/llm/readerPortrait.ts` | Décrire les 1 à 3 publics d'un sujet (ce dont ils se soucient, jamais la forme d'un post) |
-| 19 | Veille d'inspiration | `src/lib/llm/inspirationResearch.ts` | Chercher sur le web ce qui marche pour ces publics |
+| ~~19~~ | ~~Veille d'inspiration~~ | — | **Retiré le 2026-10-25**, code supprimé |
 | 29 | Extracteur de pointeurs | `src/lib/llm/pointerExtractor.ts` | Dire **où** sont les événements d'un document : un numéro de ligne, une date |
 | 30 | Rédacteur à pointeurs | `src/lib/llm/pointerPostWriter.ts` | Choisir lui-même ses pointeurs dans la ligne de temps, et écrire le post (agent) |
 | 25 | Fiche d'un repo | `src/lib/llm/repoCard.ts` | Lire un dépôt public (parcours `/start`) |
@@ -140,7 +139,6 @@ You fill in the tool's fields in order. The first ones are your preparation: the
 3. chosenMoment — The one you keep, and why: the strongest for this reader, not already used, compatible with the role, the series and the direction.
 4. concept — What the reader should remember or do after reading.
 5. hookOptions then chosenHook — 2 or 3 hooks of different types, then the one you keep and why it will stop THIS reader.
-5 bis. inspirationsUsed and inspirationsToDrop — If an <inspiration> block is supplied: the ones you used for form, and the ones that will NEVER serve this topic (foreign audience, generic advice, off-topic). A card that doesn't serve THIS post may serve the next one: don't drop it for that. Empty arrays otherwise.
 6. The post, built from chosenMoment, concept and chosenHook.
 7. selfCheck — Reread the post as the target reader, then as someone who knows the author. Answer honestly: a flagged miss will be fixed by a new draft, a hidden miss will be published.
 </method>
@@ -151,7 +149,7 @@ You fill in the tool's fields in order. The first ones are your preparation: the
 Des balises, dans cet ordre ; un bloc vide est omis.
 
 ```text
-<readers> <brand> <style> <material> <brief> <inspiration> <platform> <format> <recent_posts> <variety> <language> <reminder>
+<readers> <brand> <style> <material> <brief> <platform> <format> <recent_posts> <variety> <language> <reminder>
 ```
 
 **`<readers>`** (toujours présent). Avec portrait des lecteurs du sujet (prompt 18), une ligne par lecteur, le premier étant le principal :
@@ -206,14 +204,6 @@ Angle (shape of the hook and structure) : ${label} — ${description}           
 This episode of the series focuses on: ${episodeTitle} — ${angleHint}                                            ← si épisode imposé
 Available photo (used as is or cut out in the mockup, never altered; don't describe a product other than this one): ${aiDescription} (keywords: ${tags})   ← visuel + photo
 Idea suggested by the author (a lead to interpret, not text to copy nor a source of facts): ${directive}            ← si directive
-```
-
-**`<inspiration>`** (si des fiches de veille actives, numérotées i1 à i10 ; prompt 19) :
-
-```text
-What already works for these audiences, found through monitoring. Take inspiration from the FORM (format, structure, hook type, rhythm), never the substance: reuse no number, anecdote or formula. You are not required to use any.
-- [${ref}] (${readerLabel · platform · kind}) ${insight} — ${url}
-In your preparation, inspirationsUsed lists the ones you used. inspirationsToDrop lists only those that will never serve this subject (foreign audience, generic advice, off-topic), with the reason: they will be removed. Don't drop a card just because it doesn't serve this post.
 ```
 
 **`<platform>`** : `platformRuleText(platform)`, voir « Règles par plateforme » plus bas.
@@ -290,10 +280,6 @@ hookOptions       : 2 or 3 candidate hooks, of different types.
 chosenHook        : The hook you keep.
   index           : Its position in hookOptions, starting at 0.
   why             : Why it will stop this reader, in one sentence. The hookText or hookVisual field reuses or refines it.
-inspirationsUsed  : The references (i1, i2…) of the inspiration cards you used for form. Empty array if none, or if there is no <inspiration> block.
-inspirationsToDrop: The cards that will never serve this subject (foreign audience, generic advice, off-topic), to be removed. Not those that simply don't serve this post. Empty array if none.
-  ref             : The reference (i1, i2…).
-  why             : Why it doesn't serve, in one sentence.
 title             : The name of the idea, not of the subject: short, specific to this post, impossible to reuse for another.
 hookText (texte)  : The first sentence of the text: it creates a gap that forces the reader to read the second.
 hookVisual (visuel): Description of the visual composition that grabs attention (single image, or 1st slide of a carousel).
@@ -1247,80 +1233,9 @@ readers : 1 to 3 audiences, the main one first.
 
 ---
 
-## 19. Veille d'inspiration
+## 19. Veille d'inspiration — retirée le 2026-10-25
 
-- **Où** : `src/lib/llm/inspirationResearch.ts` (`RESEARCH_SYSTEM_PROMPT`, `STRUCTURE_SYSTEM_PROMPT`, `buildResearchMessage`, outil `save_inspirations`, `researchInspirations`) ; `callWebResearch` dans `src/lib/llm/provider.ts` (OpenAI Responses API, outil `web_search` intégré, `search_context_size: "medium"`, `tool_choice: "required"`, raisonnement `low`) ; `src/lib/services/inspirationService.ts` ; panneau `src/components/InspirationsPanel.tsx`.
-- **À quoi il sert** : trouver sur le web ce qui marche déjà pour les publics d'un sujet, et le garder en fiches (lien + ce qu'on en apprend sur la forme) que le prompt 1 relit. Un lien n'est gardé que s'il fait partie des pages réellement consultées par la recherche ; les doublons et les liens déjà connus (actifs ou écartés) sont filtrés par le code, 8 fiches au plus.
-- **Écran** : le panneau de veille est **retiré le 2026-10-24** avec l'onglet Topics de Settings ; la route et le prompt restent, et la veille ne nourrit plus que le prompt 1 (posts libres sans série).
-- **Quand** : bouton « Lancer une veille » du sujet (`/api/products/[id]/inspirations`, plus monté dans l'app), et seule en arrière-plan après une génération si la dernière veille a plus de 7 jours (`refreshInspirationsIfStale`, `INSPIRATION_AUTO_REFRESH=false` pour couper). Jamais pendant la rédaction. Deux appels : la recherche (`maxTokens` 4096), puis la mise en fiches (`maxTokens` 2048, mode strict). Sans texte ou sans page consultée, la veille s'arrête là et ne produit aucune fiche.
-
-### Prompt de recherche (system prompt, appel web)
-
-```text
-You do monitoring for the ghostwriter of a person who builds something and talks about it on social media. Search the web for what ALREADY works with the described audiences, on the platforms indicated.
-
-What you look for:
-- real, precise examples: a post, a thread, a creator, a newsletter, a devlog, a named format, that visibly works with this audience (reactions, reshares, community);
-- what can be learned from them about FORM: the format, the structure, the type of hook, the rhythm, the recurring topics.
-
-What you discard:
-- generic lists ("10 tips to break through on LinkedIn"), growth marketing, advice valid for anyone;
-- anything that doesn't speak to these specific audiences.
-
-For each finding, give the exact link of the page consulted and, in one or two sentences, what can be learned from it for writing. Eight findings at most, the most useful first. Write in English.
-```
-
-### Message utilisateur (recherche)
-
-```text
-Subject: ${subjectName} — ${subjectDescription}
-Audiences:
-- ${label}: ${who}. Comes looking for: ${wants}.
-- …
-   ou, sans portrait : Who for: ${targetAudience}
-   ou : Audience not defined: infer it from the subject.
-Platforms: ${platforms}
-Already carded (don't propose them again): ${urls}
-Already dismissed, with the reason (avoid this kind of finding): ${url — raison}; …
-```
-
-(Les trois dernières lignes ne sont présentes que si elles ont un contenu ; une raison absente s'écrit `no reason`.)
-
-### Prompt de mise en fiches (system prompt, appel structuré)
-
-```text
-You turn a monitoring report into inspiration cards for a ghostwriter. One card per useful finding, eight at most. Copy the links exactly as they appear in the report, invent none. A card says what is learned about FORM, not a fact to reuse. Write the cards in English.
-```
-
-### Message utilisateur (mise en fiches)
-
-```text
-Audiences given: ${labels des publics, ou "none"}
-
-=== REPORT ===
-${texte du rapport de recherche}
-
-=== PAGES CONSULTED ===
-- ${url} (${titre})
-- …
-```
-
-### Outil `save_inspirations`
-
-```text
-Saves the inspiration cards drawn from the monitoring.
-items : Eight cards at most, the most useful first.
-  url         : The exact link, copied from the report.
-  title       : The title of the page or post, short.
-  insight     : What is learned from it for writing (format, structure, hook type, rhythm, recurring topic), in one or two sentences. In English.
-  kind        : format | accroche | structure | sujet | compte   (enum)
-  readerLabel : The audience concerned, copied from those given, or empty string.
-  platform    : The platform concerned (linkedin or x), or empty string.
-```
-
-Le code remet `readerLabel` et `platform` à `null` s'ils ne figurent pas dans les listes connues.
-
----
+Le code est supprimé (`inspirationResearch.ts`, `inspirationService.ts`, les routes `/api/products/[id]/inspirations` et `/api/inspirations/[id]`, `callWebResearch`), avec le bloc `<inspiration>` du prompt 1 et ses champs `inspirationsUsed` / `inspirationsToDrop`. Elle ne nourrissait plus que le prompt 1, et son panneau était parti avec l'onglet Topics la veille. Décision de l'utilisateur : on ne s'en servira plus. La table `inspirations` reste en base, lue seulement par l'export du compte.
 
 ## 29. Extracteur de pointeurs
 

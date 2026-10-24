@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import type { ResponseInputItem } from "openai/resources/responses/responses";
-import type { AgenticCallParams, AgenticResult, AgenticToolCall, WebResearchParams, WebResearchResult } from "../types";
+import type { AgenticCallParams, AgenticResult, AgenticToolCall } from "../types";
 import type { StructuredCallParams } from "../types";
 import { logger } from "@/lib/logger";
 
@@ -63,34 +63,6 @@ export async function callOpenAI({ system, userMessage, tool, maxTokens, strict,
   return JSON.parse(call.arguments);
 }
 
-/**
- * Web search (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.2): `web_search` tool built into the Responses API,
- * executed on OpenAI's side — no loop on our side. Returns the report and the cited pages.
- */
-export async function callOpenAIWebResearch({ system, userMessage, maxTokens }: WebResearchParams): Promise<WebResearchResult> {
-  const response = await getClient().responses.create({
-    model: MODEL,
-    instructions: system,
-    input: userMessage,
-    max_output_tokens: maxTokens,
-    reasoning: { effort: "low" },
-    tools: [{ type: "web_search", search_context_size: "medium" }],
-    // "required" and not "auto": with auto, the model sometimes answered from memory without searching —
-    // no page consulted, hence no verifiable link, hence zero cards (seen on the first real try).
-    tool_choice: "required",
-  });
-  const sources: WebResearchResult["sources"] = [];
-  for (const item of response.output) {
-    if (item.type !== "message") continue;
-    for (const part of item.content) {
-      if (part.type !== "output_text") continue;
-      for (const annotation of part.annotations) {
-        if (annotation.type === "url_citation") sources.push({ url: annotation.url, title: annotation.title ?? null });
-      }
-    }
-  }
-  return { text: response.output_text ?? "", sources };
-}
 
 /** Volume guardrail (docs/SPEC_ASSISTANT_AGENTIQUE.md §2.3): a tool return can weigh more
  *  than all the rest of the context (an entire material document, for example). We truncate while
