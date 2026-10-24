@@ -131,7 +131,8 @@ describe("extractPointers — le genre", () => {
 
   it("l'outil exige le genre parmi les treize et le prompt nomme chaque genre", () => {
     const tool = buildExtractorTool();
-    const items = (tool.input_schema as { properties: { events: { items: { properties: { genre: { enum: string[] } }; required: string[] } } } }).properties.events.items;
+    const items = (tool.input_schema as unknown as { properties: { events: { items: { properties: { genre: { enum: string[] } }; required: string[] } } } }).properties
+      .events.items;
     expect(items.properties.genre.enum).toEqual([...GENRES]);
     expect(items.required).toEqual(["line", "date", "genre", "available", "fulfills"]);
     const prompt = buildExtractorSystemPrompt();

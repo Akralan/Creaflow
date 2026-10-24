@@ -1,8 +1,10 @@
 import { after } from "next/server";
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { materialEvents, products, sourceMaterials } from "@/db/schema";
-import { extractPointers } from "@/lib/llm/pointerExtractor";
+import { extractPointers, type OpenEvent } from "@/lib/llm/pointerExtractor";
+import { HOLDABLE_GENRES } from "@/lib/llm/postForms";
+import { keepOldestTrigger, openEventsFor } from "@/lib/services/eventGenres";
 import { ApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
 
@@ -62,11 +64,52 @@ export interface EventReadingReport {
 }
 
 /**
- * La lecture : chaque document non lu passe par l'extracteur, ses pointeurs sont enregistrés, et il
- * est marqué lu. Un document qui échoue laisse `eventsReadAt` à null et n'empêche pas les autres —
- * il repassera à la prochaine ingestion.
+ * La liste ouverte d'un sujet (docs/FORMES_ET_GENRES.md, règle 14) : ses engagements et annonces que
+ * rien ne tient encore, et ses décisions, avec le texte de leur ligne. Rechargée avant chaque
+ * document, pour qu'un document puisse tenir ce qu'un document lu juste avant a promis.
+ */
+async function loadOpenEvents(userId: string, productId: string): Promise<OpenEvent[]> {
+  const rows = await db.query.materialEvents.findMany({
+    where: and(eq(materialEvents.userId, userId), eq(materialEvents.productId, productId), inArray(materialEvents.genre, [...HOLDABLE_GENRES])),
+    columns: { id: true, genre: true, date: true, line: true, sourceMaterialId: true },
+  });
+  if (rows.length === 0) return [];
+  const held = await db
+    .select({ id: materialEvents.tient })
+    .from(materialEvents)
+    .where(and(eq(materialEvents.productId, productId), inArray(materialEvents.tient, rows.map((r) => r.id))));
+  const heldIds = new Set(held.map((h) => h.id).filter((id): id is string => id !== null));
+  const docs = await db.query.sourceMaterials.findMany({
+    where: inArray(sourceMaterials.id, [...new Set(rows.map((r) => r.sourceMaterialId))]),
+    columns: { id: true, rawText: true },
+  });
+  const texts = new Map(docs.map((d) => [d.id, d.rawText.split("\n")]));
+  return openEventsFor(
+    rows.map((r) => ({ ...r, heldBy: heldIds.has(r.id) })),
+    texts
+  );
+}
+
+/** Règle 13 : un seul `déclencheur` par sujet, le plus ancien ; les autres redeviennent des livraisons. */
+async function keepOneTrigger(userId: string, productId: string): Promise<void> {
+  const triggers = await db.query.materialEvents.findMany({
+    where: and(eq(materialEvents.userId, userId), eq(materialEvents.productId, productId), eq(materialEvents.genre, "déclencheur")),
+    columns: { id: true, genre: true, date: true, createdAt: true },
+  });
+  const demoted = keepOldestTrigger(triggers);
+  if (demoted.length > 0) {
+    await db.update(materialEvents).set({ genre: "livraison" }).where(inArray(materialEvents.id, demoted));
+  }
+}
+
+/**
+ * La lecture : chaque document non lu passe par l'extracteur, ses pointeurs sont enregistrés avec
+ * leur genre, et il est marqué lu. Un document qui échoue laisse `eventsReadAt` à null et n'empêche
+ * pas les autres — il repassera à la prochaine ingestion.
  *
- * Plus de plafond de tours, plus d'ordre de lecture privilégié : les documents sont indépendants.
+ * Plus de plafond de tours, plus d'ordre de lecture privilégié : les documents sont indépendants,
+ * à une chose près — la liste ouverte, rechargée entre deux documents, pour que `tient` puisse
+ * viser un événement du document précédent.
  */
 export async function readEventsForSubject(userId: string, productId: string): Promise<EventReadingReport> {
   await requireOwnedProduct(userId, productId);
@@ -84,11 +127,21 @@ export async function readEventsForSubject(userId: string, productId: string): P
 
   for (const doc of docs) {
     try {
-      const { pointers: found, calls: n } = await extractPointers({ file: doc.title ?? doc.id, text: doc.rawText });
+      const open = await loadOpenEvents(userId, productId);
+      const { pointers: found, calls: n } = await extractPointers({ file: doc.title ?? doc.id, text: doc.rawText }, open);
       calls += n;
       if (found.length > 0) {
         await db.insert(materialEvents).values(
-          found.map((p) => ({ userId, productId, sourceMaterialId: doc.id, line: p.line, date: p.date }))
+          found.map((p) => ({
+            userId,
+            productId,
+            sourceMaterialId: doc.id,
+            line: p.line,
+            date: p.date,
+            genre: p.genre,
+            disponible: p.disponible,
+            tient: p.tient,
+          }))
         );
         pointers += found.length;
       }
@@ -99,6 +152,8 @@ export async function readEventsForSubject(userId: string, productId: string): P
       logger.error("Pointer extraction failed for a document", err, { userId, productId, documentId: doc.id });
     }
   }
+
+  await keepOneTrigger(userId, productId);
 
   const report = { documents: docs.length, documentsRead, calls, pointers, failed };
   logger.info("Pointer extraction finished", { userId, productId, ...report });
