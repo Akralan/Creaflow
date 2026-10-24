@@ -162,38 +162,61 @@ export interface CreatedSourceResult {
   error: string | null;
 }
 
-/** Crée un sujet et une source par candidat, puis ingère. Un candidat qui échoue n'empêche pas les
- *  autres : le sujet reste, la source porte l'erreur, et l'utilisateur peut resynchroniser plus tard. */
+/** Un candidat à brancher : ce que le connecteur propose, plus, depuis Business context, le projet
+ *  existant qu'il rejoint (docs/SPEC_RATTACHEMENT_SOURCES.md). Sans `productId`, il naît sur son
+ *  propre sujet — le chemin de l'onboarding et de Settings › Catalogue. */
+export type CandidateToConnect = ConnectorCandidate & { productId?: string | null };
+
+/** Combien de candidats créeront un sujet : ceux qui ne rejoignent pas un projet existant. Pur. */
+export function countNewSubjects(candidates: ReadonlyArray<{ productId?: string | null }>): number {
+  return candidates.filter((c) => !c.productId).length;
+}
+
+/** Crée une source par candidat — sur un sujet neuf, ou sur le projet existant que le candidat
+ *  désigne — puis ingère. Un candidat qui échoue n'empêche pas les autres : le sujet reste, la
+ *  source porte l'erreur, et l'utilisateur peut resynchroniser plus tard. */
 export async function createSourcesFromCandidates(
   userId: string,
   type: MaterialSourceType,
-  candidates: ConnectorCandidate[]
+  candidates: CandidateToConnect[]
 ): Promise<CreatedSourceResult[]> {
   // Pendant l'onboarding (pas encore de profil), chaque source branchée naît sur son propre sujet
   // puis les sources d'un même projet sont regroupées (docs/SPEC_ONBOARDING_MVP.md §3 bis) : la
   // limite porte alors sur les sources, et celle des sujets s'applique au regroupement final.
+  // Un candidat qui rejoint un projet existant ne crée rien : il ne compte pas dans la limite.
   const [existing, profile] = await Promise.all([
-    db.query.products.findMany({ where: eq(products.userId, userId), columns: { id: true } }),
+    db.query.products.findMany({ where: eq(products.userId, userId), columns: { id: true, name: true } }),
     db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId), columns: { id: true } }),
   ]);
   const limit = profile ? MAX_PRODUCTS : MAX_ONBOARDING_SOURCES;
-  if (existing.length + candidates.length > limit) {
+  const newSubjects = countNewSubjects(candidates);
+  if (newSubjects > 0 && existing.length + newSubjects > limit) {
     throw new ApiError(400, `Maximum ${limit} ${profile ? "subjects" : "sources"} (${existing.length} already saved).`);
+  }
+  // Avant toute écriture : un projet cible qui n'est pas à l'utilisateur est un 404, jamais une
+  // source greffée ailleurs.
+  const owned = new Set(existing.map((p) => p.id));
+  for (const candidate of candidates) {
+    if (candidate.productId && !owned.has(candidate.productId)) throw new ApiError(404, "Project not found.");
   }
 
   const results: CreatedSourceResult[] = [];
 
   for (const candidate of candidates) {
-    const [product] = await db
-      .insert(products)
-      .values({ userId, name: candidate.subjectName, description: candidate.subjectDescription })
-      .returning({ id: products.id });
+    const productId =
+      candidate.productId ??
+      (
+        await db
+          .insert(products)
+          .values({ userId, name: candidate.subjectName, description: candidate.subjectDescription })
+          .returning({ id: products.id })
+      )[0].id;
 
     const [source] = await db
       .insert(materialSources)
       .values({
         userId,
-        productId: product.id,
+        productId,
         type,
         externalId: candidate.externalId,
         label: candidate.label,
@@ -203,14 +226,14 @@ export async function createSourcesFromCandidates(
 
     try {
       const report = await syncSource(userId, source.id);
-      results.push({ productId: product.id, sourceId: source.id, label: candidate.label, report, error: null });
+      results.push({ productId, sourceId: source.id, label: candidate.label, report, error: null });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       logger.error("Source ingestion failed (subject and source kept)", error, {
         type,
         label: candidate.label,
       });
-      results.push({ productId: product.id, sourceId: source.id, label: candidate.label, report: null, error: message });
+      results.push({ productId, sourceId: source.id, label: candidate.label, report: null, error: message });
     }
   }
 
@@ -221,11 +244,21 @@ export async function createSourcesFromCandidates(
  *  correspondants : les reconnecter créerait un sujet doublon et violerait l'unicité de
  *  material_sources. */
 export async function listConnectedExternalIds(userId: string, type: MaterialSourceType): Promise<Set<string>> {
-  const rows = await db.query.materialSources.findMany({
-    where: and(eq(materialSources.userId, userId), eq(materialSources.type, type)),
-    columns: { externalId: true },
-  });
-  return new Set(rows.map((row) => row.externalId));
+  return new Set((await listConnectedSources(userId, type)).keys());
+}
+
+/** Les mêmes identifiants, avec le projet que chacun nourrit : le panneau de Business context
+ *  affiche « in MyKiné » sur une page déjà lue (docs/SPEC_RATTACHEMENT_SOURCES.md). */
+export async function listConnectedSources(
+  userId: string,
+  type: MaterialSourceType
+): Promise<Map<string, { productId: string; productName: string }>> {
+  const rows = await db
+    .select({ externalId: materialSources.externalId, productId: materialSources.productId, productName: products.name })
+    .from(materialSources)
+    .innerJoin(products, eq(products.id, materialSources.productId))
+    .where(and(eq(materialSources.userId, userId), eq(materialSources.type, type)));
+  return new Map(rows.map((row) => [row.externalId, { productId: row.productId, productName: row.productName }]));
 }
 
 /** Les sources sont renvoyées enrichies du nom lisible de leur fournisseur : sans ça, l'UI
