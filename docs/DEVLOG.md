@@ -31,6 +31,47 @@ Une carte de tout ce que le back-end fait d'un post, dressée le même jour, a m
 
 ---
 
+## 2026-10-24 — Le fait a un genre, le post a une forme
+
+### Le constat
+
+Le rédacteur à pointeurs n'écrivait qu'une forme : l'épisode. Au run A du banc (aucune règle de forme), 12 posts sur 12 faisaient quatre paragraphes et finissaient sur une leçon. Le relevé de 274 posts LinkedIn de build in public (`docs/CATALOGUE_POSTS_LINKEDIN.md`, `docs/TYPOLOGIE_BUILD_IN_PUBLIC.md`) en compte quinze types. Les faits qui les produisent sont déjà dans les sources ; la chaîne ne les distinguait pas.
+
+### Ce qu'on a décidé (`docs/FORMES_ET_GENRES.md`)
+
+- **Le lecteur pose un genre sur chaque pointeur**, parmi treize valeurs fermées, avec `disponible` (une livraison utilisable par d'autres) et `tient` (l'événement réalise un engagement ou une annonce, ou revient sur une décision). Seule exception assumée à « un événement n'a aucun champ » : c'est une classification, pas un résumé.
+- **La forme est prise par le rédacteur**, depuis le genre de l'événement qu'il a choisi, jamais par le calendrier. Raison de l'utilisateur : si le sujet d'un post ne plaît pas, « autre idée » doit pouvoir repartir sur une autre matière, donc une autre forme.
+- **Le texte de la forme n'est pas dans le prompt système** (loi du 21 octobre : tout ce qui est nommé comme obligatoire ressort dans le texte). Le prompt n'a qu'une table genre → forme ; le rédacteur lit sa forme par l'outil `read_form`, et `publish_post` refuse une forme non lue ou différente de celle attendue.
+- `tient` peut viser une **décision** (forme « looking back »), pas seulement un engagement. Étiquettes de forme en anglais. Une section « la personne qui parle » : je ou on selon les notes, jamais le « nous » institutionnel.
+- Les critères de la Partie 3 sont des **critères de lecture au banc**, pas des contrôles de `scriptChecks`.
+
+### Ce qui a été fait
+
+Tâches 1 à 8 du plan sur `feature/formes-et-genres` : migration `0059` (enums `material_event_genre` et `post_form`, colonnes `genre`, `disponible`, `tient`, `scripts.form`), extracteur avec genres et liste ouverte (40 engagements, annonces et décisions rechargés avant chaque document), rédacteur avec `read_form` et refus, forme verrouillée pour la version X et « another idea, same story », étiquette de forme dans l'écran de la semaine.
+
+Puis, à la demande de l'utilisateur, **de vrais posts comme modèles d'écriture** : 250 textes LinkedIn complets récupérés (`docs/tests/posts-modeles/catalogue-textes.json`), les six meilleurs par forme (réactions rapportées à la médiane de leur auteur, trois au plus par auteur) rendus par `read_form` sous la forme (`postExamples.generated.ts`, `scripts/build-post-examples.mjs`). Les posts sont devenus plus courts.
+
+### Ce qui a cassé
+
+- Sur le dépôt de tellovo, le JSON de l'extracteur était **tronqué à 4 096 jetons de sortie** depuis que chaque entrée porte cinq champs : un document entier perdu. Budget porté à 16 384, et le banc reprend document par document depuis un cache partiel.
+- Deux runs du banc tués par Claude Code faute de mémoire, posts perdus parce que le relevé s'écrivait à la fin : il s'écrit maintenant après chaque post.
+
+### Les bancs
+
+| | MyKiné (genres) | tellovo |
+|---|---|---|
+| Pointeurs | 158, les 13 genres | 1 646 (décision 43 %, livraison 35 %) |
+| Posts | 12, 10 formes, 0 refus | 12 : 6 leçons, 3 échecs, 1 origine, 1 chiffre, 1 épisode |
+| Critères de la Partie 3 | 9 / 12, 2 à moitié | 10 / 12 |
+
+Relectures détaillées : `docs/tests/pointeurs/mykine-genres/criteres-gpt-6-luna.md` et `docs/tests/pointeurs/creaflow/criteres-gpt-6-luna.md`. Sur tellovo, 9 posts sur 12 racontent des specs anciennes non datées comme si elles étaient d'aujourd'hui, et un `chiffre` était une date de l'AI Act. Sur les deux, les accroches sont presque toutes des chiffres et la phrase qui présente le projet revient souvent.
+
+### Ce qui reste ouvert
+
+Deux règles discutées, non décidées : **durcir l'accroche** (10 sur 12 commencent par un chiffre), et dans les formes techniques, **« on comprend le projet par le fait, jamais par une phrase qui le présente »**. La branche est mergée sur `main` le même soir.
+
+---
+
 ## 2026-10-24 — L'événement perd tous ses champs, et le rédacteur choisit lui-même
 
 ### Ce qui a déclenché le chantier
