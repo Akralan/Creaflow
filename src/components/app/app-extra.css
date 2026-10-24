@@ -1430,3 +1430,135 @@
 .ap .sync-pill.warn::before {
   background: var(--bad, #a4503f);
 }
+
+/* « Understand it » : ce que Tellovo a compris du projet (docs/SPEC_COMPRENDRE_LE_PROJET.md). */
+.ap .biz-understand {
+  margin-left: auto;
+}
+.ap .modal-understand {
+  width: min(720px, 100%);
+}
+.ap .und-sec {
+  margin-top: 28px;
+}
+.ap .und-sec h3 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mute);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--soft);
+}
+.ap .und-total {
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.ap .und-empty,
+.ap .und-note {
+  color: var(--mute);
+  font-size: 14px;
+  margin-top: 12px !important;
+}
+.ap .und-readers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.ap .und-reader {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.ap .und-reader > b {
+  font-size: 15px;
+  font-weight: 600;
+}
+.ap .und-reader > p {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.ap .und-reader dl {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+.ap .und-reader dt {
+  font-size: 12px;
+  color: var(--mute);
+}
+.ap .und-reader dd {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.ap .und-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 2px;
+}
+.ap .und-words span {
+  font-size: 12px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--ink);
+}
+.ap .und-bars {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.ap .und-bars li {
+  display: grid;
+  grid-template-columns: minmax(120px, 170px) minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+.ap .und-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--soft);
+  overflow: hidden;
+}
+.ap .und-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
+}
+.ap .und-n {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+@media (max-width: 640px) {
+  .ap .und-bars li {
+    grid-template-columns: minmax(0, 1fr) 40px;
+    row-gap: 4px;
+  }
+  .ap .und-bar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

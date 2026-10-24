@@ -98,6 +98,13 @@ export interface MaterialSource {
   createdAt: string;
 }
 
+/** Events of a project counted by genre — the « Understand it » modal of Business context. */
+export interface EventSummary {
+  total: number;
+  byGenre: Record<string, number>;
+  unreadDocuments: number;
+}
+
 export interface SourceReadingStatus {
   documents: number;
   unread: number;
@@ -265,24 +272,6 @@ export interface Product {
   problem?: string | null;
   /** Reader portrait (docs/SPEC_PROMPT_GENERATION_V3.md §2.2) — null until it is produced. */
   readerPortrait: ReaderPortrait | null;
-}
-
-/** Inspiration watch card of a topic (docs/SPEC_MEMOIRE_ET_VEILLE.md §3). */
-export interface Inspiration {
-  id: string;
-  productId: string;
-  url: string;
-  title: string;
-  insight: string;
-  kind: string;
-  readerLabel: string | null;
-  platform: string | null;
-  status: "active" | "dismissed";
-  dismissedBy: "model" | "user" | "system" | null;
-  dismissReason: string | null;
-  shownCount: number;
-  usedCount: number;
-  createdAt: string;
 }
 
 export interface PortraitReader {
@@ -762,6 +751,7 @@ export const api = {
 
   getMaterialSources: (productId: string) =>
     apiFetch<{ sources: MaterialSource[] }>(`/api/material-sources?productId=${productId}`),
+  getEventSummary: (productId: string) => apiFetch<EventSummary>(`/api/events/summary?productId=${productId}`),
   /** Where the reading of a source stands: its documents, those not read yet, the events found so far. */
   getMaterialSourceStatus: (id: string) => apiFetch<SourceReadingStatus>(`/api/material-sources/${id}/status`),
   syncMaterialSource: (id: string) => post<{ report: SyncReport }>(`/api/material-sources/${id}/sync`),
@@ -887,13 +877,6 @@ export const api = {
   ) => put<{ product: Product }>(`/api/products/${id}`, data),
   deleteProduct: (id: string) => del<{ ok: true }>(`/api/products/${id}`),
   regenerateReaderPortrait: (id: string) => post<{ readerPortrait: ReaderPortrait }>(`/api/products/${id}/reader-portrait`, {}),
-  getInspirations: (productId: string) =>
-    apiFetch<{ inspirations: Inspiration[]; refreshedAt: string | null }>(`/api/products/${productId}/inspirations`),
-  runInspirationResearch: (productId: string) =>
-    post<{ inspirations: Inspiration[]; refreshedAt: string | null }>(`/api/products/${productId}/inspirations`, {}),
-  setInspirationStatus: (id: string, status: "active" | "dismissed") =>
-    patch<{ inspiration: Inspiration }>(`/api/inspirations/${id}`, { status }),
-  deleteInspiration: (id: string) => del<{ ok: true }>(`/api/inspirations/${id}`),
   saveReaderPortrait: (id: string, readers: PortraitReader[]) =>
     put<{ readerPortrait: ReaderPortrait }>(`/api/products/${id}/reader-portrait`, { readers }),
 

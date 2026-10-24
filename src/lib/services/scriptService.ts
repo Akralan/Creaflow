@@ -15,7 +15,6 @@ import type { ContentCategoryContext, ContentType, Platform, ScriptGenerationCon
 import { parseStoredStyleProfile } from "@/lib/llm/styleProfile";
 import { parseStoredReaderPortrait } from "@/lib/llm/readerPortrait";
 import { loadRecentPostCards } from "@/lib/services/recentPostsService";
-import { applyInspirationFeedback, loadInspirationsForGeneration } from "@/lib/services/inspirationService";
 import { buildPerformanceSummary } from "@/lib/services/performanceService";
 import { pickAngleForScript } from "@/lib/services/angleService";
 import { findBestBrandAssetForScript } from "@/lib/services/brandAssetService";
@@ -28,7 +27,6 @@ import { resolvePostLanguage } from "@/lib/language";
 import { markDesignStale } from "@/lib/services/visualDesignService";
 import type { VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
 import { ApiError } from "@/lib/api/errors";
-import { logger } from "@/lib/logger";
 
 const RECENT_TOPICS_LIMIT = 15;
 const SERIES_RECENT_TOPICS_LIMIT = 10;
@@ -162,7 +160,7 @@ export async function buildGenerationContext(
     }
   }
 
-  const [recentScripts, performanceSummary, angle, materialDocuments, recentPosts, inspirationCards] = await Promise.all([
+  const [recentScripts, performanceSummary, angle, materialDocuments, recentPosts] = await Promise.all([
     db.query.scripts.findMany({
       where: and(
         eq(scripts.userId, userId),
@@ -182,8 +180,6 @@ export async function buildGenerationContext(
     // Mémoire des derniers posts du sujet (docs/SPEC_MEMOIRE_ET_VEILLE.md §2) — elle donne aussi les
     // publics visés récemment, pour alterner.
     loadRecentPostCards(userId, effectiveProductId, excludeScriptId ?? null),
-    // Fiches de la veille d'inspiration du sujet (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.3).
-    loadInspirationsForGeneration(userId, effectiveProductId),
   ]);
 
   // Langue du post : celle du profil, sinon celle des notes (src/lib/language.ts). Les notes lues sont
@@ -224,7 +220,6 @@ export async function buildGenerationContext(
     readers: parseStoredReaderPortrait(product?.readerPortrait)?.readers ?? null,
     recentReaderLabels: recentPosts.map((p) => p.readerLabel).filter((l): l is string => l !== null),
     recentPosts,
-    inspirations: inspirationCards,
     platform,
     contentCategory: { id: category.id, label: category.label, description: category.description },
     contentType,
@@ -323,18 +318,7 @@ export async function createScriptRecord(
     // passages de matière utilisés, on les retrouve dans le texte source et on les enregistre.
     await recordCitations(tx, userId, script.id, productId, generated.usedExcerpts ?? []);
     return { ...script, contentCategory };
-  }).then(async (script) => {
-    await recordInspirationFeedback(userId, generated);
-    return script;
   });
-}
-
-/** Retours du rédacteur sur les fiches d'inspiration (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.3) — après
- *  l'enregistrement, hors transaction : un échec ici ne doit jamais faire perdre le script. */
-async function recordInspirationFeedback(userId: string, generated: GeneratedScript): Promise<void> {
-  await applyInspirationFeedback(userId, generated.trace).catch((err) =>
-    logger.error("Feedback on inspiration cards not applied", err, { userId })
-  );
 }
 
 export async function updateScriptRecord(
@@ -381,9 +365,6 @@ export async function updateScriptRecord(
     await deleteCitationsForScript(tx, script.id);
     await recordCitations(tx, userId, script.id, extras?.citationsProductId ?? script.productId, generated.usedExcerpts ?? []);
     return { ...script, contentCategory };
-  }).then(async (script) => {
-    await recordInspirationFeedback(userId, generated);
-    return script;
   });
 }
 

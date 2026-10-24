@@ -421,6 +421,13 @@
       "when": 1792839777488,
       "tag": "0059_formes_et_genres",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1792884105319,
+      "tag": "0060_retrait_veille",
+      "breakpoints": true
     }
   ]
 }

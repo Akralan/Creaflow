@@ -28,19 +28,6 @@ export interface AgenticToolCall {
   failed?: boolean;
 }
 
-/** Web search (docs/SPEC_MEMOIRE_ET_VEILLE.md §3.2) — OpenAI only, like the agentic loop. */
-export interface WebResearchParams {
-  system: string;
-  userMessage: string;
-  maxTokens: number;
-}
-
-export interface WebResearchResult {
-  /** Report written by the model. */
-  text: string;
-  /** Pages actually consulted (url_citation annotations) — the only proof that a link isn't made up. */
-  sources: Array<{ url: string; title: string | null }>;
-}
 
 export interface AgenticResult {
   /** Final conversational reply. Never empty: if the loop reaches `maxTurns`, a last

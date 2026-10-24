@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import AppIcon from "@/components/app/AppIcon";
 import SourcePanel from "@/components/app/SourcePanel";
+import UnderstandModal from "@/components/app/UnderstandModal";
 import { api, ApiClientError, type CreatorProfile, type MaterialSource, type Product } from "@/lib/apiClient";
 import { syncBadge } from "@/lib/syncBadge";
 
@@ -42,6 +43,8 @@ export default function ContextScreen() {
     return p && PANEL_PROVIDERS.has(p) ? p : null;
   });
   const [loaded, setLoaded] = useState(false);
+  // « Understand it » : ce que Tellovo a compris du projet, en modale (docs/SPEC_COMPRENDRE_LE_PROJET.md).
+  const [understanding, setUnderstanding] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ building: "", who: "", problem: "" });
   const [saving, setSaving] = useState(false);
@@ -154,6 +157,14 @@ export default function ContextScreen() {
         </div>
       ) : (
         <>
+        {understanding && product && (
+          <UnderstandModal
+            productId={product.id}
+            name={name}
+            readers={product.readerPortrait?.readers ?? []}
+            onClose={() => setUnderstanding(false)}
+          />
+        )}
         {panel && product && (
           <SourcePanel
             key={panel}
@@ -221,6 +232,10 @@ export default function ContextScreen() {
                     Edit details
                   </button>
                   {saved && <span className="saved">Saved. Your next posts will use it.</span>}
+                  <button className="tbtn biz-understand" type="button" onClick={() => setUnderstanding(true)}>
+                    <AppIcon name="eye" />
+                    Understand it
+                  </button>
                 </>
               )}
             </div>

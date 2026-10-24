@@ -75,8 +75,6 @@ describe("repetition checks", () => {
     chosenMoment: { index: 0, why: "" },
     hookOptions: [{ kind, text: "" }],
     chosenHook: { index: 0, why: "" },
-    inspirationsUsed: [],
-    inspirationsToDrop: [],
     selfCheck: { factsFromMaterial: true, bannedPhrasesFound: [], readerTest: "Yes.", authorTest: true },
   });
   const card = (hook: string, hookKind: string | null) => ({ createdAt: "", platform: "linkedin", readerLabel: null, moment: null, hook, hookKind, ending: null, narrativeKind: null });

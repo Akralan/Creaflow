@@ -257,6 +257,37 @@ export async function sourceReadingStatus(userId: string, sourceId: string): Pro
   return summarizeReading(rows);
 }
 
+export interface EventSummary {
+  total: number;
+  /** Genre → nombre d'événements ; seuls les genres présents. */
+  byGenre: Record<string, number>;
+  unreadDocuments: number;
+}
+
+/** Les comptes par genre d'un projet (docs/SPEC_COMPRENDRE_LE_PROJET.md). Pur. */
+export function tallyGenres(rows: ReadonlyArray<{ genre: string; n: number }>): Pick<EventSummary, "total" | "byGenre"> {
+  const byGenre: Record<string, number> = {};
+  let total = 0;
+  for (const r of rows) {
+    byGenre[r.genre] = (byGenre[r.genre] ?? 0) + r.n;
+    total += r.n;
+  }
+  return { total, byGenre };
+}
+
+export async function eventSummaryForSubject(userId: string, productId: string): Promise<EventSummary> {
+  await requireOwnedProduct(userId, productId);
+  const [rows, unreadDocuments] = await Promise.all([
+    db
+      .select({ genre: materialEvents.genre, n: sql<number>`count(*)::int` })
+      .from(materialEvents)
+      .where(and(eq(materialEvents.userId, userId), eq(materialEvents.productId, productId)))
+      .groupBy(materialEvents.genre),
+    countUnreadDocuments(userId, productId),
+  ]);
+  return { ...tallyGenres(rows), unreadDocuments };
+}
+
 export async function countUnreadDocuments(userId: string, productId: string): Promise<number> {
   const rows = await db
     .select({ n: sql<number>`count(*)::int` })

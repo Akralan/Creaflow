@@ -144,10 +144,9 @@ et types TS gardent "Product", zéro migration pour ce renommage)
 - readerPortrait (jsonb, nullable — 1 à 3 publics `{label, who, situation, wants, alreadyKnows, convincedBy, turnOffs}`
   + `generatedAt, editedByUser, basedOnAudience`, `docs/SPEC_PROMPT_GENERATION_V3.md` §2. Régénéré en tâche de
   fond quand l'audience change, sauf s'il a été édité à la main. Migration `0038`)
-- inspirationRefreshedAt (timestamp, nullable — dernière veille d'inspiration ; relancée en tâche de fond
   au-delà de 7 jours, `docs/SPEC_MEMOIRE_ET_VEILLE.md`. Migration `0039`)
 
-Inspiration (fiche de veille d'un sujet, `docs/SPEC_MEMOIRE_ET_VEILLE.md` §3, migrations `0039`-`0040`)
+Inspiration (fiche de veille d'un sujet, `docs/SPEC_MEMOIRE_ET_VEILLE.md` §3, migrations `0039`-`0040`) — **table supprimée le 2026-10-25** (migration `0060_retrait_veille`)
 - id, userId, productId (FK cascade)
 - url (page réellement consultée par la recherche web), title, insight (ce qu'on en retient)
 - kind, readerLabel (public visé, nullable), platform (nullable)
@@ -385,7 +384,6 @@ Un seul parcours, quelle que soit la porte d'entrée (`users.vertical` ne l'aigu
 - Les angles n'ont pas d'endpoint dédié exposé séparément dans ce document — gérés via `src/lib/services/angleService.ts` (`generateAnglesForUser`, `upsertAngleItem`), appelés à l'onboarding et depuis l'écran Direction.
 - `POST /api/series/:id/framing/options { dimension, chosen, excludeIds, remark?, moment? }` → trois options du catalogue avec leur extrait et le moment raconté ; `POST /api/series/:id/framing/signature` → signature proposée ; `PUT /api/series/:id/framing` enregistre le cadrage (au premier cadrage du compte, la voix devient celle du compte). `docs/SPEC_CADRAGE_SERIE.md`, panneau `SeriesFramingPanel` en tête du détail d'une série.
 - `POST/PUT /api/products/:id/reader-portrait` — régénère / enregistre à la main le portrait des lecteurs d'un sujet (panneau « Lecteurs » du catalogue de sujets).
-- `GET/POST /api/products/:id/inspirations` — liste les fiches de veille / lance une veille ; `PATCH/DELETE /api/inspirations/:id` — réactive, écarte ou supprime une fiche (panneau « Inspirations »).
 - `GET/POST /api/posting-goals` — plateformes de publication : `POST { platform, active }` active une plateforme (au rythme des jours cochés) ou la coupe (`targetCountPerWeek = 0`). Le nombre par semaine ne se règle plus à la main.
 
 - `POST /api/assets/reembed` — maintenance : recalcule les embeddings des ressources `ready` à partir de leur `aiDescription` déjà stockée (aucun appel vision). À lancer une fois après un changement de modèle d'embedding — deux modèles ne produisent pas des vecteurs comparables (`docs/SPEC_RESSOURCES_VISUELLES.md` §8.4). Pas d'écran dédié, appel manuel.
@@ -468,7 +466,7 @@ Tous les appels IA passent par `callStructured` (`src/lib/llm/provider.ts`) : so
 **Prompt V3** (`docs/SPEC_PROMPT_GENERATION_V3.md`, `docs/SPEC_MEMOIRE_ET_VEILLE.md`, `docs/SPEC_CADRAGE_SERIE.md`, textes complets dans `docs/PROMPTS.md`) :
 
 - **Prompt système** = `SCRIPT_CORE_PROMPT` (prête-plume, ordre des priorités, tournures interdites, exemples) + `SCRIPT_METHOD_PROMPT` (la méthode pas à pas que le modèle remplit dans l'outil).
-- **Message** en balises, dans cet ordre : `<lecteurs> <marque> <style> <cadrage> <matiere> <brief> <inspiration> <plateforme> <format> <derniers_posts> <variete> <rappel>` (le bloc `<direction>` du chef a disparu au Lot 4 ; ce chemin ne sert plus qu'aux posts libres sans série, voir 5.16). `<lecteurs>` vient du portrait du sujet, `<cadrage>` du cadrage de la série, `<derniers_posts>` des fiches des 5 derniers posts du sujet, `<inspiration>` des fiches de veille (i1…i10).
+- **Message** en balises, dans cet ordre : `<lecteurs> <marque> <style> <cadrage> <matiere> <brief> <plateforme> <format> <derniers_posts> <variete> <rappel>` (le bloc `<direction>` du chef a disparu au Lot 4 ; ce chemin ne sert plus qu'aux posts libres sans série, voir 5.16). `<lecteurs>` vient du portrait du sujet, `<cadrage>` du cadrage de la série, `<derniers_posts>` des fiches des 5 derniers posts du sujet, `<inspiration>` des fiches de veille (i1…i10).
 - **Étapes de réflexion dans l'outil, avant le post** (l'ordre des propriétés est l'ordre de génération) : reader, candidateMoments, chosenMoment, concept, hookOptions, chosenHook, inspirationsUsed, inspirationsToDrop, puis le post, puis `selfCheck`. Le tout est conservé sur `Script.generationTrace`.
 - **Contrôles du code et seconde tentative** (`src/lib/llm/scriptChecks.ts`, `platformRules.ts`) : tournures interdites, limites chiffrées par plateforme, citations retrouvées dans la matière, trous `[à compléter]`, nombre de slides, auto-contrôle, accroche répétée par rapport aux derniers posts. Un échec relance une fois avec un bloc `<refus>` qui liste les fautes ; la tentative avec le moins de fautes est gardée.
 - Sortie stricte (`strict: true`), `maxTokens` 4096.
@@ -525,9 +523,9 @@ Injection : `buildStyleBlock(profile, platform)` produit un bloc `=== STYLE ===`
 
 Les trois reçoivent `expectations` (« Ce que l'auteur attend de CreaFlow : … ») à la place de l'ancien ton/valeurs/matériel/temps. Ces trois générations sont déclenchées automatiquement à la fin de l'onboarding (`completeOnboarding`, dans cet ordre : catégories → angles → séries, les séries dépendant des catégories) et peuvent être régénérées manuellement depuis l'écran Direction (l'ancien jeu actif est archivé, pas supprimé).
 
-### 5.15 Portrait des lecteurs, veille d'inspiration (le cadrage de série est retiré)
+### 5.15 Portrait des lecteurs (la veille d'inspiration et le cadrage de série sont retirés)
 - `src/lib/llm/readerPortrait.ts` — 1 à 3 publics par sujet, tirés de l'audience et de la matière du sujet. Le rédacteur en chef choisit chaque jour le public visé (`readerLabel`), en évitant celui des derniers posts.
-- `src/lib/llm/inspirationResearch.ts` — deux appels : une recherche web (`callWebResearch`, outil `web_search` d'OpenAI avec `tool_choice: "required"`, sinon le modèle répond de mémoire), puis une mise en fiches. Seules les URL réellement consultées (annotations `url_citation`) sont gardées.
+- La **veille d'inspiration** (`inspirationResearch.ts`, `inspirationService.ts`, `callWebResearch`, ses routes et le bloc `<inspiration>` du prompt V3) est **retirée le 2026-10-25**, code supprimé ; la table `inspirations`, le type `inspiration_status` et `products.inspiration_refreshed_at` sont supprimés par la migration `0060_retrait_veille`, appliquée en dev.
 - Le cadrage de série (`seriesFraming.ts`, `seriesFramingService.ts`, routes `/api/series/[id]/framing*`, panneau) est **retiré le 2026-10-17** : il n'était lu que par le prompt V3, et la forme de la série (5.16) couvrait ce qu'il faisait — avant d'être retirée elle-même le 2026-10-20.
 
 ### 5.16 L'événement-pointeur et le rédacteur qui choisit — `pointerExtractor.ts`, `pointerPostWriter.ts` (`docs/SPEC_EVENEMENT_POINTEUR.md`)

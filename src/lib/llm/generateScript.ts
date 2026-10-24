@@ -147,6 +147,5 @@ export async function generateScript(context: ScriptGenerationContext): Promise<
     script = { ...script, storyboard: enforceStoryboardCount(script.storyboard, context.visual).storyboard };
   }
   if (!best.prep) return script;
-  const inspirationsShown = (context.inspirations ?? []).map((c) => ({ ref: c.ref, id: c.id }));
-  return { ...script, trace: { version: 3, ...best.prep, inspirationsShown, checks: { failures: best.failures, retried } } };
+  return { ...script, trace: { version: 3, ...best.prep, checks: { failures: best.failures, retried } } };
 }

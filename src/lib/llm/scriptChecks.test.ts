@@ -31,8 +31,6 @@ const prep = (selfCheck: Partial<GenerationPrep["selfCheck"]> = {}): GenerationP
   chosenMoment: { index: 0, why: "" },
   hookOptions: [],
   chosenHook: { index: 0, why: "" },
-  inspirationsUsed: [],
-  inspirationsToDrop: [],
   selfCheck: { factsFromMaterial: true, bannedPhrasesFound: [], readerTest: "They want the number.", authorTest: true, ...selfCheck },
 });
 
