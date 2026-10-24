@@ -96,6 +96,7 @@ export async function listCalendarRange(userId: string, from: Date, to: Date, op
             durationMs: true,
             hookText: true,
             caption: true,
+            form: true,
           },
         },
         contentCategory: { columns: { id: true, label: true } },

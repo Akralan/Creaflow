@@ -1,172 +1,182 @@
 BANC POINTEURS — creaflow
 modèle : gpt-6-luna
-43 documents, 581 pointeurs, 350 datés
+47 documents, 1646 pointeurs, 465 datés
+genres : livraison 583 · annonce 20 · décision 712 · question 33 · chiffre 73 · échec 116 · leçon 76 · engagement 9 · offre 0 · retour_utilisateur 4 · déclencheur 1 · coulisse 18 · réaction 1 · (available) 15 · (fulfills) 127
 cible : Indie developers building in public — developers and solo founders who ship a product publicly and want to post about it without spending their evening writing
 
 ================================================================================================
-POST 1 — 42s, 5 tours
-read_file : 8 · read_post : 0
-événements choisis : e341 2026-10-21 docs/DEVLOG.md:97
+POST 1 — forme : origin — 37s, 4 tours
+read_file : 5 · read_post : 0 · read_form : 1 · publish_post refusés : 0
+événements choisis : e1504 no date docs/SPEC_MATIERE_EDITEUR.md:13 [échec] | e1505 no date docs/SPEC_MATIERE_EDITEUR.md:29 [chiffre] | e1506 no date docs/SPEC_MATIERE_EDITEUR.md:33 [leçon]
 ================================================================================================
 
-Deux jours pour comprendre pourquoi mes posts générés ressemblaient à des inventaires.
+37 sessions de développement documentées, collées dans une IA : une série d’environ 5 posts.
+Un premier script tiré d’une simple description produit, lui, était générique et inventait des détails.
 
-Chaque règle ajoutée pour les améliorer ressortait comme une nouvelle rubrique. Pourtant, la matière était bien réelle : des événements tirés d’un devlog. Le problème n’était pas le manque d’idées. C’était de transformer le travail documenté en quelque chose qu’on a envie de publier.
+Pour un indie dev, la matière existe déjà : bugs, réglages, décisions, chiffres. Elle s’accumule dans le journal de développement et les notes, mais ne devient pas forcément un post.
 
-Je construis CreaFlow pour les développeurs indépendants et les fondateurs qui ont déjà des notes, des specs, des décisions et un journal de chantier — mais pas envie de passer leurs soirées à en faire des posts. CreaFlow part de cette matière et n’invente pas les faits qui manquent.
+Le test a mis le contraste en évidence : avec une matière riche, l’IA avait de quoi raconter quelque chose de précis. Avec une seule phrase, elle restait vague ou brodait.
 
-Je commence à partager le chantier ici pour publier ce que je construis sans y passer mes soirées.
-
-================================================================================================
-POST 2 — 14s, 4 tours
-read_file : 3 · read_post : 1
-événements choisis : e344 2026-10-21 docs/DEVLOG.md:165
-================================================================================================
-
-47 fichiers de documentation, et pas une seule raison de publier.
-
-Sur un dépôt essayé dans CreaFlow, les commits donnaient huit jours d’activité, mais rien d’assez parlant pour devenir un événement. La documentation, elle, contenait 112 réglages sans date. Beaucoup de matière — mais pas la réponse à « pourquoi partager le chantier ? »
-
-J’ai testé une origine à partir de la seule fiche produit. Résultat : deux phrases qui répétaient le problème et la description. Une machine peut lire ce que tu construis ; elle ne peut pas deviner pourquoi tu veux le montrer.
-
-C’est pour ça que CreaFlow, l’outil qui transforme les notes, specs et devlogs des développeurs indépendants en posts, demande aussi cette raison directement à la personne qui construit. Le but n’est pas de fabriquer une histoire à ta place, mais de rendre publiable celle que tes documents ne peuvent pas raconter seuls.
+Le premier geste a été de partir des écrits déjà produits. CreaFlow est né pour les transformer en posts, sans inventer un fait qui n’a pas été donné.
 
 ================================================================================================
-POST 3 — 18s, 4 tours
-read_file : 3 · read_post : 2
-événements choisis : e342 2026-10-21 docs/DEVLOG.md:118 | e343 2026-10-21 docs/DEVLOG.md:155
+POST 2 — forme : failure — 28s, 6 tours
+read_file : 5 · read_post : 1 · read_form : 2 · publish_post refusés : 1
+événements choisis : e1197 2026-10-24 docs/DEVLOG.md:19 [échec]
 ================================================================================================
 
-54 événements sur 69 n’avaient rien dans la case « enjeu ».
+Je voulais que CreaFlow parcoure les 43 documents du dépôt.
+Son lecteur, qui en extrait la matière pour les posts, s’est arrêté après 4.
 
-Cette case devait expliquer ce qui était en jeu. Mais quand elle était remplie, elle contenait souvent une interprétation au lieu d’un détail réel. Dans un exemple, la source disait que des images d’une personne en caleçon étaient stockées sur un VPS — un serveur privé en ligne. Le résumé de l’événement disait seulement que des images étaient stockées sur le serveur. Le fait était là ; ce qui le rendait racontable avait disparu.
+Le test avait parcouru 11 sections sur environ 82 en 107 tours. Il avait enregistré 75 événements et en avait rejeté 21, tous à cause de leur extrait.
 
-J’ai supprimé cette couche de résumé. CreaFlow transforme les notes, specs et devlogs des développeurs indépendants en posts, mais il doit raconter la matière qu’on lui donne, pas lisser les détails ni inventer une explication à leur place. La fidélité, parfois, tient à quelques mots qu’un résumé juge dispensables.
+Il n’avait pas atteint sa limite de tours : il s’est arrêté de lui-même et a demandé s’il devait continuer. Les 39 autres documents n’ont jamais été lus.
 
-================================================================================================
-POST 4 — 17s, 4 tours
-read_file : 8 · read_post : 3
-événements choisis : e348 2026-10-21 docs/SPEC_EVENEMENTS_PAR_CIBLE.md:7
-================================================================================================
-
-« Le serveur ne reçoit que des degrés » : le même fait ne raconte pas la même chose à un développeur et à un kiné.
-
-Dans la documentation de MyKiné, il est écrit que rien de ce que filme le téléphone n’en sort, et que le serveur ne reçoit que des degrés. Pour un développeur, c’est une décision technique. Pour un kiné, le point concret est que les images du patient restent sur le téléphone.
-
-Le fait ne change pas. Ce qui change, c’est la personne à qui on le raconte.
-
-C’est le principe que je construis dans CreaFlow : transformer les notes, specs et devlogs d’un indépendant en posts qui parlent à son lecteur. Les faits restent dans une seule ligne de temps ; chaque événement n’est retenu pour une série que s’il change quelque chose pour son public. Pas besoin d’inventer un angle : il faut trouver celui qui existe déjà dans la matière.
+Le parcours n’a pas encore été exécuté dans l’application ; il n’a été testé qu’au banc.
 
 ================================================================================================
-POST 5 — 22s, 4 tours
-read_file : 8 · read_post : 4
-événements choisis : e341 2026-10-21 docs/DEVLOG.md:97 | e427 no date docs/DEVLOG.md:129 | e428 no date docs/DEVLOG.md:137
+POST 3 — forme : lesson — 20s, 5 tours
+read_file : 2 · read_post : 2 · read_form : 2 · publish_post refusés : 0
+événements choisis : e1206 2026-10-24 docs/DEVLOG.md:40 [leçon]
 ================================================================================================
 
-Même brief, mêmes 3 événements : le modèle a gardé 2 détails humains sur 10, puis 6 sur 10.
+Sans aucune règle de forme, 12 posts sur 12 ont eu exactement quatre paragraphes.
 
-Je comparais deux moteurs d’IA sur les mêmes passages du devlog — le journal de chantier d’un projet — sans toucher au reste. Dans une phrase, le détail était le mot « quand même » : « il a quand même fait 20 squats dans son salon ». Il n’est sorti d’aucun des six essais avec le premier modèle, puis dès le premier essai avec l’autre.
+La leçon : retirer les consignes ne rend pas un générateur neutre.
 
-Les paragraphes qui sonnaient comme des rubriques sont aussi passés de 6 sur 17 à zéro sur 12. Mais ce test ne prouve pas qu’un modèle est meilleur partout. Il m’a surtout rappelé qu’ajouter des consignes n’est pas toujours la bonne réponse à un post qui sonne faux.
+Dans le run A du banc, 12 posts se sont enchaînés sur tellovo avec le même modèle. Tous avaient quatre paragraphes et finissaient par une leçon généralisée. Sans forme imposée, le modèle avait simplement choisi la sienne.
 
-CreaFlow transforme les notes, specs et devlogs des développeurs indépendants en posts. Le modèle aide à raconter la matière ; il ne choisit pas à lui seul quels moments méritent d’être publiés. Cette sélection, elle aussi, doit partir de ce qui s’est réellement passé.
+Pour CreaFlow, qui transforme les notes et décisions de développement en posts, ça change la façon de tester : il ne suffit pas de vérifier que le texte sort. Il faut regarder ce que le modèle reproduit quand on ne lui demande rien.
 
-================================================================================================
-POST 6 — 39s, 6 tours
-read_file : 15 · read_post : 5
-événements choisis : e278 2026-10-19 docs/DEVLOG.md:76 | e282 2026-10-19 docs/SPEC_PERFORMANCE.md:2 | e287 2026-10-19 docs/SPEC_PERFORMANCE.md:189
-================================================================================================
-
-Lundi, à 00 h 58, mon écran affichait −100 %.
-
-Ce n’était pas une chute des performances : la nouvelle semaine venait de commencer et aucun chiffre n’était encore arrivé. Le tableau comparait quand même ce zéro provisoire à la semaine précédente — et transformait une absence de données en mauvaise nouvelle.
-
-J’ai changé la règle : pas de pourcentage tant que la semaine n’a aucun chiffre. Et si le post le plus récent a moins de trois jours, l’écran indique combien de temps attendre avant de comparer.
-
-Je construis CreaFlow pour les développeurs indépendants qui veulent transformer leurs notes, specs et devlogs en posts sans y passer leurs soirées. Le suivi doit être aussi honnête que l’écriture : si les vues ne sont pas encore là, mieux vaut le dire que faire parler un zéro.
+L’absence de règle est déjà une règle implicite.
 
 ================================================================================================
-POST 7 — 21s, 6 tours
-read_file : 8 · read_post : 6
-événements choisis : e384 no date docs/DEVLOG.md:11 | e387 no date docs/DEVLOG.md:16
+POST 4 — forme : lesson — 19s, 4 tours
+read_file : 4 · read_post : 3 · read_form : 1 · publish_post refusés : 0
+événements choisis : e1536 no date docs/SPEC_MATIERE_EDITEUR.md:167 [leçon]
 ================================================================================================
 
-Un robot peut utiliser ton lien de connexion avant toi.
+Le test fondateur de l’éditeur de CreaFlow a tenu en deux gestes : corriger à la main et demander « reprends cette phrase ».
 
-Quand un service mail vérifie les liens d’un message, il peut ouvrir celui qui sert à se connecter. Si cette simple ouverture consomme le lien à usage unique, le vrai destinataire arrive trop tard.
+La règle retenue : rendre ces gestes faciles avant d’ajouter une collection de commandes IA.
 
-Pour CreaFlow, l’outil que je construis pour transformer les dépôts GitHub publics des développeurs indépendants en posts, j’envoie le premier post par e-mail avec un lien de connexion. J’ai fait en sorte que le lien ne soit consommé qu’après l’ouverture de la page et la confirmation, pas quand le service mail vérifie le message.
+La V1 permet donc de modifier les blocs, de sélectionner une phrase pour la remplacer avec une instruction libre, d’annuler et de régénérer un bloc. Les commandes prédéfinies, le suivi des modifications et les menus contextuels attendront une preuve du besoin.
 
-Le robot peut regarder. Le lien reste au fondateur.
+Pour un outil qui transforme les notes de développement en posts, l’éditeur n’a pas besoin d’imiter un traitement de texte complet. Il doit rendre la correction réelle plus simple.
 
-================================================================================================
-POST 8 — 18s, 3 tours
-read_file : 3 · read_post : 3
-événements choisis : e336 2026-10-21 commit-log.txt:1 | e350 2026-10-21 docs/SPEC_FIL_NARRATIF.md:8 | e437 no date docs/DEVLOG.md:171 | e438 no date docs/DEVLOG.md:173
-================================================================================================
-
-47 fichiers de documentation. Zéro événement racontable.
-
-J’ai testé CreaFlow en lui donnant le dépôt d’un projet. Il a bien lu le journal des commits, mais les changements décrivaient des titres et des liens — rien qui dise ce qui était en jeu. En fouillant ensuite les documents, il a trouvé 112 réglages sans date. Beaucoup de matière, mais pas de quoi prétendre qu’un moment important s’était produit.
-
-Et quand j’ai fait écrire le post d’origine à partir de la seule fiche produit, il a simplement reformulé le problème et la description. Une plaquette, pas une raison de construire en public.
-
-CreaFlow transforme les dépôts GitHub, notes et devlogs des développeurs indépendants en posts. Mais il ne peut pas deviner pourquoi quelqu’un publie : cette réponse doit venir de la personne. La mienne tient en une phrase : « Publier ce que je construis sans y passer mes soirées. »
+Commencer par l’usage observé, pas par les options imaginées.
 
 ================================================================================================
-POST 9 — 23s, 5 tours
-read_file : 7 · read_post : 8
-événements choisis : e284 2026-10-19 docs/SPEC_PERFORMANCE.md:75 | e288 2026-10-19 docs/SPEC_PERFORMANCE.md:194
+POST 5 — forme : failure — 40s, 9 tours
+read_file : 7 · read_post : 4 · read_form : 2 · publish_post refusés : 0
+événements choisis : e1489 no date docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md:155 [échec]
 ================================================================================================
 
-Un post mal rattaché peut fausser tes stats — et, dans cette version, le lien ne se défait pas.
+Je voulais éviter les doublons. Le lecteur a écarté la version la mieux datée.
 
-CreaFlow compare la date et le texte d’un post publié avec les posts prévus dans son calendrier. J’ai choisi de ne pas laisser une simple « meilleure correspondance » décider : l’association se fait automatiquement seulement si le score est élevé, s’il dépasse nettement le deuxième candidat, et si la date comme le texte concordent. Sinon, CreaFlow demande confirmation.
+Pendant un essai, un fait apparaissait dans une documentation technique avec une date vague, puis dans le journal de développement avec sa date précise. Le lecteur de documents — celui qui extrait les événements du projet — a considéré le fait déjà connu et ignoré l’entrée du journal.
 
-Une fois le post correctement relié, son statut passe automatiquement à « Posted ». Pas besoin de revenir cocher une case. Mais comme il n’existe pas encore de bouton pour défaire une association, l’automatisation doit d’abord savoir quand s’arrêter.
-
-CreaFlow aide les développeurs indépendants à transformer leurs notes, specs et devlogs en posts, puis à suivre ceux qu’ils publient. Pour moi, une statistique utile commence par le bon post — pas par une supposition rapide.
+Le fait restait dans la sélection, mais sa date exacte avait disparu. Ce cas de déduplication trop large est encore ouvert.
 
 ================================================================================================
-POST 10 — 42s, 8 tours
-read_file : 13 · read_post : 9
-événements choisis : e230 2026-10-17 docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md:3 | e294 2026-10-20 commit-log.txt:11 | e296 2026-10-20 commit-log.txt:13 | e297 2026-10-20 commit-log.txt:14
+POST 6 — forme : lesson — 19s, 4 tours
+read_file : 2 · read_post : 5 · read_form : 1 · publish_post refusés : 0
+événements choisis : e1591 no date docs/SPEC_METRIQUES_AUTO.md:148 [leçon]
 ================================================================================================
 
-3 brouillons maximum : c’est la limite que j’ai donnée au relecteur de CreaFlow.
+Trois posts ne prouvent pas qu’une catégorie mérite plus de place dans un calendrier éditorial.
 
-CreaFlow transforme les notes, specs et devlogs d’un développeur indépendant en posts. Mais un texte peut être correct et pourtant perdre la personne à qui il s’adresse. Alors, après le premier jet, un rôle de relecture distinct du rédacteur le juge comme ce lecteur : est-ce qu’il continue après la deuxième phrase ? Va-t-il jusqu’au bout ? Apprend-il quelque chose ? Est-ce que ça sonne comme l’auteur, ou comme un service marketing ?
+En cadrant l’ajustement de CreaFlow selon les performances, j’ai retenu une règle : ne pas confondre petit échantillon et signal éditorial.
 
-Si le brouillon ne tient pas, le relecteur nomme le problème en une ligne et le rédacteur recommence. Pas une boucle infinie : trois essais au plus. Je veux que CreaFlow vérifie non seulement si un post respecte ses règles, mais aussi s’il mérite d’être lu — sans inventer de détails pour le rendre plus convaincant.
+Avec trop peu de données, le système risque de transformer du bruit en décision. Et une catégorie favorisée peut recevoir plus de créneaux, donc générer plus de données, jusqu’à déséquilibrer tout le calendrier.
 
-================================================================================================
-POST 11 — 19s, 4 tours
-read_file : 5 · read_post : 5
-événements choisis : e510 no date docs/SPEC_ENTREE_PAR_LE_REPO.md:42 | e511 no date docs/SPEC_ENTREE_PAR_LE_REPO.md:43 | e512 no date docs/SPEC_ENTREE_PAR_LE_REPO.md:44 | e523 no date docs/SPEC_ENTREE_PAR_LE_REPO.md:157
-================================================================================================
-
-1 min 20 mesurée en dev, entre l’adresse e-mail et le premier post prêt.
-
-Le test portait sur un petit dépôt : 3 documents et 13 événements à raconter. Ce n’est pas une promesse de délai pour tous les projets, mais ça m’a permis de mesurer le parcours réel.
-
-Avec CreaFlow, les développeurs indépendants peuvent partir de leur dépôt GitHub public pour transformer leurs notes et leur historique de construction en posts. Au lieu de remplir six écrans avant de voir le résultat, tu donnes ton e-mail et reçois le premier post quand il est prêt. En ouvrant le lien, les deux autres posts de la semaine se lancent dans l’application.
-
-Je voulais que le premier contact avec CreaFlow soit déjà un brouillon concret — pas une nouvelle tâche de configuration à remettre à plus tard.
+Quelques résultats ne devraient pas dicter la ligne éditoriale.
 
 ================================================================================================
-POST 12 — 41s, 7 tours
-read_file : 15 · read_post : 11
-événements choisis : e345 2026-10-21 docs/PROMPTS.md:1426 | e346 2026-10-21 docs/PROMPTS.md:1460
+POST 7 — forme : failure — 20s, 5 tours
+read_file : 5 · read_post : 6 · read_form : 1 · publish_post refusés : 0
+événements choisis : e1508 no date docs/SPEC_MATIERE_EDITEUR.md:36 [échec]
 ================================================================================================
 
-J’ai retiré la poterie, le bateau et la ruche du prompt de CreaFlow.
+Je pensais qu’un journal de bord découpé en unités serait plus facile à exploiter. Avec six extraits choisis par rotation, l’application produisait un post pauvre et décousu.
 
-C’étaient trois exemples fictifs pour montrer au modèle comment écrire. Trop courts, sans contexte ni étiquette, ils lui enseignaient surtout une forme répétitive — exactement celle que je cherchais à éviter.
+J’avais implémenté des morceaux classés par type — bug, anecdote, chiffre, décision — puis sélectionnés sans tenir compte de leur pertinence. En comparaison, envoyer le journal complet à un modèle donnait un excellent post.
 
-Je les ai remplacés par trois vrais posts de l’auteur. La consigne : en tirer le niveau de précision et le rythme, sans reprendre leurs accroches, leur structure ni leurs tournures.
+Le découpage avait perdu la richesse du récit ; la sélection assemblait des fragments sans lien thématique. J’ai abandonné cette version.
 
-CreaFlow transforme les notes, specs et devlogs des développeurs indépendants en posts. Les exemples peuvent aider une IA à écrire, mais ils peuvent aussi lui donner un moule. Je veux qu’elle apprenne le soin, pas qu’elle serve le même post avec trois décors différents.
+Aujourd’hui, la génération reçoit le texte brut complet. Le modèle indique les passages utilisés, qui sont retrouvés dans le document source et conservés comme citations. La présélection en six morceaux, elle, n’est plus utilisée.
+
+================================================================================================
+POST 8 — forme : number — 21s, 4 tours
+read_file : 2 · read_post : 7 · read_form : 1 · publish_post refusés : 0
+événements choisis : e378 2026-08-02 docs/SPEC_RESSOURCES_VISUELLES.md:159 [chiffre] | e379 2026-12-02 docs/SPEC_RESSOURCES_VISUELLES.md:160 [chiffre]
+================================================================================================
+
+Le 2 décembre 2026 n’est pas une date de grâce pour CreaFlow.
+
+La période transitoire de l’article 50 ne concerne que les systèmes déjà mis sur le marché avant le 2 août 2026. CreaFlow n’étant pas lancé, nous ne pouvons pas compter sur ce sursis.
+
+La spec en tire une conséquence concrète : le marquage doit être technique et lisible par machine — pas seulement un avertissement visible. Il faut aussi préserver les métadonnées lors des redimensionnements ou conversions, et clarifier qui porte quelle responsabilité dans la chaîne, fournisseur ou déployeur.
+
+Le filigrane SynthID de Gemini pourrait aider, mais il reste à vérifier les conditions actuelles de l’API avant de s’y fier.
+
+L’échéance nous pousse à traiter ces choix dans l’architecture, plutôt qu’en migration tardive.
+
+================================================================================================
+POST 9 — forme : lesson — 31s, 6 tours
+read_file : 5 · read_post : 8 · read_form : 2 · publish_post refusés : 0
+événements choisis : e1546 no date docs/SPEC_MATIERE_EDITEUR.md:185 [leçon]
+================================================================================================
+
+J’ai failli facturer une retouche de phrase comme un post entier.
+
+Dans CreaFlow, une régénération complète et une micro-retouche consommaient le même quota. Pourtant, « reformule cette phrase » n’est pas le même geste que « écris-moi un premier jet ».
+
+J’ai donc séparé les deux : un quota pour les générations complètes, un autre pour les petites retouches, comme réécrire un bloc ou retravailler une sélection.
+
+La règle que je garde : le coût doit suivre la taille du geste, sinon on décourage précisément l’itération qui rend le brouillon publiable.
+
+================================================================================================
+POST 10 — forme : lesson — 52s, 11 tours
+read_file : 11 · read_post : 9 · read_form : 3 · publish_post refusés : 0
+événements choisis : e1258 2026-10-21 docs/DEVLOG.md:156 [leçon]
+================================================================================================
+
+Six variantes du prompt, trois mêmes événements : chaque resserrage rendait les posts plus rigides.
+
+La leçon, en construisant le rédacteur de CreaFlow : une règle de rédaction nommée devient vite une rubrique à réciter.
+
+Au banc d’essai, une consigne sur la tension ressortait comme une phrase sur « la tension ». Une règle sur la fin produisait une phrase qui annonçait « ce qui est vrai maintenant ». Le modèle reprenait les étiquettes des consignes au lieu de raconter les événements.
+
+La piste qui a fonctionné : retirer des règles, pas en ajouter. Une règle de plus peut devenir un paragraphe de plus.
+
+================================================================================================
+POST 11 — forme : lesson — 19s, 4 tours
+read_file : 2 · read_post : 2 · read_form : 1 · publish_post refusés : 0
+événements choisis : e1576 no date docs/SPEC_METRIQUES_AUTO.md:25 [leçon]
+================================================================================================
+
+La saisie manuelle des métriques peut disparaître en deux semaines.
+
+En cadrant le suivi des performances de CreaFlow, le risque était clair : demander de recopier les résultats d’une publication, sans récompense immédiate, rend cette saisie facile à abandonner.
+
+La leçon : automatiser les données n’est pas un simple confort. C’est ce qui rend l’analyse possible.
+
+Une fonctionnalité de performance ne vaut que si ses données ne reposent pas sur une corvée répétée.
+
+================================================================================================
+POST 12 — forme : episode — 34s, 9 tours
+read_file : 4 · read_post : 11 · read_form : 3 · publish_post refusés : 0
+événements choisis : e1510 no date docs/SPEC_MATIERE_EDITEUR.md:53 [décision]
+================================================================================================
+
+Un post n’a pas besoin d’être écrit dans CreaFlow pour y être suivi.
+
+Jusqu’ici, seule la génération par IA pouvait créer un post dans l’outil. J’ai ouvert la création aux textes écrits ailleurs : on peut les importer, les placer à une date et suivre leur publication dans CreaFlow.
+
+Pour un fondateur solo, ça veut dire qu’on peut garder son propre geste d’écriture sans perdre le fil de ce qui est prêt à partir.
 
 ------------------------------------------------------------------------------------------------
-28 pointeurs utilisés sur 581
-durée totale : 316s
+15 pointeurs utilisés sur 1646
+formes : origin 1 · failure 3 · lesson 6 · number 1 · episode 1
+durée totale : 5571s

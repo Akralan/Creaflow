@@ -1,0 +1,1790 @@
+{
+  "timeline": [
+    {
+      "id": "e1",
+      "file": "devlog.md",
+      "line": 7,
+      "date": "2025-11-09",
+      "used": true,
+      "genre": "déclencheur",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e2",
+      "file": "devlog.md",
+      "line": 11,
+      "date": "2025-11-16",
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e36",
+      "file": "decisions.md",
+      "line": 5,
+      "date": "2025-11-23",
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": "e3"
+    },
+    {
+      "id": "e3",
+      "file": "devlog.md",
+      "line": 15,
+      "date": "2025-11-23",
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e4",
+      "file": "devlog.md",
+      "line": 19,
+      "date": "2025-12-06",
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e5",
+      "file": "devlog.md",
+      "line": 23,
+      "date": "2025-12-20",
+      "used": false,
+      "genre": "retour_utilisateur",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e6",
+      "file": "devlog.md",
+      "line": 27,
+      "date": "2026-01-11",
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e37",
+      "file": "decisions.md",
+      "line": 11,
+      "date": "2026-01-18",
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e7",
+      "file": "devlog.md",
+      "line": 31,
+      "date": "2026-01-18",
+      "used": false,
+      "genre": "retour_utilisateur",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e8",
+      "file": "devlog.md",
+      "line": 35,
+      "date": "2026-02-01",
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e38",
+      "file": "decisions.md",
+      "line": 17,
+      "date": "2026-02-07",
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e9",
+      "file": "devlog.md",
+      "line": 39,
+      "date": "2026-02-07",
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e10",
+      "file": "devlog.md",
+      "line": 43,
+      "date": "2026-02-15",
+      "used": false,
+      "genre": "retour_utilisateur",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e11",
+      "file": "devlog.md",
+      "line": 47,
+      "date": "2026-02-22",
+      "used": false,
+      "genre": "échec",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e12",
+      "file": "devlog.md",
+      "line": 51,
+      "date": "2026-03-07",
+      "used": false,
+      "genre": "retour_utilisateur",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e13",
+      "file": "devlog.md",
+      "line": 53,
+      "date": "2026-03-07",
+      "used": false,
+      "genre": "coulisse",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e39",
+      "file": "decisions.md",
+      "line": 23,
+      "date": "2026-03-14",
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": "e14"
+    },
+    {
+      "id": "e40",
+      "file": "decisions.md",
+      "line": 29,
+      "date": "2026-03-14",
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": "e14"
+    },
+    {
+      "id": "e14",
+      "file": "devlog.md",
+      "line": 57,
+      "date": "2026-03-14",
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e15",
+      "file": "devlog.md",
+      "line": 61,
+      "date": "2026-03-21",
+      "used": false,
+      "genre": "échec",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e41",
+      "file": "decisions.md",
+      "line": 35,
+      "date": "2026-04-05",
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e16",
+      "file": "devlog.md",
+      "line": 65,
+      "date": "2026-04-05",
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e17",
+      "file": "devlog.md",
+      "line": 69,
+      "date": "2026-04-12",
+      "used": false,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e18",
+      "file": "devlog.md",
+      "line": 73,
+      "date": "2026-04-26",
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e19",
+      "file": "devlog.md",
+      "line": 77,
+      "date": "2026-05-12",
+      "used": false,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e20",
+      "file": "devlog.md",
+      "line": 81,
+      "date": "2026-05-26",
+      "used": false,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e42",
+      "file": "decisions.md",
+      "line": 41,
+      "date": "2026-06-02",
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": "e21"
+    },
+    {
+      "id": "e21",
+      "file": "devlog.md",
+      "line": 85,
+      "date": "2026-06-02",
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e22",
+      "file": "devlog.md",
+      "line": 89,
+      "date": "2026-06-15",
+      "used": false,
+      "genre": "échec",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e43",
+      "file": "decisions.md",
+      "line": 47,
+      "date": "2026-06-21",
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e23",
+      "file": "devlog.md",
+      "line": 93,
+      "date": "2026-06-21",
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e24",
+      "file": "devlog.md",
+      "line": 97,
+      "date": "2026-06-28",
+      "used": false,
+      "genre": "retour_utilisateur",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e25",
+      "file": "devlog.md",
+      "line": 101,
+      "date": "2026-07-06",
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e26",
+      "file": "devlog.md",
+      "line": 105,
+      "date": "2026-07-13",
+      "used": false,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e27",
+      "file": "devlog.md",
+      "line": 109,
+      "date": "2026-07-20",
+      "used": false,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e28",
+      "file": "devlog.md",
+      "line": 113,
+      "date": "2026-08-03",
+      "used": false,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e29",
+      "file": "devlog.md",
+      "line": 117,
+      "date": "2026-08-17",
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e44",
+      "file": "decisions.md",
+      "line": 53,
+      "date": "2026-08-30",
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e30",
+      "file": "devlog.md",
+      "line": 121,
+      "date": "2026-08-30",
+      "used": false,
+      "genre": "échec",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e31",
+      "file": "devlog.md",
+      "line": 125,
+      "date": "2026-09-08",
+      "used": false,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e32",
+      "file": "devlog.md",
+      "line": 129,
+      "date": "2026-09-14",
+      "used": false,
+      "genre": "échec",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e33",
+      "file": "devlog.md",
+      "line": 133,
+      "date": "2026-09-21",
+      "used": false,
+      "genre": "échec",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e45",
+      "file": "decisions.md",
+      "line": 59,
+      "date": "2026-10-03",
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": "e34"
+    },
+    {
+      "id": "e34",
+      "file": "devlog.md",
+      "line": 137,
+      "date": "2026-10-03",
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e35",
+      "file": "devlog.md",
+      "line": 141,
+      "date": "2026-10-10",
+      "used": false,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e46",
+      "file": "genres.md",
+      "line": 7,
+      "date": "2026-10-11",
+      "used": false,
+      "genre": "réaction",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e47",
+      "file": "genres.md",
+      "line": 11,
+      "date": "2026-10-12",
+      "used": false,
+      "genre": "coulisse",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e48",
+      "file": "genres.md",
+      "line": 15,
+      "date": "2026-10-13",
+      "used": false,
+      "genre": "retour_utilisateur",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e49",
+      "file": "genres.md",
+      "line": 19,
+      "date": "2026-10-14",
+      "used": false,
+      "genre": "engagement",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e50",
+      "file": "genres.md",
+      "line": 23,
+      "date": "2026-10-15",
+      "used": true,
+      "genre": "livraison",
+      "disponible": true,
+      "tient": null
+    },
+    {
+      "id": "e51",
+      "file": "genres.md",
+      "line": 27,
+      "date": "2026-10-16",
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": "e44"
+    },
+    {
+      "id": "e52",
+      "file": "genres.md",
+      "line": 31,
+      "date": "2026-10-17",
+      "used": true,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e53",
+      "file": "genres.md",
+      "line": 35,
+      "date": "2026-10-18",
+      "used": true,
+      "genre": "échec",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e54",
+      "file": "genres.md",
+      "line": 39,
+      "date": "2026-10-19",
+      "used": true,
+      "genre": "annonce",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e55",
+      "file": "genres.md",
+      "line": 43,
+      "date": "2026-10-20",
+      "used": true,
+      "genre": "question",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e56",
+      "file": "genres.md",
+      "line": 47,
+      "date": "2026-10-21",
+      "used": true,
+      "genre": "offre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e57",
+      "file": "genres.md",
+      "line": 51,
+      "date": "2026-10-22",
+      "used": true,
+      "genre": "leçon",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e58",
+      "file": "genres.md",
+      "line": 55,
+      "date": "2026-10-23",
+      "used": true,
+      "genre": "livraison",
+      "disponible": true,
+      "tient": null
+    },
+    {
+      "id": "e59",
+      "file": "genres.md",
+      "line": 59,
+      "date": "2026-10-24",
+      "used": true,
+      "genre": "coulisse",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e60",
+      "file": "Mes notes",
+      "line": 5,
+      "date": null,
+      "used": false,
+      "genre": "coulisse",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e114",
+      "file": "Mes notes",
+      "line": 5,
+      "date": null,
+      "used": false,
+      "genre": "coulisse",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e131",
+      "file": "Mes notes",
+      "line": 5,
+      "date": null,
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": "e37"
+    },
+    {
+      "id": "e155",
+      "file": "Mes notes",
+      "line": 5,
+      "date": null,
+      "used": false,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e61",
+      "file": "Mes notes",
+      "line": 7,
+      "date": null,
+      "used": true,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e156",
+      "file": "Mes notes",
+      "line": 7,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": true,
+      "tient": null
+    },
+    {
+      "id": "e132",
+      "file": "Mes notes",
+      "line": 9,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e88",
+      "file": "Mes notes",
+      "line": 11,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e62",
+      "file": "Mes notes",
+      "line": 12,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e63",
+      "file": "Mes notes",
+      "line": 14,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e89",
+      "file": "Mes notes",
+      "line": 17,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e90",
+      "file": "Mes notes",
+      "line": 19,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e91",
+      "file": "Mes notes",
+      "line": 20,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e92",
+      "file": "Mes notes",
+      "line": 21,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e93",
+      "file": "Mes notes",
+      "line": 22,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e115",
+      "file": "Mes notes",
+      "line": 22,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e133",
+      "file": "Mes notes",
+      "line": 22,
+      "date": null,
+      "used": false,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e148",
+      "file": "Mes notes",
+      "line": 22,
+      "date": null,
+      "used": false,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e64",
+      "file": "Mes notes",
+      "line": 24,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e94",
+      "file": "Mes notes",
+      "line": 24,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e95",
+      "file": "Mes notes",
+      "line": 28,
+      "date": null,
+      "used": false,
+      "genre": "coulisse",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e116",
+      "file": "Mes notes",
+      "line": 28,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e134",
+      "file": "Mes notes",
+      "line": 28,
+      "date": null,
+      "used": false,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e135",
+      "file": "Mes notes",
+      "line": 29,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e96",
+      "file": "Mes notes",
+      "line": 30,
+      "date": null,
+      "used": false,
+      "genre": "coulisse",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e136",
+      "file": "Mes notes",
+      "line": 30,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e65",
+      "file": "Mes notes",
+      "line": 31,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e137",
+      "file": "Mes notes",
+      "line": 31,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e138",
+      "file": "Mes notes",
+      "line": 32,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e66",
+      "file": "Mes notes",
+      "line": 34,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e117",
+      "file": "Mes notes",
+      "line": 34,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e118",
+      "file": "Mes notes",
+      "line": 35,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e149",
+      "file": "Mes notes",
+      "line": 35,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e97",
+      "file": "Mes notes",
+      "line": 36,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e150",
+      "file": "Mes notes",
+      "line": 36,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": "e51"
+    },
+    {
+      "id": "e98",
+      "file": "Mes notes",
+      "line": 37,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e119",
+      "file": "Mes notes",
+      "line": 37,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e151",
+      "file": "Mes notes",
+      "line": 37,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e67",
+      "file": "Mes notes",
+      "line": 38,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": "e34"
+    },
+    {
+      "id": "e99",
+      "file": "Mes notes",
+      "line": 38,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e139",
+      "file": "Mes notes",
+      "line": 38,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e100",
+      "file": "Mes notes",
+      "line": 39,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e152",
+      "file": "Mes notes",
+      "line": 39,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e140",
+      "file": "Mes notes",
+      "line": 40,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e153",
+      "file": "Mes notes",
+      "line": 40,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e154",
+      "file": "Mes notes",
+      "line": 41,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e101",
+      "file": "Mes notes",
+      "line": 43,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e120",
+      "file": "Mes notes",
+      "line": 44,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e141",
+      "file": "Mes notes",
+      "line": 44,
+      "date": null,
+      "used": false,
+      "genre": "leçon",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e142",
+      "file": "Mes notes",
+      "line": 45,
+      "date": null,
+      "used": false,
+      "genre": "échec",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e143",
+      "file": "Mes notes",
+      "line": 46,
+      "date": null,
+      "used": false,
+      "genre": "leçon",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e102",
+      "file": "Mes notes",
+      "line": 47,
+      "date": null,
+      "used": false,
+      "genre": "coulisse",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e121",
+      "file": "Mes notes",
+      "line": 47,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e144",
+      "file": "Mes notes",
+      "line": 47,
+      "date": null,
+      "used": false,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e103",
+      "file": "Mes notes",
+      "line": 48,
+      "date": null,
+      "used": false,
+      "genre": "coulisse",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e104",
+      "file": "Mes notes",
+      "line": 49,
+      "date": null,
+      "used": false,
+      "genre": "coulisse",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e145",
+      "file": "Mes notes",
+      "line": 51,
+      "date": null,
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": "e37"
+    },
+    {
+      "id": "e105",
+      "file": "Mes notes",
+      "line": 53,
+      "date": null,
+      "used": false,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e146",
+      "file": "Mes notes",
+      "line": 55,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": true,
+      "tient": "e37"
+    },
+    {
+      "id": "e147",
+      "file": "Mes notes",
+      "line": 56,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": true,
+      "tient": "e37"
+    },
+    {
+      "id": "e106",
+      "file": "Mes notes",
+      "line": 57,
+      "date": null,
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e107",
+      "file": "Mes notes",
+      "line": 58,
+      "date": null,
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e108",
+      "file": "Mes notes",
+      "line": 59,
+      "date": null,
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e109",
+      "file": "Mes notes",
+      "line": 63,
+      "date": null,
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e110",
+      "file": "Mes notes",
+      "line": 64,
+      "date": null,
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e68",
+      "file": "Mes notes",
+      "line": 65,
+      "date": null,
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e111",
+      "file": "Mes notes",
+      "line": 65,
+      "date": null,
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e112",
+      "file": "Mes notes",
+      "line": 66,
+      "date": null,
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e113",
+      "file": "Mes notes",
+      "line": 67,
+      "date": null,
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e69",
+      "file": "Mes notes",
+      "line": 71,
+      "date": null,
+      "used": false,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e70",
+      "file": "Mes notes",
+      "line": 77,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e71",
+      "file": "Mes notes",
+      "line": 79,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e122",
+      "file": "Mes notes",
+      "line": 79,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e157",
+      "file": "Mes notes",
+      "line": 80,
+      "date": null,
+      "used": true,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e158",
+      "file": "Mes notes",
+      "line": 84,
+      "date": null,
+      "used": false,
+      "genre": "échec",
+      "disponible": false,
+      "tient": "e51"
+    },
+    {
+      "id": "e72",
+      "file": "Mes notes",
+      "line": 103,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e123",
+      "file": "Mes notes",
+      "line": 103,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e73",
+      "file": "Mes notes",
+      "line": 105,
+      "date": null,
+      "used": false,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e124",
+      "file": "Mes notes",
+      "line": 106,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e74",
+      "file": "Mes notes",
+      "line": 109,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e125",
+      "file": "Mes notes",
+      "line": 110,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e126",
+      "file": "Mes notes",
+      "line": 125,
+      "date": null,
+      "used": false,
+      "genre": "coulisse",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e75",
+      "file": "Mes notes",
+      "line": 130,
+      "date": null,
+      "used": false,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e76",
+      "file": "Mes notes",
+      "line": 132,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e127",
+      "file": "Mes notes",
+      "line": 146,
+      "date": null,
+      "used": false,
+      "genre": "échec",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e128",
+      "file": "Mes notes",
+      "line": 147,
+      "date": null,
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e129",
+      "file": "Mes notes",
+      "line": 151,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e77",
+      "file": "Mes notes",
+      "line": 152,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": "e34"
+    },
+    {
+      "id": "e78",
+      "file": "Mes notes",
+      "line": 153,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e79",
+      "file": "Mes notes",
+      "line": 164,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e130",
+      "file": "Mes notes",
+      "line": 165,
+      "date": null,
+      "used": false,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e80",
+      "file": "Mes notes",
+      "line": 167,
+      "date": null,
+      "used": false,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e81",
+      "file": "Mes notes",
+      "line": 189,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e82",
+      "file": "Mes notes",
+      "line": 203,
+      "date": null,
+      "used": false,
+      "genre": "décision",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e83",
+      "file": "Mes notes",
+      "line": 227,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e84",
+      "file": "Mes notes",
+      "line": 249,
+      "date": null,
+      "used": false,
+      "genre": "chiffre",
+      "disponible": false,
+      "tient": null
+    },
+    {
+      "id": "e85",
+      "file": "Mes notes",
+      "line": 262,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": "e21"
+    },
+    {
+      "id": "e86",
+      "file": "Mes notes",
+      "line": 263,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": "e34"
+    },
+    {
+      "id": "e87",
+      "file": "Mes notes",
+      "line": 268,
+      "date": null,
+      "used": false,
+      "genre": "livraison",
+      "disponible": false,
+      "tient": null
+    }
+  ],
+  "posts": [
+    {
+      "n": 1,
+      "form": "origin",
+      "eventIds": [
+        "e1"
+      ],
+      "genres": [
+        "déclencheur"
+      ],
+      "reads": 1,
+      "postsRead": 0,
+      "formsRead": 1,
+      "refusals": 0,
+      "turns": 4,
+      "seconds": 27,
+      "text": "6 patients sur 10 ne feraient pas leurs exercices à la maison. Et leur kiné n’a souvent qu’une seule façon de le savoir : leur demander.\n\nC’est ce que Julien m’a raconté autour d’une bière. Il suivait 40 patients et me disait qu’il ne pouvait pas vérifier ce qu’ils faisaient entre deux rendez-vous — et que certains ne lui disaient pas la vérité.\n\nPour un kiné du sport, prescrire un exercice ne suffit pas : encore faut-il savoir s’il est réalisé correctement une fois le patient rentré chez lui. Entre deux séances, cette partie du suivi reste largement invisible.\n\nJulien m’a demandé si le prototype de caméra sur lequel je travaillais pouvait compter les squats. C’est de cette question qu’est né MyKiné."
+    },
+    {
+      "n": 2,
+      "form": "launch",
+      "eventIds": [
+        "e50"
+      ],
+      "genres": [
+        "livraison"
+      ],
+      "reads": 6,
+      "postsRead": 1,
+      "formsRead": 1,
+      "refusals": 0,
+      "turns": 4,
+      "seconds": 26,
+      "text": "Une soirée pour créer l’export des séances ; Marion l’a utilisé dès le lendemain pour son bilan.\n\nSi vous préparez un bilan de fin de rééducation, vous pouvez maintenant exporter les séances d’un patient dans un fichier CSV, ouvrable dans un tableur.\n\nMarion me le demandait depuis juillet. Je l’ai fait en une soirée ; elle s’en est servie le lendemain. L’export est maintenant disponible pour tous les kinés, dans le dashboard : Patients > Exporter."
+    },
+    {
+      "n": 3,
+      "form": "episode",
+      "eventIds": [
+        "e157"
+      ],
+      "genres": [
+        "décision"
+      ],
+      "reads": 4,
+      "postsRead": 2,
+      "formsRead": 2,
+      "refusals": 0,
+      "turns": 6,
+      "seconds": 25,
+      "text": "En v0.4, j’ai laissé un réglage hors de portée : les seuils d’angle ne sont pas modifiables par le kiné.\n\nCes seuils servent à interpréter l’amplitude du mouvement pendant l’exercice. Vous pouvez adapter la prescription — répétitions, séries, côté, jours et consigne — mais pas le seuil qui sert de référence pour évaluer le mouvement.\n\nPour l’instant, le programme s’adapte donc au patient sur ses consignes et son volume, tandis que le seuil reste celui du catalogue."
+    },
+    {
+      "n": 4,
+      "form": "backstage",
+      "eventIds": [
+        "e59"
+      ],
+      "genres": [
+        "coulisse"
+      ],
+      "reads": 6,
+      "postsRead": 3,
+      "formsRead": 1,
+      "refusals": 0,
+      "turns": 6,
+      "seconds": 28,
+      "text": "42 étudiants, et j’ai commencé la démo par leur montrer ce qui ne marche pas.\n\nÀ l’école de kiné de Lyon, j’ai filmé trois squats de profil : la silhouette suivie par l’app saute. À 45°, elle tient mieux.\n\nUne étudiante m’a demandé si ça marchait pour les épaules. J’ai répondu : « pas encore bien ». Six étudiants m’ont laissé leur mail."
+    },
+    {
+      "n": 5,
+      "form": "lesson",
+      "eventIds": [
+        "e57"
+      ],
+      "genres": [
+        "leçon"
+      ],
+      "reads": 5,
+      "postsRead": 4,
+      "formsRead": 2,
+      "refusals": 0,
+      "turns": 6,
+      "seconds": 28,
+      "text": "48 heures d’attente, et la moyenne passe de 4,1 à 1,3 séance par semaine.\n\nSur 412 séances suivies, j’ai comparé les patients qui commençaient leur programme dans les 48 h après la prescription à ceux qui attendaient davantage.\n\nCe n’est pas une preuve que le délai cause l’écart. Mais c’est un signal fort : le premier exercice ne devrait pas être repoussé à « quand j’aurai le temps ».\n\nPour un kiné, le moment de la prescription est peut-être aussi le bon moment pour aider le patient à lancer sa première séance — plutôt que d’envoyer le rappel le soir depuis le dashboard.\n\nL’adhésion commence parfois avant que le patient quitte le cabinet."
+    },
+    {
+      "n": 6,
+      "form": "offer",
+      "eventIds": [
+        "e56"
+      ],
+      "genres": [
+        "offre"
+      ],
+      "reads": 3,
+      "postsRead": 5,
+      "formsRead": 3,
+      "refusals": 0,
+      "turns": 5,
+      "seconds": 23,
+      "text": "Kinés du sport de « Kinés du sport France » : les 10 premiers cabinets ont 3 mois de MyKiné à 15 € HT au lieu de 29 €.\n\nJe veux faire tourner MyKiné dans 10 cabinets avant d’ouvrir à tous. Pour démarrer, je viens installer l’app avec vous et votre premier patient, en visio.\n\nPour en profiter, écrivez-moi avec le nom de votre cabinet avant le 15 novembre."
+    },
+    {
+      "n": 7,
+      "form": "number",
+      "eventIds": [
+        "e52"
+      ],
+      "genres": [
+        "chiffre"
+      ],
+      "reads": 4,
+      "postsRead": 3,
+      "formsRead": 1,
+      "refusals": 0,
+      "turns": 5,
+      "seconds": 26,
+      "text": "Sur 412 séances démarrées, 70 s’arrêtent avant le premier exercice : 17 %.\n\nLe blocage vient presque toujours du cadrage à 45° : le patient ne sait pas comment se placer et quitte la séance. En septembre, c’était 21 %.\n\nJ’ai remplacé « placez-vous de trois quarts » par « reculez d’un pas ». Depuis, la part des séances abandonnées baisse. Une consigne plus concrète aide le patient à démarrer, avant même qu’on puisse suivre ses exercices.\n\nLe cadrage reste un obstacle à lever pour que le suivi à distance commence vraiment."
+    },
+    {
+      "n": 8,
+      "form": "launch",
+      "eventIds": [
+        "e58"
+      ],
+      "genres": [
+        "livraison"
+      ],
+      "reads": 6,
+      "postsRead": 7,
+      "formsRead": 1,
+      "refusals": 0,
+      "turns": 5,
+      "seconds": 49,
+      "text": "12 kinés actifs ce soir : MyKiné commence à prendre place dans de vrais suivis.\n\nPour un kiné du sport libéral, prescrire un programme ne suffit pas : encore faut-il savoir ce que le patient fait entre deux rendez-vous.\n\nLe patient réalise ses exercices dans l’app, qui analyse ses mouvements sur son téléphone. Le dashboard permet ensuite au kiné de suivre l’adhésion : la prescription et les séances à domicile se rejoignent enfin dans le même suivi.\n\nQuatre kinés de la liste d’attente ont reçu leur accès ce matin. Les huit autres le recevront demain."
+    },
+    {
+      "n": 9,
+      "form": "episode",
+      "eventIds": [
+        "e61"
+      ],
+      "genres": [
+        "livraison"
+      ],
+      "reads": 2,
+      "postsRead": 1,
+      "formsRead": 2,
+      "refusals": 0,
+      "turns": 5,
+      "seconds": 29,
+      "text": "14 exercices ont quitté l’app patient.\n\nLe catalogue est maintenant conservé côté serveur, qui l’envoie à l’app avec le programme prescrit. L’app ne dépend donc plus d’une liste copiée en dur sur chaque téléphone.\n\nPour vous, kiné du sport, le programme et les exercices affichés au patient viennent de la même source. Vous prescrivez un programme ; l’app récupère les exercices qui vont avec, sans attendre une mise à jour de l’application."
+    },
+    {
+      "n": 10,
+      "form": "failure",
+      "eventIds": [
+        "e53"
+      ],
+      "genres": [
+        "échec"
+      ],
+      "reads": 11,
+      "postsRead": 9,
+      "formsRead": 1,
+      "refusals": 0,
+      "turns": 8,
+      "seconds": 34,
+      "text": "J’avais promis le compte-rendu de séance le soir même, avant 20 h. Quatre kinés l’ont reçu à 23 h 40.\n\nLe vendredi, les mails sont partis avec près de quatre heures de retard. Le déclenchement automatique tournait en heure UTC, alors que je l’avais réglé en heure de Paris.\n\nPour ces kinés, le suivi des séances est arrivé au milieu de la nuit, pas au moment annoncé."
+    },
+    {
+      "n": 11,
+      "form": "teaser",
+      "eventIds": [
+        "e54"
+      ],
+      "genres": [
+        "annonce"
+      ],
+      "reads": 7,
+      "postsRead": 10,
+      "formsRead": 3,
+      "refusals": 0,
+      "turns": 8,
+      "seconds": 41,
+      "text": "Le 3 novembre, 20 kinés découvriront le nouveau dashboard MyKiné.\n\nIl est pensé pour les kinés qui veulent suivre l’adhésion de leurs patients entre deux rendez-vous : les 8 kinés actifs et les 12 en liste d’attente auront accès à cette version le même jour.\n\nJe ne peux pas encore montrer les écrans : Marion valide les couleurs des taux d’adhésion.\n\nRendez-vous le 3 novembre."
+    },
+    {
+      "n": 12,
+      "form": "question",
+      "eventIds": [
+        "e55"
+      ],
+      "genres": [
+        "question"
+      ],
+      "reads": 7,
+      "postsRead": 11,
+      "formsRead": 2,
+      "refusals": 0,
+      "turns": 6,
+      "seconds": 26,
+      "text": "Deux kinés sur quatre m’ont déjà dit qu’ils paieraient 29 €.\n\nPour les 12 kinés en liste d’attente, je dois choisir entre facturer l’accès dès l’ouverture ou offrir un mois gratuit.\n\nIls n’ont pas encore vu MyKiné. Et un mois offert à 12 personnes représenterait 348 € de revenu non perçu.\n\nPour un outil de suivi des exercices entre deux rendez-vous, proposeriez-vous l’accès payant dès l’ouverture ou un premier mois gratuit ?"
+    }
+  ]
+}

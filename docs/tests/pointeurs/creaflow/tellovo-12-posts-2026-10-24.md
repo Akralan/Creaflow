@@ -1,0 +1,180 @@
+# tellovo (CreaFlow) — 12 posts du banc, 24 octobre 2026
+
+Modèle gpt-6-luna. Matière : le dépôt CreaFlow (47 documents, 1 646 pointeurs). Lecteur : indie developers building in public. Un post par ligne de temps choisie par le rédacteur, forme déduite du genre de l’événement (docs/FORMES_ET_GENRES.md).
+
+## Post 1 — Origin
+
+*Source : no date docs/SPEC_MATIERE_EDITEUR.md:13, no date docs/SPEC_MATIERE_EDITEUR.md:29, no date docs/SPEC_MATIERE_EDITEUR.md:33*
+
+37 sessions de développement documentées, collées dans une IA : une série d’environ 5 posts.
+Un premier script tiré d’une simple description produit, lui, était générique et inventait des détails.
+
+Pour un indie dev, la matière existe déjà : bugs, réglages, décisions, chiffres. Elle s’accumule dans le journal de développement et les notes, mais ne devient pas forcément un post.
+
+Le test a mis le contraste en évidence : avec une matière riche, l’IA avait de quoi raconter quelque chose de précis. Avec une seule phrase, elle restait vague ou brodait.
+
+Le premier geste a été de partir des écrits déjà produits. CreaFlow est né pour les transformer en posts, sans inventer un fait qui n’a pas été donné.
+
+---
+
+## Post 2 — Failure
+
+*Source : 2026-10-24 docs/DEVLOG.md:19*
+
+Je voulais que CreaFlow parcoure les 43 documents du dépôt.
+Son lecteur, qui en extrait la matière pour les posts, s’est arrêté après 4.
+
+Le test avait parcouru 11 sections sur environ 82 en 107 tours. Il avait enregistré 75 événements et en avait rejeté 21, tous à cause de leur extrait.
+
+Il n’avait pas atteint sa limite de tours : il s’est arrêté de lui-même et a demandé s’il devait continuer. Les 39 autres documents n’ont jamais été lus.
+
+Le parcours n’a pas encore été exécuté dans l’application ; il n’a été testé qu’au banc.
+
+---
+
+## Post 3 — What I learned
+
+*Source : 2026-10-24 docs/DEVLOG.md:40*
+
+Sans aucune règle de forme, 12 posts sur 12 ont eu exactement quatre paragraphes.
+
+La leçon : retirer les consignes ne rend pas un générateur neutre.
+
+Dans le run A du banc, 12 posts se sont enchaînés sur tellovo avec le même modèle. Tous avaient quatre paragraphes et finissaient par une leçon généralisée. Sans forme imposée, le modèle avait simplement choisi la sienne.
+
+Pour CreaFlow, qui transforme les notes et décisions de développement en posts, ça change la façon de tester : il ne suffit pas de vérifier que le texte sort. Il faut regarder ce que le modèle reproduit quand on ne lui demande rien.
+
+L’absence de règle est déjà une règle implicite.
+
+---
+
+## Post 4 — What I learned
+
+*Source : no date docs/SPEC_MATIERE_EDITEUR.md:167*
+
+Le test fondateur de l’éditeur de CreaFlow a tenu en deux gestes : corriger à la main et demander « reprends cette phrase ».
+
+La règle retenue : rendre ces gestes faciles avant d’ajouter une collection de commandes IA.
+
+La V1 permet donc de modifier les blocs, de sélectionner une phrase pour la remplacer avec une instruction libre, d’annuler et de régénérer un bloc. Les commandes prédéfinies, le suivi des modifications et les menus contextuels attendront une preuve du besoin.
+
+Pour un outil qui transforme les notes de développement en posts, l’éditeur n’a pas besoin d’imiter un traitement de texte complet. Il doit rendre la correction réelle plus simple.
+
+Commencer par l’usage observé, pas par les options imaginées.
+
+---
+
+## Post 5 — Failure
+
+*Source : no date docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md:155*
+
+Je voulais éviter les doublons. Le lecteur a écarté la version la mieux datée.
+
+Pendant un essai, un fait apparaissait dans une documentation technique avec une date vague, puis dans le journal de développement avec sa date précise. Le lecteur de documents — celui qui extrait les événements du projet — a considéré le fait déjà connu et ignoré l’entrée du journal.
+
+Le fait restait dans la sélection, mais sa date exacte avait disparu. Ce cas de déduplication trop large est encore ouvert.
+
+---
+
+## Post 6 — What I learned
+
+*Source : no date docs/SPEC_METRIQUES_AUTO.md:148*
+
+Trois posts ne prouvent pas qu’une catégorie mérite plus de place dans un calendrier éditorial.
+
+En cadrant l’ajustement de CreaFlow selon les performances, j’ai retenu une règle : ne pas confondre petit échantillon et signal éditorial.
+
+Avec trop peu de données, le système risque de transformer du bruit en décision. Et une catégorie favorisée peut recevoir plus de créneaux, donc générer plus de données, jusqu’à déséquilibrer tout le calendrier.
+
+Quelques résultats ne devraient pas dicter la ligne éditoriale.
+
+---
+
+## Post 7 — Failure
+
+*Source : no date docs/SPEC_MATIERE_EDITEUR.md:36*
+
+Je pensais qu’un journal de bord découpé en unités serait plus facile à exploiter. Avec six extraits choisis par rotation, l’application produisait un post pauvre et décousu.
+
+J’avais implémenté des morceaux classés par type — bug, anecdote, chiffre, décision — puis sélectionnés sans tenir compte de leur pertinence. En comparaison, envoyer le journal complet à un modèle donnait un excellent post.
+
+Le découpage avait perdu la richesse du récit ; la sélection assemblait des fragments sans lien thématique. J’ai abandonné cette version.
+
+Aujourd’hui, la génération reçoit le texte brut complet. Le modèle indique les passages utilisés, qui sont retrouvés dans le document source et conservés comme citations. La présélection en six morceaux, elle, n’est plus utilisée.
+
+---
+
+## Post 8 — Number
+
+*Source : 2026-08-02 docs/SPEC_RESSOURCES_VISUELLES.md:159, 2026-12-02 docs/SPEC_RESSOURCES_VISUELLES.md:160*
+
+Le 2 décembre 2026 n’est pas une date de grâce pour CreaFlow.
+
+La période transitoire de l’article 50 ne concerne que les systèmes déjà mis sur le marché avant le 2 août 2026. CreaFlow n’étant pas lancé, nous ne pouvons pas compter sur ce sursis.
+
+La spec en tire une conséquence concrète : le marquage doit être technique et lisible par machine — pas seulement un avertissement visible. Il faut aussi préserver les métadonnées lors des redimensionnements ou conversions, et clarifier qui porte quelle responsabilité dans la chaîne, fournisseur ou déployeur.
+
+Le filigrane SynthID de Gemini pourrait aider, mais il reste à vérifier les conditions actuelles de l’API avant de s’y fier.
+
+L’échéance nous pousse à traiter ces choix dans l’architecture, plutôt qu’en migration tardive.
+
+---
+
+## Post 9 — What I learned
+
+*Source : no date docs/SPEC_MATIERE_EDITEUR.md:185*
+
+J’ai failli facturer une retouche de phrase comme un post entier.
+
+Dans CreaFlow, une régénération complète et une micro-retouche consommaient le même quota. Pourtant, « reformule cette phrase » n’est pas le même geste que « écris-moi un premier jet ».
+
+J’ai donc séparé les deux : un quota pour les générations complètes, un autre pour les petites retouches, comme réécrire un bloc ou retravailler une sélection.
+
+La règle que je garde : le coût doit suivre la taille du geste, sinon on décourage précisément l’itération qui rend le brouillon publiable.
+
+---
+
+## Post 10 — What I learned
+
+*Source : 2026-10-21 docs/DEVLOG.md:156*
+
+Six variantes du prompt, trois mêmes événements : chaque resserrage rendait les posts plus rigides.
+
+La leçon, en construisant le rédacteur de CreaFlow : une règle de rédaction nommée devient vite une rubrique à réciter.
+
+Au banc d’essai, une consigne sur la tension ressortait comme une phrase sur « la tension ». Une règle sur la fin produisait une phrase qui annonçait « ce qui est vrai maintenant ». Le modèle reprenait les étiquettes des consignes au lieu de raconter les événements.
+
+La piste qui a fonctionné : retirer des règles, pas en ajouter. Une règle de plus peut devenir un paragraphe de plus.
+
+---
+
+## Post 11 — What I learned
+
+*Source : no date docs/SPEC_METRIQUES_AUTO.md:25*
+
+La saisie manuelle des métriques peut disparaître en deux semaines.
+
+En cadrant le suivi des performances de CreaFlow, le risque était clair : demander de recopier les résultats d’une publication, sans récompense immédiate, rend cette saisie facile à abandonner.
+
+La leçon : automatiser les données n’est pas un simple confort. C’est ce qui rend l’analyse possible.
+
+Une fonctionnalité de performance ne vaut que si ses données ne reposent pas sur une corvée répétée.
+
+---
+
+## Post 12 — Episode
+
+*Source : no date docs/SPEC_MATIERE_EDITEUR.md:53*
+
+Un post n’a pas besoin d’être écrit dans CreaFlow pour y être suivi.
+
+Jusqu’ici, seule la génération par IA pouvait créer un post dans l’outil. J’ai ouvert la création aux textes écrits ailleurs : on peut les importer, les placer à une date et suivre leur publication dans CreaFlow.
+
+Pour un fondateur solo, ça veut dire qu’on peut garder son propre geste d’écriture sans perdre le fil de ce qui est prêt à partir.
+
+------------------------------------------------------------------------------------------------
+15 pointeurs utilisés sur 1646
+formes : origin 1 · failure 3 · lesson 6 · number 1 · episode 1
+durée totale : 5571s
+
+---

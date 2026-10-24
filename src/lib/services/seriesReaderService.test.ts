@@ -8,14 +8,22 @@ const row = (over: Partial<PointerRow> = {}): PointerRow => ({
   date: "2026-10-21",
   sourceMaterialId: "doc-1",
   documentTitle: "docs/DEVLOG.md",
+  genre: "livraison",
+  disponible: false,
+  tient: null,
   ...over,
 });
 
 describe("pointerTimeline", () => {
-  it("rend une adresse par pointeur", () => {
+  it("rend une adresse par pointeur, avec son genre", () => {
     expect(pointerTimeline([row()], new Set(), new Set(["doc-1"]))).toEqual([
-      { id: "e1", file: "docs/DEVLOG.md", line: 42, date: "2026-10-21", used: false },
+      { id: "e1", file: "docs/DEVLOG.md", line: 42, date: "2026-10-21", used: false, genre: "livraison", disponible: false, tient: null },
     ]);
+  });
+
+  it("porte la disponibilité et tient tels quels", () => {
+    const [entry] = pointerTimeline([row({ genre: "échec", disponible: true, tient: "e0" })], new Set(), new Set(["doc-1"]));
+    expect(entry).toMatchObject({ genre: "échec", disponible: true, tient: "e0" });
   });
 
   it("écarte un pointeur dont le document a disparu", () => {

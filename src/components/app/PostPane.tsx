@@ -7,6 +7,7 @@ import DesignPreview from "@/components/app/DesignPreview";
 import { foreignNumbers } from "@/lib/animationHtml/numbers";
 import DesignEditor from "@/components/DesignEditor/DesignEditor";
 import { api, ApiClientError, type PostAnimation, type Script, type WeekEntry } from "@/lib/apiClient";
+import { FORM_LABELS } from "@/lib/llm/postForms";
 import { DEFAULT_DURATION_MS, DEFAULT_SLIDES, MAX_DURATION_MS, MAX_SLIDES, MIN_DURATION_MS, MIN_SLIDES } from "@/lib/visualDesign/visualFormat";
 import { longDay, NETWORKS, postState, scriptReadiness, type Network, type PostGroup } from "@/lib/weekPosts";
 
@@ -131,6 +132,9 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
   const ownerVersion = Object.values(group.versions).find((v) => v?.script?.contentType === "visual") ?? null;
   const ownerId = ownerVersion?.script?.id ?? null;
   const preview = ownerVersion?.script?.preview ?? null;
+  // The form of the post (docs/FORMES_ET_GENRES.md): the same on both networks, not editable.
+  const form = script?.form ?? entry?.script?.form ?? null;
+  const formLabel = form ? FORM_LABELS[form] : null;
 
   const head = (
     <div className="pane-head">
@@ -454,6 +458,7 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
         <h2 id="ap-title" className="pane-title">
           {script?.title ?? entry?.script?.title ?? "…"}
         </h2>
+        {formLabel && <span className="form-tag pane-form">{formLabel}</span>}
         <div className="author">
           <span className="av" aria-hidden="true">
             {(authorName || "You").slice(0, 2).toUpperCase()}

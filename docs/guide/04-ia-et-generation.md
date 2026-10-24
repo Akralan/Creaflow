@@ -18,9 +18,10 @@ C'est la partie qui compte le plus et qui a été le plus retravaillée. La gén
         │
         ▼  EXTRACTEUR DE POINTEURS (prompt 29)              src/lib/llm/pointerExtractor.ts
         │    PAS d'agent : une part de 40 000 caractères = un appel indépendant
-        │    sortie : des numéros de ligne et des dates. Rien d'autre.
- material_events ── la LIGNE DE TEMPS du sujet : document + ligne + date
-        │            (aucun titre, aucun résumé, aucune conséquence, aucun public)
+        │    sortie : des numéros de ligne, des dates, et le GENRE de chaque fait (13 valeurs)
+ material_events ── la LIGNE DE TEMPS du sujet : document + ligne + date + genre
+        │            (aucun titre, aucun résumé, aucune conséquence, aucun public ;
+        │             `disponible` et `tient` complètent le genre — docs/FORMES_ET_GENRES.md)
         ├─► PORTRAIT DES LECTEURS du sujet (1 à 3 publics)   readerPortrait.ts
         ▼
  content_series ── un LECTEUR (parmi le portrait) + un RYTHME (jours)
@@ -31,8 +32,9 @@ C'est la partie qui compte le plus et qui a été le plus retravaillée. La gén
         ▼  RÉDACTEUR À POINTEURS (prompt 30, jusqu'à 40 tours)   pointerPostWriter.ts
         │    reçoit : les adresses, les posts publiés (ids et dates), le lecteur,
         │             le contexte du projet, la langue, les règles du réseau
-        │    outils : read_file (120 lignes au plus) · read_post · publish_post
-        │    méthode : il ouvre ce qu'il veut, choisit ses pointeurs, écrit
+        │    outils : read_file (120 lignes au plus) · read_post · read_form · publish_post
+        │    méthode : il ouvre ce qu'il veut, choisit ses pointeurs, lit la FORME du
+        │             genre choisi (read_form), écrit ; publish_post refuse une autre forme
         ▼
  CONTRÔLES DU CODE (scriptChecks.ts) — langue, longueurs, tournures          un post refusé
         │                                                                     repart au modèle
@@ -47,7 +49,7 @@ C'est la partie qui compte le plus et qui a été le plus retravaillée. La gén
 ## Les briques une par une
 
 ### Extracteur de pointeurs — `pointerExtractor.ts`, `materialEventService.ts`
-Pas un agent. Le document est numéroté ligne par ligne, coupé en parts de 40 000 caractères sur des lignes entières, et chaque part fait **un appel structuré indépendant** qui rend des `{ line, date }`. Les numéros sont ceux du document complet, jamais ceux de la part. Son prompt n'a **qu'une phrase de définition** — « *An event is a line of this document where something happened* » — isolée dans `EVENT_DEFINITION` : c'est le seul levier si un relevé est mauvais. Se relance à l'ingestion et sur « Relire la matière » ; un document qui échoue reste non lu et n'empêche pas les autres.
+Pas un agent. Le document est numéroté ligne par ligne, coupé en parts de 40 000 caractères sur des lignes entières, et chaque part fait **un appel structuré indépendant** qui rend des `{ line, date, genre, available, fulfills }`. Les numéros sont ceux du document complet, jamais ceux de la part. Sa définition de l'événement tient en **une phrase** — « *An event is a line of this document where something happened* » — isolée dans `EVENT_DEFINITION` ; les treize genres et leurs règles (`GENRE_RULES`, `docs/FORMES_ET_GENRES.md` Partie 1) suivent. Avant chaque document, le service lui donne la **liste ouverte** du sujet (engagements et annonces que rien ne tient, décisions) pour qu'il puisse poser `fulfills` ; après le dernier, le code ne garde qu'un `déclencheur` par sujet. Contrôles du code : genre inconnu → `livraison`, `engagement` sans chiffre dans la ligne → `décision`, `fulfills` hors liste → null. Se relance à l'ingestion et sur « Relire la matière » ; un document qui échoue reste non lu et n'empêche pas les autres.
 
 **Pourquoi pas un agent.** Celui qu'il remplace tenait tout dans une seule conversation. Sur le dépôt de tellovo (43 documents, 966 688 caractères) il a lu **4 documents sur 43** et s'est arrêté de lui-même au 107e tour en demandant la permission de continuer, dans un travail de fond où personne ne lisait sa question. L'extracteur a vu les 43 documents en 50 appels.
 
@@ -55,11 +57,11 @@ Pas un agent. Le document est numéroté ligne par ligne, coupé en parts de 40 
 1 à 3 publics par sujet, avec « s'arrête pour » et « fuit ». Réfléchi **avec la matière sous les yeux**, pas seulement avec la phrase « Pour qui ». Lit aussi `products.problem`. Visible et corrigeable. Le lecteur d'une série sort de là, et **c'est lui qui décide du registre** : les sujets dont le lecteur est un pair qui construit donnent du récit, celui dont les publics sont des opérateurs du produit donnait de la documentation d'admin.
 
 ### Rédacteur à pointeurs — `pointerPostWriter.ts` (`callAgentic`)
-Son prompt a **quatre règles et rien d'autre**, arrêtées après quinze runs du banc :
+Son prompt a **quatre règles et rien d'autre**, les trois premières arrêtées après quinze runs du banc, la quatrième venue du chantier formes et genres (`docs/FORMES_ET_GENRES.md`) :
 1. la règle unique — *build in public*, pour ce lecteur ;
 2. l'origine, seule exception, au premier post seulement ; sa raison est **celle que l'auteur donne**, jamais une choisie pour coller au lecteur ;
 3. la première phrase est une accroche et rien d'autre — un chiffre, une heure, un aveu, un brin de folie ;
-4. aucun post mort : il relit les posts précédents pour ne pas réécrire ce qui a été dit, **jamais pour copier leur forme**, et tout élément de machinerie nommé est expliqué dans la même phrase.
+4. **la forme du post est celle du genre de l'événement choisi** : le prompt porte la table genre → forme, jamais les seize formes (nommer une exigence la fait ressortir, voir plus bas) ; le rédacteur lit la sienne avec `read_form`, dont le texte commence par « qui parle » (je / on selon les notes). `publish_post` refuse une forme non lue ou qui ne colle pas aux événements déclarés. Il relit les posts précédents pour ne pas réécrire ce qui a été dit, et tout élément de machinerie nommé est expliqué dans la même phrase.
 
 Ce qu'il ne reçoit **pas**, et qui n'est pas un oubli : aucun résumé d'événement, aucun type de post, aucune consigne d'alternance, et **pas le style appris** (le run validé ne l'avait pas — à rouvrir après l'essai en réel). Coût : 3 à 7 tours par post en général, 11 `read_post` au douzième post d'une série.
 

@@ -10,6 +10,7 @@ import {
   scripts,
 } from "@/db/schema";
 import type { GeneratedScript } from "@/lib/llm/scriptSchema";
+import type { Form } from "@/lib/llm/postForms";
 import type { ContentCategoryContext, ContentType, Platform, ScriptGenerationContext } from "@/lib/llm/prompts";
 import { parseStoredStyleProfile } from "@/lib/llm/styleProfile";
 import { parseStoredReaderPortrait } from "@/lib/llm/readerPortrait";
@@ -84,7 +85,9 @@ export async function buildGenerationContext(
   // L'autre réseau d'un même post (docs/SPEC_APP_DESIGN_TELLOVO.md E2) : les pointeurs de la
   // version déjà écrite. Le rédacteur ne reçoit que ceux-là, donc il n'a rien d'autre à choisir et
   // les deux réseaux racontent la même chose. Remplace le plan de récit, parti avec le fil.
-  samePointerIds?: string[]
+  samePointerIds?: string[],
+  // La forme de cette version déjà écrite (docs/FORMES_ET_GENRES.md) : elle suit les pointeurs.
+  sameForm?: Form | null
 ): Promise<ScriptGenerationContext> {
   const profile = await db.query.creatorProfiles.findFirst({
     where: eq(creatorProfiles.userId, userId),
@@ -118,12 +121,14 @@ export async function buildGenerationContext(
 
   // « Autre idée, même brief » garde les pointeurs du post remplacé ; l'autre réseau d'un post
   // reprend ceux de la version déjà écrite (`samePointerIds`). Dans les deux cas le rédacteur ne
-  // reçoit que ces pointeurs, donc il raconte la même chose autrement.
+  // reçoit que ces pointeurs, donc il raconte la même chose autrement — et dans la même forme, qui
+  // suit les pointeurs (docs/FORMES_ET_GENRES.md). Changer de matière, c'est supprimer le post.
   const rewritten = excludeScriptId
-    ? await db.query.scripts.findFirst({ where: eq(scripts.id, excludeScriptId), columns: { eventIds: true } })
+    ? await db.query.scripts.findFirst({ where: eq(scripts.id, excludeScriptId), columns: { eventIds: true, form: true } })
     : null;
   const rewrittenIds = Array.isArray(rewritten?.eventIds) ? (rewritten.eventIds as string[]) : [];
   const lockedPointerIds = rewrittenIds.length > 0 ? rewrittenIds : (samePointerIds ?? []);
+  const lockedForm = rewrittenIds.length > 0 ? (rewritten?.form ?? null) : (sameForm ?? null);
 
   // Une série raconte sa ligne de temps à son lecteur (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5). Une
   // série d'avant le chantier reçoit d'office le public principal de son sujet. Sans rien à raconter,
@@ -131,7 +136,7 @@ export async function buildGenerationContext(
   let pointerBrief = null;
   if (seriesId) {
     if (!seriesHasReader) await ensureReaderForSeries(userId, seriesId);
-    pointerBrief = await buildPointerBrief(userId, seriesId, lockedPointerIds);
+    pointerBrief = await buildPointerBrief(userId, seriesId, lockedPointerIds, lockedForm);
     if (!pointerBrief) {
       throw new ApiError(
         409,
@@ -261,6 +266,8 @@ function scriptColumnsFromGenerated(generated: GeneratedScript) {
     // Annexe B.6 (docs/SPEC_REDACTEUR_EN_CHEF.md Lot B3) — consolidées dans NarrativeState.openPromises
     // à la publication (§5, Lot B4).
     promisesMade: generated.promisesMade,
+    // La forme déclarée par le rédacteur à pointeurs (docs/FORMES_ET_GENRES.md) ; null sur le chemin V3.
+    form: generated.form ?? null,
   };
 }
 

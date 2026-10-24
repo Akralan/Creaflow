@@ -6,6 +6,7 @@ import AppIcon from "@/components/app/AppIcon";
 import { useAppChrome } from "@/components/app/AppChrome";
 import PostPane from "@/components/app/PostPane";
 import { api, ApiClientError, type WeekEntry } from "@/lib/apiClient";
+import { FORM_LABELS } from "@/lib/llm/postForms";
 import {
   addDays,
   dayKey,
@@ -34,6 +35,12 @@ const STATE_CLASS: Record<PostState, string> = { empty: "status", writing: "stat
 function cardTitle(group: PostGroup<WeekEntry>): string {
   const first = group.versions.linkedin ?? group.versions.x;
   return group.versions.linkedin?.script?.title ?? group.versions.x?.script?.title ?? first?.upcoming?.title ?? "A post to write";
+}
+
+/** The form label of a post (docs/FORMES_ET_GENRES.md): not editable, nothing for an episode or an older post. */
+function cardForm(group: PostGroup<WeekEntry>): string | null {
+  const form = group.versions.linkedin?.script?.form ?? group.versions.x?.script?.form ?? null;
+  return form ? FORM_LABELS[form] : null;
 }
 
 function cardSnippet(group: PostGroup<WeekEntry>, state: PostState): string {
@@ -252,7 +259,10 @@ export default function WeekScreen() {
                   <span className="day-short">{shortDay(g.date)}</span>
                   <span className="wday-top">
                     <span>{longDay(g.date)}</span>
-                    <span className={STATE_CLASS[state]}>{STATE_LABEL[state]}</span>
+                    <span className="wday-tags">
+                      {cardForm(g) && <span className="form-tag">{cardForm(g)}</span>}
+                      <span className={STATE_CLASS[state]}>{STATE_LABEL[state]}</span>
+                    </span>
                   </span>
                   <b>{cardTitle(g)}</b>
                   {seriesIds.size > 1 && series && <span className="series-tag">{series}</span>}

@@ -1,6 +1,7 @@
 import type { PerformanceOverview } from "@/lib/performance/overview";
 import type { Platform, ScriptStatus, CalendarStatus } from "@/lib/design/tokens";
 import type { SeriesRhythm } from "@/lib/seriesRhythm";
+import type { Form } from "@/lib/llm/postForms";
 
 export class ApiClientError extends Error {
   constructor(
@@ -443,6 +444,9 @@ export interface Script {
   /** Title and date of the event, resolved at read time — detailed record only. */
   eventTitle?: string | null;
   eventDate?: string | null;
+  /** The form the writer declared (docs/FORMES_ET_GENRES.md): shown as FORM_LABELS[form], nothing for
+   *  `episode`. Null on posts from before the chantier and on the V3 path. */
+  form: Form | null;
 }
 
 export interface SourceMaterial {
@@ -534,6 +538,7 @@ export interface WeekEntry extends Omit<CalendarEntry, "script"> {
     hookText: string | null;
     /** Beginning of the post text only. */
     caption: string | null;
+    form: Form | null;
     /** First slide of the mockup (placeholders not resolved), null until it is composed. */
     preview: {
       html: string;
