@@ -27,7 +27,6 @@ import { resolvePostLanguage } from "@/lib/language";
 import { markDesignStale } from "@/lib/services/visualDesignService";
 import type { VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
 import { ApiError } from "@/lib/api/errors";
-import { logger } from "@/lib/logger";
 
 const RECENT_TOPICS_LIMIT = 15;
 const SERIES_RECENT_TOPICS_LIMIT = 10;
