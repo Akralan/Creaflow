@@ -1,16 +1,20 @@
-import { and, asc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { contentSeries, materialEvents, products, scripts, sourceMaterials } from "@/db/schema";
-import type { BriefEvent, EventBrief } from "@/lib/llm/eventWriter";
 import { parseStoredReaderPortrait, type Reader } from "@/lib/llm/readerPortrait";
-import { tellableTo } from "@/lib/narrative/audience";
+import type { TimelineEntry, WrittenPost } from "@/lib/llm/pointerPostWriter";
 import { listActiveSeriesForUser } from "@/lib/services/seriesService";
 import { ApiError } from "@/lib/api/errors";
 
 /**
- * Le lecteur et la forme d'une série (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4), et le plan qui en
- * découle : la ligne de temps du sujet filtrée sur ce lecteur, dans l'ordre des dates, en sautant ce
- * qui a déjà été raconté. Remplace le plan en beats du rédacteur en chef.
+ * Le lecteur d'une série et la ligne de temps qu'elle raconte (docs/SPEC_EVENEMENT_POINTEUR.md §4).
+ *
+ * Il n'y a plus de tri par public : une série raconte la ligne de temps de son sujet, entière. Le
+ * lecteur ne sert plus qu'à dire au rédacteur pour qui il écrit — c'est le seul usage qu'il avait
+ * au banc, et c'est lui qui décide du registre du post.
+ *
+ * Il n'y a plus non plus de choix côté code : `planForSeries` ne désigne plus « le prochain
+ * événement », c'est le rédacteur qui choisit dans la ligne de temps qu'on lui donne.
  */
 
 async function loadSeriesWithProduct(userId: string, seriesId: string) {
@@ -41,9 +45,8 @@ export async function setSeriesReader(userId: string, seriesId: string, readerLa
 }
 
 /**
- * Pour une série sans lecteur, prend le public principal du sujet. Appelé à la
- * validation des séries en fin d'onboarding ; jamais bloquant, une série peut rester sans lecteur
- * (l'auteur le choisit alors dans la série).
+ * Pour une série sans lecteur, prend le public principal du sujet. Appelé à la validation des séries
+ * en fin d'onboarding ; jamais bloquant, une série peut rester sans lecteur.
  */
 export async function ensureReaderForSeries(userId: string, seriesId: string): Promise<void> {
   const series = await loadSeriesWithProduct(userId, seriesId);
@@ -53,111 +56,132 @@ export async function ensureReaderForSeries(userId: string, seriesId: string): P
   await db.update(contentSeries).set({ readerLabel: main.label }).where(eq(contentSeries.id, seriesId));
 }
 
-export interface PlannedEvent {
+/** Un pointeur tel que la base le rend, avec le titre de son document. */
+export interface PointerRow {
   id: string;
+  line: number;
   date: string | null;
-  datePrecision: "day" | "month" | "unknown";
-  title: string;
-  whatHappened: string;
-  whatChanged: string | null;
-  kind: "failure" | "decision" | "result" | "feedback" | "milestone";
-  audiences: string[];
-  /** Déjà raconté par un post de cette série. */
-  told: boolean;
-  scriptId: string | null;
+  sourceMaterialId: string;
+  documentTitle: string | null;
+}
+
+/**
+ * La ligne de temps que le rédacteur lit : une adresse par pointeur, marquée `used` quand un post de
+ * la série s'en est déjà servi.
+ *
+ * Un pointeur dont le document n'est pas dans `documents` est ÉCARTÉ : son adresse serait
+ * inouvrable, et le rédacteur recevrait `null:42`. Pur, pour être testable sans base.
+ */
+export function pointerTimeline(pointers: PointerRow[], toldIds: Set<string>, documents: Set<string>): TimelineEntry[] {
+  return pointers
+    .filter((p) => documents.has(p.sourceMaterialId) && p.documentTitle !== null)
+    .map((p) => ({
+      id: p.id,
+      file: p.documentTitle as string,
+      line: p.line,
+      date: p.date,
+      used: toldIds.has(p.id),
+    }));
+}
+
+/** Tous les pointeurs que les posts d'une série ont déjà servis (`scripts.eventIds`, sinon `eventId`). */
+export function toldPointerIds(posts: Array<{ eventIds: unknown; eventId: string | null }>): Set<string> {
+  const ids = new Set<string>();
+  for (const p of posts) {
+    const list = Array.isArray(p.eventIds) ? p.eventIds : [];
+    for (const id of list) if (typeof id === "string") ids.add(id);
+    if (p.eventId) ids.add(p.eventId);
+  }
+  return ids;
 }
 
 export interface SeriesPlan {
   readerLabel: string | null;
-  /** La ligne de temps du sujet vue par cette série, dans l'ordre. */
-  events: PlannedEvent[];
-  /** Le prochain épisode : le premier événement pas encore raconté, les datés d'abord. */
-  next: PlannedEvent | null;
+  /** La ligne de temps du sujet vue par cette série, dans l'ordre. Pour les écrans. */
+  events: TimelineEntry[];
 }
 
-/**
- * Le plan d'une série n'est plus un objet à part (§4) : c'est la ligne de temps du sujet, filtrée
- * sur le lecteur (événements marqués pour lui, ou sans public), dans l'ordre des dates, en sautant
- * ce qu'un post de la série a déjà raconté.
- */
+/** La ligne de temps d'une série, pour l'affichage. Elle ne désigne plus de « prochain » événement. */
 export async function planForSeries(userId: string, seriesId: string): Promise<SeriesPlan> {
   const series = await loadSeriesWithProduct(userId, seriesId);
-  if (!series.productId) return { readerLabel: series.readerLabel, events: [], next: null };
-
-  const [events, told] = await Promise.all([
-    db.query.materialEvents.findMany({
-      where: and(eq(materialEvents.userId, userId), eq(materialEvents.productId, series.productId)),
-      orderBy: [sql`${materialEvents.date} asc nulls last`, asc(materialEvents.createdAt)],
-    }),
-    db.query.scripts.findMany({
-      where: and(eq(scripts.userId, userId), eq(scripts.seriesId, seriesId), isNotNull(scripts.eventId)),
-      columns: { id: true, eventId: true },
-    }),
-  ]);
-  const scriptByEvent = new Map(told.map((s) => [s.eventId as string, s.id]));
-  // « Personne » veut dire personne (docs/SPEC_EVENEMENTS_PAR_CIBLE.md §3.4) : un événement sans
-  // angle pour ce lecteur ne part plus dans sa série. Trois exceptions seulement, dans tellableTo.
-  const portraitLabels = readersOfProduct(series.product).map((r) => r.label);
-  const forReader = events.filter((e) => tellableTo(e, series.readerLabel, portraitLabels));
-  const planned: PlannedEvent[] = forReader.map((e) => ({
-    id: e.id,
-    date: e.date,
-    datePrecision: e.datePrecision,
-    title: e.title,
-    whatHappened: e.whatHappened,
-    whatChanged: e.whatChanged,
-    kind: e.kind,
-    audiences: e.audiences,
-    told: scriptByEvent.has(e.id),
-    scriptId: scriptByEvent.get(e.id) ?? null,
-  }));
-  const next = planned.find((e) => !e.told && e.date !== null) ?? planned.find((e) => !e.told) ?? null;
-  return { readerLabel: series.readerLabel, events: planned, next };
+  if (!series.productId) return { readerLabel: series.readerLabel, events: [] };
+  const { timeline } = await loadTimeline(userId, series.productId, seriesId);
+  return { readerLabel: series.readerLabel, events: timeline };
 }
 
-function toBriefEvent(e: PlannedEvent): BriefEvent {
-  return { id: e.id, date: e.date, datePrecision: e.datePrecision, title: e.title, whatHappened: e.whatHappened, whatChanged: e.whatChanged, kind: e.kind };
+async function loadTimeline(userId: string, productId: string, seriesId: string) {
+  const [rows, posts, docs] = await Promise.all([
+    db.query.materialEvents.findMany({
+      where: and(eq(materialEvents.userId, userId), eq(materialEvents.productId, productId)),
+      orderBy: [sql`${materialEvents.date} asc nulls last`, asc(materialEvents.createdAt)],
+      with: { sourceMaterial: { columns: { id: true, title: true } } },
+    }),
+    db.query.scripts.findMany({
+      where: and(eq(scripts.userId, userId), eq(scripts.seriesId, seriesId)),
+      columns: { id: true, eventId: true, eventIds: true, hookText: true, caption: true, createdAt: true },
+      orderBy: asc(scripts.createdAt),
+    }),
+    db.query.sourceMaterials.findMany({
+      where: and(eq(sourceMaterials.userId, userId), eq(sourceMaterials.productId, productId)),
+      columns: { id: true, title: true, rawText: true },
+    }),
+  ]);
+
+  const documents = new Set(docs.map((d) => d.id));
+  const timeline = pointerTimeline(
+    rows.map((r) => ({ id: r.id, line: r.line, date: r.date, sourceMaterialId: r.sourceMaterialId, documentTitle: r.sourceMaterial?.title ?? null })),
+    toldPointerIds(posts),
+    documents
+  );
+  return { timeline, posts, docs };
+}
+
+export interface PointerBrief {
+  timeline: TimelineEntry[];
+  posts: WrittenPost[];
+  /** Le corpus adressable : titre de document -> ses lignes. */
+  files: Map<string, string[]>;
+  reader: Reader;
+  projectContext: string;
 }
 
 /**
- * Le brief du rédacteur pour le prochain post de la série (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5) :
- * l'événement à raconter (le prochain du plan, ou celui qu'on réécrit), ses voisins, le lecteur
- * et le document source en entier. Null si la série n'a pas de lecteur, ou plus
- * rien à raconter — la génération retombe alors sur le chemin V3.
+ * Tout ce que le rédacteur reçoit pour écrire le prochain post d'une série. Null quand la série n'a
+ * pas de lecteur, pas de sujet, ou que sa ligne de temps est vide — la génération retombe alors sur
+ * le chemin V3, comme avant.
  */
-export async function buildEventBriefForSeries(userId: string, seriesId: string, lockedEventId: string | null): Promise<EventBrief | null> {
+export async function buildPointerBrief(userId: string, seriesId: string): Promise<PointerBrief | null> {
   const series = await loadSeriesWithProduct(userId, seriesId);
   if (!series.readerLabel || !series.productId) return null;
   const reader = readersOfProduct(series.product).find((r) => r.label === series.readerLabel);
   if (!reader) return null;
 
-  const plan = await planForSeries(userId, seriesId);
-  const chosen = lockedEventId ? (plan.events.find((e) => e.id === lockedEventId) ?? null) : plan.next;
-  if (!chosen) return null;
+  const { timeline, posts, docs } = await loadTimeline(userId, series.productId, seriesId);
+  if (timeline.length === 0) return null;
 
-  // Les voisins se prennent sur la ligne de temps complète du sujet (datés seulement), pas sur la
-  // vue filtrée : « une semaine après la démo » doit rester vrai même si la démo visait un autre public.
-  const all = await db.query.materialEvents.findMany({
-    where: and(eq(materialEvents.userId, userId), eq(materialEvents.productId, series.productId)),
-    orderBy: [sql`${materialEvents.date} asc nulls last`, asc(materialEvents.createdAt)],
-  });
-  const timeline: BriefEvent[] = all.map((e) => ({ id: e.id, date: e.date, datePrecision: e.datePrecision, title: e.title, whatHappened: e.whatHappened, whatChanged: e.whatChanged, kind: e.kind }));
-  const dated = timeline.filter((e) => e.date !== null);
-  const index = dated.findIndex((e) => e.id === chosen.id);
-  const before = index > 0 ? dated.slice(Math.max(0, index - 2), index) : [];
-  const after = index >= 0 ? dated.slice(index + 1, index + 2) : [];
+  const files = new Map<string, string[]>();
+  for (const d of docs) if (d.title) files.set(d.title, d.rawText.split("\n"));
 
-  const sourceId = all.find((e) => e.id === chosen.id)?.sourceMaterialId ?? null;
-  const sourceRow = sourceId ? await db.query.sourceMaterials.findFirst({ where: eq(sourceMaterials.id, sourceId), columns: { id: true, title: true, rawText: true } }) : null;
+  const product = series.product;
+  const projectContext = [
+    product?.description ?? null,
+    product?.problem ? `The problem it solves: ${product.problem}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   return {
-    event: toBriefEvent(chosen),
-    before,
-    after,
+    timeline,
+    posts: posts
+      .filter((p) => p.hookText || p.caption)
+      .map((p) => ({
+        id: p.id,
+        date: p.createdAt.toISOString().slice(0, 10),
+        text: [p.hookText, p.caption].filter(Boolean).join("\n\n"),
+      })),
+    files,
     reader,
-    seriesLabel: series.label,
-    source: sourceRow ? { id: sourceRow.id, title: sourceRow.title, text: sourceRow.rawText } : null,
-    timeline: dated,
+    projectContext,
   };
 }
 
