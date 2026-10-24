@@ -1,0 +1,1448 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pages Notion vers un sujet — maquette</title>
+<style>
+/* Maquette du rattachement de pages Notion à un sujet existant, dans Business context. Le CSS de l'app
+   (tellovo-app.css + app-extra.css, copié tel quel le 2026-10-24) puis les ajouts de la maquette en bas. */
+/* The signed-in app, copied from tellovo.ai (/app, /app/plan, /app/context) with the CreaFlow accent in place of
+   its coral. Scoped under .ap like the original — docs/SPEC_APP_DESIGN_TELLOVO.md. Our additions are in app-extra.css. */
+.ap{--bg:#faf9f6;--ink:#191a1d;--mute:#666a70;--line:#e3e1dc;--soft:#f3f1ec;--side:#f5f4f0;--accent:oklch(0.55 0.2 292);--mono:var(--font-mono-stack);--ease:cubic-bezier(.2,.8,.2,1);background:var(--bg);color:var(--ink);min-height:100vh;font-size:16px;line-height:1.55;overflow-x:clip}.ap p,.ap h1,.ap h2,.ap h3,.ap dl,.ap dd{margin:0}.ap :focus-visible{outline:2px solid var(--ink);outline-offset:2px}.ap .sr{clip:rect(0 0 0 0);white-space:nowrap;width:1px;height:1px;position:absolute;overflow:hidden}.ap .ico{fill:none;stroke:currentColor;stroke-width:1.7px;stroke-linecap:round;stroke-linejoin:round;flex:none;width:16px;height:16px}.ap .ico.sm{width:13px;height:13px}.ap .mono{font-family:var(--mono)}.ap .k{color:var(--mute);letter-spacing:.01em;font-size:12.5px}.ap .wm{letter-spacing:-.06em;color:var(--ink);align-items:baseline;font-size:21px;font-weight:650;line-height:1;display:inline-flex}.ap .wm i{background:var(--accent);border-radius:50%;width:.22em;height:.22em;margin-left:.07em;display:inline-block}.ap .btn{min-height:46px;font:inherit;letter-spacing:-.01em;cursor:pointer;white-space:nowrap;transition:transform .3s var(--ease), background .2s, box-shadow .3s, border-color .2s, color .2s;border:1px solid #0000;border-radius:12px;justify-content:center;align-items:center;gap:8px;padding:0 20px;font-size:14.5px;font-weight:560;text-decoration:none;display:inline-flex}.ap .btn .arr{transition:transform .3s var(--ease);display:inline-block}.ap .btn:hover .arr{transform:translate(3px)}.ap .btn-ink{background:var(--ink);color:var(--bg)}.ap .btn-ink:hover{color:var(--bg);background:#000;transform:translateY(-1px);box-shadow:0 12px 28px -14px #191a1d8c}.ap .btn-quiet{color:var(--ink);border-color:var(--line);background:#fff}.ap .btn-quiet:hover{border-color:#c9c6bf}.ap .btn-sm{border-radius:10px;min-height:40px;padding:0 14px;font-size:13.5px}.ap .btn-lg{border-radius:14px;min-height:54px;padding:0 26px;font-size:15.5px}.ap .btn-block{width:100%}.ap .tbtn{min-height:40px;color:var(--ink);font:inherit;cursor:pointer;white-space:nowrap;background:0 0;border:0;border-radius:10px;align-items:center;gap:7px;padding:0 12px;font-size:14px;transition:background .2s,color .2s;display:inline-flex}.ap .tbtn:hover,.ap .tbtn[aria-expanded=true]{background:var(--soft)}.ap .xbtn{width:40px;height:40px;color:var(--mute);cursor:pointer;background:0 0;border:0;border-radius:10px;flex:none;justify-content:center;align-items:center;display:inline-flex}.ap .xbtn:hover{background:var(--soft);color:var(--ink)}.ap .status{color:var(--mute);align-items:center;gap:7px;font-size:12.5px;display:inline-flex}.ap .status:before{content:"";border:1.5px solid #a9a59d;border-radius:50%;width:7px;height:7px}.ap .status.ready{color:var(--ink)}.ap .status.ready:before{background:var(--accent);border-color:var(--accent)}.ap .shell{flex-wrap:wrap;min-height:100vh;display:flex}.ap .side{background:var(--side);border-right:1px solid var(--line);flex-direction:column;flex:240px;align-self:flex-start;gap:22px;max-width:256px;height:100vh;padding:22px 14px 18px;display:flex;position:sticky;top:0;overflow-y:auto}.ap .side-top{padding:4px 10px}.ap .ws{border:1px solid var(--line);background:#fff;border-radius:14px;align-items:center;gap:12px;padding:10px;display:flex}.ap .logo{background:var(--ink);width:34px;height:34px;color:var(--bg);font-family:var(--mono);border-radius:10px;flex:none;place-items:center;font-size:12px;font-weight:600;display:grid}.ap .ws b{font-size:14.5px;font-weight:600;line-height:1.2;display:block}.ap .ws span span{font-family:var(--mono);color:var(--mute);font-size:11px}.ap .side-nav{flex-direction:column;gap:2px;display:flex}.ap .nv{min-height:40px;color:var(--mute);font:inherit;cursor:pointer;text-align:left;white-space:nowrap;background:0 0;border:0;border-radius:10px;align-items:center;gap:10px;padding:0 12px;font-size:14.5px;text-decoration:none;transition:background .2s,color .2s;display:flex}.ap .nv:hover{color:var(--ink);background:#fff9}.ap .nv.on{color:var(--ink);box-shadow:0 1px 2px #191a1d0f, 0 0 0 1px var(--line);background:#fff;font-weight:520}.ap .nv .badge{color:var(--mute);margin-left:auto;font-size:11.5px}.ap .side-bottom{flex-direction:column;gap:12px;margin-top:auto;display:flex}.ap .plan-card{border:1px solid var(--line);background:#fff;border-radius:16px;flex-direction:column;gap:10px;padding:16px;display:flex}.ap .plan-card b{font-size:14px;font-weight:600}.ap .plan-card p{color:var(--mute);font-size:13px;line-height:1.45}.ap .meter{background:var(--soft);border-radius:5px;height:5px;overflow:hidden}.ap .meter i{background:var(--accent);border-radius:5px;width:100%;height:100%;display:block}.ap .me{align-items:center;gap:10px;padding:6px 8px;display:flex}.ap .av{background:var(--ink);width:34px;height:34px;color:var(--bg);border-radius:50%;flex:none;place-items:center;font-size:12px;font-weight:600;display:grid}.ap .me b{font-size:13.5px;font-weight:560;line-height:1.2;display:block}.ap .me span span{color:var(--mute);font-size:12px}.ap .main{flex:999 600px;min-width:0;padding:28px 44px 90px}.ap .main-in{max-width:1120px;margin:0 auto}.ap .welcome{border:1px solid var(--line);animation:ap-drop .6s var(--ease) both;background:#fff;border-radius:16px;align-items:center;gap:14px;margin-bottom:28px;padding:14px 14px 14px 18px;display:flex;box-shadow:0 20px 40px -34px #191a1d66}.ap .welcome .wi{background:var(--accent);color:#fff;border-radius:50%;flex:none;place-items:center;width:34px;height:34px;display:grid}.ap .welcome .wi .ico{stroke-width:2.4px}.ap .welcome p{color:var(--mute);flex:1;font-size:14.5px}.ap .welcome p b{color:var(--ink);font-weight:600}.ap .vh{animation:ap-up .5s var(--ease) both;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:20px 32px;margin-bottom:30px;display:flex}.ap .vk{color:var(--mute);font-size:13.5px}.ap .vt{letter-spacing:-.05em;font-size:clamp(30px,3.4vw,44px);font-weight:610;line-height:1.05;margin-top:6px!important}.ap .vs{color:var(--mute);max-width:58ch;font-size:15.5px;margin-top:10px!important}.ap .wk-grid{grid-template-columns:320px minmax(0,1fr);align-items:start;gap:32px;display:grid}.ap .list{flex-direction:column;gap:8px;display:flex}.ap .wday{text-align:left;width:100%;color:var(--ink);font:inherit;cursor:pointer;transition:background .3s, border-color .3s, box-shadow .4s var(--ease);animation:ap-up .5s var(--ease) both;background:0 0;border:1px solid #0000;border-radius:16px;flex-direction:column;gap:6px;padding:16px 18px;display:flex}.ap .wday:nth-child(2){animation-delay:60ms}.ap .wday:nth-child(3){animation-delay:.12s}.ap .wday:hover{border-color:var(--line);background:#ffffffb3}.ap .wday.on{border-color:var(--line);background:#fff;box-shadow:0 20px 40px -30px #191a1d59}.ap .wday-top{color:var(--mute);justify-content:space-between;align-items:center;gap:8px;font-size:13px;display:flex}.ap .wday b{letter-spacing:-.02em;font-size:16px;font-weight:600;line-height:1.3}.ap .wday .snip{color:var(--mute);-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:13.5px;line-height:1.5;display:-webkit-box;overflow:hidden}.ap .next{border:1px dashed #d3cfc7;border-radius:16px;flex-direction:column;gap:6px;margin-top:10px;padding:16px 18px;display:flex}.ap .next .row{color:var(--mute);align-items:center;gap:8px;font-size:13px;display:flex}.ap .next b{letter-spacing:-.015em;font-size:15px;font-weight:600}.ap .next p{color:var(--mute);font-size:13.5px}.ap .link{font:inherit;color:var(--ink);cursor:pointer;text-align:left;background:0 0;border:0;align-items:center;gap:6px;min-height:36px;padding:6px 0;font-size:14px;font-weight:560;display:inline-flex}.ap .link:hover{text-underline-offset:4px;text-decoration:underline}.ap .pane{border:1px solid var(--line);background:#fff;border-radius:22px;scroll-margin-top:16px;box-shadow:0 2px 4px #191a1d08,0 50px 90px -60px #191a1d59}.ap .pane.in-a{animation:ap-paneA .4s var(--ease) both}.ap .pane.in-b{animation:ap-paneB .4s var(--ease) both}.ap .pane-head{border-bottom:1px solid var(--soft);flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;padding:16px 20px 16px 28px;display:flex}.ap .pane-head .when{color:var(--mute);font-size:14px}.ap .pane-head .when b{color:var(--ink);font-weight:560}.ap .seg{background:var(--soft);border-radius:11px;padding:3px;display:inline-flex}.ap .seg button{min-height:36px;font:inherit;color:var(--mute);cursor:pointer;background:0 0;border:0;border-radius:9px;padding:0 14px;font-size:13.5px;transition:background .2s,color .2s,box-shadow .2s}.ap .seg button:hover{color:var(--ink)}.ap .seg button.on{color:var(--ink);background:#fff;box-shadow:0 1px 2px #191a1d14,0 0 0 1px #191a1d0a}.ap .pane-body{padding:30px 34px 22px}.ap .pane-title{letter-spacing:-.04em;font-size:clamp(22px,2.1vw,28px);font-weight:600;line-height:1.15;margin-bottom:22px!important}.ap .author{align-items:center;gap:12px;margin-bottom:18px;display:flex}.ap .author b{font-size:14.5px;font-weight:600;line-height:1.25;display:block}.ap .author span{color:var(--mute);font-size:13px}.ap .author .edited{color:var(--mute);margin-left:auto;font-size:12.5px}.ap .post-text{white-space:pre-line;color:var(--ink);overflow-wrap:anywhere;max-width:62ch;font-size:17px;line-height:1.65}.ap .post-text.flash{animation:ap-flash 1s var(--ease)}.ap .post-text.flash2{animation:ap-flash2 1s var(--ease)}.ap .count{color:var(--mute);font-size:12px;font-family:var(--mono);margin-top:16px!important}.ap .editor{resize:vertical;background:var(--soft);width:100%;min-height:320px;color:var(--ink);font:inherit;box-shadow:inset 0 0 0 1px var(--line);border:0;border-radius:14px;outline:none;padding:16px 18px;font-size:16.5px;line-height:1.65}.ap .editor:focus{box-shadow:inset 0 0 0 1px var(--accent), 0 0 0 4px oklch(0.55 0.2 292 / .1)}.ap .edit-row{flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;display:flex}.ap .edit-row .n{color:var(--mute);margin-left:auto;font-size:12.5px}.ap .ai{border:1px solid var(--line);background:#fcfbf9;border-radius:16px;flex-direction:column;gap:12px;margin:0 34px 22px;padding:16px;display:flex}.ap .ai-head{align-items:center;gap:8px;font-size:13.5px;font-weight:560;display:flex}.ap .ai-head i{background:var(--accent);border-radius:50%;width:8px;height:8px;box-shadow:0 0 0 4px oklch(0.55 0.2 292 / .15)}.ap .chips{flex-wrap:wrap;gap:6px;display:flex}.ap .chip{border:1px solid var(--line);min-height:36px;color:var(--ink);font:inherit;cursor:pointer;background:#fff;border-radius:999px;padding:0 12px;font-size:13.5px;transition:border-color .2s,background .2s}.ap .chip:hover{border-color:#b9b5ad}.ap .chip.on{border-color:var(--ink);background:var(--ink);color:var(--bg)}.ap .ai-form{border:1px solid var(--line);background:#fff;border-radius:12px;align-items:center;gap:8px;padding:4px 4px 4px 14px;transition:border-color .2s,box-shadow .2s;display:flex}.ap .ai-form:focus-within{border-color:var(--accent);box-shadow:0 0 0 4px oklch(0.55 0.2 292 / .1)}.ap .ai-form input{min-width:0;height:38px;font:inherit;color:var(--ink);background:0 0;border:0;outline:none;flex:1;font-size:14.5px}.ap .ai-form input:focus-visible{outline:none}.ap .ai-form input::placeholder{color:#8b8e93}.ap .ai-go{background:var(--ink);width:38px;height:38px;color:var(--bg);cursor:pointer;border:0;border-radius:9px;flex:none;place-items:center;display:grid}.ap .ai-note{color:var(--ink);flex-wrap:wrap;align-items:center;gap:6px;font-size:13px;animation:.3s both ap-fade;display:flex}.ap .ai-note.mute{color:var(--mute)}.ap .ai-note button{font:inherit;color:var(--mute);text-underline-offset:3px;cursor:pointer;background:0 0;border:0;padding:4px 2px;font-size:13px;text-decoration:underline}.ap .pane-acts{border-top:1px solid var(--soft);flex-wrap:wrap;align-items:center;gap:4px;padding:12px 16px 12px 22px;display:flex}.ap .pane-acts .ok{color:var(--ink);padding:0 8px;font-size:13.5px;animation:.25s both ap-fade}.ap .pane-acts .main-act{margin-left:auto}.ap .btn.is-ready{color:var(--ink);border-color:var(--line);background:#fff}.ap .btn.is-ready:hover{background:var(--soft);box-shadow:none}.ap .source{border-top:1px solid var(--soft);background:#fcfbf9;border-radius:0 0 22px 22px;flex-direction:column;gap:14px;padding:22px 34px 26px;animation:.3s both ap-fade;display:flex}.ap .srec{grid-template-columns:48px minmax(0,1fr);gap:2px 12px;display:grid}.ap .srec .n{font-family:var(--mono);color:var(--mute);font-size:12.5px}.ap .srec .t{font-family:var(--mono);font-size:13px;line-height:1.5}.ap .srec .d{color:var(--mute);grid-column:2;font-size:13.5px}.ap .why{border-top:1px solid var(--line);padding-top:14px}.ap .why p{max-width:64ch;font-size:14.5px;line-height:1.6}.ap .month{flex-direction:column;gap:14px;display:flex}.ap .wrow{border:1px solid var(--line);animation:ap-up .5s var(--ease) both;background:#fff;border-radius:20px;grid-template-columns:170px minmax(0,1fr);align-items:stretch;gap:20px;padding:18px;display:grid}.ap .wrow:nth-child(2){animation-delay:60ms}.ap .wrow:nth-child(3){animation-delay:.12s}.ap .wrow:nth-child(4){animation-delay:.18s}.ap .wl{flex-direction:column;gap:4px;padding:4px 2px;display:flex}.ap .wl b{letter-spacing:-.02em;font-size:16px;font-weight:600}.ap .wl span{color:var(--mute);font-size:13px}.ap .wl .now{color:var(--accent);font-weight:560}.ap .slots{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;display:grid;position:relative}.ap .slot{background:var(--bg);border:1px solid var(--soft);border-radius:12px;flex-direction:column;gap:4px;min-height:96px;padding:10px 12px;display:flex}.ap .slot .d{color:#9a9da2;font-size:11.5px}.ap .pchip{border:1px solid var(--line);text-align:left;min-height:96px;font:inherit;color:var(--ink);cursor:pointer;transition:border-color .2s, transform .3s var(--ease), box-shadow .3s;background:#fff;border-radius:12px;flex-direction:column;gap:6px;padding:10px 12px;display:flex}.ap .pchip:hover{border-color:#b9b5ad;transform:translateY(-2px);box-shadow:0 16px 30px -24px #191a1d66}.ap .pchip .d{color:var(--mute);justify-content:space-between;gap:6px;font-size:11.5px;display:flex}.ap .pchip b{letter-spacing:-.01em;font-size:13.5px;font-weight:600;line-height:1.3}.ap .wrow.locked .slot{background:repeating-linear-gradient(135deg,#f6f5f1 0 8px,#f2f0eb 8px 16px);border-color:#0000}.ap .wrow.faded{opacity:.6}.ap .lock{flex-wrap:wrap;justify-content:center;align-items:center;gap:14px;padding:12px;display:flex;position:absolute;inset:0}.ap .lock-in{border:1px solid var(--line);background:#fff;border-radius:14px;flex-wrap:wrap;justify-content:center;align-items:center;gap:14px;padding:10px 10px 10px 16px;display:flex;box-shadow:0 20px 40px -30px #191a1d80}.ap .lock-in p{color:var(--mute);align-items:center;gap:8px;font-size:14px;display:flex}.ap .lock-in p .ico{color:var(--ink)}.ap .ctx-grid{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);align-items:start;gap:24px;display:grid}.ap .card{border:1px solid var(--line);animation:ap-up .5s var(--ease) both;background:#fff;border-radius:22px;padding:26px 28px;box-shadow:0 2px 4px #191a1d08,0 40px 80px -60px #191a1d4d}.ap .card h2{letter-spacing:-.02em;font-size:18px;font-weight:600}.ap .card .sub{color:var(--mute);font-size:14px;margin-top:4px!important}.ap .ctx-side{flex-direction:column;gap:18px;display:flex}.ap .biz-id{align-items:center;gap:14px;display:flex}.ap .biz-id .logo{border-radius:14px;width:48px;height:48px;font-size:14px}.ap .biz-name{letter-spacing:-.04em;font-size:24px;font-weight:620;line-height:1.1}.ap .biz-tag{color:var(--mute);font-size:14.5px;margin-top:3px!important}.ap .biz-rows{border-top:1px solid var(--soft);margin-top:22px!important}.ap .biz-row{border-bottom:1px solid var(--soft);grid-template-columns:160px minmax(0,1fr);gap:6px 20px;padding:16px 0;display:grid}.ap .biz-row dt{color:var(--mute);padding-top:2px;font-size:13.5px}.ap .biz-row dd{font-size:15.5px;line-height:1.5}.ap .biz-row textarea{resize:vertical;border:1px solid var(--line);width:100%;min-height:60px;font:inherit;color:var(--ink);background:var(--bg);border-radius:12px;outline:none;padding:10px 12px;font-size:15px;line-height:1.5}.ap .biz-row textarea:focus{border-color:var(--accent);box-shadow:0 0 0 4px oklch(0.55 0.2 292 / .1)}.ap .biz-foot{flex-wrap:wrap;align-items:center;gap:10px;padding-top:14px;display:flex}.ap .biz-foot .saved{color:var(--mute);font-size:13px;animation:.3s both ap-fade}.ap .biz-foot .acts{gap:8px;margin-left:auto;display:flex}.ap .engine{flex-direction:column;gap:10px;display:flex}.ap .eng-row{justify-content:space-between;align-items:baseline;gap:10px;display:flex}.ap .eng-row b{letter-spacing:-.03em;font-size:22px;font-weight:610}.ap .eng-row span{color:var(--mute);font-size:13px}.ap .segbar{grid-template-columns:repeat(5,1fr);gap:4px;display:grid}.ap .segbar i{background:var(--soft);border-radius:4px;height:6px;transition:background .4s}.ap .segbar i.on{background:var(--accent)}.ap .engine .hint{color:var(--mute);font-size:13.5px}.ap .src-list{flex-direction:column;margin-top:12px;display:flex}.ap .src-row{border-bottom:1px solid var(--soft);align-items:center;gap:12px;padding:12px 0;display:flex}.ap .src-row:last-child{border-bottom:0}.ap .src-ic{background:var(--soft);width:36px;height:36px;color:var(--ink);border-radius:10px;flex:none;place-items:center;display:grid}.ap .src-txt{flex:1;min-width:0}.ap .src-txt b{font-size:14.5px;font-weight:560;display:block}.ap .src-txt span{color:var(--mute);font-size:12.5px}.ap .conn{border:1px solid var(--line);min-height:34px;font:inherit;cursor:pointer;color:var(--ink);white-space:nowrap;background:#fff;border-radius:9px;align-items:center;gap:6px;padding:0 12px;font-size:13px;display:inline-flex}.ap .conn:hover{border-color:#b9b5ad}.ap .conn.on{background:var(--soft);color:var(--mute);border-color:#0000}.ap .conn.on .ico{color:var(--accent)}.ap .voice .chips{margin-top:14px}.ap .ov{z-index:80;justify-content:center;align-items:center;padding:20px;display:flex;position:fixed;inset:0}.ap .scrim{cursor:pointer;background:#191a1d5c;border:0;padding:0;animation:.3s both ap-fade;position:absolute;inset:0}.ap .modal{width:min(520px,100%);max-height:calc(100vh - 40px);animation:ap-modalIn .5s var(--ease) both;background:#fff;border-radius:26px;padding:40px 38px 32px;position:relative;overflow-y:auto;box-shadow:0 60px 120px -50px #191a1d8c}.ap .modal .xbtn{position:absolute;top:14px;right:14px}.ap .modal h2{letter-spacing:-.05em;padding-right:30px;font-size:34px;font-weight:610;line-height:1.04}.ap .modal h2 span{color:var(--mute)}.ap .modal .mp{color:var(--mute);font-size:16px;margin-top:14px!important}.ap .offer{border:1px solid var(--line);background:var(--bg);border-radius:18px;margin:26px 0 22px;padding:22px}.ap .offer-top{flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;display:flex}.ap .offer-top b{font-size:15px;font-weight:600}.ap .price{letter-spacing:-.05em;font-size:34px;font-weight:610;line-height:1}.ap .price span{color:var(--mute);letter-spacing:0;font-size:14.5px;font-weight:400}.ap .feat{flex-direction:column;gap:10px;margin:18px 0 0;padding:0;list-style:none;display:flex}.ap .feat li{align-items:flex-start;gap:10px;font-size:14.5px;display:flex}.ap .feat .ico{color:var(--accent);stroke-width:2.2px;margin-top:3px}.ap .modal-acts{flex-direction:column;gap:8px;display:flex}.ap .hint{color:var(--mute);text-align:center;font-size:13px;animation:.3s both ap-fade;margin-top:12px!important}.ap .toast{z-index:90;background:var(--ink);color:var(--bg);animation:ap-toast .4s var(--ease) both;border-radius:12px;align-items:center;gap:8px;padding:12px 18px;font-size:14px;display:flex;position:fixed;bottom:24px;left:50%;transform:translate(-50%);box-shadow:0 20px 40px -20px #0009}@media (max-width:1100px){.ap .wk-grid{grid-template-columns:1fr}.ap .list{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;display:grid}.ap .wday{border-color:var(--line);background:#fff}.ap .wday.on{border-color:var(--ink);box-shadow:none}.ap .next{grid-column:1/-1;margin-top:0}.ap .ctx-grid{grid-template-columns:1fr}}@media (max-width:900px){.ap .side{border-right:0;border-bottom:1px solid var(--line);flex-flow:wrap;flex-basis:100%;align-items:center;gap:10px;max-width:none;height:auto;padding:12px 16px;position:static;overflow:visible}.ap .side-top{padding:0}.ap .ws,.ap .side-bottom{display:none}.ap .side-nav{scrollbar-width:none;flex-direction:row;gap:4px;width:100%;overflow-x:auto}.ap .nv .badge{display:none}.ap .main{padding:22px 18px 90px}.ap .wrow{grid-template-columns:1fr;gap:12px}.ap .slots{grid-template-columns:repeat(5,minmax(120px,1fr));padding-bottom:4px;overflow-x:auto}.ap .lock{margin-top:-4px;padding:0;position:static}}@media (max-width:640px){.ap .list{grid-template-columns:1fr}.ap .pane-body{padding:22px 20px 18px}.ap .pane-head{padding:12px 14px 12px 20px}.ap .ai{margin:0 20px 18px}.ap .post-text{font-size:16px}.ap .pane-acts{padding:10px 12px}.ap .pane-acts .main-act{flex:100%;margin:6px 0 0}.ap .source{padding:20px}.ap .biz-row{grid-template-columns:1fr}.ap .card{padding:22px 20px}.ap .modal{padding:34px 22px 24px}.ap .vh .btn{width:100%}}@media (prefers-reduced-motion:reduce){.ap *,.ap :before,.ap :after{transition:none!important;animation:none!important}}@keyframes ap-up{0%{opacity:0;translate:0 14px}to{opacity:1;translate:0}}@keyframes ap-drop{0%{opacity:0;translate:0 -10px}to{opacity:1;translate:0}}@keyframes ap-fade{0%{opacity:0}to{opacity:1}}@keyframes ap-paneA{0%{opacity:0;translate:0 8px}to{opacity:1;translate:0}}@keyframes ap-paneB{0%{opacity:0;translate:0 8px}to{opacity:1;translate:0}}@keyframes ap-flash{0%{background:oklch(0.55 0.2 292 / .12)}to{background:0 0}}@keyframes ap-flash2{0%{background:oklch(0.55 0.2 292 / .12)}to{background:0 0}}@keyframes ap-modalIn{0%{opacity:0;translate:0 16px;scale:.98}to{opacity:1;translate:0;scale:1}}@keyframes ap-toast{0%{opacity:0;translate:0 12px}to{opacity:1;translate:0}}
+
+/* What the CreaFlow app adds to the copied tellovo.ai app (tellovo-app.css): fonts and links, the account menu,
+   the tools bubble, the image inside a post, the generating state, and the phone layout (E15).
+   docs/SPEC_APP_DESIGN_TELLOVO.md. */
+.ap {
+  --font-sans-stack: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono-stack: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-sans-stack);
+  -webkit-font-smoothing: antialiased;
+}
+.ap a {
+  color: var(--ink);
+}
+.ap button {
+  font-family: inherit;
+}
+.ap .status.posted {
+  color: var(--ink);
+}
+.ap .status.posted:before {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.ap .status.writing:before {
+  border-color: var(--accent);
+  border-top-color: transparent;
+  animation: ap-spin 0.9s linear infinite;
+}
+@keyframes ap-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.ap .wday.writing .snip {
+  font-style: italic;
+}
+
+/* Account menu */
+.ap .me-wrap {
+  position: relative;
+}
+.ap .me-btn {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+}
+.ap .me-btn:hover,
+.ap .me-btn[aria-expanded="true"] {
+  background: var(--soft);
+}
+.ap .menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 30;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 50px -28px #191a1d80;
+  animation: ap-fade 0.2s both;
+}
+.ap .menu a,
+.ap .menu button {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+}
+.ap .menu a:hover,
+.ap .menu button:hover {
+  background: var(--soft);
+}
+.ap .menu hr {
+  border: 0;
+  border-top: 1px solid var(--soft);
+  margin: 4px 2px;
+}
+.ap .side-mobile-me {
+  display: none;
+}
+
+/* Post pane: image, tools */
+.ap .post-media {
+  position: relative;
+  margin: 0 0 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+.ap .post-media .frame {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--soft);
+}
+.ap .post-media .strip {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ap .post-media .strip .tbtn {
+  min-height: 40px;
+  width: 40px;
+  padding: 0;
+  justify-content: center;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+.ap .tools-wrap {
+  position: relative;
+}
+.ap .bubble {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  z-index: 25;
+  width: min(300px, calc(100vw - 32px));
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow: 0 30px 60px -30px #191a1d99;
+  animation: ap-fade 0.2s both;
+  display: flex;
+  flex-direction: column;
+}
+.ap .bubble h3 {
+  font-size: 12px;
+  font-weight: 560;
+  letter-spacing: 0.02em;
+  color: var(--mute);
+  padding: 8px 10px 4px;
+}
+.ap .bubble button {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+.ap .bubble button:hover {
+  background: var(--soft);
+}
+.ap .bubble button.danger {
+  color: #b3261e;
+}
+.ap .bubble button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.ap .bubble hr {
+  border: 0;
+  border-top: 1px solid var(--soft);
+  margin: 4px 2px;
+}
+.ap .empty-pane {
+  padding: 48px 34px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+.ap .empty-pane h2 {
+  letter-spacing: -0.04em;
+  font-size: clamp(22px, 2.1vw, 28px);
+  font-weight: 600;
+  line-height: 1.15;
+}
+.ap .empty-pane p {
+  color: var(--mute);
+  max-width: 52ch;
+}
+.ap .pane-note {
+  color: var(--mute);
+  font-size: 13px;
+  padding: 0 34px 14px;
+}
+.ap .err {
+  color: #b3261e;
+  font-size: 13.5px;
+}
+.ap .pane-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 16px;
+  color: var(--accent);
+  font-size: 13.5px;
+}
+.ap .wk-nav {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.ap .wk-nav .xbtn {
+  width: 28px;
+  height: 28px;
+}
+.ap .series-tag {
+  color: var(--mute);
+  font-size: 12.5px;
+}
+/* The form of a post (docs/FORMES_ET_GENRES.md): a small, non-editable tag. */
+.ap .wday-tags {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ap .form-tag {
+  display: inline-block;
+  padding: 1px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--mute);
+  font-size: 11.5px;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.ap .pane-form {
+  margin: -6px 0 10px;
+}
+.ap .modal-wide {
+  width: min(980px, 100%);
+  padding: 22px;
+}
+.ap .day-short {
+  display: none;
+}
+
+/* Visual picker of the tools bubble */
+.ap .visual-step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 12px 8px;
+  font-size: 14px;
+}
+.ap .visual-step input {
+  width: 72px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0 10px;
+  font: inherit;
+  background: #fff;
+  color: var(--ink);
+}
+
+/* A long action (visual, another idea) told on the pane */
+.ap .ai-note.working {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fcfbf9;
+  color: var(--ink);
+}
+.ap .ai-note.working .status {
+  margin-right: 2px;
+}
+.ap .composing {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  max-height: 420px;
+  background: linear-gradient(100deg, var(--soft) 30%, #fff 50%, var(--soft) 70%);
+  background-size: 200% 100%;
+  animation: ap-shimmer 1.4s linear infinite;
+}
+@keyframes ap-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* The animation of a post: a sealed iframe, scaled to its frame */
+.ap .anim-wrap {
+  grid-template-columns: minmax(0, 1fr);
+}
+.ap .anim-wrap .frame {
+  width: min(340px, 100%);
+  margin: 0 auto;
+  background: #000;
+}
+.ap .anim {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #000;
+}
+.ap .anim iframe {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border: 0;
+  transform-origin: 0 0;
+}
+.ap .anim-toggle {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  cursor: pointer;
+}
+.ap .anim-toggle:hover {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+/* The plan shows the seven days of a week (a series can publish on the weekend). */
+.ap .slots.seven {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+@media (max-width: 900px) {
+  .ap .slots.seven {
+    grid-template-columns: repeat(7, minmax(120px, 1fr));
+  }
+}
+
+/* Phone (E15): the days on top, the script right under, the actions as icons */
+@media (max-width: 900px) {
+  .ap .side {
+    min-width: 0;
+    max-width: 100%;
+  }
+  /* Top bar: the logo and the account on one row, the menu entries scrolling under them. */
+  .ap .side-top {
+    order: 1;
+    flex: 1;
+  }
+  .ap .side-mobile-me {
+    display: inline-flex;
+    order: 2;
+  }
+  .ap .side-nav {
+    order: 3;
+    width: 100%;
+    flex-basis: 100%;
+  }
+  .ap .menu.menu-top {
+    top: calc(100% + 6px);
+    bottom: auto;
+    left: auto;
+    right: 0;
+    width: 220px;
+  }
+  .ap .me-wrap-m {
+    position: relative;
+  }
+}
+@media (max-width: 640px) {
+  .ap .main {
+    padding: 14px 14px 70px;
+  }
+  .ap .vh {
+    margin-bottom: 14px;
+    gap: 10px;
+  }
+  .ap .vt {
+    font-size: 26px;
+  }
+  .ap .vs {
+    display: none;
+  }
+  .ap .vh .btn {
+    min-height: 40px;
+    font-size: 14px;
+  }
+  .ap .welcome {
+    margin-bottom: 14px;
+    padding: 10px 10px 10px 14px;
+  }
+  .ap .wk-grid {
+    gap: 12px;
+  }
+  /* The days as a row of pills; the script follows at once. */
+  .ap .list {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .ap .list .wday {
+    flex: 1 0 auto;
+    min-width: 92px;
+    width: auto;
+    padding: 9px 12px;
+    gap: 2px;
+    border-radius: 14px;
+    align-items: flex-start;
+  }
+  .ap .list .wday b,
+  .ap .list .wday .snip {
+    display: none;
+  }
+  .ap .list .wday .day-short {
+    display: block;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.02em;
+  }
+  .ap .list .wday .wday-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  .ap .list .wday .wday-top > span:first-child {
+    display: none;
+  }
+  .ap .list .next {
+    display: none;
+  }
+  .ap .pane {
+    border-radius: 18px;
+  }
+  .ap .pane-head {
+    padding: 8px 10px 8px 14px;
+  }
+  .ap .pane-head .when {
+    display: none;
+  }
+  .ap .pane-body {
+    padding: 16px 14px 10px;
+  }
+  .ap .pane-title {
+    font-size: 20px;
+    margin-bottom: 12px !important;
+  }
+  .ap .author {
+    margin-bottom: 10px;
+  }
+  .ap .post-text {
+    font-size: 15.5px;
+  }
+  .ap .ai {
+    margin: 0 12px 12px;
+    padding: 12px;
+  }
+  .ap .ai .chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .ap .ai .chip {
+    flex: none;
+  }
+  /* Actions: the words go, the icons stay. */
+  .ap .pane-acts {
+    gap: 2px;
+    padding: 8px 10px;
+  }
+  .ap .pane-acts .tbtn {
+    padding: 0 10px;
+  }
+  .ap .pane-acts .tbtn .lbl {
+    display: none;
+  }
+  .ap .pane-acts .main-act {
+    flex: none;
+    margin: 0 0 0 auto;
+  }
+  .ap .bubble {
+    right: -4px;
+  }
+  .ap .post-media {
+    grid-template-columns: 1fr;
+  }
+  .ap .post-media .strip {
+    flex-direction: row;
+  }
+  .ap .empty-pane {
+    padding: 28px 16px;
+  }
+  .ap .pane-note {
+    padding: 0 14px 12px;
+  }
+}
+
+/* Performance (docs/SPEC_PERFORMANCE.md). Three levels of weight: the week's impressions and their change, the
+   best post, then the posts. Reference render: docs/tests/performance-mockup/index.html. */
+.ap {
+  --good: #2f7d5b;
+  --good-bg: #e4f3ec;
+  --bad: #a4503f;
+  --bad-bg: #f6e7e2;
+}
+.ap .net-logo {
+  width: 18px;
+  height: 18px;
+  display: inline-block;
+  vertical-align: -3px;
+}
+.ap .pf-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+.ap .pf-sync {
+  margin-left: 10px;
+  font-size: 12.5px;
+  color: var(--mute);
+}
+.ap .wk-nav .xbtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.ap .pf-empty {
+  padding: 36px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+.ap .pf-empty h2 {
+  font-size: 20px;
+  letter-spacing: -0.025em;
+  font-weight: 610;
+}
+.ap .pf-empty p {
+  color: var(--mute);
+  max-width: 56ch;
+  margin-bottom: 6px;
+}
+
+/* Level 1: the hero */
+.ap .pf-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-bottom: 34px;
+}
+.ap .pf-hero {
+  padding: 28px 30px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 28px;
+  align-items: stretch;
+}
+.ap .pf-hero .kick {
+  font-size: 13.5px;
+  color: var(--mute);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.ap .pf-hero .kick .ico {
+  width: 16px;
+  height: 16px;
+}
+.ap .pf-big {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: 6px 0 4px;
+  flex-wrap: wrap;
+}
+.ap .pf-big b {
+  font-size: clamp(52px, 6vw, 76px);
+  letter-spacing: -0.055em;
+  font-weight: 620;
+  line-height: 1;
+}
+.ap .pf-pill {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  border-radius: 999px;
+  padding: 5px 15px;
+  background: var(--good-bg);
+  color: var(--good);
+  align-self: center;
+}
+.ap .pf-pill.dn {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+.ap .pf-split {
+  font-size: 14px;
+  color: var(--mute);
+}
+.ap .pf-split b {
+  color: var(--ink);
+  font-weight: 600;
+}
+/* Level 2: three plain figures, no boxes */
+.ap .pf-sec {
+  display: flex;
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top: 1px solid var(--soft);
+}
+.ap .pf-sec > div {
+  flex: 1;
+  padding-right: 14px;
+}
+.ap .pf-sec > div + div {
+  padding-left: 18px;
+  border-left: 1px solid var(--soft);
+}
+.ap .pf-sec .k {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2px;
+  color: var(--mute);
+}
+.ap .pf-sec .k .ico {
+  width: 19px;
+  height: 19px;
+}
+.ap .pf-sec b {
+  font-size: 24px;
+  letter-spacing: -0.03em;
+  font-weight: 620;
+  line-height: 1.2;
+}
+.ap .pf-sec .d {
+  font-size: 12px;
+  margin-left: 6px;
+  color: var(--good);
+  font-weight: 600;
+}
+.ap .pf-sec .d.dn {
+  color: var(--bad);
+}
+/* Four bars, one per week; the week in focus in the accent */
+.ap .pf-chart {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 210px;
+}
+.ap .pf-chart .cap {
+  font-size: 12.5px;
+  color: var(--mute);
+  margin-bottom: auto;
+}
+.ap .pf-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  height: 150px;
+}
+.ap .pf-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+  height: 100%;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+.ap .pf-bar .v {
+  font-size: 12.5px;
+  color: var(--mute);
+  text-align: center;
+  margin-bottom: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.ap .pf-bar i {
+  display: block;
+  border-radius: 8px 8px 3px 3px;
+  background: #dedbd4;
+  transition: background 0.2s;
+}
+.ap .pf-bar:hover i {
+  background: #c9c6bf;
+}
+.ap .pf-bar.cur i {
+  background: var(--accent);
+}
+.ap .pf-bar.cur .v {
+  color: var(--ink);
+  font-weight: 600;
+}
+.ap .pf-lbl {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+.ap .pf-lbl span {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  color: var(--mute);
+}
+.ap .pf-lbl span.cur {
+  color: var(--ink);
+  font-weight: 600;
+}
+/* The best post, tinted */
+.ap .pf-best {
+  padding: 26px;
+  background: oklch(0.55 0.2 292 / 0.07);
+  border-color: oklch(0.55 0.2 292 / 0.28);
+  display: flex;
+  flex-direction: column;
+}
+.ap .pf-best .kick {
+  font-size: 13.5px;
+  color: oklch(0.47 0.2 292);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.ap .pf-best h2 {
+  font-size: 20px;
+  letter-spacing: -0.025em;
+  line-height: 1.28;
+  font-weight: 610;
+  margin: 10px 0 18px;
+}
+.ap .pf-best .nets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: auto;
+}
+.ap .pf-best .nets div {
+  background: #fff;
+  border-radius: 12px;
+  padding: 11px 14px;
+}
+.ap .pf-best .nets .k {
+  display: block;
+}
+.ap .pf-best .nets b {
+  font-size: 22px;
+  letter-spacing: -0.03em;
+  font-weight: 620;
+}
+.ap .pf-best .why {
+  font-size: 13.5px;
+  color: var(--mute);
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ap .pf-best .why .ico {
+  width: 14px;
+  height: 14px;
+}
+.ap .pf-best-empty .why {
+  margin-top: 10px;
+}
+/* Level 3: the posts, calm */
+.ap .pf-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg);
+  padding: 10px 0;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+.ap .pf-sticky b {
+  font-weight: 600;
+}
+.ap .pf-list {
+  padding: 6px 24px 10px;
+}
+.ap .pf-wk {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 13px;
+  color: var(--mute);
+  padding: 20px 0 8px;
+  scroll-margin-top: 70px;
+}
+.ap .pf-wk b {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+.ap .pf-wk.cur b {
+  color: var(--accent);
+}
+.ap .pf-none {
+  font-size: 13.5px;
+  color: var(--mute);
+  padding: 4px 0 10px;
+}
+.ap .pf-colh,
+.ap .pf-tr {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) 168px 168px;
+  gap: 0 18px;
+}
+.ap .pf-colh {
+  font-size: 11.5px;
+  color: var(--mute);
+  padding: 14px 0 4px;
+  border-bottom: 1px solid var(--line);
+}
+.ap .pf-colh span:nth-child(n + 3) {
+  text-align: right;
+}
+.ap .pf-colh .net-logo {
+  width: 16px;
+  height: 16px;
+}
+.ap .pf-tr {
+  align-items: center;
+  padding: 14px 0;
+  border-top: 1px solid var(--soft);
+  transition: opacity 0.25s;
+}
+.ap .pf-wk + .pf-tr {
+  border-top: 0;
+}
+.ap .pf-faded {
+  opacity: 0.45;
+}
+.ap .pf-faded:hover {
+  opacity: 1;
+}
+.ap .pf-date {
+  width: 46px;
+  height: 50px;
+  border-radius: 12px;
+  background: var(--soft);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.ap .pf-date b {
+  font-size: 19px;
+  letter-spacing: -0.03em;
+  font-weight: 650;
+}
+.ap .pf-date span {
+  font-size: 10.5px;
+  color: var(--mute);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.ap .pf-tr .ti {
+  font-size: 15.5px;
+  font-weight: 580;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
+}
+.ap .pf-tr .ti em {
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: oklch(0.47 0.2 292);
+  background: oklch(0.55 0.2 292 / 0.12);
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+.ap .pf-tr .net {
+  text-align: right;
+}
+.ap .pf-tr .net.none {
+  color: var(--mute);
+}
+.ap .pf-tr .net b {
+  font-size: 19px;
+  letter-spacing: -0.03em;
+  font-weight: 620;
+  display: block;
+  line-height: 1.2;
+}
+.ap .pf-tr .net .mlogo {
+  display: none;
+  margin-right: 6px;
+}
+.ap .pf-tr .net .net-logo {
+  width: 15px;
+  height: 15px;
+}
+.ap .pf-tr .net small {
+  font-size: 12.5px;
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+}
+.ap .pf-em {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 12px;
+}
+.ap .pf-em .ico {
+  width: 14px;
+  height: 14px;
+}
+@media (max-width: 1000px) {
+  .ap .pf-top,
+  .ap .pf-hero {
+    grid-template-columns: 1fr;
+  }
+  .ap .pf-colh {
+    display: none;
+  }
+  .ap .pf-tr {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 12px;
+  }
+  .ap .pf-tr .pf-date {
+    display: none;
+  }
+  .ap .pf-tr .ti {
+    grid-column: 1 / -1;
+  }
+  .ap .pf-tr .net {
+    text-align: left;
+  }
+  .ap .pf-tr .net .mlogo {
+    display: inline-block;
+  }
+  .ap .pf-em:first-child {
+    margin-left: 0;
+  }
+  .ap .pf-list {
+    padding: 4px 16px 8px;
+  }
+}
+.ap .pf-detected {
+  padding: 18px 22px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ap .pf-detected h2 {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.ap .pf-detected .row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ap .pf-detected .what {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ap .pf-detected .what b {
+  font-size: 14.5px;
+  font-weight: 580;
+}
+.ap .pf-detected .what span {
+  font-size: 12.5px;
+  color: var(--mute);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Performance: connecting a network from the screen */
+.ap .pf-wk {
+  font-weight: 400;
+}
+.ap .vh > .pf-connect {
+  align-self: flex-start;
+}
+.ap .pf-connect {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.ap .pf-connect .k {
+  margin-right: 2px;
+}
+.ap .pf-conn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 560;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.2s, box-shadow 0.3s;
+}
+.ap .pf-conn:hover,
+.ap .pf-conn[aria-expanded="true"] {
+  border-color: #c9c6bf;
+  box-shadow: 0 10px 24px -18px #191a1d99;
+}
+.ap .pf-conn .net-logo {
+  width: 17px;
+  height: 17px;
+}
+.ap .pf-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 20;
+  width: min(360px, calc(100vw - 36px));
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 24px 50px -28px #191a1d80;
+  animation: ap-fade 0.2s both;
+}
+.ap .pf-handle label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.ap .pf-handle .line {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.ap .pf-handle input {
+  flex: 1;
+  min-width: 140px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+  font-size: 14.5px;
+  color: var(--ink);
+}
+.ap .pf-handle input:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+.ap .pf-handle .help {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--mute);
+}
+.ap .pf-handle .err {
+  margin-top: 8px;
+}
+.ap .pf-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(560px, 100%);
+  margin-top: 6px;
+}
+.ap .pf-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg);
+}
+.ap .pf-option .who {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+.ap .pf-option .who .net-logo {
+  width: 20px;
+  height: 20px;
+}
+.ap .pf-option .pf-handle.inline {
+  flex: 1;
+  min-width: 260px;
+}
+.ap .pf-option .pf-handle.inline label {
+  display: none;
+}
+.ap .pf-option .pf-handle.inline .help {
+  margin-top: 6px;
+}
+@media (max-width: 640px) {
+  .ap .vh > .pf-connect {
+    align-self: stretch;
+    justify-content: flex-start;
+  }
+}
+.ap .pf-flags {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  align-self: center;
+}
+.ap .pf-wait {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  border-radius: 999px;
+  padding: 4px 13px;
+  color: oklch(0.47 0.2 292);
+  background: oklch(0.55 0.2 292 / 0.12);
+  white-space: nowrap;
+  cursor: help;
+}
+
+body{margin:0;background:#faf9f6}
+.ap{--font-mono-stack:ui-monospace,SFMono-Regular,Menlo,monospace;--font-sans-stack:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;font-family:var(--font-sans-stack)}
+
+/* ---- Maquette : rattacher des pages Notion à un sujet existant (docs/tests/notion-rattachement-mockup) ---- */
+.ap .pick{margin-bottom:24px}
+.ap .pick-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px 24px}
+.ap .pick-head .k{margin-bottom:4px}
+.ap .pk-list{display:flex;flex-direction:column;margin-top:18px;border-top:1px solid var(--soft)}
+.ap .pk-row{display:grid;grid-template-columns:22px 36px minmax(0,1fr) auto;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--soft);cursor:pointer;position:relative}
+.ap .pk-row.off{cursor:default;color:var(--mute)}
+.ap .pk-row.off .src-ic{opacity:.55}
+.ap .pk-check{width:20px;height:20px;border:1.5px solid #b9b5ad;border-radius:6px;display:grid;place-items:center;background:#fff;transition:background .2s,border-color .2s}
+.ap .pk-check .ico{width:13px;height:13px;color:#fff;opacity:0;stroke-width:2.4px}
+.ap .pk-row.on .pk-check{background:var(--ink);border-color:var(--ink)}
+.ap .pk-row.on .pk-check .ico{opacity:1}
+.ap .pk-row.off .pk-check{border-color:var(--line);background:var(--soft)}
+.ap .pk-txt b{display:block;font-size:14.5px;font-weight:560}
+.ap .pk-txt span{display:block;color:var(--mute);font-size:12.5px}
+.ap .pk-to{display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:0 10px 0 12px;border:1px solid var(--line);border-radius:9px;background:#fff;font:inherit;font-size:13px;color:var(--ink);cursor:pointer;white-space:nowrap;transition:border-color .2s,background .2s}
+.ap .pk-to:hover,.ap .pk-to[aria-expanded=true]{border-color:#b9b5ad;background:var(--soft)}
+.ap .pk-to .mini{width:18px;height:18px;border-radius:5px;background:var(--ink);color:var(--bg);font-family:var(--mono);font-size:9px;font-weight:600;display:grid;place-items:center}
+.ap .pk-to .mini.new{background:#fff;color:var(--ink);border:1.5px dashed #b9b5ad}
+.ap .pk-to .ico{width:13px;height:13px;color:var(--mute)}
+.ap .pk-row:not(.on) .pk-to{visibility:hidden}
+.ap .pk-static{color:var(--mute);font-size:13px;white-space:nowrap}
+.ap .pk-menu{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;padding:2px 0 6px 72px;animation:ap-up .25s var(--ease) both}
+@media (max-width:640px){.ap .pk-menu{padding-left:0}}
+.ap .pk-menu .k{grid-column:1/-1;padding:0 0 2px}
+.ap .pk-cube{display:flex;flex-direction:column;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff;font:inherit;text-align:left;cursor:pointer;transition:border-color .2s,background .2s}
+.ap .pk-cube:hover{border-color:#b9b5ad}
+.ap .pk-cube.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.ap .pk-cube b{font-size:13.5px;font-weight:560;display:block}
+.ap .pk-cube span{color:var(--mute);font-size:12px;display:block}
+.ap .pk-cube .logo{width:28px;height:28px;border-radius:8px;font-size:10px}
+.ap .pk-cube .logo.new{background:#fff;color:var(--ink);border:1.5px dashed #b9b5ad;font-size:16px;font-weight:400}
+.ap .pk-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:18px}
+.ap .pk-foot .k{font-size:13px}
+.ap .status.writing:before{border-color:var(--accent);border-right-color:#0000;animation:pk-spin .8s linear infinite}
+.ap .status.done{color:var(--ink)}
+.ap .status.done:before{background:var(--ink);border-color:var(--ink)}
+@keyframes pk-spin{to{transform:rotate(360deg)}}
+.ap .pk-done{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px}
+.ap .pk-done .link{color:var(--ink);font-size:14px;text-decoration:underline;text-underline-offset:3px;background:0 0;border:0;font:inherit;cursor:pointer}
+/* chrome de la maquette, hors application */
+.mk-bar{position:fixed;left:0;right:0;bottom:0;z-index:50;background:#191a1d;color:#faf9f6;display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:12px max(16px,env(safe-area-inset-left,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px));font:14px/1.4 ui-sans-serif,system-ui,sans-serif;box-shadow:0 -20px 60px -30px #000}
+.mk-bar .mk-step{font-variant-numeric:tabular-nums;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;opacity:.65;white-space:nowrap}
+.mk-bar .mk-what{flex:1 1 320px;min-width:0}
+.mk-bar button{font:inherit;font-size:13.5px;min-height:38px;padding:0 14px;border-radius:9px;border:1px solid #ffffff40;background:0 0;color:#faf9f6;cursor:pointer}
+.mk-bar button:hover{background:#ffffff14}
+.mk-bar button[disabled]{opacity:.35;cursor:default}
+.mk-bar button.go{background:#faf9f6;color:#191a1d;border-color:#faf9f6}
+.ap .shell{padding-bottom:110px}
+</style>
+</head>
+<body>
+<div class="ap">
+<div class="shell">
+  <aside class="side" aria-label="Workspace">
+    <div class="side-top"><span class="wm">tellovo<i aria-hidden="true"></i></span></div>
+    <div class="ws">
+      <span class="logo" aria-hidden="true">CF</span>
+      <span style="min-width:0"><b>CreaFlow</b><span>Akralan/Creaflow</span></span>
+    </div>
+    <nav class="side-nav" aria-label="Main">
+      <a class="nv" href="#"><svg class="ico" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>This week <span class="badge">2/3</span></a>
+      <a class="nv" href="#"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>Content plan</a>
+      <a class="nv on" href="#" aria-current="page"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5z"/><path d="m3 13 9 5 9-5"/></svg>Business context</a>
+      <a class="nv" href="#"><svg class="ico" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg>Performance</a>
+    </nav>
+    <div class="side-bottom">
+      <div class="plan-card"><b>Free plan</b><div class="meter" aria-hidden="true"><i style="width:50%"></i></div><p>Your first week is on us. 1 of 2 free weeks used.</p><button class="btn btn-ink btn-sm" type="button">Upgrade</button></div>
+      <div class="me-wrap"><button class="me me-btn" type="button"><span class="av" aria-hidden="true">AL</span><span style="min-width:0"><b>Alix</b><span>alix@creaflow.app</span></span></button></div>
+    </div>
+  </aside>
+  <main class="main"><div class="main-in">
+    <header class="vh">
+      <div>
+        <p class="vk">Business context</p>
+        <h1 class="vt">What Tellovo knows about CreaFlow</h1>
+        <p class="vs">The more Tellovo knows about your product and your voice, the more relevant your stories become.</p>
+      </div>
+    </header>
+
+    <div id="pick-slot"></div>
+
+    <div class="ctx-grid">
+      <section class="card" aria-label="Your business">
+        <div class="biz-id">
+          <span class="logo" aria-hidden="true">CF</span>
+          <div><h2 class="biz-name">CreaFlow</h2><p class="biz-tag">Akralan/Creaflow</p></div>
+        </div>
+        <dl class="biz-rows">
+          <div class="biz-row"><dt>What you're building</dt><dd>A tool that turns a developer's own material (repo, docs, notes) into a build-in-public story, one post at a time.</dd></div>
+          <div class="biz-row"><dt>Who it's for</dt><dd>Indie developers and small SaaS founders who build in the open but never find the time to write about it.</dd></div>
+          <div class="biz-row"><dt>The problem you solve</dt><dd>Writing about the work takes the time that should go into the work. The material already exists; nobody reads it back.</dd></div>
+        </dl>
+        <div class="biz-foot">
+          <button class="tbtn" type="button"><svg class="ico" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit details</button>
+        </div>
+      </section>
+
+      <div class="ctx-side">
+        <section class="card engine" aria-label="Getting started">
+          <p class="k">Tellovo Content Engine</p>
+          <div class="eng-row"><b>Getting started</b><span id="eng-count">1 of 4 sources</span></div>
+          <div class="segbar" style="grid-template-columns:repeat(4,1fr)" aria-hidden="true"><i class="on"></i><i id="seg-notion"></i><i></i><i></i></div>
+          <p class="hint" id="eng-hint" style="text-align:center;margin:0">Connect Notion or Linear so Tellovo understands the why behind your commits.</p>
+        </section>
+
+        <section class="card" aria-label="Sources">
+          <h2>Sources</h2>
+          <p class="sub">Give Tellovo more context about what you're building.</p>
+          <div class="src-list">
+            <div class="src-row">
+              <span class="src-ic"><svg class="ico" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.9a3.4 3.4 0 0 0-.9-2.6c3.1-.4 6.4-1.6 6.4-7A5.4 5.4 0 0 0 20 4.8 5 5 0 0 0 19.9 1S18.7.6 16 2.5a13.4 13.4 0 0 0-7 0C6.3.6 5.1 1 5.1 1A5 5 0 0 0 5 4.8a5.4 5.4 0 0 0-1.5 3.7c0 5.4 3.3 6.6 6.4 7a3.4 3.4 0 0 0-.9 2.6V22"/></svg></span>
+              <span class="src-txt"><b>GitHub</b><span>Akralan/Creaflow · commits and pull requests</span></span>
+              <span class="conn on"><svg class="ico sm" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg>Connected</span>
+            </div>
+            <div class="src-row" id="row-notion">
+              <span class="src-ic"><svg class="ico" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></svg></span>
+              <span class="src-txt"><b>Notion</b><span id="notion-sub">Product docs, roadmap and specs</span></span>
+              <span id="notion-conn"><button class="conn" type="button" id="btn-connect">Connect</button></span>
+            </div>
+            <div class="src-row">
+              <span class="src-ic"><svg class="ico" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
+              <span class="src-txt"><b>Linear</b><span>Issues, projects and cycles</span></span>
+              <button class="conn" type="button">Connect</button>
+            </div>
+            <div class="src-row">
+              <span class="src-ic"><svg class="ico" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></svg></span>
+              <span class="src-txt"><b>Markdown notes</b><span>Changelogs, decisions and ideas</span></span>
+              <button class="conn" type="button">Add</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div></main>
+</div>
+</div>
+
+<div class="mk-bar" role="region" aria-label="Parcours de la maquette">
+  <span class="mk-step" id="mk-step">Étape 1 / 6</span>
+  <span class="mk-what" id="mk-what"></span>
+  <button type="button" id="mk-prev">← Précédent</button>
+  <button type="button" class="go" id="mk-next">Suivant →</button>
+</div>
+
+<script>
+const SUBJECTS = [
+  { id: "creaflow", name: "CreaFlow", tag: "Akralan/Creaflow · 214 events", ini: "CF" },
+  { id: "mykine", name: "MyKiné", tag: "pasted notes · 158 events", ini: "MK" },
+];
+const CURRENT = "creaflow";
+const PAGES = [
+  { id: "p1", title: "Second cerveau", sub: "38 subpages · 4 databases", events: 61 },
+  { id: "p2", title: "CreaFlow — décisions", sub: "12 subpages · 1 database", events: 27 },
+  { id: "p3", title: "Clients potentiels", sub: "Database · 23 rows", events: 23 },
+  { id: "p4", title: "Recettes du dimanche", sub: "6 subpages", events: 0 },
+  { id: "p5", title: "MyKiné — notes", sub: "Already read for MyKiné", off: true, events: 0 },
+];
+const STEPS = [
+  { what: "Business context, tel qu'il est aujourd'hui. GitHub est branché, Notion ne l'est pas. Un seul geste possible : « Connect ».", connected: false, panel: false },
+  { what: "Retour de l'autorisation Notion. Le panneau s'ouvre dans l'écran, pas dans Settings : une ligne par page racine partagée avec l'intégration, le nombre de sous-pages et de bases dessous. La page déjà lue pour MyKiné est grisée.", connected: true, panel: true, selected: [] },
+  { what: "Une case cochée : les projets existants apparaissent tout de suite sous la ligne, celui de l'écran déjà choisi. On clique un autre bloc ou on ne fait rien, la destination est posée. Pas de « nouveau projet » ici : créer un projet sera un autre parcours.", connected: true, panel: true, selected: ["p1"], menu: "p1" },
+  { what: "Trois pages cochées, trois destinations lisibles à droite. Rien d'autre à faire que le bouton du bas, qui dit où tout part.", connected: true, panel: true, selected: ["p1", "p2", "p3"] },
+  { what: "Après « Add to CreaFlow » : les pages se lisent l'une après l'autre, dans le même état d'attente que les posts en écriture. Le reste de l'écran reste utilisable.", connected: true, panel: true, selected: ["p1", "p2", "p3"], phase: "reading" },
+  { what: "Fini. Le panneau se replie en une ligne, Notion passe à « Connected » dans Sources, le moteur compte une source de plus, et les 111 événements sont dans la ligne de temps de CreaFlow. Le prochain post peut les raconter.", connected: true, panel: true, selected: ["p1", "p2", "p3"], phase: "done" },
+];
+let step = 0;
+let state = { selected: new Set(), assign: {}, menu: null, phase: "pick" };
+
+const svgCheck = '<svg class="ico" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg>';
+const svgChev = '<svg class="ico" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>';
+const svgDoc = '<svg class="ico" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></svg>';
+const svgDb = '<svg class="ico" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>';
+
+function subjectOf(id) { return SUBJECTS.find((s) => s.id === id); }
+function destLabel(pid) {
+  const a = state.assign[pid] ?? CURRENT;
+  if (a === "new") return '<span class="mini new">+</span>New subject';
+  const s = subjectOf(a);
+  return `<span class="mini">${s.ini}</span>${s.name}`;
+}
+function targetName() {
+  const targets = new Set([...state.selected].map((p) => state.assign[p] ?? CURRENT));
+  if (targets.size === 1) { const t = [...targets][0]; return t === "new" ? "a new subject" : subjectOf(t).name; }
+  return `${targets.size} subjects`;
+}
+
+function renderPanel() {
+  const slot = document.getElementById("pick-slot");
+  const cfg = STEPS[step];
+  if (!cfg.panel) { slot.innerHTML = ""; return; }
+  if (state.phase === "done") {
+    const n = [...state.selected].length;
+    const ev = PAGES.filter((p) => state.selected.has(p.id)).reduce((a, p) => a + p.events, 0);
+    slot.innerHTML = `<section class="card pick" aria-label="Notion"><div class="pk-done"><div><p class="k">Notion</p><h2>${n} pages added to ${targetName()}.</h2><p class="sub">${ev} events found. Your next posts can tell them.</p></div><button class="link" type="button">Add more pages</button></div></section>`;
+    return;
+  }
+  const rows = PAGES.map((p) => {
+    const on = state.selected.has(p.id);
+    const cls = `pk-row${p.off ? " off" : ""}${on ? " on" : ""}`;
+    let right;
+    if (state.phase === "reading") {
+      if (!on) right = "";
+      else if (p.id === "p1") right = '<span class="status writing">Reading…</span>';
+      else right = '<span class="status">Waiting</span>';
+    } else if (p.off) {
+      right = '<span class="pk-static">in MyKiné</span>';
+    } else {
+      right = `<button class="pk-to" type="button" data-menu="${p.id}" aria-expanded="${state.menu === p.id}" aria-label="Destination">${destLabel(p.id)}${svgChev}</button>`;
+    }
+    const menu = state.menu === p.id ? `<div class="pk-menu" role="menu"><p class="k">Add « ${p.title} » to one of your projects</p>${SUBJECTS.map((s) => `<button class="pk-cube${(state.assign[p.id] ?? CURRENT) === s.id ? " on" : ""}" type="button" data-pick="${p.id}:${s.id}"><span class="logo" aria-hidden="true">${s.ini}</span><span><b>${s.name}</b><span>${s.tag}</span></span></button>`).join("")}</div>` : "";
+    return `<div class="${cls}" data-row="${p.id}" role="checkbox" aria-checked="${on}" ${p.off ? 'aria-disabled="true"' : ""}><span class="pk-check" aria-hidden="true">${svgCheck}</span><span class="src-ic">${p.sub.startsWith("Database") ? svgDb : svgDoc}</span><span class="pk-txt"><b>${p.title}</b><span>${p.sub}</span></span><span>${right}</span>${menu}</div>`;
+  }).join("");
+  const n = state.selected.size;
+  const foot = state.phase === "reading"
+    ? `<div class="pk-foot"><span class="k">Reading ${n} pages, one after the other. You can leave this screen.</span></div>`
+    : `<div class="pk-foot"><span class="k">${n === 0 ? "Pick the pages Tellovo should read. Subpages and databases come with them." : `${n} page${n > 1 ? "s" : ""} · everything underneath comes with them`}</span><button class="btn btn-ink btn-sm" type="button" id="btn-add" ${n === 0 ? "disabled" : ""}>Add to ${n === 0 ? "CreaFlow" : targetName()}</button></div>`;
+  slot.innerHTML = `<section class="card pick" aria-label="Pages shared with Tellovo"><div class="pick-head"><div><p class="k">Notion · connected</p><h2>Pages shared with Tellovo</h2><p class="sub">Tellovo only sees what you share with the integration. Share more pages in Notion, they appear here.</p></div></div><div class="pk-list">${rows}</div>${foot}</section>`;
+}
+
+function renderSources() {
+  const cfg = STEPS[step];
+  const done = state.phase === "done";
+  document.getElementById("notion-conn").innerHTML = cfg.connected
+    ? `<span class="conn on">${svgCheck.replace('class="ico"', 'class="ico sm"')}Connected</span>`
+    : '<button class="conn" type="button" id="btn-connect">Connect</button>';
+  document.getElementById("notion-sub").textContent = done ? "3 pages · CreaFlow" : cfg.connected ? "Connected · pick pages above" : "Product docs, roadmap and specs";
+  document.getElementById("seg-notion").className = done ? "on" : "";
+  document.getElementById("eng-count").textContent = done ? "2 of 4 sources" : "1 of 4 sources";
+  document.getElementById("eng-hint").textContent = done ? "Tellovo reads more than your commits now." : "Connect Notion or Linear so Tellovo understands the why behind your commits.";
+}
+
+function apply() {
+  const cfg = STEPS[step];
+  state.selected = new Set(cfg.selected ?? []);
+  state.menu = cfg.menu ?? null;
+  state.phase = cfg.phase ?? "pick";
+  renderPanel();
+  renderSources();
+  document.getElementById("mk-step").textContent = `Étape ${step + 1} / ${STEPS.length}`;
+  document.getElementById("mk-what").textContent = cfg.what;
+  document.getElementById("mk-prev").disabled = step === 0;
+  document.getElementById("mk-next").disabled = step === STEPS.length - 1;
+}
+
+document.getElementById("mk-prev").onclick = () => { step = Math.max(0, step - 1); apply(); };
+document.getElementById("mk-next").onclick = () => { step = Math.min(STEPS.length - 1, step + 1); apply(); };
+
+/* La maquette reste manipulable à chaque étape : cocher, ouvrir une destination, choisir un bloc, ajouter. */
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-pick], [data-menu], [data-row], #btn-add, #btn-connect");
+  if (!t) { if (state.menu) { state.menu = null; renderPanel(); } return; }
+  if (t.id === "btn-connect") { step = 1; apply(); return; }
+  if (t.id === "btn-add") { step = 4; apply(); setTimeout(() => { if (step === 4) { step = 5; apply(); } }, 2200); return; }
+  if (t.dataset.pick) {
+    const [pid, sid] = t.dataset.pick.split(":");
+    state.assign[pid] = sid; state.menu = null; renderPanel(); return;
+  }
+  if (t.dataset.menu) { state.menu = state.menu === t.dataset.menu ? null : t.dataset.menu; renderPanel(); return; }
+  if (t.dataset.row && state.phase === "pick") {
+    const p = PAGES.find((x) => x.id === t.dataset.row);
+    if (p.off) return;
+    // Cocher ouvre tout de suite les blocs de destination sous la ligne ; décocher les ferme.
+    if (state.selected.has(p.id)) { state.selected.delete(p.id); state.menu = null; }
+    else { state.selected.add(p.id); state.menu = p.id; }
+    renderPanel();
+  }
+});
+apply();
+</script>
+</body>
+</html>
