@@ -1,0 +1,44 @@
+CHEMIN RÉEL DE L'APP — tellovo / CreaFlow
+lecture : gpt-5-mini (passe 1) · rédaction : gpt-6-luna
+68 événements en base, 68 datés
+série « Build Log », lecteur Main — Indie founders
+
+================================================================================================
+POST 1 — 2026-10-28 · episode · 198s
+événement : 2026-08-01 — Functional UI spec for POC screens added
+hook : J’ai décrit ce que les écrans du prototype devaient faire, sans dessiner leur disposition.
+================================================================================================
+
+J’ai décrit ce que les écrans du prototype devaient faire, sans dessiner leur disposition.
+
+CreaFlow transforme les notes et devlogs que tu as déjà en posts. Tu n’as pas à repartir d’une idée neuve, et il n’invente pas les faits absents. Le 1er août, j’ai limité la spec au comportement des écrans : la mise en page n’en faisait pas partie.
+
+Puis j’ai construit l’interface à partir d’une maquette Claude Design, toujours le 1er août.
+
+================================================================================================
+POST 2 — 2026-10-30 · checkpoint · 133s
+événement : aucun
+hook : Le 1er août, j’ai rendu le prototype testable sans confondre comportement et apparence.
+================================================================================================
+
+Le 1er août, j’ai rendu le prototype testable sans confondre comportement et apparence.
+
+J’avais décrit ce que les écrans devaient faire, sans choisir leur disposition. Les tests vérifiaient la logique en simulant Claude.
+
+Je pouvais ainsi vérifier le fonctionnement sans faire de l’apparence des écrans le critère de validation.
+
+================================================================================================
+POST 3 — 2026-10-31 · episode · 61s
+événement : 2026-08-01 — Backend implemented for Modules A, B, D (auth, profile, products, OAuth, generation, calendar)
+hook : Un écran de génération ne suffit pas à publier un post.
+================================================================================================
+
+Un écran de génération ne suffit pas à publier un post.
+
+Le 1er août, j’ai construit la partie serveur de CreaFlow, l’outil que je développe pour transformer les notes et décisions d’un fondateur en posts, sans inventer les détails manquants.
+
+Cette partie devait gérer les comptes et les produits, puis faire tourner la génération et le calendrier. Sans elle, je pouvais décrire le parcours, mais pas encore créer un script ni le retrouver dans le calendrier.
+
+J’avais déjà ajouté des tests Vitest pour la logique et des appels Claude simulés, puis décrit le comportement attendu des écrans du POC. Ensuite, j’ai implémenté l’authentification, les profils, les produits, OAuth, la génération de scripts avec Claude et le calendrier.
+
+La qualité de chaque texte restait à vérifier. Mais, ce jour-là, la génération Claude et le calendrier existaient bien côté serveur.

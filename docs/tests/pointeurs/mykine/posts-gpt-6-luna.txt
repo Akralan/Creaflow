@@ -1,0 +1,54 @@
+BANC POINTEURS — mykine
+modèle : gpt-6-luna
+15 documents, 79 pointeurs, 33 datés
+cible : Solo product devs — Independent developers (one or two people) building consumer-facing mobile apps who are responsible for product, code, and ops.
+
+================================================================================================
+POST 1 — 17s, 4 tours
+read_file : 5 · read_post : 0
+événements choisis : e1 2025-11-09 B/devlog.md:7 | e2 2025-11-16 B/devlog.md:11 | e3 2025-11-23 B/devlog.md:15
+================================================================================================
+
+Je construis MyKiné, seul : une app pour que le kiné puisse enfin savoir si ses patients font leurs exercices à la maison — sans leur demander de s’en souvenir après coup.
+
+Le point de départ, c’est Julien, kiné avec 40 patients en cours. Il m’a dit qu’environ 6 patients sur 10 ne faisaient pas leurs exercices, et qu’il n’avait aucun moyen de le savoir autrement qu’en leur demandant. Il m’a demandé si mon prototype de caméra pouvait compter des squats.
+
+Premier essai : MediaPipe Pose dans une page web. Sur mon laptop, ça marchait. Sur son iPhone 11 : 6 images par seconde, et une répétition ratée sur trois. J’ai essayé de faire tourner le modèle sur un serveur : 300 à 600 ms de latence en 4G. Et les images de Julien en sous-vêtements se retrouvaient sur mon VPS.
+
+J’ai donc pris tôt une décision qui influence toute l’app : l’analyse du mouvement doit tourner sur le téléphone. Le serveur ne reçoit que les angles et les compteurs.
+
+C’est le genre de contrainte qui, quand on développe seul, transforme vite un « petit compteur de squats » en décisions de produit, de performance et de confidentialité. Voilà le problème que je construis MyKiné pour résoudre — et d’où il est parti.
+
+================================================================================================
+POST 2 — 23s, 6 tours
+read_file : 6 · read_post : 1
+événements choisis : e32 2026-10-03 B/devlog.md:129 | e33 2026-10-10 B/devlog.md:133 | e71 no date A/VISION.md:51 | e79 no date B/decisions.md:50
+================================================================================================
+
+Un devis HDS m’a forcé à chiffrer une décision produit que je repoussais.
+
+À 29 € HT par kiné et avec 8 kinés actifs, MyKiné génère 232 € par mois. Les devis d’hébergement HDS reçus : 150 à 400 € par mois. Même le bas de la fourchette absorbe une grosse part du revenu ; le haut le dépasse.
+
+J’ai choisi de réduire ce que le serveur sait : le kiné donne un pseudonyme au patient, et le serveur n’a pas besoin de son nom, de sa date de naissance ou de sa pathologie. En contrepartie, le kiné doit se souvenir que « Lapin bleu » est Mme R. Ce n’est pas gratuit pour lui, et ce n’est pas une preuve que MyKiné peut se passer des exigences applicables aux données de santé.
+
+J’ai noté un seuil de réexamen : au-delà de 30 kinés, on repose la question de l’hébergement HDS. Pour un développeur solo, écrire le seuil compte autant que prendre la décision : sinon, le provisoire devient permanent par oubli.
+
+Le sujet à résoudre n’est donc pas seulement « comment réduire ma facture serveur ? », mais « quelles données sont vraiment nécessaires au produit, et quel coût je fais porter au kiné si je les retire ? »
+
+================================================================================================
+POST 3 — 15s, 4 tours
+read_file : 3 · read_post : 2
+événements choisis : e30 2026-09-14 B/devlog.md:121 | e31 2026-09-21 B/devlog.md:125
+================================================================================================
+
+J’ai passé trois jours à faire démarrer MyKiné sur iOS. Le modèle chargeait, mais la caméra ne fournissait pas les images au bon format. J’ai fini par les convertir sur le CPU : 7 images par seconde sur l’iPhone 11 de Julien. Ça tourne, mais ce n’est pas livrable.
+
+Puis j’ai mis à jour Expo SDK pour corriger iOS. Résultat : la caméra Android, qui fonctionnait, affichait un écran noir. Retour arrière et une journée perdue.
+
+Quand on développe seul, une mise à jour censée ouvrir une plateforme peut aussi mettre en panne celle qui marche déjà. Pour MyKiné, la barre ne peut pas être « le modèle se charge » : il faut vérifier le flux caméra et la cadence sur un vrai téléphone, et s’assurer que la version Android reste intacte.
+
+Je n’ai toujours pas iOS. Mais je préfère une limite claire — Android seulement — à une démo qui donne l’impression que le problème est réglé alors qu’un patient ne peut pas faire sa séance correctement.
+
+------------------------------------------------------------------------------------------------
+9 pointeurs utilisés sur 79
+durée totale : 56s

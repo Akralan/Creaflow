@@ -52,16 +52,21 @@ export async function GET(
     }
 
 
-    // The event told (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5), for the editor brief.
+    // Le pointeur dont le post est parti (docs/SPEC_EVENEMENT_POINTEUR.md §2) : une adresse, pas
+    // un titre. L'écran affiche `document:ligne`.
     const event = script.eventId
-      ? await db.query.materialEvents.findFirst({ where: eq(materialEvents.id, script.eventId), columns: { title: true, date: true } })
+      ? await db.query.materialEvents.findFirst({
+          where: eq(materialEvents.id, script.eventId),
+          columns: { line: true, date: true },
+          with: { sourceMaterial: { columns: { title: true } } },
+        })
       : null;
     const { visualDesign, citations, ...rest } = script;
     return NextResponse.json({
       script: {
         ...rest,
         visualDesign: visualDesign ? await toApiDesignWithAssets(visualDesign) : null,
-        eventTitle: event?.title ?? null,
+        eventTitle: event ? `${event.sourceMaterial?.title ?? "document"}:${event.line}` : null,
         eventDate: event?.date ?? null,
         citations: citations.map((c) => ({
           id: c.id,

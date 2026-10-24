@@ -3,8 +3,7 @@ import { platformRuleText } from "./platformRules";
 import type { Reader } from "./readerPortrait";
 import type { RecentPostCard } from "./recentPosts";
 import { buildFormatBlock, type VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
-import type { EventBrief } from "./eventWriter";
-import type { NarrativeBrief } from "./narrativeWriter";
+import type { PointerBrief } from "@/lib/services/seriesReaderService";
 import { buildLanguageBlock, type PostLanguage } from "@/lib/language";
 
 export type Platform = string;
@@ -179,13 +178,12 @@ export interface ScriptGenerationContext {
    *  creation, instead of the raw request `productId`, to stay consistent with the material this
    *  generation actually read. */
   resolvedProductId?: string | null;
-  /** The per-event brief (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5): present when the series has a
-   *  reader, a form and a next event to tell. Generation then goes through the agentic writer
-   *  (eventWriter.ts) and ignores angle, role and inspirations. */
-  eventBrief?: EventBrief | null;
-  /** The story brief (docs/SPEC_FIL_NARRATIF.md §7): present when the fil narratif claims this post.
-   *  Takes precedence over `eventBrief`; generation then goes through narrativeWriter.ts. */
-  narrativeBrief?: NarrativeBrief | null;
+  /** What the pointer writer reads (docs/SPEC_EVENEMENT_POINTEUR.md §4): the series' timeline as
+   *  bare addresses, its published posts, the addressable corpus, the reader and the project.
+   *  Present when the series has a reader and a non-empty timeline; generation then goes through
+   *  pointerPostWriter.ts, which chooses its own pointers and ignores angle, role and inspirations.
+   *  A visual post keeps the V3 path even with a brief (plan of 2026-10-24). */
+  pointerBrief?: PointerBrief | null;
   /** Language the post must be written in (src/lib/language.ts): the profile's, else the notes'. */
   language?: PostLanguage;
 }

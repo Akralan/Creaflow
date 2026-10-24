@@ -21,8 +21,8 @@ import { findBestBrandAssetForScript } from "@/lib/services/brandAssetService";
 import { getMaterialForSubject } from "@/lib/services/sourceMaterialService";
 import { recordCitations, deleteCitationsForScript } from "@/lib/services/citationService";
 import { resolveCategoryForGeneration } from "@/lib/services/seriesService";
-import { buildEventBriefForSeries, ensureReaderForSeries } from "@/lib/services/seriesReaderService";
-import type { NarrativePlan } from "@/lib/services/narrativeBriefService";
+import { buildPointerBrief, ensureReaderForSeries } from "@/lib/services/seriesReaderService";
+
 import { resolvePostLanguage } from "@/lib/language";
 import { markDesignStale } from "@/lib/services/visualDesignService";
 import type { VisualFormatSpec } from "@/lib/visualDesign/visualFormat";
@@ -81,13 +81,10 @@ export async function buildGenerationContext(
   // Format du post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) — choisi à la génération, relu
   // depuis le script pour les régénérations. Ignoré hors contentType "visual".
   visual?: VisualFormatSpec | null,
-  // L'autre réseau d'un même post (docs/SPEC_APP_DESIGN_TELLOVO.md E2) : même événement que la version
-  // déjà écrite, au lieu du prochain de la ligne de temps.
-  sameEventId?: string | null,
-  // Le post de récit que le fil réclame pour ce créneau (docs/SPEC_FIL_NARRATIF.md §9), décidé une
-  // seule fois par l'appelant (postPairService) et passé aux deux réseaux, pour qu'ils racontent la
-  // même chose. Absent = épisode normal, chemin inchangé. Un post libre n'en a jamais.
-  narrativePlan?: NarrativePlan | null
+  // L'autre réseau d'un même post (docs/SPEC_APP_DESIGN_TELLOVO.md E2) : les pointeurs de la
+  // version déjà écrite. Le rédacteur ne reçoit que ceux-là, donc il n'a rien d'autre à choisir et
+  // les deux réseaux racontent la même chose. Remplace le plan de récit, parti avec le fil.
+  samePointerIds?: string[]
 ): Promise<ScriptGenerationContext> {
   const profile = await db.query.creatorProfiles.findFirst({
     where: eq(creatorProfiles.userId, userId),
@@ -116,27 +113,29 @@ export async function buildGenerationContext(
     }
     series = { id: found.id, label: found.label, description: found.description };
     seriesProductId = found.productId;
-    seriesHasReader = Boolean(found.readerLabel && found.form);
+    seriesHasReader = Boolean(found.readerLabel);
   }
 
-  // « Autre idée, même brief » : le script réécrit garde son événement.
+  // « Autre idée, même brief » garde les pointeurs du post remplacé ; l'autre réseau d'un post
+  // reprend ceux de la version déjà écrite (`samePointerIds`). Dans les deux cas le rédacteur ne
+  // reçoit que ces pointeurs, donc il raconte la même chose autrement.
   const rewritten = excludeScriptId
-    ? await db.query.scripts.findFirst({ where: eq(scripts.id, excludeScriptId), columns: { eventId: true } })
+    ? await db.query.scripts.findFirst({ where: eq(scripts.id, excludeScriptId), columns: { eventIds: true } })
     : null;
+  const rewrittenIds = Array.isArray(rewritten?.eventIds) ? (rewritten.eventIds as string[]) : [];
+  const lockedPointerIds = rewrittenIds.length > 0 ? rewrittenIds : (samePointerIds ?? []);
 
   // Une série raconte sa ligne de temps à son lecteur (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5). Une
   // série d'avant le chantier reçoit d'office le public principal de son sujet. Sans rien à raconter,
   // on le dit plutôt que d'écrire un post sans événement.
-  let eventBrief = null;
+  let pointerBrief = null;
   if (seriesId) {
     if (!seriesHasReader) await ensureReaderForSeries(userId, seriesId);
-    // Le fil narratif passe d'abord (docs/SPEC_FIL_NARRATIF.md §9) : quand il réclame ce post, on
-    // n'ouvre pas de brief d'événement — un post de récit ne lit que son périmètre.
-    if (!narrativePlan) eventBrief = await buildEventBriefForSeries(userId, seriesId, rewritten?.eventId ?? sameEventId ?? null);
-    if (!narrativePlan && !eventBrief) {
+    pointerBrief = await buildPointerBrief(userId, seriesId, lockedPointerIds);
+    if (!pointerBrief) {
       throw new ApiError(
         409,
-        "Nothing to tell for this series: its timeline is empty for this reader, or everything has already been told. Add material, reread it, or pick another reader in the series."
+        "Nothing to tell for this series: it has no reader, or its subject's timeline is empty. Add material, reread it, or pick a reader in the series."
       );
     }
   }
@@ -184,7 +183,7 @@ export async function buildGenerationContext(
 
   // Langue du post : celle du profil, sinon celle des notes (src/lib/language.ts). Les notes lues sont
   // celles du sujet ; à défaut, le document d'où vient l'événement.
-  const noteTexts = materialDocuments.length > 0 ? materialDocuments.map((d) => d.annotatedText) : eventBrief?.source ? [eventBrief.source.text] : [];
+  const noteTexts = materialDocuments.length > 0 ? materialDocuments.map((d) => d.annotatedText) : [...(pointerBrief?.files.values() ?? [])].map((lines) => lines.join("\n"));
   const { language } = resolvePostLanguage(profile.language, noteTexts);
 
   // Uniquement pour "visual" — un appel d'embedding serait un coût inutile sur les 2/3 des
@@ -233,8 +232,7 @@ export async function buildGenerationContext(
     brandAsset,
     materialDocuments: materialDocuments.map((d) => ({ id: d.id, title: d.title, annotatedText: d.annotatedText })),
     directive: directive ?? null,
-    eventBrief,
-    narrativeBrief: narrativePlan?.brief ?? null,
+    pointerBrief,
     language,
     resolvedProductId: effectiveProductId,
     visual: contentType === "visual" ? (visual ?? null) : null,
@@ -278,13 +276,10 @@ export async function createScriptRecord(
     brandAssetId?: string | null;
     /** Format du post visuel (docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md) — null hors "visual". */
     visual?: VisualFormatSpec | null;
-    /** L'événement raconté (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5) — null hors rédacteur par événements. */
+    /** Le PREMIER pointeur du post, pour les écrans et requêtes qui lisent encore ce champ. */
     eventId?: string | null;
-    /** Post de récit (docs/SPEC_FIL_NARRATIF.md §11) — null pour un épisode. */
-    narrativeKind?: "origin" | "vision" | "checkpoint" | "promise" | null;
-    /** Promesse tenue : le texte exact de la promesse, et le post qui l'avait faite. */
-    promiseHonored?: string | null;
-    promiseSourceScriptId?: string | null;
+    /** Tous les pointeurs dont le post est parti (docs/SPEC_EVENEMENT_POINTEUR.md §4). */
+    eventIds?: string[];
   }
 ) {
   return db.transaction(async (tx) => {
@@ -300,9 +295,7 @@ export async function createScriptRecord(
         seriesId: extras?.seriesId ?? null,
         brandAssetId: extras?.brandAssetId ?? null,
         eventId: extras?.eventId ?? null,
-        narrativeKind: extras?.narrativeKind ?? null,
-        promiseHonored: extras?.promiseHonored ?? null,
-        promiseSourceScriptId: extras?.promiseSourceScriptId ?? null,
+        eventIds: extras?.eventIds ?? [],
         visualFormat: extras?.visual?.format ?? "single",
         slideCount: extras?.visual?.slideCount ?? null,
         durationMs: extras?.visual?.durationMs ?? null,

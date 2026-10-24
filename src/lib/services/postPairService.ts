@@ -5,7 +5,7 @@ import { generateScript } from "@/lib/llm/generateScript";
 import { defaultContentTypeForPlatform } from "@/lib/llm/prompts";
 import { enforceScriptQuota } from "@/lib/services/billingService";
 import { buildGenerationContext, createScriptRecord, deleteScriptForUser } from "@/lib/services/scriptService";
-import { planNarrativePost, type NarrativePlan } from "@/lib/services/narrativeBriefService";
+
 import { logger } from "@/lib/logger";
 import { KNOWN_PLATFORMS } from "@/lib/social/types";
 
@@ -43,26 +43,24 @@ export async function entriesOfPost(userId: string, entry: Pick<SlotEntry, "seri
  * `POST /api/scripts/generate`). `sameEventId` impose l'événement d'une version déjà écrite.
  * Ne vérifie pas le quota : l'appelant le fait une fois pour tout le post.
  */
-export async function writeSlotVersion(userId: string, entry: SlotEntry, sameEventId: string | null = null, lockedPlan: NarrativePlan | null = null) {
+export async function writeSlotVersion(userId: string, entry: SlotEntry, samePointerIds: string[] = []) {
   const contentType = defaultContentTypeForPlatform(entry.platform);
-  const context = await buildGenerationContext(userId, entry.platform, entry.contentCategoryId, contentType, null, undefined, entry.seriesId, undefined, undefined, undefined, null, sameEventId, lockedPlan);
+  const context = await buildGenerationContext(userId, entry.platform, entry.contentCategoryId, contentType, null, undefined, entry.seriesId, undefined, undefined, undefined, null, samePointerIds);
   const generated = await generateScript(context);
-  const plan = lockedPlan;
   const script = await createScriptRecord(userId, entry.platform, context.contentCategory, context.resolvedProductId ?? null, generated, {
     angleId: context.angle?.id ?? null,
     seriesId: context.series?.id ?? null,
     brandAssetId: context.brandAsset?.id ?? null,
-    // Un post de récit ne marque un événement que s'il en consomme un (origine, promesse tenue).
-    eventId: plan ? plan.marksTold : (context.eventBrief?.event.id ?? null),
-    narrativeKind: plan?.brief.kind ?? null,
-    promiseHonored: plan?.brief.promise?.text ?? null,
-    promiseSourceScriptId: plan?.promiseSourceScriptId ?? null,
+    // Le post marque TOUS les pointeurs dont il est parti (docs/SPEC_EVENEMENT_POINTEUR.md §4) ;
+    // `eventId` garde le premier pour les écrans et requêtes qui le lisent déjà.
+    eventId: generated.eventIds?.[0] ?? null,
+    eventIds: generated.eventIds ?? [],
     visual: context.visual,
   });
   try {
     await db
       .update(calendarEntries)
-      .set({ scriptId: script.id, status: "planned", kind: plan ? "narrative" : "event", narrativeKind: plan?.brief.kind ?? null })
+      .set({ scriptId: script.id, status: "planned", kind: "event" })
       .where(eq(calendarEntries.id, entry.id));
   } catch (error) {
     // Un script sans créneau serait réécrit au prochain essai : on le retire.
@@ -72,14 +70,19 @@ export async function writeSlotVersion(userId: string, entry: SlotEntry, sameEve
   return script;
 }
 
-/** L'événement raconté par une version déjà écrite du post, s'il y en a une. */
-async function eventOfWrittenVersion(userId: string, entries: SlotEntry[]): Promise<string | null> {
+/** Les pointeurs racontés par une version déjà écrite du post, s'il y en a une. */
+async function pointersOfWrittenVersion(userId: string, entries: SlotEntry[]): Promise<string[]> {
   for (const e of entries) {
     if (!e.scriptId) continue;
-    const script = await db.query.scripts.findFirst({ where: and(eq(scripts.id, e.scriptId), eq(scripts.userId, userId)), columns: { eventId: true } });
-    if (script?.eventId) return script.eventId;
+    const script = await db.query.scripts.findFirst({
+      where: and(eq(scripts.id, e.scriptId), eq(scripts.userId, userId)),
+      columns: { eventId: true, eventIds: true },
+    });
+    const ids = Array.isArray(script?.eventIds) ? (script.eventIds as string[]) : [];
+    if (ids.length > 0) return ids;
+    if (script?.eventId) return [script.eventId];
   }
-  return null;
+  return [];
 }
 
 /**
@@ -97,46 +100,30 @@ export async function writePost(
   if (missing.length === 0) return;
   if (missing.length === entries.length) await enforceScriptQuota(userId, { date: entry.scheduledDate });
 
-  // Le fil narratif décide UNE fois par post (docs/SPEC_FIL_NARRATIF.md §9) : les deux réseaux
-  // reçoivent le même plan, donc le même type et le même périmètre. Jamais bloquant : sans plan,
-  // le post est un épisode normal, exactement comme avant.
-  let plan: NarrativePlan | null = null;
-  if (entry.seriesId) {
-    try {
-      plan = await planNarrativePost(userId, entry.seriesId, entry.scheduledDate);
-    } catch (error) {
-      logger.error("Narrative thread skipped for this post", error, { userId, seriesId: entry.seriesId });
-    }
-  }
-
-  let eventId = await eventOfWrittenVersion(userId, entries);
+  let pointerIds = await pointersOfWrittenVersion(userId, entries);
   let firstError: unknown = null;
   for (const slot of missing) {
     try {
       // Un essai de plus quand le rédacteur n'a rien soumis : il lui arrive de conclure en prose
       // au lieu d'appeler son outil, et un post ne doit pas se perdre pour un caprice de modèle.
-      const script = await writeSlotVersion(userId, slot, eventId, plan).catch(async (error) => {
+      const script = await writeSlotVersion(userId, slot, pointerIds).catch(async (error) => {
         if (!(error instanceof Error) || !error.message.includes("submitted no post")) throw error;
         logger.warn("Writer submitted nothing, one more try", { slotId: slot.id, reason: error.message.slice(0, 200) });
-        return writeSlotVersion(userId, slot, eventId, plan);
+        return writeSlotVersion(userId, slot, pointerIds);
       });
-      eventId = eventId ?? script.eventId ?? null;
+      // La première version écrite fixe les pointeurs ; les suivantes les reprennent.
+      if (pointerIds.length === 0) {
+        const written = Array.isArray(script.eventIds) ? (script.eventIds as string[]) : [];
+        pointerIds = written.length > 0 ? written : script.eventId ? [script.eventId] : [];
+      }
       await hooks?.onVersionWritten?.(script, slot);
     } catch (error) {
       firstError = firstError ?? error;
       await db.update(calendarEntries).set({ status: "planned" }).where(and(eq(calendarEntries.id, slot.id), isNull(calendarEntries.scriptId)));
-      // Sans version écrite, il n'y a pas d'événement à reprendre : on s'arrête là plutôt que d'en brûler un second.
-      if (!eventId) break;
+      // Sans version écrite, il n'y a pas de pointeur à reprendre : on s'arrête là plutôt que
+      // d'en brûler un second sur une autre matière.
+      if (pointerIds.length === 0) break;
     }
-  }
-  // Clôture de la promesse (docs/SPEC_FIL_NARRATIF.md §8) : l'appariement a servi, il libère le post
-  // d'origine pour ses autres promesses. Après la boucle, pour que les deux réseaux l'aient vu.
-  if (plan?.promiseSourceScriptId && entries.some((e) => e.scriptId)) {
-    await db
-      .update(scripts)
-      .set({ promiseMatch: null })
-      .where(and(eq(scripts.id, plan.promiseSourceScriptId), eq(scripts.userId, userId)))
-      .catch((error) => logger.error("Promise match could not be cleared", error, { userId }));
   }
   if (firstError) throw firstError;
 }

@@ -64,7 +64,8 @@ export async function POST(request: NextRequest) {
       angleId: context.angle?.id ?? null,
       seriesId: context.series?.id ?? null,
       brandAssetId: context.brandAsset?.id ?? null,
-      eventId: context.eventBrief?.event.id ?? null,
+      eventId: generated.eventIds?.[0] ?? null,
+      eventIds: generated.eventIds ?? [],
       visual: context.visual,
     });
 

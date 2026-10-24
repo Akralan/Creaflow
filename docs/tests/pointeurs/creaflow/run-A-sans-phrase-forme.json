@@ -1,0 +1,4219 @@
+{
+  "timeline": [
+    {
+      "id": "e1",
+      "file": "docs/DEMANDES_ETSY_SHOPIFY.md",
+      "line": 69,
+      "date": "2019-12-09",
+      "used": false
+    },
+    {
+      "id": "e2",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 120,
+      "date": "2025-11-09",
+      "used": false
+    },
+    {
+      "id": "e3",
+      "file": "commit-log.txt",
+      "line": 240,
+      "date": "2026-08-01",
+      "used": false
+    },
+    {
+      "id": "e4",
+      "file": "commit-log.txt",
+      "line": 241,
+      "date": "2026-08-01",
+      "used": false
+    },
+    {
+      "id": "e5",
+      "file": "commit-log.txt",
+      "line": 242,
+      "date": "2026-08-01",
+      "used": false
+    },
+    {
+      "id": "e6",
+      "file": "commit-log.txt",
+      "line": 243,
+      "date": "2026-08-01",
+      "used": false
+    },
+    {
+      "id": "e7",
+      "file": "commit-log.txt",
+      "line": 244,
+      "date": "2026-08-01",
+      "used": false
+    },
+    {
+      "id": "e8",
+      "file": "commit-log.txt",
+      "line": 245,
+      "date": "2026-08-01",
+      "used": false
+    },
+    {
+      "id": "e9",
+      "file": "commit-log.txt",
+      "line": 246,
+      "date": "2026-08-01",
+      "used": false
+    },
+    {
+      "id": "e10",
+      "file": "commit-log.txt",
+      "line": 239,
+      "date": "2026-08-02",
+      "used": false
+    },
+    {
+      "id": "e11",
+      "file": "commit-log.txt",
+      "line": 238,
+      "date": "2026-08-05",
+      "used": false
+    },
+    {
+      "id": "e12",
+      "file": "commit-log.txt",
+      "line": 237,
+      "date": "2026-08-06",
+      "used": false
+    },
+    {
+      "id": "e13",
+      "file": "commit-log.txt",
+      "line": 221,
+      "date": "2026-08-16",
+      "used": false
+    },
+    {
+      "id": "e14",
+      "file": "commit-log.txt",
+      "line": 222,
+      "date": "2026-08-16",
+      "used": false
+    },
+    {
+      "id": "e15",
+      "file": "commit-log.txt",
+      "line": 223,
+      "date": "2026-08-16",
+      "used": false
+    },
+    {
+      "id": "e16",
+      "file": "commit-log.txt",
+      "line": 224,
+      "date": "2026-08-16",
+      "used": false
+    },
+    {
+      "id": "e17",
+      "file": "commit-log.txt",
+      "line": 225,
+      "date": "2026-08-16",
+      "used": false
+    },
+    {
+      "id": "e18",
+      "file": "commit-log.txt",
+      "line": 226,
+      "date": "2026-08-16",
+      "used": false
+    },
+    {
+      "id": "e19",
+      "file": "commit-log.txt",
+      "line": 227,
+      "date": "2026-08-16",
+      "used": false
+    },
+    {
+      "id": "e20",
+      "file": "commit-log.txt",
+      "line": 228,
+      "date": "2026-08-16",
+      "used": true
+    },
+    {
+      "id": "e21",
+      "file": "commit-log.txt",
+      "line": 229,
+      "date": "2026-08-16",
+      "used": false
+    },
+    {
+      "id": "e22",
+      "file": "commit-log.txt",
+      "line": 230,
+      "date": "2026-08-16",
+      "used": true
+    },
+    {
+      "id": "e23",
+      "file": "commit-log.txt",
+      "line": 231,
+      "date": "2026-08-16",
+      "used": false
+    },
+    {
+      "id": "e24",
+      "file": "commit-log.txt",
+      "line": 232,
+      "date": "2026-08-16",
+      "used": false
+    },
+    {
+      "id": "e25",
+      "file": "commit-log.txt",
+      "line": 233,
+      "date": "2026-08-16",
+      "used": false
+    },
+    {
+      "id": "e26",
+      "file": "commit-log.txt",
+      "line": 234,
+      "date": "2026-08-16",
+      "used": false
+    },
+    {
+      "id": "e27",
+      "file": "commit-log.txt",
+      "line": 235,
+      "date": "2026-08-16",
+      "used": false
+    },
+    {
+      "id": "e28",
+      "file": "commit-log.txt",
+      "line": 236,
+      "date": "2026-08-16",
+      "used": false
+    },
+    {
+      "id": "e29",
+      "file": "commit-log.txt",
+      "line": 198,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e30",
+      "file": "commit-log.txt",
+      "line": 199,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e31",
+      "file": "commit-log.txt",
+      "line": 200,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e32",
+      "file": "commit-log.txt",
+      "line": 201,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e33",
+      "file": "commit-log.txt",
+      "line": 202,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e34",
+      "file": "commit-log.txt",
+      "line": 203,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e35",
+      "file": "commit-log.txt",
+      "line": 204,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e36",
+      "file": "commit-log.txt",
+      "line": 205,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e37",
+      "file": "commit-log.txt",
+      "line": 206,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e38",
+      "file": "commit-log.txt",
+      "line": 207,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e39",
+      "file": "commit-log.txt",
+      "line": 208,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e40",
+      "file": "commit-log.txt",
+      "line": 209,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e41",
+      "file": "commit-log.txt",
+      "line": 210,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e42",
+      "file": "commit-log.txt",
+      "line": 211,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e43",
+      "file": "commit-log.txt",
+      "line": 212,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e44",
+      "file": "commit-log.txt",
+      "line": 213,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e45",
+      "file": "commit-log.txt",
+      "line": 214,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e46",
+      "file": "commit-log.txt",
+      "line": 215,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e47",
+      "file": "commit-log.txt",
+      "line": 216,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e48",
+      "file": "commit-log.txt",
+      "line": 217,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e49",
+      "file": "commit-log.txt",
+      "line": 218,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e50",
+      "file": "commit-log.txt",
+      "line": 219,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e51",
+      "file": "commit-log.txt",
+      "line": 220,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e52",
+      "file": "docs/SPEC_RESSOURCES_VISUELLES.md",
+      "line": 208,
+      "date": "2026-08-25",
+      "used": false
+    },
+    {
+      "id": "e53",
+      "file": "commit-log.txt",
+      "line": 187,
+      "date": "2026-08-26",
+      "used": false
+    },
+    {
+      "id": "e54",
+      "file": "commit-log.txt",
+      "line": 188,
+      "date": "2026-08-26",
+      "used": false
+    },
+    {
+      "id": "e55",
+      "file": "commit-log.txt",
+      "line": 189,
+      "date": "2026-08-26",
+      "used": false
+    },
+    {
+      "id": "e56",
+      "file": "commit-log.txt",
+      "line": 190,
+      "date": "2026-08-26",
+      "used": false
+    },
+    {
+      "id": "e57",
+      "file": "commit-log.txt",
+      "line": 191,
+      "date": "2026-08-26",
+      "used": false
+    },
+    {
+      "id": "e58",
+      "file": "commit-log.txt",
+      "line": 192,
+      "date": "2026-08-26",
+      "used": false
+    },
+    {
+      "id": "e59",
+      "file": "commit-log.txt",
+      "line": 193,
+      "date": "2026-08-26",
+      "used": false
+    },
+    {
+      "id": "e60",
+      "file": "commit-log.txt",
+      "line": 194,
+      "date": "2026-08-26",
+      "used": false
+    },
+    {
+      "id": "e61",
+      "file": "commit-log.txt",
+      "line": 195,
+      "date": "2026-08-26",
+      "used": false
+    },
+    {
+      "id": "e62",
+      "file": "commit-log.txt",
+      "line": 196,
+      "date": "2026-08-26",
+      "used": false
+    },
+    {
+      "id": "e63",
+      "file": "commit-log.txt",
+      "line": 197,
+      "date": "2026-08-26",
+      "used": false
+    },
+    {
+      "id": "e64",
+      "file": "docs/SPEC_RESSOURCES_VISUELLES.md",
+      "line": 206,
+      "date": "2026-08-26",
+      "used": false
+    },
+    {
+      "id": "e65",
+      "file": "docs/SPEC_SERIES_ET_ROLES.md",
+      "line": 3,
+      "date": "2026-08-26",
+      "used": false
+    },
+    {
+      "id": "e66",
+      "file": "commit-log.txt",
+      "line": 170,
+      "date": "2026-08-31",
+      "used": false
+    },
+    {
+      "id": "e67",
+      "file": "commit-log.txt",
+      "line": 171,
+      "date": "2026-08-31",
+      "used": false
+    },
+    {
+      "id": "e68",
+      "file": "commit-log.txt",
+      "line": 172,
+      "date": "2026-08-31",
+      "used": false
+    },
+    {
+      "id": "e69",
+      "file": "commit-log.txt",
+      "line": 173,
+      "date": "2026-08-31",
+      "used": false
+    },
+    {
+      "id": "e70",
+      "file": "commit-log.txt",
+      "line": 174,
+      "date": "2026-08-31",
+      "used": false
+    },
+    {
+      "id": "e71",
+      "file": "commit-log.txt",
+      "line": 175,
+      "date": "2026-08-31",
+      "used": false
+    },
+    {
+      "id": "e72",
+      "file": "commit-log.txt",
+      "line": 176,
+      "date": "2026-08-31",
+      "used": false
+    },
+    {
+      "id": "e73",
+      "file": "commit-log.txt",
+      "line": 177,
+      "date": "2026-08-31",
+      "used": false
+    },
+    {
+      "id": "e74",
+      "file": "commit-log.txt",
+      "line": 178,
+      "date": "2026-08-31",
+      "used": false
+    },
+    {
+      "id": "e75",
+      "file": "commit-log.txt",
+      "line": 179,
+      "date": "2026-08-31",
+      "used": false
+    },
+    {
+      "id": "e76",
+      "file": "commit-log.txt",
+      "line": 180,
+      "date": "2026-08-31",
+      "used": false
+    },
+    {
+      "id": "e77",
+      "file": "commit-log.txt",
+      "line": 181,
+      "date": "2026-08-31",
+      "used": false
+    },
+    {
+      "id": "e78",
+      "file": "commit-log.txt",
+      "line": 182,
+      "date": "2026-08-31",
+      "used": false
+    },
+    {
+      "id": "e79",
+      "file": "commit-log.txt",
+      "line": 183,
+      "date": "2026-08-31",
+      "used": false
+    },
+    {
+      "id": "e80",
+      "file": "commit-log.txt",
+      "line": 184,
+      "date": "2026-08-31",
+      "used": false
+    },
+    {
+      "id": "e81",
+      "file": "commit-log.txt",
+      "line": 186,
+      "date": "2026-08-31",
+      "used": false
+    },
+    {
+      "id": "e82",
+      "file": "commit-log.txt",
+      "line": 165,
+      "date": "2026-09-02",
+      "used": false
+    },
+    {
+      "id": "e83",
+      "file": "commit-log.txt",
+      "line": 166,
+      "date": "2026-09-02",
+      "used": false
+    },
+    {
+      "id": "e84",
+      "file": "commit-log.txt",
+      "line": 167,
+      "date": "2026-09-02",
+      "used": false
+    },
+    {
+      "id": "e85",
+      "file": "commit-log.txt",
+      "line": 168,
+      "date": "2026-09-02",
+      "used": false
+    },
+    {
+      "id": "e86",
+      "file": "commit-log.txt",
+      "line": 169,
+      "date": "2026-09-02",
+      "used": false
+    },
+    {
+      "id": "e87",
+      "file": "commit-log.txt",
+      "line": 185,
+      "date": "2026-09-02",
+      "used": false
+    },
+    {
+      "id": "e88",
+      "file": "commit-log.txt",
+      "line": 162,
+      "date": "2026-09-06",
+      "used": false
+    },
+    {
+      "id": "e89",
+      "file": "commit-log.txt",
+      "line": 163,
+      "date": "2026-09-06",
+      "used": false
+    },
+    {
+      "id": "e90",
+      "file": "commit-log.txt",
+      "line": 164,
+      "date": "2026-09-06",
+      "used": false
+    },
+    {
+      "id": "e91",
+      "file": "commit-log.txt",
+      "line": 151,
+      "date": "2026-09-09",
+      "used": false
+    },
+    {
+      "id": "e92",
+      "file": "commit-log.txt",
+      "line": 152,
+      "date": "2026-09-09",
+      "used": false
+    },
+    {
+      "id": "e93",
+      "file": "commit-log.txt",
+      "line": 153,
+      "date": "2026-09-09",
+      "used": false
+    },
+    {
+      "id": "e94",
+      "file": "commit-log.txt",
+      "line": 154,
+      "date": "2026-09-09",
+      "used": false
+    },
+    {
+      "id": "e95",
+      "file": "commit-log.txt",
+      "line": 155,
+      "date": "2026-09-09",
+      "used": false
+    },
+    {
+      "id": "e96",
+      "file": "commit-log.txt",
+      "line": 156,
+      "date": "2026-09-09",
+      "used": false
+    },
+    {
+      "id": "e97",
+      "file": "commit-log.txt",
+      "line": 157,
+      "date": "2026-09-09",
+      "used": false
+    },
+    {
+      "id": "e98",
+      "file": "commit-log.txt",
+      "line": 158,
+      "date": "2026-09-09",
+      "used": false
+    },
+    {
+      "id": "e99",
+      "file": "commit-log.txt",
+      "line": 159,
+      "date": "2026-09-09",
+      "used": false
+    },
+    {
+      "id": "e100",
+      "file": "commit-log.txt",
+      "line": 160,
+      "date": "2026-09-09",
+      "used": false
+    },
+    {
+      "id": "e101",
+      "file": "commit-log.txt",
+      "line": 161,
+      "date": "2026-09-09",
+      "used": false
+    },
+    {
+      "id": "e102",
+      "file": "docs/ARCHITECTURE_VERTICALES.md",
+      "line": 3,
+      "date": "2026-09-09",
+      "used": false
+    },
+    {
+      "id": "e103",
+      "file": "docs/ARCHITECTURE_VERTICALES.md",
+      "line": 120,
+      "date": "2026-09-09",
+      "used": false
+    },
+    {
+      "id": "e104",
+      "file": "docs/ARCHITECTURE_VERTICALES.md",
+      "line": 205,
+      "date": "2026-09-09",
+      "used": false
+    },
+    {
+      "id": "e105",
+      "file": "docs/SPEC_CONNECTEURS_ET_SUJETS.md",
+      "line": 3,
+      "date": "2026-09-09",
+      "used": false
+    },
+    {
+      "id": "e106",
+      "file": "docs/SPEC_CONNECTEURS_ET_SUJETS.md",
+      "line": 122,
+      "date": "2026-09-09",
+      "used": false
+    },
+    {
+      "id": "e107",
+      "file": "docs/SPEC_CONNECTEURS_ET_SUJETS.md",
+      "line": 230,
+      "date": "2026-09-09",
+      "used": false
+    },
+    {
+      "id": "e108",
+      "file": "docs/SPEC_CONNECTEURS_ET_SUJETS.md",
+      "line": 257,
+      "date": "2026-09-09",
+      "used": false
+    },
+    {
+      "id": "e109",
+      "file": "docs/SPEC_CONNECTEURS_ET_SUJETS.md",
+      "line": 330,
+      "date": "2026-09-09",
+      "used": false
+    },
+    {
+      "id": "e110",
+      "file": "commit-log.txt",
+      "line": 133,
+      "date": "2026-09-17",
+      "used": false
+    },
+    {
+      "id": "e111",
+      "file": "commit-log.txt",
+      "line": 134,
+      "date": "2026-09-17",
+      "used": false
+    },
+    {
+      "id": "e112",
+      "file": "commit-log.txt",
+      "line": 135,
+      "date": "2026-09-17",
+      "used": false
+    },
+    {
+      "id": "e113",
+      "file": "commit-log.txt",
+      "line": 136,
+      "date": "2026-09-17",
+      "used": false
+    },
+    {
+      "id": "e114",
+      "file": "commit-log.txt",
+      "line": 137,
+      "date": "2026-09-17",
+      "used": false
+    },
+    {
+      "id": "e115",
+      "file": "commit-log.txt",
+      "line": 138,
+      "date": "2026-09-17",
+      "used": false
+    },
+    {
+      "id": "e116",
+      "file": "commit-log.txt",
+      "line": 139,
+      "date": "2026-09-17",
+      "used": false
+    },
+    {
+      "id": "e117",
+      "file": "commit-log.txt",
+      "line": 140,
+      "date": "2026-09-17",
+      "used": false
+    },
+    {
+      "id": "e118",
+      "file": "commit-log.txt",
+      "line": 141,
+      "date": "2026-09-17",
+      "used": false
+    },
+    {
+      "id": "e119",
+      "file": "commit-log.txt",
+      "line": 142,
+      "date": "2026-09-17",
+      "used": false
+    },
+    {
+      "id": "e120",
+      "file": "commit-log.txt",
+      "line": 143,
+      "date": "2026-09-17",
+      "used": false
+    },
+    {
+      "id": "e121",
+      "file": "commit-log.txt",
+      "line": 144,
+      "date": "2026-09-17",
+      "used": false
+    },
+    {
+      "id": "e122",
+      "file": "commit-log.txt",
+      "line": 145,
+      "date": "2026-09-17",
+      "used": false
+    },
+    {
+      "id": "e123",
+      "file": "commit-log.txt",
+      "line": 146,
+      "date": "2026-09-17",
+      "used": false
+    },
+    {
+      "id": "e124",
+      "file": "commit-log.txt",
+      "line": 147,
+      "date": "2026-09-17",
+      "used": false
+    },
+    {
+      "id": "e125",
+      "file": "commit-log.txt",
+      "line": 148,
+      "date": "2026-09-17",
+      "used": false
+    },
+    {
+      "id": "e126",
+      "file": "commit-log.txt",
+      "line": 149,
+      "date": "2026-09-17",
+      "used": false
+    },
+    {
+      "id": "e127",
+      "file": "commit-log.txt",
+      "line": 150,
+      "date": "2026-09-17",
+      "used": false
+    },
+    {
+      "id": "e128",
+      "file": "docs/SPEC_DESIGN_HTML_SUR_IMAGE.md",
+      "line": 7,
+      "date": "2026-09-17",
+      "used": false
+    },
+    {
+      "id": "e129",
+      "file": "docs/SPEC_FORMAT_VISUEL_ET_ANIMATION.md",
+      "line": 3,
+      "date": "2026-09-17",
+      "used": false
+    },
+    {
+      "id": "e130",
+      "file": "commit-log.txt",
+      "line": 132,
+      "date": "2026-09-22",
+      "used": false
+    },
+    {
+      "id": "e131",
+      "file": "commit-log.txt",
+      "line": 129,
+      "date": "2026-10-15",
+      "used": false
+    },
+    {
+      "id": "e132",
+      "file": "commit-log.txt",
+      "line": 130,
+      "date": "2026-10-15",
+      "used": false
+    },
+    {
+      "id": "e133",
+      "file": "commit-log.txt",
+      "line": 131,
+      "date": "2026-10-15",
+      "used": false
+    },
+    {
+      "id": "e134",
+      "file": "commit-log.txt",
+      "line": 102,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e135",
+      "file": "commit-log.txt",
+      "line": 103,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e136",
+      "file": "commit-log.txt",
+      "line": 104,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e137",
+      "file": "commit-log.txt",
+      "line": 105,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e138",
+      "file": "commit-log.txt",
+      "line": 106,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e139",
+      "file": "commit-log.txt",
+      "line": 107,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e140",
+      "file": "commit-log.txt",
+      "line": 108,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e141",
+      "file": "commit-log.txt",
+      "line": 109,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e142",
+      "file": "commit-log.txt",
+      "line": 110,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e143",
+      "file": "commit-log.txt",
+      "line": 111,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e144",
+      "file": "commit-log.txt",
+      "line": 112,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e145",
+      "file": "commit-log.txt",
+      "line": 113,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e146",
+      "file": "commit-log.txt",
+      "line": 114,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e147",
+      "file": "commit-log.txt",
+      "line": 115,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e148",
+      "file": "commit-log.txt",
+      "line": 116,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e149",
+      "file": "commit-log.txt",
+      "line": 117,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e150",
+      "file": "commit-log.txt",
+      "line": 118,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e151",
+      "file": "commit-log.txt",
+      "line": 119,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e152",
+      "file": "commit-log.txt",
+      "line": 120,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e153",
+      "file": "commit-log.txt",
+      "line": 121,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e154",
+      "file": "commit-log.txt",
+      "line": 122,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e155",
+      "file": "commit-log.txt",
+      "line": 123,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e156",
+      "file": "commit-log.txt",
+      "line": 124,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e157",
+      "file": "commit-log.txt",
+      "line": 125,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e158",
+      "file": "commit-log.txt",
+      "line": 126,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e159",
+      "file": "commit-log.txt",
+      "line": 127,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e160",
+      "file": "commit-log.txt",
+      "line": 128,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e161",
+      "file": "docs/ARCHITECTURE_VERTICALES.md",
+      "line": 71,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e162",
+      "file": "docs/DEPLOIEMENT_VPS.md",
+      "line": 304,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e163",
+      "file": "docs/DEPLOIEMENT_VPS.md",
+      "line": 316,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e164",
+      "file": "docs/PRODUCT.md",
+      "line": 25,
+      "date": "2026-10-16",
+      "used": true
+    },
+    {
+      "id": "e165",
+      "file": "docs/PRODUCT.md",
+      "line": 51,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e166",
+      "file": "docs/PRODUCT.md",
+      "line": 62,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e167",
+      "file": "docs/PRODUCT.md",
+      "line": 189,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e168",
+      "file": "docs/SPEC_COMPOSITION_VISUELLE.md",
+      "line": 1,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e169",
+      "file": "docs/SPEC_COMPOSITION_VISUELLE.md",
+      "line": 3,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e170",
+      "file": "docs/SPEC_COMPOSITION_VISUELLE.md",
+      "line": 45,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e171",
+      "file": "docs/SPEC_DESIGN_HTML_SUR_IMAGE.md",
+      "line": 2,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e172",
+      "file": "docs/SPEC_LEGAL_EMAIL_RGPD.md",
+      "line": 3,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e173",
+      "file": "docs/SPEC_LEGAL_EMAIL_RGPD.md",
+      "line": 41,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e174",
+      "file": "docs/SPEC_LEGAL_EMAIL_RGPD.md",
+      "line": 111,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e175",
+      "file": "docs/SPEC_LEGAL_EMAIL_RGPD.md",
+      "line": 254,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e176",
+      "file": "docs/SPEC_ONBOARDING_MVP.md",
+      "line": 3,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e177",
+      "file": "docs/SPEC_RESSOURCES_VISUELLES.md",
+      "line": 5,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e178",
+      "file": "docs/SPEC_SEO.md",
+      "line": 4,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e179",
+      "file": "docs/SPEC_SEO.md",
+      "line": 88,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e180",
+      "file": "docs/TECH.md",
+      "line": 12,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e181",
+      "file": "docs/TECH.md",
+      "line": 739,
+      "date": "2026-10-16",
+      "used": false
+    },
+    {
+      "id": "e182",
+      "file": "commit-log.txt",
+      "line": 68,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e183",
+      "file": "commit-log.txt",
+      "line": 69,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e184",
+      "file": "commit-log.txt",
+      "line": 70,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e185",
+      "file": "commit-log.txt",
+      "line": 71,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e186",
+      "file": "commit-log.txt",
+      "line": 72,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e187",
+      "file": "commit-log.txt",
+      "line": 73,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e188",
+      "file": "commit-log.txt",
+      "line": 74,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e189",
+      "file": "commit-log.txt",
+      "line": 75,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e190",
+      "file": "commit-log.txt",
+      "line": 76,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e191",
+      "file": "commit-log.txt",
+      "line": 77,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e192",
+      "file": "commit-log.txt",
+      "line": 78,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e193",
+      "file": "commit-log.txt",
+      "line": 79,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e194",
+      "file": "commit-log.txt",
+      "line": 80,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e195",
+      "file": "commit-log.txt",
+      "line": 81,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e196",
+      "file": "commit-log.txt",
+      "line": 82,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e197",
+      "file": "commit-log.txt",
+      "line": 83,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e198",
+      "file": "commit-log.txt",
+      "line": 84,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e199",
+      "file": "commit-log.txt",
+      "line": 85,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e200",
+      "file": "commit-log.txt",
+      "line": 86,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e201",
+      "file": "commit-log.txt",
+      "line": 87,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e202",
+      "file": "commit-log.txt",
+      "line": 88,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e203",
+      "file": "commit-log.txt",
+      "line": 89,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e204",
+      "file": "commit-log.txt",
+      "line": 90,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e205",
+      "file": "commit-log.txt",
+      "line": 91,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e206",
+      "file": "commit-log.txt",
+      "line": 92,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e207",
+      "file": "commit-log.txt",
+      "line": 93,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e208",
+      "file": "commit-log.txt",
+      "line": 94,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e209",
+      "file": "commit-log.txt",
+      "line": 95,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e210",
+      "file": "commit-log.txt",
+      "line": 96,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e211",
+      "file": "commit-log.txt",
+      "line": 97,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e212",
+      "file": "commit-log.txt",
+      "line": 98,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e213",
+      "file": "commit-log.txt",
+      "line": 99,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e214",
+      "file": "commit-log.txt",
+      "line": 100,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e215",
+      "file": "commit-log.txt",
+      "line": 101,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e216",
+      "file": "docs/CHOIX_TECHNIQUES_PROMPT_V3.md",
+      "line": 2,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e217",
+      "file": "docs/CHOIX_TECHNIQUES_PROMPT_V3.md",
+      "line": 143,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e218",
+      "file": "docs/PRODUCT.md",
+      "line": 109,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e219",
+      "file": "docs/PRODUCT.md",
+      "line": 123,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e220",
+      "file": "docs/PRODUCT.md",
+      "line": 145,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e221",
+      "file": "docs/PROMPTS.md",
+      "line": 480,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e222",
+      "file": "docs/SPEC_CADRAGE_SERIE.md",
+      "line": 3,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e223",
+      "file": "docs/SPEC_FIL_NARRATIF.md",
+      "line": 23,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e224",
+      "file": "docs/SPEC_FIL_NARRATIF.md",
+      "line": 217,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e225",
+      "file": "docs/SPEC_MEMOIRE_ET_VEILLE.md",
+      "line": 3,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e226",
+      "file": "docs/SPEC_PROMPT_GENERATION_V3.md",
+      "line": 3,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e227",
+      "file": "docs/SPEC_PROMPT_GENERATION_V3.md",
+      "line": 5,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e228",
+      "file": "docs/SPEC_QUOTAS_ADMIN.md",
+      "line": 3,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e229",
+      "file": "docs/SPEC_QUOTAS_ADMIN.md",
+      "line": 5,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e230",
+      "file": "docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md",
+      "line": 3,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e231",
+      "file": "docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md",
+      "line": 82,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e232",
+      "file": "docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md",
+      "line": 151,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e233",
+      "file": "docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md",
+      "line": 152,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e234",
+      "file": "docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md",
+      "line": 153,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e235",
+      "file": "docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md",
+      "line": 154,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e236",
+      "file": "docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md",
+      "line": 155,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e237",
+      "file": "docs/SPEC_RYTHME_DES_SERIES.md",
+      "line": 3,
+      "date": "2026-10-17",
+      "used": true
+    },
+    {
+      "id": "e238",
+      "file": "docs/SPEC_RYTHME_DES_SERIES.md",
+      "line": 5,
+      "date": "2026-10-17",
+      "used": true
+    },
+    {
+      "id": "e239",
+      "file": "docs/TECH.md",
+      "line": 95,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e240",
+      "file": "docs/TECH.md",
+      "line": 126,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e241",
+      "file": "docs/TECH.md",
+      "line": 323,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e242",
+      "file": "docs/TECH.md",
+      "line": 533,
+      "date": "2026-10-17",
+      "used": false
+    },
+    {
+      "id": "e243",
+      "file": "commit-log.txt",
+      "line": 46,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e244",
+      "file": "commit-log.txt",
+      "line": 47,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e245",
+      "file": "commit-log.txt",
+      "line": 48,
+      "date": "2026-10-18",
+      "used": true
+    },
+    {
+      "id": "e246",
+      "file": "commit-log.txt",
+      "line": 49,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e247",
+      "file": "commit-log.txt",
+      "line": 50,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e248",
+      "file": "commit-log.txt",
+      "line": 51,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e249",
+      "file": "commit-log.txt",
+      "line": 52,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e250",
+      "file": "commit-log.txt",
+      "line": 53,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e251",
+      "file": "commit-log.txt",
+      "line": 54,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e252",
+      "file": "commit-log.txt",
+      "line": 55,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e253",
+      "file": "commit-log.txt",
+      "line": 56,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e254",
+      "file": "commit-log.txt",
+      "line": 57,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e255",
+      "file": "commit-log.txt",
+      "line": 58,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e256",
+      "file": "commit-log.txt",
+      "line": 59,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e257",
+      "file": "commit-log.txt",
+      "line": 60,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e258",
+      "file": "commit-log.txt",
+      "line": 61,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e259",
+      "file": "commit-log.txt",
+      "line": 62,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e260",
+      "file": "commit-log.txt",
+      "line": 63,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e261",
+      "file": "commit-log.txt",
+      "line": 64,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e262",
+      "file": "commit-log.txt",
+      "line": 65,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e263",
+      "file": "commit-log.txt",
+      "line": 66,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e264",
+      "file": "commit-log.txt",
+      "line": 67,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e265",
+      "file": "docs/PRODUCT.md",
+      "line": 50,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e266",
+      "file": "docs/PRODUCT.md",
+      "line": 86,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e267",
+      "file": "docs/PRODUCT.md",
+      "line": 132,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e268",
+      "file": "docs/SPEC_ANIMATION_HTML_LIBRE.md",
+      "line": 3,
+      "date": "2026-10-18",
+      "used": true
+    },
+    {
+      "id": "e269",
+      "file": "docs/SPEC_ANIMATION_HTML_LIBRE.md",
+      "line": 44,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e270",
+      "file": "docs/SPEC_ANIMATION_HTML_LIBRE.md",
+      "line": 105,
+      "date": "2026-10-18",
+      "used": true
+    },
+    {
+      "id": "e271",
+      "file": "docs/SPEC_APP_DESIGN_TELLOVO.md",
+      "line": 3,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e272",
+      "file": "docs/SPEC_APP_DESIGN_TELLOVO.md",
+      "line": 7,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e273",
+      "file": "docs/SPEC_LANGUE_DES_POSTS.md",
+      "line": 3,
+      "date": "2026-10-18",
+      "used": false
+    },
+    {
+      "id": "e274",
+      "file": "commit-log.txt",
+      "line": 42,
+      "date": "2026-10-19",
+      "used": false
+    },
+    {
+      "id": "e275",
+      "file": "commit-log.txt",
+      "line": 43,
+      "date": "2026-10-19",
+      "used": false
+    },
+    {
+      "id": "e276",
+      "file": "commit-log.txt",
+      "line": 44,
+      "date": "2026-10-19",
+      "used": false
+    },
+    {
+      "id": "e277",
+      "file": "commit-log.txt",
+      "line": 45,
+      "date": "2026-10-19",
+      "used": false
+    },
+    {
+      "id": "e278",
+      "file": "docs/DEVLOG.md",
+      "line": 76,
+      "date": "2026-10-19",
+      "used": true
+    },
+    {
+      "id": "e279",
+      "file": "docs/PRODUCT.md",
+      "line": 138,
+      "date": "2026-10-19",
+      "used": false
+    },
+    {
+      "id": "e280",
+      "file": "docs/PROMPTS.md",
+      "line": 4,
+      "date": "2026-10-19",
+      "used": false
+    },
+    {
+      "id": "e281",
+      "file": "docs/PROMPTS.md",
+      "line": 1898,
+      "date": "2026-10-19",
+      "used": false
+    },
+    {
+      "id": "e282",
+      "file": "docs/SPEC_PERFORMANCE.md",
+      "line": 2,
+      "date": "2026-10-19",
+      "used": false
+    },
+    {
+      "id": "e283",
+      "file": "docs/SPEC_PERFORMANCE.md",
+      "line": 56,
+      "date": "2026-10-19",
+      "used": true
+    },
+    {
+      "id": "e284",
+      "file": "docs/SPEC_PERFORMANCE.md",
+      "line": 75,
+      "date": "2026-10-19",
+      "used": false
+    },
+    {
+      "id": "e285",
+      "file": "docs/SPEC_PERFORMANCE.md",
+      "line": 132,
+      "date": "2026-10-19",
+      "used": true
+    },
+    {
+      "id": "e286",
+      "file": "docs/SPEC_PERFORMANCE.md",
+      "line": 147,
+      "date": "2026-10-19",
+      "used": false
+    },
+    {
+      "id": "e287",
+      "file": "docs/SPEC_PERFORMANCE.md",
+      "line": 189,
+      "date": "2026-10-19",
+      "used": false
+    },
+    {
+      "id": "e288",
+      "file": "docs/SPEC_PERFORMANCE.md",
+      "line": 194,
+      "date": "2026-10-19",
+      "used": false
+    },
+    {
+      "id": "e289",
+      "file": "commit-log.txt",
+      "line": 6,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e290",
+      "file": "commit-log.txt",
+      "line": 7,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e291",
+      "file": "commit-log.txt",
+      "line": 8,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e292",
+      "file": "commit-log.txt",
+      "line": 9,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e293",
+      "file": "commit-log.txt",
+      "line": 10,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e294",
+      "file": "commit-log.txt",
+      "line": 11,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e295",
+      "file": "commit-log.txt",
+      "line": 12,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e296",
+      "file": "commit-log.txt",
+      "line": 13,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e297",
+      "file": "commit-log.txt",
+      "line": 14,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e298",
+      "file": "commit-log.txt",
+      "line": 15,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e299",
+      "file": "commit-log.txt",
+      "line": 16,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e300",
+      "file": "commit-log.txt",
+      "line": 17,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e301",
+      "file": "commit-log.txt",
+      "line": 18,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e302",
+      "file": "commit-log.txt",
+      "line": 19,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e303",
+      "file": "commit-log.txt",
+      "line": 20,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e304",
+      "file": "commit-log.txt",
+      "line": 21,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e305",
+      "file": "commit-log.txt",
+      "line": 22,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e306",
+      "file": "commit-log.txt",
+      "line": 23,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e307",
+      "file": "commit-log.txt",
+      "line": 24,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e308",
+      "file": "commit-log.txt",
+      "line": 25,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e309",
+      "file": "commit-log.txt",
+      "line": 26,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e310",
+      "file": "commit-log.txt",
+      "line": 27,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e311",
+      "file": "commit-log.txt",
+      "line": 28,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e312",
+      "file": "commit-log.txt",
+      "line": 29,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e313",
+      "file": "commit-log.txt",
+      "line": 30,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e314",
+      "file": "commit-log.txt",
+      "line": 31,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e315",
+      "file": "commit-log.txt",
+      "line": 32,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e316",
+      "file": "commit-log.txt",
+      "line": 33,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e317",
+      "file": "commit-log.txt",
+      "line": 34,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e318",
+      "file": "commit-log.txt",
+      "line": 35,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e319",
+      "file": "commit-log.txt",
+      "line": 36,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e320",
+      "file": "commit-log.txt",
+      "line": 37,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e321",
+      "file": "commit-log.txt",
+      "line": 38,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e322",
+      "file": "commit-log.txt",
+      "line": 39,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e323",
+      "file": "commit-log.txt",
+      "line": 40,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e324",
+      "file": "commit-log.txt",
+      "line": 41,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e325",
+      "file": "docs/PROMPTS.md",
+      "line": 52,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e326",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 3,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e327",
+      "file": "docs/SPEC_FIL_NARRATIF.md",
+      "line": 3,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e328",
+      "file": "docs/SPEC_FIL_NARRATIF.md",
+      "line": 48,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e329",
+      "file": "docs/SPEC_FIL_NARRATIF.md",
+      "line": 229,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e330",
+      "file": "docs/SPEC_FIL_NARRATIF.md",
+      "line": 237,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e331",
+      "file": "docs/SPEC_FIL_NARRATIF.md",
+      "line": 248,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e332",
+      "file": "docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md",
+      "line": 70,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e333",
+      "file": "docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md",
+      "line": 116,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e334",
+      "file": "docs/TECH.md",
+      "line": 321,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e335",
+      "file": "docs/TECH.md",
+      "line": 539,
+      "date": "2026-10-20",
+      "used": false
+    },
+    {
+      "id": "e336",
+      "file": "commit-log.txt",
+      "line": 1,
+      "date": "2026-10-21",
+      "used": false
+    },
+    {
+      "id": "e337",
+      "file": "commit-log.txt",
+      "line": 2,
+      "date": "2026-10-21",
+      "used": false
+    },
+    {
+      "id": "e338",
+      "file": "commit-log.txt",
+      "line": 3,
+      "date": "2026-10-21",
+      "used": false
+    },
+    {
+      "id": "e339",
+      "file": "commit-log.txt",
+      "line": 4,
+      "date": "2026-10-21",
+      "used": false
+    },
+    {
+      "id": "e340",
+      "file": "commit-log.txt",
+      "line": 5,
+      "date": "2026-10-21",
+      "used": false
+    },
+    {
+      "id": "e341",
+      "file": "docs/DEVLOG.md",
+      "line": 97,
+      "date": "2026-10-21",
+      "used": true
+    },
+    {
+      "id": "e342",
+      "file": "docs/DEVLOG.md",
+      "line": 118,
+      "date": "2026-10-21",
+      "used": true
+    },
+    {
+      "id": "e343",
+      "file": "docs/DEVLOG.md",
+      "line": 155,
+      "date": "2026-10-21",
+      "used": true
+    },
+    {
+      "id": "e344",
+      "file": "docs/DEVLOG.md",
+      "line": 165,
+      "date": "2026-10-21",
+      "used": true
+    },
+    {
+      "id": "e345",
+      "file": "docs/PROMPTS.md",
+      "line": 1426,
+      "date": "2026-10-21",
+      "used": false
+    },
+    {
+      "id": "e346",
+      "file": "docs/PROMPTS.md",
+      "line": 1460,
+      "date": "2026-10-21",
+      "used": false
+    },
+    {
+      "id": "e347",
+      "file": "docs/PROMPTS.md",
+      "line": 1820,
+      "date": "2026-10-21",
+      "used": false
+    },
+    {
+      "id": "e348",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 7,
+      "date": "2026-10-21",
+      "used": false
+    },
+    {
+      "id": "e349",
+      "file": "docs/SPEC_FIL_NARRATIF.md",
+      "line": 6,
+      "date": "2026-10-21",
+      "used": false
+    },
+    {
+      "id": "e350",
+      "file": "docs/SPEC_FIL_NARRATIF.md",
+      "line": 8,
+      "date": "2026-10-21",
+      "used": false
+    },
+    {
+      "id": "e351",
+      "file": "docs/ARCHITECTURE_VERTICALES.md",
+      "line": 229,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e352",
+      "file": "docs/ARCHITECTURE_VERTICALES.md",
+      "line": 242,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e353",
+      "file": "docs/CHOIX_TECHNIQUES_PROMPT_V3.md",
+      "line": 50,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e354",
+      "file": "docs/CHOIX_TECHNIQUES_PROMPT_V3.md",
+      "line": 56,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e355",
+      "file": "docs/CHOIX_TECHNIQUES_PROMPT_V3.md",
+      "line": 59,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e356",
+      "file": "docs/CHOIX_TECHNIQUES_PROMPT_V3.md",
+      "line": 60,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e357",
+      "file": "docs/CHOIX_TECHNIQUES_PROMPT_V3.md",
+      "line": 75,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e358",
+      "file": "docs/CHOIX_TECHNIQUES_PROMPT_V3.md",
+      "line": 76,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e359",
+      "file": "docs/CHOIX_TECHNIQUES_PROMPT_V3.md",
+      "line": 106,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e360",
+      "file": "docs/CHOIX_TECHNIQUES_PROMPT_V3.md",
+      "line": 107,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e361",
+      "file": "docs/CHOIX_TECHNIQUES_PROMPT_V3.md",
+      "line": 112,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e362",
+      "file": "docs/CHOIX_TECHNIQUES_PROMPT_V3.md",
+      "line": 133,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e363",
+      "file": "docs/CHOIX_TECHNIQUES_PROMPT_V3.md",
+      "line": 134,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e364",
+      "file": "docs/CHOIX_TECHNIQUES_PROMPT_V3.md",
+      "line": 135,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e365",
+      "file": "docs/CHOIX_TECHNIQUES_PROMPT_V3.md",
+      "line": 141,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e366",
+      "file": "docs/CHOIX_TECHNIQUES_PROMPT_V3.md",
+      "line": 172,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e367",
+      "file": "docs/DEPLOIEMENT_VPS.md",
+      "line": 305,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e368",
+      "file": "docs/DEPLOIEMENT_VPS.md",
+      "line": 306,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e369",
+      "file": "docs/DEPLOIEMENT_VPS.md",
+      "line": 307,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e370",
+      "file": "docs/DEPLOIEMENT_VPS.md",
+      "line": 308,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e371",
+      "file": "docs/DEPLOIEMENT_VPS.md",
+      "line": 309,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e372",
+      "file": "docs/DEPLOIEMENT_VPS.md",
+      "line": 310,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e373",
+      "file": "docs/DEPLOIEMENT_VPS.md",
+      "line": 311,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e374",
+      "file": "docs/DEPLOIEMENT_VPS.md",
+      "line": 312,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e375",
+      "file": "docs/DEPLOIEMENT_VPS.md",
+      "line": 313,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e376",
+      "file": "docs/DEPLOIEMENT_VPS.md",
+      "line": 314,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e377",
+      "file": "docs/DEPLOIEMENT_VPS.md",
+      "line": 315,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e378",
+      "file": "docs/DEPLOIEMENT_VPS.md",
+      "line": 317,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e379",
+      "file": "docs/DEPLOIEMENT_VPS.md",
+      "line": 318,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e380",
+      "file": "docs/DEPLOIEMENT_VPS.md",
+      "line": 319,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e381",
+      "file": "docs/DEPLOIEMENT_VPS.md",
+      "line": 320,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e382",
+      "file": "docs/DEPLOIEMENT_VPS.md",
+      "line": 321,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e383",
+      "file": "docs/DEPLOIEMENT_VPS.md",
+      "line": 322,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e384",
+      "file": "docs/DEVLOG.md",
+      "line": 11,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e385",
+      "file": "docs/DEVLOG.md",
+      "line": 14,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e386",
+      "file": "docs/DEVLOG.md",
+      "line": 15,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e387",
+      "file": "docs/DEVLOG.md",
+      "line": 16,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e388",
+      "file": "docs/DEVLOG.md",
+      "line": 17,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e389",
+      "file": "docs/DEVLOG.md",
+      "line": 18,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e390",
+      "file": "docs/DEVLOG.md",
+      "line": 20,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e391",
+      "file": "docs/DEVLOG.md",
+      "line": 26,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e392",
+      "file": "docs/DEVLOG.md",
+      "line": 29,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e393",
+      "file": "docs/DEVLOG.md",
+      "line": 30,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e394",
+      "file": "docs/DEVLOG.md",
+      "line": 31,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e395",
+      "file": "docs/DEVLOG.md",
+      "line": 32,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e396",
+      "file": "docs/DEVLOG.md",
+      "line": 33,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e397",
+      "file": "docs/DEVLOG.md",
+      "line": 36,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e398",
+      "file": "docs/DEVLOG.md",
+      "line": 37,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e399",
+      "file": "docs/DEVLOG.md",
+      "line": 38,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e400",
+      "file": "docs/DEVLOG.md",
+      "line": 40,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e401",
+      "file": "docs/DEVLOG.md",
+      "line": 44,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e402",
+      "file": "docs/DEVLOG.md",
+      "line": 47,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e403",
+      "file": "docs/DEVLOG.md",
+      "line": 48,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e404",
+      "file": "docs/DEVLOG.md",
+      "line": 49,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e405",
+      "file": "docs/DEVLOG.md",
+      "line": 50,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e406",
+      "file": "docs/DEVLOG.md",
+      "line": 53,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e407",
+      "file": "docs/DEVLOG.md",
+      "line": 54,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e408",
+      "file": "docs/DEVLOG.md",
+      "line": 55,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e409",
+      "file": "docs/DEVLOG.md",
+      "line": 57,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e410",
+      "file": "docs/DEVLOG.md",
+      "line": 63,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e411",
+      "file": "docs/DEVLOG.md",
+      "line": 65,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e412",
+      "file": "docs/DEVLOG.md",
+      "line": 68,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e413",
+      "file": "docs/DEVLOG.md",
+      "line": 69,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e414",
+      "file": "docs/DEVLOG.md",
+      "line": 70,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e415",
+      "file": "docs/DEVLOG.md",
+      "line": 72,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e416",
+      "file": "docs/DEVLOG.md",
+      "line": 78,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e417",
+      "file": "docs/DEVLOG.md",
+      "line": 80,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e418",
+      "file": "docs/DEVLOG.md",
+      "line": 92,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e419",
+      "file": "docs/DEVLOG.md",
+      "line": 101,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e420",
+      "file": "docs/DEVLOG.md",
+      "line": 103,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e421",
+      "file": "docs/DEVLOG.md",
+      "line": 107,
+      "date": null,
+      "used": true
+    },
+    {
+      "id": "e422",
+      "file": "docs/DEVLOG.md",
+      "line": 108,
+      "date": null,
+      "used": true
+    },
+    {
+      "id": "e423",
+      "file": "docs/DEVLOG.md",
+      "line": 109,
+      "date": null,
+      "used": true
+    },
+    {
+      "id": "e424",
+      "file": "docs/DEVLOG.md",
+      "line": 113,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e425",
+      "file": "docs/DEVLOG.md",
+      "line": 123,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e426",
+      "file": "docs/DEVLOG.md",
+      "line": 124,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e427",
+      "file": "docs/DEVLOG.md",
+      "line": 129,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e428",
+      "file": "docs/DEVLOG.md",
+      "line": 137,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e429",
+      "file": "docs/DEVLOG.md",
+      "line": 143,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e430",
+      "file": "docs/DEVLOG.md",
+      "line": 145,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e431",
+      "file": "docs/DEVLOG.md",
+      "line": 151,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e432",
+      "file": "docs/DEVLOG.md",
+      "line": 157,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e433",
+      "file": "docs/DEVLOG.md",
+      "line": 159,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e434",
+      "file": "docs/DEVLOG.md",
+      "line": 161,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e435",
+      "file": "docs/DEVLOG.md",
+      "line": 167,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e436",
+      "file": "docs/DEVLOG.md",
+      "line": 169,
+      "date": null,
+      "used": true
+    },
+    {
+      "id": "e437",
+      "file": "docs/DEVLOG.md",
+      "line": 171,
+      "date": null,
+      "used": true
+    },
+    {
+      "id": "e438",
+      "file": "docs/DEVLOG.md",
+      "line": 173,
+      "date": null,
+      "used": true
+    },
+    {
+      "id": "e439",
+      "file": "docs/DEVLOG.md",
+      "line": 175,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e440",
+      "file": "docs/PRODUCT.md",
+      "line": 90,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e441",
+      "file": "docs/PRODUCT.md",
+      "line": 111,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e442",
+      "file": "docs/PRODUCT.md",
+      "line": 113,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e443",
+      "file": "docs/PROMPTS.md",
+      "line": 58,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e444",
+      "file": "docs/PROMPTS.md",
+      "line": 69,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e445",
+      "file": "docs/PROMPTS.md",
+      "line": 487,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e446",
+      "file": "docs/PROMPTS.md",
+      "line": 528,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e447",
+      "file": "docs/PROMPTS.md",
+      "line": 535,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e448",
+      "file": "docs/PROMPTS.md",
+      "line": 540,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e449",
+      "file": "docs/PROMPTS.md",
+      "line": 541,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e450",
+      "file": "docs/PROMPTS.md",
+      "line": 658,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e451",
+      "file": "docs/PROMPTS.md",
+      "line": 704,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e452",
+      "file": "docs/PROMPTS.md",
+      "line": 705,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e453",
+      "file": "docs/PROMPTS.md",
+      "line": 778,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e454",
+      "file": "docs/PROMPTS.md",
+      "line": 780,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e455",
+      "file": "docs/PROMPTS.md",
+      "line": 831,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e456",
+      "file": "docs/PROMPTS.md",
+      "line": 833,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e457",
+      "file": "docs/PROMPTS.md",
+      "line": 876,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e458",
+      "file": "docs/PROMPTS.md",
+      "line": 907,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e459",
+      "file": "docs/PROMPTS.md",
+      "line": 910,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e460",
+      "file": "docs/PROMPTS.md",
+      "line": 953,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e461",
+      "file": "docs/PROMPTS.md",
+      "line": 957,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e462",
+      "file": "docs/PROMPTS.md",
+      "line": 1002,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e463",
+      "file": "docs/PROMPTS.md",
+      "line": 1004,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e464",
+      "file": "docs/PROMPTS.md",
+      "line": 1683,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e465",
+      "file": "docs/PROMPTS.md",
+      "line": 1687,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e466",
+      "file": "docs/PROMPTS.md",
+      "line": 1688,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e467",
+      "file": "docs/PROMPTS.md",
+      "line": 1689,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e468",
+      "file": "docs/PROMPTS.md",
+      "line": 1690,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e469",
+      "file": "docs/PROMPTS.md",
+      "line": 1818,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e470",
+      "file": "docs/PROMPTS.md",
+      "line": 1823,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e471",
+      "file": "docs/PROMPTS.md",
+      "line": 1857,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e472",
+      "file": "docs/SETUP_RESSOURCES_VISUELLES.md",
+      "line": 11,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e473",
+      "file": "docs/SETUP_RESSOURCES_VISUELLES.md",
+      "line": 12,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e474",
+      "file": "docs/SETUP_RESSOURCES_VISUELLES.md",
+      "line": 16,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e475",
+      "file": "docs/SETUP_RESSOURCES_VISUELLES.md",
+      "line": 32,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e476",
+      "file": "docs/SETUP_RESSOURCES_VISUELLES.md",
+      "line": 33,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e477",
+      "file": "docs/SETUP_RESSOURCES_VISUELLES.md",
+      "line": 36,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e478",
+      "file": "docs/SETUP_RESSOURCES_VISUELLES.md",
+      "line": 40,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e479",
+      "file": "docs/SETUP_RESSOURCES_VISUELLES.md",
+      "line": 45,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e480",
+      "file": "docs/SETUP_RESSOURCES_VISUELLES.md",
+      "line": 59,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e481",
+      "file": "docs/SETUP_RESSOURCES_VISUELLES.md",
+      "line": 68,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e482",
+      "file": "docs/SETUP_RESSOURCES_VISUELLES.md",
+      "line": 77,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e483",
+      "file": "docs/SETUP_RESSOURCES_VISUELLES.md",
+      "line": 92,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e484",
+      "file": "docs/SETUP_RESSOURCES_VISUELLES.md",
+      "line": 94,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e485",
+      "file": "docs/SETUP_RESSOURCES_VISUELLES.md",
+      "line": 106,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e486",
+      "file": "docs/SETUP_RESSOURCES_VISUELLES.md",
+      "line": 107,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e487",
+      "file": "docs/SETUP_RESSOURCES_VISUELLES.md",
+      "line": 108,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e488",
+      "file": "docs/SETUP_RESSOURCES_VISUELLES.md",
+      "line": 109,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e489",
+      "file": "docs/SPEC_APP_DESIGN_TELLOVO.md",
+      "line": 50,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e490",
+      "file": "docs/SPEC_APP_DESIGN_TELLOVO.md",
+      "line": 56,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e491",
+      "file": "docs/SPEC_APP_DESIGN_TELLOVO.md",
+      "line": 63,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e492",
+      "file": "docs/SPEC_APP_DESIGN_TELLOVO.md",
+      "line": 64,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e493",
+      "file": "docs/SPEC_APP_DESIGN_TELLOVO.md",
+      "line": 106,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e494",
+      "file": "docs/SPEC_APP_DESIGN_TELLOVO.md",
+      "line": 107,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e495",
+      "file": "docs/SPEC_APP_DESIGN_TELLOVO.md",
+      "line": 118,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e496",
+      "file": "docs/SPEC_APP_DESIGN_TELLOVO.md",
+      "line": 120,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e497",
+      "file": "docs/SPEC_APP_DESIGN_TELLOVO.md",
+      "line": 125,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e498",
+      "file": "docs/SPEC_APP_DESIGN_TELLOVO.md",
+      "line": 126,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e499",
+      "file": "docs/SPEC_ASSISTANT_AGENTIQUE.md",
+      "line": 3,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e500",
+      "file": "docs/SPEC_ASSISTANT_AGENTIQUE.md",
+      "line": 8,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e501",
+      "file": "docs/SPEC_ASSISTANT_AGENTIQUE.md",
+      "line": 257,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e502",
+      "file": "docs/SPEC_CADRAGE_SERIE.md",
+      "line": 80,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e503",
+      "file": "docs/SPEC_CADRAGE_SERIE.md",
+      "line": 82,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e504",
+      "file": "docs/SPEC_CADRAGE_SERIE.md",
+      "line": 83,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e505",
+      "file": "docs/SPEC_CADRAGE_SERIE.md",
+      "line": 84,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e506",
+      "file": "docs/SPEC_CADRAGE_SERIE.md",
+      "line": 85,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e507",
+      "file": "docs/SPEC_CONNECTEURS_ET_SUJETS.md",
+      "line": 331,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e508",
+      "file": "docs/SPEC_CONNECTEURS_ET_SUJETS.md",
+      "line": 332,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e509",
+      "file": "docs/SPEC_CONNECTEURS_ET_SUJETS.md",
+      "line": 333,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e510",
+      "file": "docs/SPEC_ENTREE_PAR_LE_REPO.md",
+      "line": 42,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e511",
+      "file": "docs/SPEC_ENTREE_PAR_LE_REPO.md",
+      "line": 43,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e512",
+      "file": "docs/SPEC_ENTREE_PAR_LE_REPO.md",
+      "line": 44,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e513",
+      "file": "docs/SPEC_ENTREE_PAR_LE_REPO.md",
+      "line": 90,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e514",
+      "file": "docs/SPEC_ENTREE_PAR_LE_REPO.md",
+      "line": 91,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e515",
+      "file": "docs/SPEC_ENTREE_PAR_LE_REPO.md",
+      "line": 92,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e516",
+      "file": "docs/SPEC_ENTREE_PAR_LE_REPO.md",
+      "line": 97,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e517",
+      "file": "docs/SPEC_ENTREE_PAR_LE_REPO.md",
+      "line": 98,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e518",
+      "file": "docs/SPEC_ENTREE_PAR_LE_REPO.md",
+      "line": 107,
+      "date": null,
+      "used": true
+    },
+    {
+      "id": "e519",
+      "file": "docs/SPEC_ENTREE_PAR_LE_REPO.md",
+      "line": 108,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e520",
+      "file": "docs/SPEC_ENTREE_PAR_LE_REPO.md",
+      "line": 153,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e521",
+      "file": "docs/SPEC_ENTREE_PAR_LE_REPO.md",
+      "line": 154,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e522",
+      "file": "docs/SPEC_ENTREE_PAR_LE_REPO.md",
+      "line": 155,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e523",
+      "file": "docs/SPEC_ENTREE_PAR_LE_REPO.md",
+      "line": 157,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e524",
+      "file": "docs/SPEC_ENTREE_PAR_LE_REPO.md",
+      "line": 159,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e525",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 10,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e526",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 15,
+      "date": null,
+      "used": true
+    },
+    {
+      "id": "e527",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 20,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e528",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 21,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e529",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 23,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e530",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 24,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e531",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 25,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e532",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 26,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e533",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 37,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e534",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 38,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e535",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 39,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e536",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 41,
+      "date": null,
+      "used": true
+    },
+    {
+      "id": "e537",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 42,
+      "date": null,
+      "used": true
+    },
+    {
+      "id": "e538",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 43,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e539",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 76,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e540",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 77,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e541",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 78,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e542",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 83,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e543",
+      "file": "docs/SPEC_EVENEMENTS_PAR_CIBLE.md",
+      "line": 110,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e544",
+      "file": "docs/SPEC_FIL_NARRATIF.md",
+      "line": 57,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e545",
+      "file": "docs/SPEC_FIL_NARRATIF.md",
+      "line": 142,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e546",
+      "file": "docs/SPEC_FIL_NARRATIF.md",
+      "line": 202,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e547",
+      "file": "docs/SPEC_FIL_NARRATIF.md",
+      "line": 240,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e548",
+      "file": "docs/SPEC_MEMOIRE_ET_VEILLE.md",
+      "line": 116,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e549",
+      "file": "docs/SPEC_MEMOIRE_ET_VEILLE.md",
+      "line": 117,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e550",
+      "file": "docs/SPEC_MEMOIRE_ET_VEILLE.md",
+      "line": 118,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e551",
+      "file": "docs/SPEC_MEMOIRE_ET_VEILLE.md",
+      "line": 119,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e552",
+      "file": "docs/SPEC_MEMOIRE_ET_VEILLE.md",
+      "line": 120,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e553",
+      "file": "docs/SPEC_MEMOIRE_ET_VEILLE.md",
+      "line": 122,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e554",
+      "file": "docs/SPEC_MEMOIRE_ET_VEILLE.md",
+      "line": 123,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e555",
+      "file": "docs/SPEC_MEMOIRE_ET_VEILLE.md",
+      "line": 124,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e556",
+      "file": "docs/SPEC_PROMPT_GENERATION_V3.md",
+      "line": 216,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e557",
+      "file": "docs/SPEC_QUOTAS_ADMIN.md",
+      "line": 6,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e558",
+      "file": "docs/SPEC_QUOTAS_ADMIN.md",
+      "line": 7,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e559",
+      "file": "docs/SPEC_RESSOURCES_VISUELLES.md",
+      "line": 203,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e560",
+      "file": "docs/SPEC_RESSOURCES_VISUELLES.md",
+      "line": 210,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e561",
+      "file": "docs/SPEC_RESSOURCES_VISUELLES.md",
+      "line": 212,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e562",
+      "file": "docs/SPEC_RYTHME_DES_SERIES.md",
+      "line": 131,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e563",
+      "file": "docs/SPEC_SEO.md",
+      "line": 17,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e564",
+      "file": "docs/SPEC_SEO.md",
+      "line": 23,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e565",
+      "file": "docs/SPEC_SEO.md",
+      "line": 27,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e566",
+      "file": "docs/SPEC_SEO.md",
+      "line": 42,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e567",
+      "file": "docs/SPEC_SEO.md",
+      "line": 57,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e568",
+      "file": "docs/SPEC_SEO.md",
+      "line": 60,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e569",
+      "file": "docs/SPEC_SEO.md",
+      "line": 66,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e570",
+      "file": "docs/SPEC_SERIES_ET_ROLES.md",
+      "line": 182,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e571",
+      "file": "docs/TECH.md",
+      "line": 569,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e572",
+      "file": "docs/TECH.md",
+      "line": 583,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e573",
+      "file": "docs/TECH.md",
+      "line": 609,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e574",
+      "file": "docs/TECH.md",
+      "line": 611,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e575",
+      "file": "docs/TECH.md",
+      "line": 614,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e576",
+      "file": "docs/TECH.md",
+      "line": 680,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e577",
+      "file": "docs/TECH.md",
+      "line": 686,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e578",
+      "file": "docs/TECH.md",
+      "line": 698,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e579",
+      "file": "docs/TECH.md",
+      "line": 704,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e580",
+      "file": "docs/TECH.md",
+      "line": 709,
+      "date": null,
+      "used": false
+    },
+    {
+      "id": "e581",
+      "file": "docs/TECH.md",
+      "line": 717,
+      "date": null,
+      "used": false
+    }
+  ],
+  "posts": [
+    {
+      "n": 1,
+      "eventIds": [
+        "e164",
+        "e278"
+      ],
+      "reads": 4,
+      "postsRead": 0,
+      "turns": 3,
+      "seconds": 21,
+      "text": "Si tu es développeur indépendant, tu connais peut-être le décalage : tu avances sur ton produit, tu prends des notes, tu prends des décisions… puis la semaine passe et rien ne se retrouve en ligne.\n\nJe construis CreaFlow pour partir de cette matière-là — notes, specs, devlog, décisions — et la transformer en posts. Pas besoin de demander à une IA d’imaginer ce qui s’est passé : CreaFlow écrit à partir de ce qu’on lui a réellement donné, sans inventer les faits manquants.\n\nMon cap tient en une phrase : « Publier ce que je construis sans y passer mes soirées. »\n\nJe commence à partager ici le chantier de CreaFlow, et ce que j’apprends en le construisant."
+    },
+    {
+      "n": 2,
+      "eventIds": [
+        "e341"
+      ],
+      "reads": 1,
+      "postsRead": 1,
+      "turns": 4,
+      "seconds": 14,
+      "text": "En construisant CreaFlow, j’ai passé deux jours à resserrer un prompt parce que les posts générés ressemblaient à des rapports à rubriques.\n\nJ’ai comparé six versions sur les mêmes trois événements. Le brief donnait déjà une histoire prémâchée en champs — et le modèle la transformait en formulaire. Puis j’ai changé une seule variable : le modèle.\n\nSur ce banc d’essai, les paragraphes étiquetés sont passés de 6 sur 17 à 0 sur 12. Les détails humains conservés, de 2 sur 10 à 6 sur 10.\n\nLa leçon pour moi : quand un résultat ne va pas, ajouter des règles au prompt n’est pas forcément la bonne réponse. Il faut aussi regarder ce qu’on donne au modèle — et tester le modèle lui-même."
+    },
+    {
+      "n": 3,
+      "eventIds": [
+        "e421",
+        "e422",
+        "e423",
+        "e342"
+      ],
+      "reads": 4,
+      "postsRead": 2,
+      "turns": 4,
+      "seconds": 18,
+      "text": "Dans mon dernier post, je parlais du modèle. En regardant les essais de plus près, j’ai trouvé un autre problème, juste avant lui : le brief faisait déjà le travail du rédacteur.\n\nIl recevait cinq éléments pré-rédigés pour un événement. Il avait aussi le document source sous les yeux — et pourtant, il traduisait le résumé. Cinq champs finissaient par donner cinq paragraphes, parfois avec leur étiquette.\n\nJ’ai donc raccourci le brief et remplacé les exemples fictifs du prompt par de vrais posts de l’auteur. Sur trois posts, les paragraphes étiquetés sont passés de 9 à 1.\n\nÇa m’a rappelé une chose en construisant CreaFlow : si on veut partir de la matière vécue, il faut éviter de la prémâcher jusqu’à ce qu’elle ressemble déjà à un formulaire. Sinon, l’IA ne raconte pas le chantier — elle remplit les cases."
+    },
+    {
+      "n": 4,
+      "eventIds": [
+        "e344"
+      ],
+      "reads": 5,
+      "postsRead": 3,
+      "turns": 4,
+      "seconds": 16,
+      "text": "J’ai changé une règle de CreaFlow : le premier post n’a pas besoin d’être accroché à un événement du dépôt.\n\nPour un développeur indépendant, commencer à publier peut aussi vouloir dire expliquer pourquoi on choisit de montrer son chantier — pas seulement annoncer une fonctionnalité livrée.\n\nMais cette raison ne se déduit pas d’un README. J’ai testé une origine générée sans cette information : elle a simplement recopié le problème et la description du produit. Une plaquette, pas une voix.\n\nAlors CreaFlow demande maintenant pourquoi tu veux construire en public. Le dépôt peut raconter ce que tu fais ; le « pourquoi je le partage », c’est à toi de le donner."
+    },
+    {
+      "n": 5,
+      "eventIds": [
+        "e245",
+        "e268",
+        "e270"
+      ],
+      "reads": 9,
+      "postsRead": 4,
+      "turns": 7,
+      "seconds": 29,
+      "text": "Une animation générée peut avoir une bonne idée et être illisible : texte qui se chevauche, contraste raté, premier écran presque vide.\n\nEn construisant CreaFlow, j’ai testé deux façons de repérer ces défauts. Le modèle qui regarde ses propres images en corrigeait peu. Un essai de rendu dans le navigateur, lui, relevait les problèmes avec leurs coordonnées — assez précis pour demander une correction au bon endroit.\n\nMais une correction peut en créer une autre. Dans l’application, je limite donc les reprises à deux et je garde la page la moins mauvaise plutôt que de ne rien livrer.\n\nMa leçon : pour vérifier un résultat généré, « regarde si c’est bon » ne remplace pas une mesure exploitable."
+    },
+    {
+      "n": 6,
+      "eventIds": [
+        "e344"
+      ],
+      "reads": 5,
+      "postsRead": 2,
+      "turns": 4,
+      "seconds": 21,
+      "text": "Un post LinkedIn et sa version X peuvent avoir des formats différents. Mais ils devraient raconter la même histoire.\n\nEn testant le parcours `/start` de CreaFlow, j’ai repéré un défaut : le premier post est écrit sans plan narratif. Le plan est calculé ensuite pour le second réseau. Résultat possible : deux versions qui ne racontent pas la même chose.\n\nCe n’est pas corrigé pour l’instant. Mais ça m’a rappelé qu’adapter un post à un réseau ne devrait pas vouloir dire changer son fil conducteur.\n\nC’est un détail de génération qui compte : quand tu publies sur plusieurs réseaux, tu veux adapter la forme, pas perdre le fil."
+    },
+    {
+      "n": 7,
+      "eventIds": [
+        "e237",
+        "e238"
+      ],
+      "reads": 8,
+      "postsRead": 6,
+      "turns": 6,
+      "seconds": 24,
+      "text": "J’ai créé une deuxième série pour mon devlog, avec un poids de 50 %. Elle n’a obtenu aucun créneau.\n\nLe calendrier se remplissait une fois par mois : les séries se partageaient les jours disponibles au prorata, et en créer une nouvelle ne changeait pas le mois déjà planifié. Le « 50 % » était aussi une abstraction peu utile : je pense plutôt « le devlog, le mercredi ».\n\nJ’ai donc remplacé les poids par un rythme propre à chaque série : ses jours, chaque semaine ou une semaine sur deux. Le calendrier se met à jour en continu sur 28 jours, et chaque série a sa propre ligne.\n\nQuand tu alternes plusieurs sujets — produit, devlog, autre projet — la cadence devrait être lisible et choisie série par série, pas calculée à partir d’un pourcentage."
+    },
+    {
+      "n": 8,
+      "eventIds": [
+        "e20",
+        "e22",
+        "e526",
+        "e536",
+        "e537"
+      ],
+      "reads": 7,
+      "postsRead": 7,
+      "turns": 5,
+      "seconds": 33,
+      "text": "Lors d’un essai de CreaFlow pour un public de kinés, les premiers posts parlaient d’API, de mesures à 10 Hz et de JWT.\n\nLes faits étaient bien dans les documents. Mais ils avaient été triés pour ce public après leur extraction — sans se demander ce qu’ils changeaient pour lui. Résultat : des détails techniques, pas des posts utiles à cette série.\n\nJ’ai changé la logique : CreaFlow garde le fait une seule fois, puis cherche, dès la lecture, ce qu’il signifie pour chaque public. Un fait qui ne compte pour personne ne part dans aucune série. Et un document technique n’est pas écarté d’office : il peut contenir une conséquence très concrète pour le lecteur.\n\nQuand tu construis pour plusieurs publics, le défi n’est pas de trouver une idée différente pour chacun. C’est de raconter le même chantier dans les mots et avec les enjeux qui comptent pour eux."
+    },
+    {
+      "n": 9,
+      "eventIds": [
+        "e518"
+      ],
+      "reads": 11,
+      "postsRead": 8,
+      "turns": 7,
+      "seconds": 30,
+      "text": "Un lien de connexion par email peut être consommé avant que la personne clique.\n\nEn construisant le démarrage de CreaFlow, j’ai prévu que le lien ne soit pas brûlé par un scanner qui vérifie les URL des emails. Si le simple chargement de la page consommait le jeton, la personne pourrait arriver trop tard sur son propre lien.\n\nJ’ai séparé les deux gestes : le GET affiche la page, puis une requête POST déclenchée à son ouverture consomme le jeton et connecte la personne.\n\nPetit détail d’auth, gros effet sur la première impression : un lien magique doit fonctionner pour l’humain, pas seulement être valide dans un email."
+    },
+    {
+      "n": 10,
+      "eventIds": [
+        "e343"
+      ],
+      "reads": 7,
+      "postsRead": 9,
+      "turns": 5,
+      "seconds": 22,
+      "text": "Un bout de code peut être inutile au produit et pourtant encore servir ailleurs.\n\nEn faisant le ménage dans CreaFlow, j’ai supprimé des champs et des fonctions qui n’étaient plus utilisés pour écrire les posts. Mais j’ai gardé une table qui semblait morte : l’export RGPD la lit encore.\n\nJ’ai aussi laissé certaines colonnes en place parce que la convention du projet est de les marquer comme retirées, pas de les migrer, et conservé une ancienne valeur d’enum encore présente sur des posts enregistrés.\n\nLa leçon pour moi : avant de supprimer du code, chercher ses usages au-delà du parcours principal — exports, données existantes, conventions de migration. « Plus utilisé par la fonctionnalité » ne veut pas toujours dire « sans conséquence à retirer »."
+    },
+    {
+      "n": 11,
+      "eventIds": [
+        "e436",
+        "e437",
+        "e438"
+      ],
+      "reads": 7,
+      "postsRead": 3,
+      "turns": 4,
+      "seconds": 22,
+      "text": "Un dépôt Git peut contenir des dizaines de fichiers sans répondre à la question : pourquoi veux-tu raconter ce que tu construis ?\n\nJ’ai essayé CreaFlow sur un dépôt avec 47 fichiers de documentation, mais sans devlog. Les commits étaient datés, mais leurs messages décrivaient des changements d’interface sans enjeu : aucun événement à raconter. En fouillant la doc, le système a trouvé 112 réglages — beaucoup de matière, pas forcément une histoire.\n\nEt quand j’ai généré le post d’origine avec seulement la fiche produit, le résultat en reprenait le problème et la description. Une brochure, pas la raison personnelle de se lancer en public.\n\nAlors j’ai ajouté cette question à /start. Le dépôt peut aider à raconter ce qui a changé. Il ne peut pas répondre à ta place à pourquoi tu veux le partager."
+    },
+    {
+      "n": 12,
+      "eventIds": [
+        "e283",
+        "e285"
+      ],
+      "reads": 12,
+      "postsRead": 11,
+      "turns": 7,
+      "seconds": 29,
+      "text": "Lundi à 00:58, l’écran Performance de CreaFlow affichait 0 et −100 %.\n\nLa semaine venait juste de commencer. Ce n’était pas une chute d’audience : les chiffres du post le plus récent n’étaient pas encore arrivés.\n\nJ’ai changé le comportement : sans chiffres récupérés, pas de pourcentage ni de faux zéro. Et si un post a moins de trois jours, l’écran indique que les vues continuent d’arriver au lieu de conclure que la semaine est mauvaise.\n\nQuand tu construis un tableau de bord pour ton produit, afficher une donnée trop tôt peut être pire que ne rien afficher. Un chiffre n’aide que si on sait s’il est déjà assez mûr pour être lu."
+    }
+  ]
+}

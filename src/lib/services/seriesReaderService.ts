@@ -95,6 +95,22 @@ export function toldPointerIds(posts: Array<{ eventIds: unknown; eventId: string
   return ids;
 }
 
+/**
+ * La ligne de temps réduite aux pointeurs imposés. C'est ainsi que les deux réseaux d'un même post
+ * racontent la même chose (docs/SPEC_APP_DESIGN_TELLOVO.md E2) : la version X ne reçoit que les
+ * pointeurs de la version LinkedIn, donc elle n'a rien d'autre à choisir. Même mécanisme pour
+ * « autre idée, même brief », qui garde les pointeurs du post remplacé.
+ *
+ * Si AUCUN id imposé n'existe plus (document supprimé entre les deux versions), on rend la ligne de
+ * temps entière : un post écrit sur autre chose vaut mieux qu'un créneau vide.
+ */
+export function restrictToLocked(timeline: TimelineEntry[], lockedIds: string[]): TimelineEntry[] {
+  if (lockedIds.length === 0) return timeline;
+  const byId = new Map(timeline.map((e) => [e.id, e]));
+  const kept = lockedIds.map((id) => byId.get(id)).filter((e): e is TimelineEntry => e !== undefined);
+  return kept.length > 0 ? kept : timeline;
+}
+
 export interface SeriesPlan {
   readerLabel: string | null;
   /** La ligne de temps du sujet vue par cette série, dans l'ordre. Pour les écrans. */
@@ -150,14 +166,15 @@ export interface PointerBrief {
  * pas de lecteur, pas de sujet, ou que sa ligne de temps est vide — la génération retombe alors sur
  * le chemin V3, comme avant.
  */
-export async function buildPointerBrief(userId: string, seriesId: string): Promise<PointerBrief | null> {
+export async function buildPointerBrief(userId: string, seriesId: string, lockedIds: string[] = []): Promise<PointerBrief | null> {
   const series = await loadSeriesWithProduct(userId, seriesId);
   if (!series.readerLabel || !series.productId) return null;
   const reader = readersOfProduct(series.product).find((r) => r.label === series.readerLabel);
   if (!reader) return null;
 
-  const { timeline, posts, docs } = await loadTimeline(userId, series.productId, seriesId);
-  if (timeline.length === 0) return null;
+  const { timeline: all, posts, docs } = await loadTimeline(userId, series.productId, seriesId);
+  if (all.length === 0) return null;
+  const timeline = restrictToLocked(all, lockedIds);
 
   const files = new Map<string, string[]>();
   for (const d of docs) if (d.title) files.set(d.title, d.rawText.split("\n"));

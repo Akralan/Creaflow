@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { pointerTimeline, toldPointerIds, type PointerRow } from "./seriesReaderService";
+import { pointerTimeline, restrictToLocked, toldPointerIds, type PointerRow } from "./seriesReaderService";
 
 const row = (over: Partial<PointerRow> = {}): PointerRow => ({
   id: "e1",
@@ -34,6 +34,34 @@ describe("pointerTimeline", () => {
   it("ne filtre plus par lecteur : tous les pointeurs du sujet sont là", () => {
     const pointers = [row({ id: "e1" }), row({ id: "e2", date: null }), row({ id: "e3", line: 7 })];
     expect(pointerTimeline(pointers, new Set(), new Set(["doc-1"]))).toHaveLength(3);
+  });
+});
+
+describe("restrictToLocked", () => {
+  const timeline = pointerTimeline(
+    [row({ id: "e1" }), row({ id: "e2", line: 7 }), row({ id: "e3", line: 9 })],
+    new Set(),
+    new Set(["doc-1"])
+  );
+
+  it("rend la ligne de temps entière quand rien n'est verrouillé", () => {
+    expect(restrictToLocked(timeline, [])).toHaveLength(3);
+  });
+
+  it("ne garde que les pointeurs verrouillés : la version X raconte ce que LinkedIn a raconté", () => {
+    expect(restrictToLocked(timeline, ["e2"]).map((e) => e.id)).toEqual(["e2"]);
+  });
+
+  it("garde l'ordre du verrou, pas celui de la ligne de temps", () => {
+    expect(restrictToLocked(timeline, ["e3", "e1"]).map((e) => e.id)).toEqual(["e3", "e1"]);
+  });
+
+  it("ignore un id verrouillé absent de la ligne de temps", () => {
+    expect(restrictToLocked(timeline, ["parti", "e1"]).map((e) => e.id)).toEqual(["e1"]);
+  });
+
+  it("rend la ligne de temps entière si AUCUN id verrouillé n'existe plus : mieux vaut un post que rien", () => {
+    expect(restrictToLocked(timeline, ["parti"])).toHaveLength(3);
   });
 });
 

@@ -1,0 +1,160 @@
+BANC POINTEURS — creaflow
+modèle : gpt-6-luna
+43 documents, 581 pointeurs, 350 datés
+cible : Indie developers building in public — developers and solo founders who ship a product publicly and want to post about it without spending their evening writing
+
+================================================================================================
+POST 1 — 39s, 4 tours
+read_file : 5 · read_post : 0
+événements choisis : e341 2026-10-21 docs/DEVLOG.md:97 | e344 2026-10-21 docs/DEVLOG.md:165 | e350 2026-10-21 docs/SPEC_FIL_NARRATIF.md:8
+================================================================================================
+
+If you’re an indie developer, you probably already have material worth sharing: project notes, specs, decisions, a devlog. The hard part is turning it into posts without losing an evening—or asking a blank-page generator to make things up.
+
+I’m building CreaFlow to turn the material you’ve actually made into posts, and to stick to what it was given. No invented milestones or plausible-sounding details.
+
+My reason for building in public is simple: “Publish what I’m building without spending my evenings on it.” That’s the problem I’m working on, too.
+
+================================================================================================
+POST 2 — 19s, 4 tours
+read_file : 5 · read_post : 1
+événements choisis : e436 no date docs/DEVLOG.md:169 | e437 no date docs/DEVLOG.md:171 | e438 no date docs/DEVLOG.md:173
+================================================================================================
+
+A repo can tell CreaFlow what you built. It can’t tell it why you want to build in public.
+
+I tested the first part on a project with 47 documentation files and no devlog. The commit log gave us zero events worth turning into posts; mining the docs found 112 undated settings instead. And when I generated an origin post without the author’s reason for publishing, it came out as two sentences repeating the product description and problem.
+
+So /start now asks for that reason directly. Your project material can supply the evidence. The reason you’re putting the work out there has to come from you.
+
+================================================================================================
+POST 3 — 25s, 5 tours
+read_file : 8 · read_post : 2
+événements choisis : e329 2026-10-20 docs/SPEC_FIL_NARRATIF.md:229
+================================================================================================
+
+A build-in-public calendar can turn into a little factory: ship an update because it’s Friday, even when nothing meaningful changed.
+
+I’m building CreaFlow not to create that pressure, but to help indie developers publish the material they already have. So a progress post in a series isn’t triggered by a weekly quota. It waits for actual substance: several events with something changed, and enough ordinary episodes in between. If the work hasn’t reached that point, there’s no progress post to force.
+
+The rule came from a simple decision: a milestone post should happen when there’s a milestone worth telling—not because the schedule says so.
+
+================================================================================================
+POST 4 — 30s, 5 tours
+read_file : 5 · read_post : 3
+événements choisis : e349 2026-10-21 docs/SPEC_FIL_NARRATIF.md:6
+================================================================================================
+
+I removed a post type from CreaFlow instead of trying to improve its prompt.
+
+The “vision” post was meant to explain where a project was headed. But its prompt had already written the backbone from the product description; real project events were only there to keep it from reading like a brochure. And a sorting bug meant it was picking undated decisions while missing the dated ones.
+
+The useful insight: a real turning point doesn’t need a special “vision” format. It can be told as an episode, grounded in the event that actually changed the direction. So I deleted the type—and the bug with it.
+
+================================================================================================
+POST 5 — 39s, 4 tours
+read_file : 7 · read_post : 4
+événements choisis : e439 no date docs/DEVLOG.md:175
+================================================================================================
+
+Two versions of one origin post should not end up telling two different stories.
+
+I found that the `/start` flow wrote the first network’s post without a narrative plan. Only afterwards did it calculate one for the other network. So the LinkedIn and X versions could be grounded in different story choices, even though they came from the same project and author.
+
+That’s still an open defect in this flow. The fix isn’t to force identical copy onto both platforms; it’s to make the narrative decision once, before writing either version.
+
+================================================================================================
+POST 6 — 24s, 3 tours
+read_file : 3 · read_post : 5
+événements choisis : e342 2026-10-21 docs/DEVLOG.md:118
+================================================================================================
+
+I spent four days trimming rules from CreaFlow’s writing prompt. Then I ran the same test again, changing only the model.
+
+Same three events, same brief. With `gpt-5-mini`, 6 of 17 paragraphs were labeled and 2 of 10 human details survived. With `gpt-6-luna`, it was 0 of 12 labeled and 6 of 10 details retained. Average length dropped from 1,044 characters to 671.
+
+The prompt work helped: the number of rubric-like headings fell from 9 to 1. But the gap between “unacceptable” and “good” was mostly the model, not another rule I could add.
+
+One thing the model still can’t decide for us: which moments in a founder’s material are worth turning into a post. That selection happens upstream.
+
+================================================================================================
+POST 7 — 18s, 4 tours
+read_file : 3 · read_post : 3
+événements choisis : e343 2026-10-21 docs/DEVLOG.md:155
+================================================================================================
+
+While cleaning up CreaFlow, I deleted `angleFor()` and the `angle` field from the briefs. They were calculated in two services, then never printed anywhere.
+
+I kept `audience_angles`—but not as copy to show the model. The question behind it (“what does this fact change for this audience?”) helps decide whether an event matters at all. The audiences derived from that work also determine which series can tell it.
+
+That’s a useful distinction for anyone building a writing tool: context doesn’t always belong in the draft. Sometimes its job is to help decide whether there’s a real post here in the first place.
+
+================================================================================================
+POST 8 — 31s, 6 tours
+read_file : 11 · read_post : 7
+événements choisis : e268 2026-10-18 docs/SPEC_ANIMATION_HTML_LIBRE.md:3 | e269 2026-10-18 docs/SPEC_ANIMATION_HTML_LIBRE.md:44 | e270 2026-10-18 docs/SPEC_ANIMATION_HTML_LIBRE.md:105
+================================================================================================
+
+CreaFlow’s animation editor had five effects: fade, slide, zoom, typewriter. The result looked like text slides moving around, so I replaced the fixed timeline with model-written HTML, CSS and SVG.
+
+That freedom created a different problem: how do you export the same animation frame by frame without timing drift? The contract is `seek(ms)`: ask for the image at 3.4 seconds, get the same image every time. No timers, random numbers or wall-clock time.
+
+The animation now plays in a sandboxed iframe, and the browser checks its start, middle and end. MP4 export is still unfinished. But making the output reproducible has to come before exporting it.
+
+================================================================================================
+POST 9 — 43s, 4 tours
+read_file : 10 · read_post : 8
+événements choisis : e525 no date docs/SPEC_EVENEMENTS_PAR_CIBLE.md:10 | e536 no date docs/SPEC_EVENEMENTS_PAR_CIBLE.md:41
+================================================================================================
+
+Three CreaFlow posts in a row were about API sessions, angles sampled at 10 Hz, and 24-hour JWTs.
+
+The intended reader was sports physiotherapists—not developers. Worse, all three posts came from one architecture document. The devlog and decisions file hadn’t even been read yet when those drafts were written.
+
+The writer wasn’t the first problem. CreaFlow had extracted facts before it knew what those facts changed for a particular reader. I changed the reading step: dated journals and decisions come first, the reading budget accounts for the events they contain, and each event is qualified for its audience while the source is still in view.
+
+A true fact isn’t automatically a useful post. The reader has to matter before the draft begins.
+
+================================================================================================
+POST 10 — 31s, 5 tours
+read_file : 8 · read_post : 9
+événements choisis : e278 2026-10-19 docs/DEVLOG.md:76 | e283 2026-10-19 docs/SPEC_PERFORMANCE.md:56
+================================================================================================
+
+At 00:58 on a Monday, CreaFlow’s performance screen showed 0 and −100%.
+
+Nothing had gone wrong: the new week had barely started, and there were no post metrics yet. But the comparison made an empty week look like a collapse.
+
+I changed the screen to show dashes until the first numbers arrive, and to say “Numbers are still coming in” while a post is less than three days old. Views keep accumulating after publication, so an early verdict would be misleading.
+
+The dashboard is built in dev; I haven’t verified its data providers against real LinkedIn and X accounts yet. Still, the display rule matters: a chart shouldn’t turn “not enough data” into “you’re doing worse.”
+
+================================================================================================
+POST 11 — 23s, 4 tours
+read_file : 5 · read_post : 10
+événements choisis : e273 2026-10-18 docs/SPEC_LANGUE_DES_POSTS.md:3
+================================================================================================
+
+The notes were in French. The profile was set to English. CreaFlow still produced 3 out of 3 posts in English.
+
+That’s the language rule I’m building: use the creator’s chosen language when they’ve set one; otherwise, use the language of the notes. It applies to the hook, slides, body and title—not just the main paragraph—and code checks the draft and sends it back if the language is wrong.
+
+There’s still a gap: hashtags are too short to check reliably. In the French MyKiné test pack, one post out of three kept English hashtags. So the rule is enforced across the post, but not every tiny piece of it yet.
+
+================================================================================================
+POST 12 — 38s, 6 tours
+read_file : 7 · read_post : 11
+événements choisis : e510 no date docs/SPEC_ENTREE_PAR_LE_REPO.md:42 | e511 no date docs/SPEC_ENTREE_PAR_LE_REPO.md:43 | e512 no date docs/SPEC_ENTREE_PAR_LE_REPO.md:44
+================================================================================================
+
+I made CreaFlow’s repo-to-post onboarding generate one post first, not a whole week.
+
+Someone shares a public GitHub repo, checks the details CreaFlow found, and leaves an email. The first post goes in that email. The other two start generating only when they click to see them.
+
+The reason is practical: don’t spend generation cost on people who never open the email, and get the first post to them sooner. The calendar shows the other posts loading when they ask for them.
+
+“Generate my content” doesn’t have to mean “generate everything before I’ve seen a thing.”
+
+------------------------------------------------------------------------------------------------
+22 pointeurs utilisés sur 581
+durée totale : 359s

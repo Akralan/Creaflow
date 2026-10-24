@@ -1,7 +1,7 @@
 import { and, eq, gte, inArray, isNull, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { calendarEntries, creatorProfiles, postingGoals, visualDesigns } from "@/db/schema";
-import { planForSeries } from "@/lib/services/seriesReaderService";
+
 import { imagesOf, slidesOf } from "@/lib/services/visualDesignService";
 import { syncSeriesSlots } from "@/lib/services/seriesSlotSync";
 import { releaseStaleGenerating } from "@/lib/services/startRecovery";
@@ -13,31 +13,13 @@ const LATER_HORIZON_DAYS = 28;
 /** Horizon des créneaux vides regardés pour attribuer les épisodes prévus et trouver le suivant. */
 const UPCOMING_LOOKAHEAD = 120;
 
-/** Ce qu'un créneau vide va devenir : le prochain événement de la ligne de temps vu par sa série
- *  (null si plus rien à raconter) et le projet auquel la série est reliée. */
+/** Ce qu'un créneau vide montre : le projet auquel sa série est reliée. `title` reste dans la forme
+ *  pour les écrans, mais toujours null depuis que le rédacteur choisit lui-même ses pointeurs
+ *  (docs/SPEC_EVENEMENT_POINTEUR.md §4) — annoncer un titre serait annoncer un post qui ne
+ *  sera pas écrit. */
 export interface UpcomingPost {
   title: string | null;
   project: string | null;
-}
-
-/**
- * Épisodes prévus → créneaux vides : pour chaque série, ses créneaux vides à venir, dans l'ordre des
- * dates, reçoivent ses épisodes `planned`, dans l'ordre du plan. Pur, pour être testé sans base.
- */
-export function assignPlannedBeats(
-  slots: Array<{ id: string; seriesId: string | null; date: Date }>,
-  plannedTitlesBySeries: Map<string, string[]>
-): Map<string, string> {
-  const result = new Map<string, string>();
-  const cursor = new Map<string, number>();
-  for (const slot of [...slots].sort((a, b) => a.date.getTime() - b.date.getTime())) {
-    if (!slot.seriesId) continue;
-    const titles = plannedTitlesBySeries.get(slot.seriesId) ?? [];
-    const i = cursor.get(slot.seriesId) ?? 0;
-    if (i < titles.length) result.set(slot.id, titles[i]);
-    cursor.set(slot.seriesId, i + 1);
-  }
-  return result;
 }
 
 async function loadUpcoming(userId: string, today: Date) {
@@ -50,18 +32,12 @@ async function loadUpcoming(userId: string, today: Date) {
       orderBy: (e, { asc }) => [asc(e.scheduledDate)],
       limit: UPCOMING_LOOKAHEAD,
     });
-  // Les épisodes à venir de chaque série : sa ligne de temps, sans ce qui est déjà raconté.
-  const planned = new Map<string, string[]>();
-  for (const seriesId of new Set(slots.map((sl) => sl.seriesId).filter((id): id is string => id !== null))) {
-    const plan = await planForSeries(userId, seriesId).catch(() => null);
-    planned.set(seriesId, (plan?.events ?? []).filter((e) => !e.told).map((e) => e.title));
-  }
-  const titles = assignPlannedBeats(
-    slots.map((sl) => ({ id: sl.id, seriesId: sl.seriesId, date: sl.scheduledDate })),
-    planned
-  );
+  // RETIRÉ avec le choix côté code (docs/SPEC_EVENEMENT_POINTEUR.md §4) : le calendrier annonçait
+  // le titre des prochains posts en prenant les événements non racontés dans l'ordre des dates.
+  // C'est le rédacteur qui choisit maintenant, et il ne choisit pas dans l'ordre — ces titres
+  // annonçaient des posts qui ne seront pas écrits. Un créneau vide n'annonce plus rien.
   const upcoming = new Map<string, UpcomingPost>(
-    slots.map((sl) => [sl.id, { title: titles.get(sl.id) ?? null, project: sl.series?.product?.name ?? null }])
+    slots.map((sl) => [sl.id, { title: null, project: sl.series?.product?.name ?? null }])
   );
   return { slots, upcoming };
 }

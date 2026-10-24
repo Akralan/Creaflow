@@ -1,0 +1,186 @@
+# creaflow — posts du banc pointeurs
+
+Modèle : gpt-6-luna. Ligne de temps : 581 pointeurs, 350 datés.
+Le rédacteur choisit lui-même ses pointeurs ; il reçoit la liste des posts précédents et peut les relire.
+
+---
+
+# Run C — variation de forme + accroche + aucun post mort
+
+12 posts · paragraphes : 5, 4, 4, 4, 5, 5, 4, 5, 4, 4, 4, 4 · longueur moyenne 816 caractères (664–1104) · 25 pointeurs utilisés, 1 repris par deux posts
+
+## Post 1
+
+*24 s · 3 tours · 5 read_file · 0 read_post · 1041 caractères*
+
+Pointeurs : 2026-10-21 · docs/DEVLOG.md:97 — 2026-10-21 · docs/DEVLOG.md:165 — non daté · docs/PRODUCT.md:90
+
+Deux jours à comprendre pourquoi mes posts ressemblaient à des inventaires.
+
+Je testais CreaFlow, l’outil que je construis pour les devs solo qui ont des notes, des décisions et des bouts de devlog plein les dossiers — mais pas leurs soirées à transformer tout ça en posts.
+
+J’ai comparé six versions du même brief sur les mêmes événements. Une découverte gênante : ajouter des règles au prompt ajoutait souvent des rubriques au post. Et changer de modèle a fait passer les paragraphes étiquetés de 6 sur 17 à zéro sur 12. Le texte ne s’améliore pas juste parce qu’on lui crie « raconte une histoire » plus fort.
+
+CreaFlow doit partir de ce que tu as vraiment construit, pas d’une description générique qui laisse le générateur broder. Les faits viennent de ta matière ; s’ils n’y sont pas, ils ne devraient pas apparaître dans le post.
+
+Je commence à partager le chantier pour une raison simple : publier ce que je construis sans y passer mes soirées. Si tu construis en public toi aussi, c’est exactement le temps que j’aimerais te rendre.
+
+## Post 2
+
+*26 s · 5 tours · 6 read_file · 1 read_post · 762 caractères*
+
+Pointeurs : 2026-10-21 · docs/DEVLOG.md:155
+
+47 fichiers de documentation, 8 jours datés dans l’historique Git, et zéro événement racontable.
+
+C’est ce qu’a donné un essai de CreaFlow sur un dépôt sans devlog. Les commits étaient bien réels — par exemple, « titres de section simples, liens en dessous » — mais ils ne disaient pas ce qui comptait pour la personne qui construisait. En fouillant les documents, l’outil a trouvé 112 réglages, tous sans date.
+
+Un dépôt peut montrer ce qui a changé sans pouvoir dire pourquoi tu as envie de le partager. Et quand il ne lui reste que la fiche produit, le premier post ressemble à une fiche produit.
+
+J’ai donc ajouté une question à l’écran de démarrage : pourquoi veux-tu construire en public ? Le code peut fournir les faits. Cette raison-là doit venir de toi.
+
+## Post 3
+
+*22 s · 4 tours · 7 read_file · 2 read_post · 704 caractères*
+
+Pointeurs : 2026-10-21 · docs/DEVLOG.md:165
+
+Le premier post partait sans plan ; son jumeau pour l’autre réseau, lui, en avait un.
+
+J’ai repéré ce décalage dans le parcours qui crée le premier post de CreaFlow : la version initiale est écrite comme un épisode, puis le système choisit un plan narratif — le rôle du post dans le fil — en préparant la version pour LinkedIn ou X.
+
+Résultat possible : deux textes censés présenter le même projet ne racontent pas la même chose. Pour un dev solo qui veut publier sans transformer ça en deuxième boulot, le premier post est déjà assez important sans devoir réconcilier deux histoires.
+
+Le défaut est relevé, pas encore corrigé. Le plan doit arriver avant l’écriture des deux versions, pas entre les deux.
+
+## Post 4
+
+*20 s · 4 tours · 9 read_file · 3 read_post · 723 caractères*
+
+Pointeurs : non daté · docs/DEVLOG.md:143 — 2026-10-21 · docs/SPEC_FIL_NARRATIF.md:6 — 2026-10-21 · docs/SPEC_FIL_NARRATIF.md:8
+
+0 décision datée sur 12 : mon post de vision racontait le mauvais chantier.
+
+Je construis CreaFlow pour transformer les traces d’un projet en posts. J’avais donné à son « post de vision » — un résumé de la direction du projet — les 12 dernières décisions. Mais elles étaient triées des plus anciennes aux plus récentes, avec celles sans date à la fin : le système prenait donc les décisions sans date.
+
+Il passait à côté de la décision récente qui comptait : anonymiser les données des patients, après un devis d’hébergement supérieur aux revenus.
+
+J’ai fini par retirer le type de post au lieu de réparer son tri. Un vrai choix difficile se raconte mieux comme un épisode vécu que comme une vision générale plaquée dessus.
+
+## Post 5
+
+*20 s · 5 tours · 6 read_file · 4 read_post · 975 caractères*
+
+Pointeurs : 2026-10-18 · docs/SPEC_ANIMATION_HTML_LIBRE.md:44 — 2026-10-18 · docs/SPEC_ANIMATION_HTML_LIBRE.md:105
+
+Une animation inventée affichait « 13/20 ». Le post source ne disait jamais ça.
+
+C’est l’un des ratés trouvés en testant les animations que CreaFlow peut créer à partir d’un post : un beau chiffre à l’écran peut avoir l’air crédible tout en étant faux. Pour quelqu’un qui partage son travail, ce n’est pas un détail graphique. C’est une fausse preuve.
+
+J’ai aussi vu des textes se chevaucher, des visuels presque vides au début et du contenu caché par les boutons des réseaux. Demander au modèle de revoir ses propres images corrigeait peu. Le navigateur, lui, peut mesurer où le texte déborde et montrer précisément les images du début, du milieu et de la fin.
+
+Alors CreaFlow renvoie ces constats au modèle pour correction — deux essais au maximum dans l’application. Et si le post ne donne aucun chiffre, l’animation doit montrer un schéma, pas en inventer un.
+
+Un outil censé t’épargner la soirée ne devrait pas te laisser vérifier si ses jolies statistiques sont vraies.
+
+## Post 6
+
+*41 s · 9 tours · 13 read_file · 5 read_post · 1104 caractères*
+
+Pointeurs : non daté · docs/SPEC_EVENEMENTS_PAR_CIBLE.md:15 — non daté · docs/SPEC_EVENEMENTS_PAR_CIBLE.md:37 — 2026-10-20 · commit-log.txt:20
+
+Trois posts pour des kinés. Aucun ne parlait leur langue.
+
+En testant CreaFlow, l’outil que je construis pour transformer la matière d’un projet en posts, j’ai vu les trois premiers textes parler d’une route d’API, de mesures prises dix fois par seconde et de jetons de connexion valables 24 heures. Le public choisi, lui, c’était des kinés libéraux du sport — pas des développeurs.
+
+Le problème n’était pas que la documentation technique ne contenait rien à raconter. C’était quand le système décidait à qui un fait parlait : après la lecture, sans le document sous les yeux. Il avait même attribué des détails techniques à des kinés.
+
+J’ai changé la logique : regarder chaque fait avec le public en tête, dès la lecture, et ne garder que ce qui change quelque chose pour lui. Une doc technique peut alors raconter un vrai choix : les vidéos de patients restent sur le téléphone ; le serveur ne reçoit que les angles mesurés.
+
+Pour un solo dev, le même changement compte : un commit n’est pas un post parce qu’il est précis. Il le devient quand on peut dire pourquoi il importe à la personne qui le lit.
+
+## Post 7
+
+*25 s · 5 tours · 8 read_file · 4 read_post · 816 caractères*
+
+Pointeurs : 2026-10-21 · commit-log.txt:1 — non daté · docs/DEVLOG.md:171 — non daté · docs/DEVLOG.md:173
+
+47 fichiers de documentation n’ont pas répondu à la question qui compte pour un post d’origine.
+
+Sur un dépôt de démo sans journal de développement, CreaFlow a bien repéré huit jours d’activité dans les commits — les notes de changements du code — mais aucun moment avec quelque chose en jeu. En fouillant les docs, il a trouvé 112 réglages, sans date. Beaucoup de matière ; pas encore une histoire.
+
+Et sans les mots de l’auteur sur la raison de publier en public, le post d’origine a fait deux phrases : la description du produit, puis son problème. Une plaquette, pas une raison de suivre la construction.
+
+J’ai donc ajouté cette question à la création du projet : pourquoi veux-tu le construire en public ? Le dépôt peut montrer ce que tu as fait. Il ne peut pas répondre à ta place pourquoi tu veux le raconter.
+
+## Post 8
+
+*27 s · 6 tours · 9 read_file · 7 read_post · 821 caractères*
+
+Pointeurs : 2026-10-21 · docs/DEVLOG.md:118
+
+J’avais ajouté un champ pour capter la tension. Il la faisait disparaître.
+
+Dans un test de CreaFlow, le document source disait qu’un patient apparaissait en caleçon sur mon VPS. Le résumé de l’événement disait seulement que des images de Julien étaient stockées sur le serveur. Le détail qui rendait le problème humain avait été lissé en constat technique.
+
+Le champ censé noter « ce qui est en jeu » n’aidait pas : il était vide dans 54 événements sur 69, et quand il était rempli, il contenait souvent de l’analyse plutôt que le détail concret.
+
+Je l’ai retiré. Le rédacteur relit le document source en entier avant d’écrire, au lieu de dépendre d’un résumé qui peut aplatir l’histoire.
+
+Pour un dev solo, le fait exact est souvent la partie la plus racontable — et la plus facile à perdre quand on le résume trop tôt.
+
+## Post 9
+
+*20 s · 5 tours · 4 read_file · 8 read_post · 716 caractères*
+
+Pointeurs : non daté · docs/DEVLOG.md:11 — non daté · docs/DEVLOG.md:17 — non daté · docs/SPEC_ENTREE_PAR_LE_REPO.md:107
+
+Un scanner d’email peut utiliser ton lien de connexion avant toi.
+
+Quand un service vérifie automatiquement les liens d’un email, il peut ouvrir celui qui sert à se connecter. Si cette simple ouverture consomme le lien, le fondateur clique ensuite… et découvre qu’il est déjà utilisé.
+
+Dans le parcours d’entrée de CreaFlow, le lien de connexion dure 24 heures et ne sert qu’une fois. J’ai donc séparé l’affichage de la page de son utilisation : la visite ordinaire ne consomme pas le jeton ; c’est la page, une fois chargée, qui envoie la requête de connexion.
+
+Petit détail d’implémentation, gros effet sur la première impression : tu ne devrais pas devoir déboguer ta boîte mail avant de pouvoir essayer un outil.
+
+## Post 10
+
+*31 s · 7 tours · 9 read_file · 9 read_post · 664 caractères*
+
+Pointeurs : 2026-10-20 · commit-log.txt:11 — 2026-10-20 · commit-log.txt:13 — 2026-10-20 · commit-log.txt:14
+
+J’ai arrêté de laisser le rédacteur se noter lui-même.
+
+Dans CreaFlow, l’outil que je construis pour transformer les traces d’un projet en posts, écrire et relire sont deux tâches distinctes. Le rédacteur compose le texte ; un relecteur le juge du point de vue du lecteur visé.
+
+J’ai aussi limité le retour à deux reproches par tour. Le relecteur signale ce qui gêne, puis le rédacteur reprend la main — il ne se fait pas remplacer par une deuxième voix qui réécrit tout.
+
+Quand tu transformes ton devlog en post après une journée de code, la relecture devrait t’aider à garder ton histoire lisible, pas à lui donner l’air d’avoir été écrite par quelqu’un d’autre.
+
+## Post 11
+
+*20 s · 6 tours · 6 read_file · 10 read_post · 774 caractères*
+
+Pointeurs : non daté · docs/DEVLOG.md:78
+
+Lundi, à 00:58, mon tableau de bord affichait 0 et −100 %.
+
+La semaine venait de commencer. Ce zéro ne disait pas que les publications avaient moins bien marché : leurs vues n’étaient simplement pas encore arrivées. Comparer une semaine vide à la précédente transformait un délai de mesure en mauvaise nouvelle.
+
+Dans CreaFlow, l’écran Performance suit les chiffres des posts LinkedIn et X. J’ai changé la règle : pas de pourcentage tant qu’aucun post de la semaine n’a de données, et un « Wait N days » quand le post le plus récent a moins de trois jours.
+
+Si tu suis les résultats de ton produit ou de tes posts, un chiffre incomplet n’est pas une tendance. Parfois, le bon tableau de bord ne te donne pas une réponse — il t’évite de tirer la mauvaise conclusion trop tôt.
+
+## Post 12
+
+*31 s · 6 tours · 7 read_file · 11 read_post · 697 caractères*
+
+Pointeurs : 2026-10-18 · commit-log.txt:54 — 2026-10-18 · docs/PRODUCT.md:132
+
+J’ai failli compter deux fois la même semaine.
+
+CreaFlow écrit un texte adapté à LinkedIn et un autre à X — deux réseaux sociaux — à partir du même moment du projet. Si le quota comptait les scripts, publier sur les deux aurait consommé deux fois plus vite l’essai qu’en n’en utilisant qu’un.
+
+J’ai donc fait compter des semaines, pas des textes : l’essai gratuit donne une semaine de contenu, à vie. Elle est consommée à la première génération de la semaine ; les autres posts de cette semaine ne la consomment pas une seconde fois.
+
+Pour un indie dev, l’unité qui compte, c’est la semaine où tu peux publier — pas le nombre de versions qu’il faut écrire pour adapter ton travail à chaque réseau.

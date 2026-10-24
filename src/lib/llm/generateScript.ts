@@ -10,8 +10,8 @@ import {
 } from "./scriptSchema";
 import { SCRIPT_SYSTEM_PROMPT, buildScriptUserMessage, type ScriptGenerationContext } from "./prompts";
 import { buildRefusalBlock, checkGeneratedPost, type CheckContext } from "./scriptChecks";
-import { writeScriptFromEvent } from "./eventWriter";
-import { writeNarrativePost } from "./narrativeWriter";
+import { splitHookAndCaption, writePost } from "./pointerPostWriter";
+import { DEFAULT_POST_LANGUAGE } from "@/lib/language";
 import { enforceStoryboardCount } from "@/lib/visualDesign/visualFormat";
 
 interface Attempt {
@@ -39,40 +39,47 @@ function evaluate(script: GeneratedScript, args: unknown, checkContext: CheckCon
  * check. The storyboard is still brought back within its bounds as before.
  */
 export async function generateScript(context: ScriptGenerationContext): Promise<GeneratedScript> {
-  // The fil narratif takes the slot first (docs/SPEC_FIL_NARRATIF.md §9): a story post reads its
-  // scope and nothing else, so it never goes through the per-event path.
-  if (context.narrativeBrief) {
-    return writeNarrativePost({
+  // A series with a reader and a timeline: the writer chooses its own pointers
+  // (docs/SPEC_EVENEMENT_POINTEUR.md §4). The rest of this function is the V3 path, which still
+  // serves free posts without a series — and visual posts, which need a storyboard the pointer
+  // writer does not produce (plan of 2026-10-24).
+  if (context.pointerBrief && context.contentType === "text") {
+    const brief = context.pointerBrief;
+    const written = await writePost({
       brandName: context.creatorProfile.brandName,
-      activityType: context.creatorProfile.activityType,
-      subjectName: context.product?.name ?? context.creatorProfile.brandName,
+      projectName: context.product?.name ?? context.creatorProfile.brandName,
+      projectContext: brief.projectContext,
+      readerLabel: brief.reader.label,
+      readerWho: brief.reader.who,
       platform: context.platform,
-      contentType: context.contentType,
-      visual: context.visual,
-      styleProfile: context.styleProfile,
-      recentPosts: context.recentPosts,
-      brief: context.narrativeBrief,
-      language: context.language,
+      language: context.language ?? DEFAULT_POST_LANGUAGE,
+      timeline: brief.timeline,
+      posts: brief.posts,
+      files: brief.files,
     });
-  }
-
-  // Series with a reader, a form and an event to tell: the per-event writer
-  // (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §5). The rest of this function is the V3 path.
-  if (context.eventBrief) {
-    return writeScriptFromEvent({
-      brandName: context.creatorProfile.brandName,
-      activityType: context.creatorProfile.activityType,
-      subjectName: context.product?.name ?? context.creatorProfile.brandName,
-      subjectDescription: context.product?.description ?? null,
-      subjectProblem: context.product?.problem ?? null,
-      platform: context.platform,
-      contentType: context.contentType,
-      visual: context.visual,
-      styleProfile: context.styleProfile,
-      recentPosts: context.recentPosts,
-      brief: context.eventBrief,
-      language: context.language,
-    });
+    // Sans publish_post, le rédacteur a conclu en prose. Le message porte « submitted no post »
+    // exprès : c'est ce que postPairService cherche pour armer son second essai.
+    if (written.eventIds.length === 0 && written.text.trim().length === 0) {
+      throw new Error("The writer submitted no post.");
+    }
+    const { hookText, caption } = splitHookAndCaption(written.text);
+    return {
+      contentType: "text",
+      // `concept` est l'idée du post en une phrase, persistée sur Script.concept et relue par
+      // « autre idée, même brief ». L'accroche EST cette phrase (règle 3 du prompt).
+      concept: hookText,
+      title: hookText,
+      hookText,
+      caption,
+      hashtags: [],
+      // Les citations (docs/SPEC_MATIERE_EDITEUR.md §3) n'ont plus d'entrée : le rédacteur lit
+      // large et ne déclare que des adresses. Les posts de série n'en portent donc plus.
+      usedExcerpts: [],
+      // Les promesses faites étaient lues par le fil narratif pour écrire la « promesse tenue ».
+      // Le fil est parti : plus personne ne les relit.
+      promisesMade: [],
+      eventIds: written.eventIds,
+    };
   }
 
   const userMessage = buildScriptUserMessage(context);

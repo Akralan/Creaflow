@@ -85,7 +85,12 @@ export type GenerationTrace = GenerationPrep & {
   checks: { failures: string[]; retried: boolean };
 };
 
-export type GeneratedScript = (VisualGeneratedScript | TextGeneratedScript) & { trace?: GenerationTrace };
+export type GeneratedScript = (VisualGeneratedScript | TextGeneratedScript) & {
+  trace?: GenerationTrace;
+  /** The pointers the writer built this post from (docs/SPEC_EVENEMENT_POINTEUR.md §4), in the order
+   *  it handed them in. Absent on the V3 path, which has no pointers. */
+  eventIds?: string[];
+};
 
 export const GENERATE_VISUAL_POST_TOOL_NAME = "generate_visual_post";
 export const GENERATE_TEXT_POST_TOOL_NAME = "generate_text_post";

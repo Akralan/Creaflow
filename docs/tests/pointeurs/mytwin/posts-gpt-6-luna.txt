@@ -1,0 +1,48 @@
+BANC POINTEURS — mytwin
+modèle : gpt-6-luna
+47 documents, 211 pointeurs, 110 datés
+cible : Instance Admins — Technical admins who run a MyTwin Lab instance and are responsible for community governance, reward policies, and platform settings.
+
+================================================================================================
+POST 1 — 11s, 3 tours
+read_file : 4 · read_post : 0
+événements choisis : e111 no date challenges/challenge-001-leaderboard/SPEC.md:24 | e112 no date challenges/challenge-001-leaderboard/SPEC.md:29 | e113 no date challenges/challenge-001-leaderboard/SPEC.md:30 | e114 no date challenges/challenge-001-leaderboard/SPEC.md:31 | e115 no date challenges/challenge-001-leaderboard/SPEC.md:35 | e143 no date docs/evaluation.md:12 | e144 no date docs/evaluation.md:14 | e145 no date docs/evaluation.md:16 | e146 no date docs/evaluation.md:25
+================================================================================================
+
+If you run a MyTwin Lab instance, you know the hard part isn’t just inviting people to contribute. It’s keeping track of what they did, judging the quality consistently, and making rewards feel fair—without turning community governance into a spreadsheet job.
+
+That’s why we’re building MyTwin Leaderboard: a system for tracking contributions, using AI to evaluate them, and distributing rewards through a shared contribution ledger. Instance admins can manage projects, challenges, repositories, and contributors, then trigger evaluation; contributors get clearer recognition for their work.
+
+The goal is transparency and engagement, not a leaderboard for its own sake. We’re building the tooling so admins can spend less time reconciling contributions and more time helping their communities do meaningful work. This is the starting point; we’ll share the tradeoffs and progress as we build.
+
+================================================================================================
+POST 2 — 24s, 6 tours
+read_file : 14 · read_post : 1
+événements choisis : e16 2026-09-09 Commit log — MyTwin-Lab/leaderboard:1343 | e17 2026-09-09 Commit log — MyTwin-Lab/leaderboard:1355
+================================================================================================
+
+For instance admins, a reward rule has to do more than assign a number to a star. It has to be predictable for contributors and resistant to easy gaming.
+
+For Sandbox proposals, we’re using configurable star milestones rather than paying per star. Crossing a threshold earns a fixed CP reward once; removing a star doesn’t reverse a reward that’s already been paid. That makes repeated star/unstar cycles useless as a way to multiply payouts.
+
+We’ve also accounted for the race condition: if several stars cross the same milestone at once, a database uniqueness constraint ensures it is credited only once. Star records retain a hashed audit value, while the anonymous-star rate limit applies only to anonymous stars—not to signed-in contributors sharing the same campus.
+
+The goal is to let community interest inform rewards without asking admins to manually reconcile every vote or worry that simultaneous activity will overpay a milestone.
+
+================================================================================================
+POST 3 — 17s, 4 tours
+read_file : 8 · read_post : 2
+événements choisis : e49 2026-09-14 Commit log — MyTwin-Lab/leaderboard:415
+================================================================================================
+
+A reward isn’t useful to a contributor if the ledger says it was paid but their contribution still shows 0 CP.
+
+We found a production-only gap: reward entries were being written, but the database trigger that syncs `contributions.reward` wasn’t part of Scalingo’s schema-apply path. That meant a fresh award could look like zero until the next reward resync.
+
+The fix adds the trigger to postdeploy, using idempotent statements, then runs the existing cache resync. This doesn’t change how rewards are calculated; it makes the displayed total catch up when the award is made.
+
+For instance admins, this is the kind of operational detail that matters to trust: reward calculation, the ledger, and the number contributors see need to stay aligned across deployments too.
+
+------------------------------------------------------------------------------------------------
+12 pointeurs utilisés sur 211
+durée totale : 52s

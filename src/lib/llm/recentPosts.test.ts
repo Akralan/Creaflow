@@ -60,7 +60,7 @@ describe("buildRecentPostsBlock", () => {
   it("lists the cards, and nothing without a recent post", () => {
     expect(buildRecentPostsBlock([])).toBe("");
     const block = buildRecentPostsBlock([
-      { createdAt: "2026-10-12T10:00:00.000Z", platform: "x", readerLabel: "Players", moment: "The jump", hook: "80 ms", hookKind: "chiffre", ending: "Fin." },
+      { createdAt: "2026-10-12T10:00:00.000Z", platform: "x", readerLabel: "Players", moment: "The jump", hook: "80 ms", hookKind: "chiffre", ending: "Fin.", narrativeKind: null },
     ]);
     expect(block).toContain("<recent_posts>");
     expect(block).toContain("- Oct 12 · x · audience: Players: moment \"The jump\" · hook [chiffre] \"80 ms\" · ending \"Fin.\"");
@@ -79,7 +79,7 @@ describe("repetition checks", () => {
     inspirationsToDrop: [],
     selfCheck: { factsFromMaterial: true, bannedPhrasesFound: [], readerTest: "Yes.", authorTest: true },
   });
-  const card = (hook: string, hookKind: string | null) => ({ createdAt: "", platform: "linkedin", readerLabel: null, moment: null, hook, hookKind, ending: null });
+  const card = (hook: string, hookKind: string | null) => ({ createdAt: "", platform: "linkedin", readerLabel: null, moment: null, hook, hookKind, ending: null, narrativeKind: null });
   const ctx = (recentPosts: ReturnType<typeof card>[]) => ({ platform: "linkedin", contentType: "text" as const, materialTexts: [], avoid: [], recentPosts });
   const post = (hookText: string) => ({ title: "T", hookText, caption: body, hashtags: [], usedExcerpts: [], promisesMade: [] });
 
