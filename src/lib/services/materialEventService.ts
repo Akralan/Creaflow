@@ -1,7 +1,7 @@
 import { after } from "next/server";
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { materialEvents, products, sourceMaterials } from "@/db/schema";
+import { materialEvents, materialSources, products, sourceMaterials } from "@/db/schema";
 import { extractPointers, type OpenEvent } from "@/lib/llm/pointerExtractor";
 import { HOLDABLE_GENRES } from "@/lib/llm/postForms";
 import { keepOldestTrigger, openEventsFor } from "@/lib/services/eventGenres";
@@ -221,6 +221,42 @@ export async function markMaterialForReReading(userId: string, productId: string
 }
 
 /** Nombre de documents qui attendent une lecture, pour l'écran du sujet. */
+export interface SourceReadingStatus {
+  documents: number;
+  unread: number;
+  events: number;
+}
+
+/** Ce que le panneau de Business context affiche pendant la lecture d'une source : combien de documents
+ *  elle a, combien restent à lire, combien d'événements ses documents portent déjà. Pur. */
+export function summarizeReading(docs: ReadonlyArray<{ eventsReadAt: Date | null; events: number }>): SourceReadingStatus {
+  return {
+    documents: docs.length,
+    unread: docs.filter((d) => d.eventsReadAt === null).length,
+    events: docs.reduce((n, d) => n + d.events, 0),
+  };
+}
+
+/** L'état de lecture d'une source (docs/SPEC_RATTACHEMENT_SOURCES.md). 404 si la source n'est pas à
+ *  l'utilisateur. */
+export async function sourceReadingStatus(userId: string, sourceId: string): Promise<SourceReadingStatus> {
+  const source = await db.query.materialSources.findFirst({
+    where: and(eq(materialSources.id, sourceId), eq(materialSources.userId, userId)),
+    columns: { id: true },
+  });
+  if (!source) throw new ApiError(404, "Source not found.");
+  const rows = await db
+    .select({
+      eventsReadAt: sourceMaterials.eventsReadAt,
+      events: sql<number>`count(${materialEvents.id})::int`,
+    })
+    .from(sourceMaterials)
+    .leftJoin(materialEvents, eq(materialEvents.sourceMaterialId, sourceMaterials.id))
+    .where(eq(sourceMaterials.sourceId, sourceId))
+    .groupBy(sourceMaterials.id, sourceMaterials.eventsReadAt);
+  return summarizeReading(rows);
+}
+
 export async function countUnreadDocuments(userId: string, productId: string): Promise<number> {
   const rows = await db
     .select({ n: sql<number>`count(*)::int` })
