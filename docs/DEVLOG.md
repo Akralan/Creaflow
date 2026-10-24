@@ -3,7 +3,82 @@
 > Journal daté du chantier : ce qui a été fait, **ce qui a été décidé et pourquoi**, ce qui a cassé et ce qu'on en a appris. Écrit pour être relu plus tard, et comme matière pour la série « devlog » de l'application elle-même (CreaFlow parle de CreaFlow). Le détail de chaque décision est dans sa spec (`docs/SPEC_*.md`, section « Décisions ») ; ici, le fil.
 
 ---
-## 2026-10-24 — L'événement perd tous ses champs, et le rédacteur choisit lui-même
+
+## 2026-10-25 — On se connecte par un lien, le mot de passe disparaît
+
+`/start` créait des comptes sans mot de passe et envoyait un lien de connexion, mais `/login` ne connaissait que l'email et le mot de passe : une personne venue par `/start` qui revenait par `/login` restait à la porte, avec un message qui lui parlait de GitHub. Décision de l'utilisateur : **connexion par lien email seulement**. `/login` demande un email et envoie le même lien que `/start` (24 h, un seul usage) ; la porte « Paste my notes » crée le compte sans mot de passe ; l'onglet Account perd son bloc mot de passe, et la suppression se confirme en recopiant l'adresse. Routes et page du mot de passe retirées, pages légales corrigées. La colonne `password_hash` reste en base sans être lue : la supprimer détruit des données, c'est une décision à part. `docs/SPEC_CONNEXION_PAR_LIEN.md`. Le guide (produit, données, carte des docs), `PRODUCT.md`, le guide Brevo et le README sont repassés pour ne plus parler de mot de passe ; la carte des docs gagne aussi les specs du 24 (formes et genres, rattachement, synchro) qui y manquaient.
+
+---
+
+## 2026-10-24 (soir) — Une source rejoint un projet, au lieu d'en créer un
+
+### Le constat
+
+Après l'onboarding, brancher Notion créait **un sujet par page cochée**. Les décisions, les choix, les clients potentiels notés dans Notion tombaient dans une autre ligne de temps que celle du dépôt GitHub du même projet, et aucune série ne les voyait. Le seul code qui déplaçait une source vers un sujet était le regroupement de l'onboarding. Le branchement vivait en plus dans Settings › Catalogue, ancien design.
+
+### Ce qu'on a décidé
+
+- **Depuis Business context, une source rejoint toujours un projet existant.** Pas de « New subject » dans ce panneau : créer un projet sera un parcours à part (nouveau dépôt GitHub d'abord, puis les autres sources), à spécifier. L'onglet Topics de Settings, d'abord gardé « un temps », est retiré le soir même après inventaire : ce qu'il seul affichait (créer un projet, notes, fichiers, interview, resync et déliage d'une source) reviendra ailleurs petit à petit ; la liste des documents et la veille ne reviennent pas ; `ReaderPortraitPanel` et `EventTimeline` gardent leur code.
+- **Cocher suffit.** Première maquette : une puce à droite ouvrait un menu de destination. L'utilisateur a demandé que cocher ouvre tout de suite les projets sous la ligne, celui de l'écran déjà choisi, et que le bouton du bas fasse tout. Avec un seul projet, il n'y a pas de blocs du tout.
+- **Le panneau vit dans l'écran**, au-dessus de la grille, pas dans Settings.
+- **La lecture des bases Notion est un chantier séparé.** Le lecteur suit les sous-pages mais aucun bloc de base ni ses lignes ; la promesse « tout ce qui est dessous » le demande, à chiffrer à part.
+
+### Ce qui a été fait
+
+Spec `docs/SPEC_RATTACHEMENT_SOURCES.md` et maquette cliquable dans le CSS de l'app (`docs/tests/notion-rattachement-mockup/`), validées. Puis cinq tâches sur `feature/rattachement-sources` : `createSourcesFromCandidates` accepte un `productId` par candidat ; la route des candidats dit le projet qui lit déjà chacun et accepte le projet cible ; `GET /api/material-sources/:id/status` pour sonder la lecture ; `SourcePanel` dans `ContextScreen`, ouvert au clic ou au retour OAuth sur `/context?connect=` ; docs. 665 tests verts. **Pas essayé en réel** : pas d'intégration Notion configurée en dev.
+
+### Et la nuit : les sources se relisent toutes seules
+
+Dans la foulée, la synchro quotidienne (`docs/SPEC_SYNCHRO_QUOTIDIENNE.md`) : une route protégée par `CRON_SECRET`, appelée par le cron du VPS comme la sauvegarde, qui passe toutes les sources par le `syncSource` du bouton, les plus anciennes d'abord, 25 minutes de budget. L'app n'a toujours pas de planificateur, par choix : rien dans le processus, rejouable, visible dans les logs, jamais en double. En la préparant, un défaut est sorti : **un document changé était relu sans perdre ses anciens pointeurs**, qui se doublaient et n'adressaient plus la bonne ligne. Corrigé : ils tombent avant la relecture. Et un badge dans l'en-tête de Business context dit de quand date la matière la moins fraîche.
+
+### Au passage : la carte du back-end
+
+Une carte de tout ce que le back-end fait d'un post, dressée le même jour, a montré que **les chiffres de performance ne reviennent dans aucun prompt de série** : ils nourrissent l'écran Performance, l'outil de lecture de l'assistant et une phrase du prompt V3 (posts libres, presque plus servi). Profil de style, veille et fiches des cinq derniers posts ne sont pas branchés non plus sur le rédacteur à pointeurs, par choix du 21 octobre. Et `readerReview.ts`, un relecteur hors contexte, est testé mais appelé nulle part. Rien de décidé là-dessus : c'est de la matière pour la suite.
+
+---
+
+## 2026-10-24 — Le fait a un genre, le post a une forme
+
+### Le constat
+
+Le rédacteur à pointeurs n'écrivait qu'une forme : l'épisode. Au run A du banc (aucune règle de forme), 12 posts sur 12 faisaient quatre paragraphes et finissaient sur une leçon. Le relevé de 274 posts LinkedIn de build in public (`docs/CATALOGUE_POSTS_LINKEDIN.md`, `docs/TYPOLOGIE_BUILD_IN_PUBLIC.md`) en compte quinze types. Les faits qui les produisent sont déjà dans les sources ; la chaîne ne les distinguait pas.
+
+### Ce qu'on a décidé (`docs/FORMES_ET_GENRES.md`)
+
+- **Le lecteur pose un genre sur chaque pointeur**, parmi treize valeurs fermées, avec `disponible` (une livraison utilisable par d'autres) et `tient` (l'événement réalise un engagement ou une annonce, ou revient sur une décision). Seule exception assumée à « un événement n'a aucun champ » : c'est une classification, pas un résumé.
+- **La forme est prise par le rédacteur**, depuis le genre de l'événement qu'il a choisi, jamais par le calendrier. Raison de l'utilisateur : si le sujet d'un post ne plaît pas, « autre idée » doit pouvoir repartir sur une autre matière, donc une autre forme.
+- **Le texte de la forme n'est pas dans le prompt système** (loi du 21 octobre : tout ce qui est nommé comme obligatoire ressort dans le texte). Le prompt n'a qu'une table genre → forme ; le rédacteur lit sa forme par l'outil `read_form`, et `publish_post` refuse une forme non lue ou différente de celle attendue.
+- `tient` peut viser une **décision** (forme « looking back »), pas seulement un engagement. Étiquettes de forme en anglais. Une section « la personne qui parle » : je ou on selon les notes, jamais le « nous » institutionnel.
+- Les critères de la Partie 3 sont des **critères de lecture au banc**, pas des contrôles de `scriptChecks`.
+
+### Ce qui a été fait
+
+Tâches 1 à 8 du plan sur `feature/formes-et-genres` : migration `0059` (enums `material_event_genre` et `post_form`, colonnes `genre`, `disponible`, `tient`, `scripts.form`), extracteur avec genres et liste ouverte (40 engagements, annonces et décisions rechargés avant chaque document), rédacteur avec `read_form` et refus, forme verrouillée pour la version X et « another idea, same story », étiquette de forme dans l'écran de la semaine.
+
+Puis, à la demande de l'utilisateur, **de vrais posts comme modèles d'écriture** : 250 textes LinkedIn complets récupérés (`docs/tests/posts-modeles/catalogue-textes.json`), les six meilleurs par forme (réactions rapportées à la médiane de leur auteur, trois au plus par auteur) rendus par `read_form` sous la forme (`postExamples.generated.ts`, `scripts/build-post-examples.mjs`). Les posts sont devenus plus courts.
+
+### Ce qui a cassé
+
+- Sur le dépôt de tellovo, le JSON de l'extracteur était **tronqué à 4 096 jetons de sortie** depuis que chaque entrée porte cinq champs : un document entier perdu. Budget porté à 16 384, et le banc reprend document par document depuis un cache partiel.
+- Deux runs du banc tués par Claude Code faute de mémoire, posts perdus parce que le relevé s'écrivait à la fin : il s'écrit maintenant après chaque post.
+
+### Les bancs
+
+| | MyKiné (genres) | tellovo |
+|---|---|---|
+| Pointeurs | 158, les 13 genres | 1 646 (décision 43 %, livraison 35 %) |
+| Posts | 12, 10 formes, 0 refus | 12 : 6 leçons, 3 échecs, 1 origine, 1 chiffre, 1 épisode |
+| Critères de la Partie 3 | 9 / 12, 2 à moitié | 10 / 12 |
+
+Relectures détaillées : `docs/tests/pointeurs/mykine-genres/criteres-gpt-6-luna.md` et `docs/tests/pointeurs/creaflow/criteres-gpt-6-luna.md`. Sur tellovo, 9 posts sur 12 racontent des specs anciennes non datées comme si elles étaient d'aujourd'hui, et un `chiffre` était une date de l'AI Act. Sur les deux, les accroches sont presque toutes des chiffres et la phrase qui présente le projet revient souvent.
+
+### Ce qui reste ouvert
+
+Deux règles discutées, non décidées : **durcir l'accroche** (10 sur 12 commencent par un chiffre), et dans les formes techniques, **« on comprend le projet par le fait, jamais par une phrase qui le présente »**. La branche est mergée sur `main` le même soir.
+
+---
+
+## 2026-10-24 — L'événement perd tous ses champs, et le rédacteur choisit lui-même
 
 ### Ce qui a déclenché le chantier
 

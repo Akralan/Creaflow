@@ -1,5 +1,7 @@
 # Pages légales, emails transactionnels, suppression de compte — ce qu'il manque pour encaisser
 
+> **2026-10-25 — le mot de passe est retiré** (`docs/SPEC_CONNEXION_PAR_LIEN.md`) : connexion par lien email seulement. Tout ce que cette spec dit du mot de passe oublié, de sa réinitialisation, de son changement et de la confirmation de suppression par mot de passe est historique ; la suppression se confirme en recopiant l'adresse.
+
 Statut : **cadrage validé et implémenté le 2026-10-16** (Lots 0-5). Branche
 `feature/legal-email-rgpd`, partie de `main` après le merge de la landing, dans un worktree séparé.
 Migration `0035` (renumérotée après le merge de `main`, où la composition visuelle occupe 0033-0034) appliquée en base de dev ; parcours complet (reset avec rejeu refusé, fermeture des

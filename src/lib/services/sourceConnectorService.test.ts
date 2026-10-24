@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diffDocuments } from "./sourceConnectorService";
+import { countNewSubjects, diffDocuments } from "./sourceConnectorService";
 
 const incoming = (externalRef: string, externalChecksum: string) => ({
   externalRef,
@@ -71,5 +71,15 @@ describe("diffDocuments", () => {
     expect(diff.unchanged).toBe(1);
     expect(diff.toUpdate.map((u) => u.id)).toEqual(["m2"]);
     expect(diff.toInsert.map((d) => d.externalRef)).toEqual(["c.md"]);
+  });
+});
+
+describe("countNewSubjects", () => {
+  it("ne compte que les candidats qui ne rejoignent pas un projet existant", () => {
+    expect(countNewSubjects([{ productId: "p1" }, { productId: null }, {}, { productId: "p2" }])).toBe(2);
+  });
+
+  it("zéro quand tout rejoint un projet : la limite de sujets ne joue pas", () => {
+    expect(countNewSubjects([{ productId: "p1" }, { productId: "p1" }])).toBe(0);
   });
 });

@@ -46,7 +46,7 @@ Chaque ligne : la décision, la raison, ce qui a été écarté. Le détail et l
 | **Un cœur, plusieurs connecteurs**, pas de verticales dans les données | Le cœur est déjà agnostique au métier (rôles et séries demandés au LLM) ; une verticale n'ajoute pas de table | `ARCHITECTURE_VERTICALES` |
 | Pas d'interface `SourceConnector` générique avant un 2e implémenteur… | …puis extraite : le registre existe maintenant (`connectors/registry.ts`) | `CONNECTEURS_ET_SUJETS` |
 | `oauth_accounts.provider` est du **texte** | Un fournisseur de plus ne doit pas coûter une migration | `TECH` §8 |
-| Pas de cron, pas de Redis, pas de file | Infra minimale sur un VPS ; refresh de token paresseux, rate limit en Postgres | `TECH` §2, §7 |
+| Pas de planificateur dans l'app, pas de Redis, pas de file | Infra minimale sur un VPS ; refresh de token paresseux, rate limit en Postgres. Les tâches de nuit (sauvegarde, synchro quotidienne des sources depuis le 2026-10-24) sont des crons **de l'hôte** qui appellent un script | `TECH` §2, §7 ; `SYNCHRO_QUOTIDIENNE` |
 | Rattacher un compte tiers à la session ouverte **quel que soit l'email** | La personne prouve les deux comptes en étant connectée aux deux | `TECH` §8 |
 | Jamais de rattachement sur un email **non vérifié** | Sinon n'importe qui revendique le compte d'un autre | `TECH` §8 |
 | Lecture des repos publics avec un `GITHUB_TOKEN` **serveur sans droit** | Le quota de 60 req/h est compté sur l'IP du serveur, pas du visiteur | D13 |

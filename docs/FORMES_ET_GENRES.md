@@ -297,6 +297,8 @@ Un critère par forme. **Ce sont des critères de lecture, pas des contrôles au
 | Origine | le nom du produit n'apparaît pas avant la dernière phrase |
 | Toutes | la personne (je / on) est celle des notes lues pour ce post |
 
+**Relectures faites le 2026-10-24** : `docs/tests/pointeurs/mykine-genres/criteres-gpt-6-luna.md` (9 sur 12, 2 à moitié, 1 non) et `docs/tests/pointeurs/creaflow/criteres-gpt-6-luna.md` (10 sur 12).
+
 Côté lecteur, trois critères **sont** vérifiables par le code et le seront : sur le pack, 100 % des événements ont un genre ; 0 `engagement` sans échéance ni nombre dans la ligne ; chaque `tient` pointe vers un `engagement`, une `annonce` ou une `décision` antérieur du même sujet.
 
 ---

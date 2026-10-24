@@ -66,7 +66,6 @@ export default function OnboardingWelcome({
   const [providers, setProviders] = useState<Array<{ id: string; displayName: string }>>([]);
   const [emailOpen, setEmailOpen] = useState(false);
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -93,7 +92,7 @@ export default function OnboardingWelcome({
     }
     setLoading(true);
     try {
-      await api.signup(email, password);
+      await api.signup(email);
       onNotesChosen();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Something went wrong.");
@@ -147,7 +146,7 @@ export default function OnboardingWelcome({
       {emailOpen && !signedIn && (
         <form onSubmit={signup} style={{ display: "grid", gap: 14, marginTop: 20 }}>
           <p style={{ margin: 0, fontSize: 14, color: color.textMuted }}>
-            You need an account to keep your notes.
+            You need an account to keep your notes. No password: next time, we email you a link.
           </p>
           <TextField
             label="Email"
@@ -156,16 +155,6 @@ export default function OnboardingWelcome({
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-          />
-          <TextField
-            label="Password"
-            type="password"
-            required
-            minLength={8}
-            autoComplete="new-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            helper="At least 8 characters"
           />
           <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: color.textMuted, cursor: "pointer" }}>
             <input type="checkbox" checked={legalAccepted} onChange={(e) => setLegalAccepted(e.target.checked)} style={{ marginTop: 2 }} />

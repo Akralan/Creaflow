@@ -1,6 +1,6 @@
 # SPEC — Rattacher une source à un projet existant depuis Business context
 
-Statut : **fonctionnement validé sur maquette le 2026-10-24**, pas implémenté. Maquette cliquable : `docs/tests/notion-rattachement-mockup/index.html` (CSS de l'app copié tel quel, six étapes). Se pose par-dessus `SPEC_CONNECTEURS_ET_SUJETS.md` (ce qu'est un candidat chez chaque fournisseur) et `SPEC_APP_DESIGN_TELLOVO.md` (l'écran Business context). Journal des décisions en fin de document.
+Statut : **implémenté le 2026-10-24** sur `feature/rattachement-sources` (tâches 1 à 5 du plan `docs/superpowers/plans/2026-10-24-rattachement-sources.md`, 665 tests verts, lint propre), **pas encore essayé en réel** : les six essais listés en fin de spec sont à faire avec une intégration Notion configurée (`NOTION_CLIENT_ID`/`NOTION_CLIENT_SECRET` absents du `.env` de dev). Fonctionnement validé sur maquette le même jour. Maquette cliquable : `docs/tests/notion-rattachement-mockup/index.html` (CSS de l'app copié tel quel, six étapes). Se pose par-dessus `SPEC_CONNECTEURS_ET_SUJETS.md` (ce qu'est un candidat chez chaque fournisseur) et `SPEC_APP_DESIGN_TELLOVO.md` (l'écran Business context). Journal des décisions en fin de document.
 
 ## Le problème
 
@@ -31,7 +31,7 @@ Depuis **Business context**, brancher une source **ajoute toujours à un projet 
 - `GET /api/connectors/:provider/candidates` rend, pour un candidat déjà branché, **le nom du projet** qui le lit, pas seulement `alreadyConnected`.
 - Le panneau est un composant de `ContextScreen` (design `.ap`), monté quand l'URL revient de l'OAuth ou au clic sur « Connect » d'un fournisseur déjà autorisé. Les classes de la maquette (`pk-row`, `pk-check`, `pk-menu`, `pk-cube`, `pk-to`) vont dans `app-extra.css`.
 - Après l'ingestion, `scheduleEventReading(userId, productId)` comme pour toute matière ; le panneau lit l'avancement par `countUnreadDocuments` et le nombre d'événements du projet.
-- Settings › Catalogue **reste en place un temps** (décision du 2026-10-24) : il continue de créer un sujet par élément, c'est aujourd'hui le seul moyen de créer un projet en attendant le parcours dédié. Son retrait viendra avec ce parcours.
+- Settings › Topics **est retiré** (décision du soir du 2026-10-24, qui annule celle de l'après-midi) : onglet et composants supprimés (`ProductCatalogue`, `MaterialPanel`, `MaterialInterviewChat`, `ConnectedSources`, `InspirationsPanel`), routes gardées, `ReaderPortraitPanel` et `EventTimeline` conservés dans le code. Créer un projet, coller des notes, déposer des fichiers, l'interview, resynchroniser ou délier une source n'ont plus d'écran : ils reviendront ailleurs, petit à petit.
 
 ### Ce qui reste à faire côté connecteur
 
@@ -57,4 +57,4 @@ Le lecteur Notion suit les sous-pages (`child_page`, 3 niveaux, 2 000 blocs) mai
 - **2026-10-24 — La destination apparaît en cochant, sous la ligne, le projet de l'écran déjà choisi.** Première version : une puce à droite qui ouvrait un menu. L'utilisateur a demandé que cocher suffise et que le bouton du bas fasse tout ; les blocs en ligne tiennent aussi sur téléphone.
 - **2026-10-24 — Pas de « New subject » depuis Business context.** Créer un projet est un autre parcours, qui commence par un dépôt GitHub et demande d'autres choses à la personne. Ici on ne peut qu'ajouter à l'existant.
 - **2026-10-24 — Lire les bases Notion est un chantier séparé.** Le panneau ne dépend pas de ce que le connecteur sait lire ; la promesse « tout ce qui est dessous » le demande, mais se chiffre à part.
-- **2026-10-24 — Settings › Catalogue est gardé un temps.** C'est le seul endroit qui crée un projet tant que le parcours « nouveau projet » n'existe pas ; il partira avec lui.
+- **2026-10-24 — Settings › Topics est retiré le soir même**, après inventaire de ce qu'il seul affichait. L'utilisateur a tranché : tout ce qui n'a pas d'autre écran reviendra ailleurs petit à petit, la liste des documents et la veille ne reviennent pas, le portrait des lecteurs et la ligne de temps gardent leur code.

@@ -44,7 +44,7 @@ export default function ConfidentialitePage() {
         </thead>
         <tbody>
           <tr>
-            <td style={tdStyle}>Email, password (hashed, never stored in plain text)</td>
+            <td style={tdStyle}>Email</td>
             <td style={tdStyle}>Account creation</td>
             <td style={tdStyle}>Authentication, service emails</td>
           </tr>
@@ -147,14 +147,14 @@ export default function ConfidentialitePage() {
           </tr>
           <tr>
             <td style={tdStyle}>Brevo</td>
-            <td style={tdStyle}>Sending service emails (password reset, security notices)</td>
+            <td style={tdStyle}>Sending service emails (sign-in links, security notices)</td>
             <td style={tdStyle}>European Union (France)</td>
           </tr>
           <tr>
             <td style={tdStyle}>Sentry</td>
             <td style={tdStyle}>
               Reporting technical errors (IP address, browser, account identifier, error trace — never
-              the content of your scripts or your passwords)
+              the content of your scripts)
             </td>
             <td style={tdStyle}>United States</td>
           </tr>
@@ -217,7 +217,8 @@ export default function ConfidentialitePage() {
         </li>
       </ul>
       <p>
-        Password reset tokens expire after one hour. Rate-limiting counters are based on the IP
+        Sign-in links expire after 24 hours and work only once; only a fingerprint of each link is
+        stored. Rate-limiting counters are based on the IP
         address and on a fingerprint of the email (never the plain address); they are automatically
         purged within hours of their creation.
       </p>
@@ -233,8 +234,8 @@ export default function ConfidentialitePage() {
 
       <h2 style={sectionTitleStyle}>7. Emails</h2>
       <p>
-        {SERVICE_NAME} only sends you service emails: password reset link, notice of a change to your
-        password, account deletion confirmation, information about a change to the terms or prices.
+        {SERVICE_NAME} only sends you service emails: sign-in links, your first post, account
+        deletion confirmation, information about a change to the terms or prices.
         No newsletter, no prospecting, no open tracking.
       </p>
 
@@ -263,10 +264,10 @@ export default function ConfidentialitePage() {
 
       <h2 style={sectionTitleStyle}>9. Security</h2>
       <p>
-        Passwords are hashed (never stored in plain text), exchanges with the service are encrypted
-        (HTTPS), and access to data is limited to your account. Rate-limiting measures protect the
-        service against fraudulent access attempts. Changing your password signs out all open sessions
-        and you are notified by email.
+        There is no password to steal: you sign in with a single-use link sent to your email address,
+        of which only a fingerprint is stored. Exchanges with the service are encrypted (HTTPS), and
+        access to data is limited to your account. Rate-limiting measures protect the service against
+        fraudulent access attempts.
       </p>
 
       <h2 style={sectionTitleStyle}>10. Minors</h2>

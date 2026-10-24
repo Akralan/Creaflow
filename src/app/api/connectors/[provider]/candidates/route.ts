@@ -4,7 +4,7 @@ import { requireUserId } from "@/lib/auth/session";
 import { getConnector } from "@/lib/connectors/registry";
 import { ConnectorRateLimitError } from "@/lib/connectors/errors";
 import type { MaterialSourceType } from "@/lib/connectors/types";
-import { createSourcesFromCandidates, listConnectedExternalIds } from "@/lib/services/sourceConnectorService";
+import { createSourcesFromCandidates, listConnectedSources } from "@/lib/services/sourceConnectorService";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 
 /**
@@ -40,6 +40,9 @@ const connectSchema = z.object({
         subjectName: z.string().min(1),
         subjectDescription: z.string().nullable(),
         config: z.record(z.string(), z.unknown()),
+        // Le projet existant que la source rejoint (docs/SPEC_RATTACHEMENT_SOURCES.md). Absent : un
+        // sujet par candidat, le chemin de l'onboarding et de Settings › Catalogue.
+        productId: z.uuid().optional(),
       })
     )
     .min(1),
@@ -57,9 +60,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     // `alreadyConnected`: reconnecting an already connected source would create a duplicate topic and
     // violate the uniqueness of material_sources — the screen greys them out rather than letting the error
     // arrive after the fact.
-    const [candidates, connectedIds] = await Promise.all([
+    const [candidates, connected] = await Promise.all([
       connector.listCandidates(userId),
-      listConnectedExternalIds(userId, type),
+      listConnectedSources(userId, type),
     ]);
 
     return NextResponse.json({
@@ -73,7 +76,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         subjectDescription: candidate.subjectDescription,
         config: candidate.config,
         hint: connector.candidateHint?.(candidate.meta) ?? null,
-        alreadyConnected: connectedIds.has(candidate.externalId),
+        alreadyConnected: connected.has(candidate.externalId),
+        // Le projet qui lit déjà ce candidat : le panneau de Business context l'affiche sur la ligne grisée.
+        connectedTo: connected.get(candidate.externalId) ?? null,
       })),
     });
   } catch (error) {

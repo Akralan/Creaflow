@@ -40,9 +40,10 @@ export default function CguPage() {
 
       <h2 style={sectionTitleStyle}>2. Account creation</h2>
       <p>
-        Access to the service requires an account, created with an email address and a password, or
-        through a third-party identity provider (GitHub, Notion, Linear). You are responsible for
-        keeping your credentials confidential and for any activity carried out from your account. You
+        Access to the service requires an account, created with an email address, or through a
+        third-party identity provider (GitHub, Notion, Linear). There is no password: you sign in with
+        a single-use link sent to your email address. You are responsible for keeping access to that
+        mailbox and your third-party accounts confidential and for any activity carried out from your account. You
         agree to provide accurate information. The service is reserved for adults.
       </p>
 

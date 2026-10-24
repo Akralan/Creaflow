@@ -18,6 +18,7 @@ Légende : 🟢 vivant, fiable pour sa zone · 🟡 utile mais en partie périm�
 | Fichier | Statut | Pourquoi / quoi |
 | :--- | :--- | :--- |
 | `SPEC_EVENEMENT_POINTEUR.md` | 🟢 | **Le plus important.** L'événement réduit à un document + une ligne + une date, l'extracteur non agentique, le rédacteur qui choisit lui-même. Source de `04-ia-et-generation.md` |
+| `FORMES_ET_GENRES.md` | 🟢 | Le genre posé sur chaque pointeur (13 valeurs) et la forme du post qui en découle, lue par `read_form` avec de vrais posts en modèles ; relectures des bancs dans `docs/tests/pointeurs/` |
 | `SPEC_REDACTEUR_PAR_EVENEMENTS.md` | ⚪ | **Archive** (remplacée le 2026-10-24) : le lecteur d'événements à champs et le rédacteur par événement |
 | `SPEC_FIL_NARRATIF.md` | ⚪ | **Archive** (retirée le 2026-10-24) : origine, point d'étape et promesse tenue. L'origine est devenue une phrase du prompt du rédacteur |
 | `SPEC_PROMPT_GENERATION_V3.md` | 🟡 | Ne sert plus qu'aux posts libres. Garde la logique des contrôles du code et des règles par plateforme |
@@ -42,6 +43,8 @@ Légende : 🟢 vivant, fiable pour sa zone · 🟡 utile mais en partie périm�
 | `SPEC_ENTREE_PAR_LE_REPO.md` | 🟢 | `/start`, compte sans mot de passe, premier post par email |
 | `SPEC_ONBOARDING_MVP.md` | 🟡 | Parcours de repli en six écrans (`/onboarding`) ; la vidéo y est retirée |
 | `SPEC_CONNECTEURS_ET_SUJETS.md` | 🟢 | Ce qu'est un « sujet » chez GitHub, Notion, Linear, Etsy, Shopify |
+| `SPEC_RATTACHEMENT_SOURCES.md` | 🟢 | Brancher une source depuis Business context vers un projet existant ; l'onglet Topics de Settings est retiré |
+| `SPEC_SYNCHRO_QUOTIDIENNE.md` | 🟢 | Les sources relues chaque nuit par le cron de l'hôte (`/api/cron/sync`), badge de fraîcheur |
 | `SPEC_MATIERE_EDITEUR.md` | 🔴 | Archive : corpus et éditeur de blocs, déjà fusionné dans `PRODUCT`/`TECH` |
 | `ARCHITECTURE_VERTICALES.md` | 🟢 | La règle « pas de table par verticale » |
 | `DEMANDES_ETSY_SHOPIFY.md` | 📎 | Démarches de validation à mener, en parallèle du code |
@@ -66,7 +69,8 @@ Légende : 🟢 vivant, fiable pour sa zone · 🟡 utile mais en partie périm�
 ### Compte, légal, exploitation
 | Fichier | Statut | Note |
 | :--- | :--- | :--- |
-| `SPEC_LEGAL_EMAIL_RGPD.md` | 🟢 | Pages légales, emails de service, mot de passe oublié, export/suppression |
+| `SPEC_CONNEXION_PAR_LIEN.md` | 🟢 | Plus de mot de passe : on se connecte par un lien email |
+| `SPEC_LEGAL_EMAIL_RGPD.md` | 🟢 | Pages légales, emails de service, export/suppression (sa partie mot de passe est historique) |
 | `SPEC_QUOTAS_ADMIN.md` | 🟢 | Quotas perso par compte, `/admin/quotas` |
 | `SPEC_SEO.md` | 🟢 | Landing SSR, Open Graph, `isIndexable` |
 | `SPEC_ASSISTANT_AGENTIQUE.md` | 🟢 | L'assistant (caché mais fonctionnel) |

@@ -33,7 +33,6 @@ import {
   visualDesigns,
 } from "@/db/schema";
 import { ApiError } from "@/lib/api/errors";
-import { verifyPassword } from "@/lib/auth/password";
 import { getStripeClient } from "@/lib/billing/stripeClient";
 import { sendEmail } from "@/lib/email";
 import { accountDeletedEmail } from "@/lib/email/templates";
@@ -46,46 +45,34 @@ import { listConnectedProviders } from "@/lib/services/oauthAccountService";
 export interface AccountSummary {
   email: string;
   createdAt: Date;
-  /** False for an account created via GitHub/Notion/Linear that never set a password. */
-  hasPassword: boolean;
   providers: Array<{ id: string; displayName: string }>;
 }
 
 export async function getAccountSummary(userId: string): Promise<AccountSummary> {
   const user = await db.query.users.findFirst({
     where: eq(users.id, userId),
-    columns: { email: true, createdAt: true, passwordHash: true },
+    columns: { email: true, createdAt: true },
   });
   if (!user) throw new ApiError(404, "Account not found.");
   return {
     email: user.email,
     createdAt: user.createdAt,
-    hasPassword: Boolean(user.passwordHash),
     providers: await listConnectedProviders(userId),
   };
 }
 
 /**
- * Confirmation before deletion: the password when the account has one, re-typing the address
- * otherwise (§4.2). The session is not enough — a tab left open must not allow erasing an
- * account in one click.
+ * Confirmation before deletion: re-typing the address (§4.2 ; there is no password any more,
+ * docs/SPEC_CONNEXION_PAR_LIEN.md). The session is not enough — a tab left open must not allow
+ * erasing an account in one click.
  */
-export async function assertDeletionConfirmed(
-  userId: string,
-  confirmation: { password?: string; emailConfirmation?: string }
-): Promise<void> {
+export async function assertDeletionConfirmed(userId: string, confirmation: { emailConfirmation?: string }): Promise<void> {
   const user = await db.query.users.findFirst({
     where: eq(users.id, userId),
-    columns: { email: true, passwordHash: true },
+    columns: { email: true },
   });
   if (!user) throw new ApiError(404, "Account not found.");
 
-  if (user.passwordHash) {
-    if (!confirmation.password || !(await verifyPassword(confirmation.password, user.passwordHash))) {
-      throw new ApiError(400, "Incorrect password.");
-    }
-    return;
-  }
   if (!matchesEmailConfirmation(user.email, confirmation.emailConfirmation)) {
     throw new ApiError(400, "The address entered does not match the account's.");
   }

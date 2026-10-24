@@ -4,8 +4,9 @@ Guide pratique de ce qu'il reste à faire côté vous pour que les emails de ser
 (`docs/SPEC_LEGAL_EMAIL_RGPD.md` §3) et pour que les pages légales soient complètes (§2). Le code
 est prêt ; il n'attend que trois variables d'environnement et un fichier à remplir.
 
-Les emails concernés sont uniquement des emails de service : lien de réinitialisation de mot de
-passe, avis de modification du mot de passe, confirmation de suppression de compte. Aucune
+Les emails concernés sont uniquement des emails de service : lien de connexion (il n'y a plus de
+mot de passe depuis le 2026-10-25), premier post du parcours `/start`, confirmation de suppression
+de compte. Aucune
 newsletter, aucun suivi d'ouverture.
 
 ---
@@ -14,7 +15,7 @@ newsletter, aucun suivi d'ouverture.
 
 Sans `BREVO_API_KEY`, l'app démarre en mode **console** : chaque email est écrit dans les logs du
 serveur (terminal de `npm run dev`) au lieu d'être envoyé. C'est le mode de développement normal :
-pour tester « Mot de passe oublié », le lien se lit directement dans le terminal, sur une ligne
+pour se connecter, le lien envoyé par `/login` se lit directement dans le terminal, sur une ligne
 JSON `"message":"Email (mode console, non envoyé)"`.
 
 ```
@@ -95,7 +96,7 @@ serveur tourne sur un autre port, le lien lu dans le terminal pointe vers 3000, 
 ## 4. Tester l'envoi réel
 
 1. Renseigner les trois variables, redémarrer le serveur.
-2. Sur `/login` → « Mot de passe oublié ? » → votre propre adresse.
+2. Sur `/login` → votre propre adresse → « Email me a link ».
 3. L'email doit arriver en moins d'une minute. Sinon : onglet **Transactional → Logs** dans Brevo
    montre chaque tentative et la raison d'un refus ; côté app, un échec d'envoi est logué en
    `error` (et remonté à Sentry si configuré) sans faire échouer la requête, donc l'écran affiche

@@ -144,12 +144,11 @@ export const subscriptionStatusEnum = pgEnum("subscription_status", [
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
-  // Nullable since GitHub identity arrived: an account created through OAuth has no
-  // password. POST /api/auth/login must therefore explicitly refuse an account without a hash rather than
-  // comparing against null, which would show "incorrect password" to someone who never had one.
+  // No longer written or read since 2026-10-25: signing in is a link sent by email
+  // (docs/SPEC_CONNEXION_PAR_LIEN.md). The column stays so as not to drop data without a decision.
   passwordHash: text("password_hash"),
-  // A reset or a password change writes the time here: any session token issued before
-  // is refused by getCurrentUserId (docs/SPEC_LEGAL_EMAIL_RGPD.md §3.4). Without that, an intruder
+  // Any session token issued before this time is refused by getCurrentUserId (written by the
+  // former password reset; kept for a future « sign out everywhere ») (docs/SPEC_LEGAL_EMAIL_RGPD.md §3.4). Without that, an intruder
   // would stay signed in for 7 days after the user changed their password to evict them.
   sessionsInvalidatedBefore: timestamp("sessions_invalidated_before"),
   vertical: verticalEnum("vertical").notNull().default("creator"),

@@ -36,8 +36,7 @@ OPENAI_API_KEY=sk-...
 
 Everything else in `.env.example` is optional: without the OAuth keys (TikTok, Instagram, LinkedIn,
 GitHub), without Stripe, without R2 storage, the app works — only the features concerned are
-inactive or hidden. Without `BREVO_API_KEY`, service emails (forgotten password, security
-notices) are written to the server logs instead of being sent: the reset link can be read
+inactive or hidden. Without `BREVO_API_KEY`, service emails (sign-in links, first post) are written to the server logs instead of being sent: the sign-in link can be read
 directly in the terminal. To send for real (Brevo key, sending domain to authenticate,
 `EMAIL_FROM`), follow `docs/SETUP_EMAILS_BREVO.md`. The visual resource library requires R2 + Google Cloud
 (`docs/SETUP_RESSOURCES_VISUELLES.md`).

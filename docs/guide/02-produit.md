@@ -17,7 +17,7 @@ Landing ──► /start ──► email ──► clic sur le lien ──► «
 1. Sur la landing, la personne colle le lien d'un **repo GitHub public**.
 2. `/start` lit le repo (README, fichiers `.md`, journal de commits) sans connexion et un appel au modèle déduit **trois champs**, éditables : *What you're building*, *Who it's for*, *The problem you solve*.
 3. Elle coche ses **jours de publication** (mer./ven./sam. par défaut) et donne son **email**.
-4. Le compte est créé **sans mot de passe** et sans session. La génération part en fond (≈ 1 min 20 en dev) : matière → portrait des lecteurs → séries (la première est le **devlog**) → événements → forme de série → **un** post.
+4. Le compte est créé **sans mot de passe** et sans session — il n'y a plus de mot de passe nulle part depuis le 2026-10-25 : on revient par `/login`, qui envoie un lien (`docs/SPEC_CONNEXION_PAR_LIEN.md`). La génération part en fond (≈ 1 min 20 en dev) : matière → portrait des lecteurs → séries (la première est le **devlog**) → événements → forme de série → **un** post.
 5. Un email envoie ce post et un **lien de connexion** (24 h, usage unique). Au clic, la personne est connectée et les **deux autres posts** de la semaine s'écrivent (créneaux « en chargement »).
 
 Spec : `docs/SPEC_ENTREE_PAR_LE_REPO.md`.
@@ -51,7 +51,7 @@ Un mois de posts LinkedIn et X, une semaine à la fois : impressions de la semai
 La **série** est le seul objet éditorial. Chaque série a : un **rôle** éditorial unique, un **rythme** (jours de la semaine, chaque semaine ou une semaine sur deux), un **sujet** lié, un **lecteur** (un public du portrait du sujet) et une **forme** (ce qu'il vient chercher, de quoi est fait un bon épisode, ce qui le fait partir, ses mots, une signature facultative). Créer ou changer une série met le calendrier à jour aussitôt (sur 28 jours).
 
 ### Settings — `/settings`
-Profil et audience, jours de publication, connexions sociales (LinkedIn, X + pseudo X), sujets et sources, **style appris** (règles proposées à validation), kit de marque et bibliothèque de photos, facturation (Stripe), onglet **Compte** (mot de passe, **export JSON des données**, **suppression du compte**).
+Profil et audience, jours de publication, connexions sociales (LinkedIn, X + pseudo X), sources rattachées depuis Business context (l'onglet Topics est retiré le 2026-10-24), **style appris** (règles proposées à validation), kit de marque et bibliothèque de photos, facturation (Stripe), onglet **Compte** (mot de passe, **export JSON des données**, **suppression du compte**).
 
 ### Assistant — `/assistant` (caché)
 Chat « rédacteur en chef assistant » outillé : lit tout l'espace de travail, écrit sur tout **sauf scripts et calendrier**, **toujours par propositions** à accepter, éditer ou rejeter une par une. Peut ranger un fichier déposé dans le bon sujet.

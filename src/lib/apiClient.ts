@@ -42,7 +42,6 @@ export interface User {
 export interface AccountSummary {
   email: string;
   createdAt: string;
-  hasPassword: boolean;
   providers: Array<{ id: string; displayName: string }>;
 }
 
@@ -70,6 +69,10 @@ export interface SourceCandidate {
   config: Record<string, unknown>;
   hint: string | null;
   alreadyConnected: boolean;
+  /** The project already reading this candidate, when there is one. */
+  connectedTo: { productId: string; productName: string } | null;
+  /** Set by the Business context panel: the existing project this candidate joins. */
+  productId?: string | null;
 }
 
 export interface SourceCandidateList {
@@ -93,6 +96,12 @@ export interface MaterialSource {
   status: "ok" | "error" | "needs_reconnect";
   lastError: string | null;
   createdAt: string;
+}
+
+export interface SourceReadingStatus {
+  documents: number;
+  unread: number;
+  events: number;
 }
 
 export interface SyncReport {
@@ -710,14 +719,11 @@ export interface StartCreateInput {
 }
 
 export const api = {
-  signup: (email: string, password: string) => post<{ user: User }>("/api/auth/signup", { email, password }),
-  login: (email: string, password: string) => post<{ user: User }>("/api/auth/login", { email, password }),
+  signup: (email: string) => post<{ user: User }>("/api/auth/signup", { email }),
+  /** Sends a sign-in link to this address. Always responds ok, whether or not the address is known. */
+  requestLoginLink: (email: string) => post<{ ok: true }>("/api/auth/link/request", { email }),
   logout: () => post<{ ok: true }>("/api/auth/logout"),
   me: () => apiFetch<{ user: User | null }>("/api/auth/me"),
-  /** Always responds ok, whether or not the address is known — does not reveal who is registered. */
-  forgotPassword: (email: string) => post<{ ok: true }>("/api/auth/password/forgot", { email }),
-  /** Signs the user in right away (session cookie set by the route). */
-  resetPassword: (token: string, password: string) => post<{ ok: true }>("/api/auth/password/reset", { token, password }),
   // /start flow (docs/SPEC_ENTREE_PAR_LE_REPO.md): read a public repo, create the account from the card, sign in from the email link.
   startAnalyze: (repo: string) => post<StartAnalysis>("/api/start/analyze", { repo }),
   startCreate: (input: StartCreateInput) => post<{ ok: true }>("/api/start", input),
@@ -726,11 +732,9 @@ export const api = {
 
   // Account tab (docs/SPEC_LEGAL_EMAIL_RGPD.md §4) — the person, not their brand.
   getAccount: () => apiFetch<{ account: AccountSummary }>("/api/account"),
-  changePassword: (currentPassword: string | undefined, newPassword: string) =>
-    post<{ ok: true }>("/api/account/password", { currentPassword, newPassword }),
   /** The body is the export file itself; the client offers it for download. */
   exportAccount: () => apiFetch<Record<string, unknown>>("/api/account/export"),
-  deleteAccount: (confirmation: { password?: string; emailConfirmation?: string }) =>
+  deleteAccount: (confirmation: { emailConfirmation: string }) =>
     apiFetch<{ ok: true }>("/api/account", { method: "DELETE", body: JSON.stringify(confirmation) }),
   /** The GitHub button on /login is only rendered if the environment variables are present. */
   getGithubStatus: () => apiFetch<{ configured: boolean }>("/api/auth/github/status"),
@@ -746,17 +750,20 @@ export const api = {
     apiFetch<SourceCandidateList>(`/api/connectors/${provider}/candidates`),
   connectSources: (provider: string, candidates: SourceCandidate[]) =>
     post<{ results: ConnectRepoResult[] }>(`/api/connectors/${provider}/candidates`, {
-      candidates: candidates.map(({ externalId, label, subjectName, subjectDescription, config }) => ({
+      candidates: candidates.map(({ externalId, label, subjectName, subjectDescription, config, productId }) => ({
         externalId,
         label,
         subjectName,
         subjectDescription,
         config,
+        ...(productId ? { productId } : {}),
       })),
     }),
 
   getMaterialSources: (productId: string) =>
     apiFetch<{ sources: MaterialSource[] }>(`/api/material-sources?productId=${productId}`),
+  /** Where the reading of a source stands: its documents, those not read yet, the events found so far. */
+  getMaterialSourceStatus: (id: string) => apiFetch<SourceReadingStatus>(`/api/material-sources/${id}/status`),
   syncMaterialSource: (id: string) => post<{ report: SyncReport }>(`/api/material-sources/${id}/sync`),
   /** Also deletes the source's mirror documents — confirm on the UI side before calling. */
   deleteMaterialSource: (id: string) => del<{ ok: true }>(`/api/material-sources/${id}`),
