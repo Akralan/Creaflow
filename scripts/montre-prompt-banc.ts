@@ -9,10 +9,10 @@ The problem it solves: founders and independents accumulate lived material and n
   readerLabel: "Indie developers building in public",
   readerWho: "developers and solo founders who ship a product publicly and want to post about it without spending their evening writing",
   timeline: [
-    { id: "e340", file: "docs/DEVLOG.md", line: 84, date: "2026-10-20", used: false },
-    { id: "e341", file: "docs/DEVLOG.md", line: 97, date: "2026-10-21", used: true },
-    { id: "e342", file: "docs/DEVLOG.md", line: 118, date: "2026-10-21", used: true },
-    { id: "e512", file: "commit-log.txt", line: 12, date: null, used: false },
+    { id: "e340", file: "docs/DEVLOG.md", line: 84, date: "2026-10-20", used: false, genre: "échec", disponible: false, tient: null },
+    { id: "e341", file: "docs/DEVLOG.md", line: 97, date: "2026-10-21", used: true, genre: "livraison", disponible: true, tient: null },
+    { id: "e342", file: "docs/DEVLOG.md", line: 118, date: "2026-10-21", used: true, genre: "décision", disponible: false, tient: null },
+    { id: "e512", file: "commit-log.txt", line: 12, date: null, used: false, genre: "livraison", disponible: false, tient: "e342" },
   ],
   posts: [
     { id: "p1", date: "2026-10-22", text: "(texte du post 1)" },
