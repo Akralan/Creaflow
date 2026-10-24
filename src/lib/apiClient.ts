@@ -70,6 +70,10 @@ export interface SourceCandidate {
   config: Record<string, unknown>;
   hint: string | null;
   alreadyConnected: boolean;
+  /** The project already reading this candidate, when there is one. */
+  connectedTo: { productId: string; productName: string } | null;
+  /** Set by the Business context panel: the existing project this candidate joins. */
+  productId?: string | null;
 }
 
 export interface SourceCandidateList {
@@ -93,6 +97,12 @@ export interface MaterialSource {
   status: "ok" | "error" | "needs_reconnect";
   lastError: string | null;
   createdAt: string;
+}
+
+export interface SourceReadingStatus {
+  documents: number;
+  unread: number;
+  events: number;
 }
 
 export interface SyncReport {
@@ -746,17 +756,20 @@ export const api = {
     apiFetch<SourceCandidateList>(`/api/connectors/${provider}/candidates`),
   connectSources: (provider: string, candidates: SourceCandidate[]) =>
     post<{ results: ConnectRepoResult[] }>(`/api/connectors/${provider}/candidates`, {
-      candidates: candidates.map(({ externalId, label, subjectName, subjectDescription, config }) => ({
+      candidates: candidates.map(({ externalId, label, subjectName, subjectDescription, config, productId }) => ({
         externalId,
         label,
         subjectName,
         subjectDescription,
         config,
+        ...(productId ? { productId } : {}),
       })),
     }),
 
   getMaterialSources: (productId: string) =>
     apiFetch<{ sources: MaterialSource[] }>(`/api/material-sources?productId=${productId}`),
+  /** Where the reading of a source stands: its documents, those not read yet, the events found so far. */
+  getMaterialSourceStatus: (id: string) => apiFetch<SourceReadingStatus>(`/api/material-sources/${id}/status`),
   syncMaterialSource: (id: string) => post<{ report: SyncReport }>(`/api/material-sources/${id}/sync`),
   /** Also deletes the source's mirror documents — confirm on the UI side before calling. */
   deleteMaterialSource: (id: string) => del<{ ok: true }>(`/api/material-sources/${id}`),
