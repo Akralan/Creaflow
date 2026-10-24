@@ -1,13 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import AppIcon from "@/components/app/AppIcon";
+import SourcePanel from "@/components/app/SourcePanel";
 import { api, ApiClientError, type CreatorProfile, type MaterialSource, type Product } from "@/lib/apiClient";
 
 /** « Business context » (docs/SPEC_APP_DESIGN_TELLOVO.md §2): what Tellovo knows about the project, and its sources. */
 
 type SourceRow = { key: string; label: string; hint: string; icon: string; types: MaterialSource["type"][] };
+
+/** Les fournisseurs qui se branchent par le panneau (docs/SPEC_RATTACHEMENT_SOURCES.md) : une source
+ *  rejoint toujours le projet affiché, ou un autre projet existant — jamais un nouveau. */
+const PANEL_PROVIDERS = new Set(["github", "notion", "linear"]);
 
 // « Website » of the tellovo.ai design is left out (E6); « Your voice » too (E7).
 const SOURCES: SourceRow[] = [
@@ -23,9 +29,18 @@ function initials(text: string): string {
 }
 
 export default function ContextScreen() {
+  const params = useSearchParams();
   const [product, setProduct] = useState<Product | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
+  const [connectedProviders, setConnectedProviders] = useState<string[]>([]);
   const [sources, setSources] = useState<MaterialSource[]>([]);
+  // Le panneau « brancher une source » : ouvert au clic sur un fournisseur déjà autorisé, ou au retour
+  // de l'OAuth sur /context?connect=<fournisseur>.
+  const [panel, setPanel] = useState<string | null>(() => {
+    const p = params.get("connect");
+    return p && PANEL_PROVIDERS.has(p) ? p : null;
+  });
   const [loaded, setLoaded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ building: "", who: "", problem: "" });
@@ -36,10 +51,12 @@ export default function ContextScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const [{ products }, { profile }] = await Promise.all([api.getProducts(), api.getProfile()]);
+        const [{ products }, { profile, connectedProviders }] = await Promise.all([api.getProducts(), api.getProfile()]);
         const first = products[0] ?? null;
         setProduct(first);
+        setProducts(products);
         setProfile(profile);
+        setConnectedProviders(connectedProviders.map((p) => p.id));
         if (first) setSources((await api.getMaterialSources(first.id)).sources);
       } catch (e) {
         setError(e instanceof ApiClientError ? e.message : "The context could not be loaded.");
@@ -50,6 +67,25 @@ export default function ContextScreen() {
   }, []);
 
   const connected = useMemo(() => SOURCES.filter((s) => sources.some((src) => s.types.includes(src.type))).map((s) => s.key), [sources]);
+
+  const reloadSources = useCallback(async () => {
+    if (!product) return;
+    try {
+      setSources((await api.getMaterialSources(product.id)).sources);
+    } catch {
+      // La carte garde ce qu'elle affichait ; le panneau a déjà dit ce qui s'est passé.
+    }
+  }, [product]);
+
+  /** « Connect » sur un fournisseur : le panneau s'il est déjà autorisé, sinon l'OAuth, qui revient ici. */
+  function connectProvider(key: string) {
+    if (connectedProviders.includes(key)) {
+      setPanel(key);
+      return;
+    }
+    const returnTo = encodeURIComponent(`/context?connect=${key}`);
+    window.location.assign(`/api/auth/oauth/${key}/start?returnTo=${returnTo}`);
+  }
   const building = product?.description ?? profile?.activityType ?? "";
   const who = product?.targetAudience ?? profile?.targetAudience ?? "";
   const problem = product?.problem ?? "";
@@ -118,6 +154,17 @@ export default function ContextScreen() {
           </Link>
         </div>
       ) : (
+        <>
+        {panel && product && (
+          <SourcePanel
+            key={panel}
+            provider={panel}
+            products={products.map((p) => ({ id: p.id, name: p.name }))}
+            defaultProductId={product.id}
+            onClose={() => setPanel(null)}
+            onChanged={reloadSources}
+          />
+        )}
         <div className="ctx-grid">
           <section className="card" aria-label="Your business">
             <div className="biz-id">
@@ -207,14 +254,25 @@ export default function ContextScreen() {
                         <b>{s.label}</b>
                         <span>{s.key === "github" && repo ? `${repo} · ${s.hint.toLowerCase()}` : s.hint}</span>
                       </span>
-                      {on ? (
+                      {PANEL_PROVIDERS.has(s.key) ? (
+                        on ? (
+                          <button className="conn on" type="button" onClick={() => connectProvider(s.key)} title="Add more from this source">
+                            <AppIcon name="check" small />
+                            Connected
+                          </button>
+                        ) : (
+                          <button className="conn" type="button" onClick={() => connectProvider(s.key)}>
+                            Connect
+                          </button>
+                        )
+                      ) : on ? (
                         <span className="conn on">
                           <AppIcon name="check" small />
                           Connected
                         </span>
                       ) : (
                         <Link className="conn" href="/settings?tab=catalogue">
-                          Connect
+                          Add
                         </Link>
                       )}
                     </div>
@@ -224,6 +282,7 @@ export default function ContextScreen() {
             </section>
           </div>
         </div>
+        </>
       )}
     </>
   );
