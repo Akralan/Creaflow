@@ -1,6 +1,6 @@
-import { and, eq, isNotNull } from "drizzle-orm";
+import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import { db } from "@/db";
-import { creatorProfiles, materialSources, products, sourceMaterials } from "@/db/schema";
+import { creatorProfiles, materialEvents, materialSources, products, sourceMaterials } from "@/db/schema";
 import { getConnector } from "@/lib/connectors/registry";
 import type { ConnectorCandidate, IncomingDoc, MaterialSourceType } from "@/lib/connectors/types";
 import { scheduleEventReading } from "@/lib/services/materialEventService";
@@ -117,6 +117,19 @@ export async function syncSource(userId: string, sourceId: string): Promise<Sync
         externalRef: doc.externalRef,
         externalChecksum: doc.externalChecksum,
       }))
+    );
+  }
+
+  // Un document qui a changé est relu en entier : ses anciens pointeurs tombent d'abord, sinon la
+  // relecture les doublerait et leurs numéros de ligne n'adresseraient plus la bonne ligne
+  // (constaté le 2026-10-24 en préparant la synchro quotidienne, docs/SPEC_SYNCHRO_QUOTIDIENNE.md).
+  // Les posts déjà écrits gardent leur texte ; scripts.event_id passe à null (SET NULL).
+  if (diff.toUpdate.length > 0) {
+    await db.delete(materialEvents).where(
+      inArray(
+        materialEvents.sourceMaterialId,
+        diff.toUpdate.map(({ id }) => id)
+      )
     );
   }
 
