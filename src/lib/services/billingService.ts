@@ -32,9 +32,8 @@ export const NON_TERMINAL_SUBSCRIPTION_STATUSES = new Set<DbSubscriptionStatus>(
 ]);
 
 /**
- * Script generation quota (billing Phase 1 docs): mechanism equivalent to
- * categoryReweightService.ts — pure, testable decision logic (resolveQuotaStatus), separated
- * from the DB-aware code (getQuotaStatus, enforceScriptQuota) that feeds it.
+ * Script generation quota (billing Phase 1 docs): pure, testable decision logic (resolveQuotaStatus),
+ * separated from the DB-aware code (getQuotaStatus, enforceScriptQuota) that feeds it.
  */
 
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(["trialing", "active"]);

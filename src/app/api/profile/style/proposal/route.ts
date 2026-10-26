@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
 import { requireUserId } from "@/lib/auth/session";
 import { handleApiError } from "@/lib/api/errors";
-import { listPendingProposals } from "@/lib/services/assistantService";
+import { getPendingStyleProposal } from "@/lib/services/styleLearningService";
 
-/** Pending proposals, outside the /assistant screen — Settings shows the style one
- *  (docs/SPEC_APPRENTISSAGE_STYLE.md §6.1). */
+/** The style learning pass waiting for approval, if any (docs/SPEC_APPRENTISSAGE_STYLE.md §6.1). */
 export async function GET() {
   try {
     const userId = await requireUserId();
-    return NextResponse.json({ proposals: await listPendingProposals(userId) });
+    return NextResponse.json({ proposal: await getPendingStyleProposal(userId) });
   } catch (error) {
     return handleApiError(error);
   }

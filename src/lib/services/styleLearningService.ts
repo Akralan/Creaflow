@@ -1,4 +1,5 @@
 import { and, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "@/db";
 import { assistantProposals, creatorProfiles, inspirationVideos, scripts } from "@/db/schema";
 import { ApiError } from "@/lib/api/errors";
@@ -211,6 +212,56 @@ export async function applyStyleProfile(userId: string, styleProfile: StyleProfi
     .update(creatorProfiles)
     .set({ styleProfile, styleProfileUpdatedAt: new Date() })
     .where(eq(creatorProfiles.userId, userId));
+}
+
+/** La proposition de style en attente, s'il y en a une (§6.1). Depuis le retrait de l'assistant
+ *  (2026-10-26), c'est le seul genre de proposition encore créé. */
+export async function getPendingStyleProposal(userId: string) {
+  return (
+    (await db.query.assistantProposals.findFirst({
+      where: and(
+        eq(assistantProposals.userId, userId),
+        eq(assistantProposals.kind, "style_profile_update"),
+        eq(assistantProposals.status, "pending")
+      ),
+    })) ?? null
+  );
+}
+
+// `fields` peut porter un styleProfile retouché avant acceptation (règles décochées côté UI, §6.3).
+const styleProposalFieldsSchema = z.object({
+  styleProfile: styleProfileSchema,
+  changeNotes: z.string().optional(),
+});
+
+export async function resolveStyleProposal(
+  userId: string,
+  proposalId: string,
+  action: "accept" | "reject",
+  fields?: Record<string, unknown>
+) {
+  const proposal = await db.query.assistantProposals.findFirst({
+    where: and(
+      eq(assistantProposals.id, proposalId),
+      eq(assistantProposals.userId, userId),
+      eq(assistantProposals.kind, "style_profile_update")
+    ),
+  });
+  if (!proposal) {
+    throw new ApiError(404, "Proposal not found.");
+  }
+  if (proposal.status !== "pending") {
+    throw new ApiError(400, "This proposal has already been handled.");
+  }
+  if (action === "accept") {
+    const data = styleProposalFieldsSchema.parse({ ...(proposal.payload as Record<string, unknown>), ...(fields ?? {}) });
+    await applyStyleProfile(userId, data.styleProfile);
+  }
+  await db
+    .update(assistantProposals)
+    .set({ status: action === "accept" ? "accepted" : "rejected", resolvedAt: new Date() })
+    .where(eq(assistantProposals.id, proposal.id));
+  return getPendingStyleProposal(userId);
 }
 
 /** Édition manuelle des règles et listes (§2 « édition manuelle », PATCH /api/profile/style). */

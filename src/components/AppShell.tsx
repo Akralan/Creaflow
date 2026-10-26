@@ -15,7 +15,7 @@ import "@/components/app/app-extra.css";
 /**
  * The signed-in frame, in the design of the tellovo.ai app (docs/SPEC_APP_DESIGN_TELLOVO.md E4): three entries
  * plus Performance, the plan card, and an account menu that holds Direction, Settings and sign-out. The
- * assistant keeps its route but has no entry (E5).
+ * assistant, hidden since E5, was removed on 2026-10-26.
  */
 
 const navItems = [

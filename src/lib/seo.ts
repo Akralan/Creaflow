@@ -27,7 +27,6 @@ export const PRIVATE_ROUTE_PREFIXES = [
   "/scripts",
   "/direction",
   "/performance",
-  "/assistant",
   "/settings",
   "/onboarding",
   "/login",

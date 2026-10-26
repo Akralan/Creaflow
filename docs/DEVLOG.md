@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-10-26 — Le ménage : l'assistant part, et deux défauts relus
+
+**Retiré**, sur décision de l'utilisateur : l'**assistant éditorial** en entier (écran `/assistant`, caché depuis le 18, chat, pièces jointes, outils de lecture, prompt, routes `/api/assistant/*`), `/scripts/new` (plus aucun lien n'y menait) et le **rééquilibrage des rôles** (`categoryReweightService.ts`, suspendu, que plus aucun code n'appelait). Environ 3 000 lignes.
+
+**Ce qui reste, et pourquoi.** Les propositions à valider de l'assistant servaient aussi à l'apprentissage du style : la proposition « New analysis to approve » de Settings passait par `assistant_proposals`. Seul ce type survit. Lecture et résolution vivent maintenant dans `styleLearningService.ts` (`getPendingStyleProposal`, `resolveStyleProposal`), derrière `GET /api/profile/style/proposal` et `POST /api/profile/style/proposal/:id`, avec une carte dédiée (`StyleProposalCard`) à la place du panneau de 700 lignes qui savait afficher 19 types. Les tables `assistant_sessions`, `assistant_attachments` et les autres valeurs de l'enum restent en base (convention `REMOVED`) : des lignes les portent, et l'export RGPD les lit encore.
+
+**Les deux défauts du 21 octobre, relus dans le code d'aujourd'hui :**
+- *La paire LinkedIn / X qui ne racontait pas la même chose* est **réglée** depuis la chaîne pointeur du 24, sans que ce soit noté : `writePost` reprend les événements et la forme de la version déjà écrite (`postPairService.ts`).
+- *Le premier post qui recopie la fiche produit* est **toujours là, pour une autre raison**. Le journal de commits donne maintenant des événements (100 sur MyTwin). Mais le « pourquoi tu fais du build in public » demandé sur `/start` (`creator_profiles.expectations`) **n'arrive plus au rédacteur** : `seriesReaderService` ne lui passe que la description et le problème. Il arrivait à l'ancien rédacteur d'origine, supprimé le 24. Preuve : le post 1 du banc MyTwin (`docs/tests/pointeurs/mytwin/posts-gpt-6-luna.txt`), « That's why we're building MyTwin Leaderboard: a system for… ». C'est le post envoyé par email. Correction (une ligne de prompt) laissée à une décision séparée.
+
+**Question ouverte**, posée par l'utilisateur : plusieurs séries ne servent à rien, puisqu'on fait du build in public global. À trancher.
+
+`PRODUCT.md` est réécrit pour décrire ce que fait le code : il décrivait encore le fil narratif, la veille, le rééquilibrage, Instagram et l'onglet Topics.
+
+---
+
 ## 2026-10-25 — « Understand it », et la veille d'inspiration disparaît
 
 Dans la carte du projet de Business context, un bouton **Understand it** ouvre une modale : les publics du portrait des lecteurs, et le nombre d'événements par genre trouvé dans la matière (`GET /api/events/summary`). Pas la ligne de temps. L'inventaire de ce que l'ancien onglet Topics montrait d'autre a été présenté ; l'utilisateur n'en garde rien d'autre. La **veille d'inspiration** est supprimée du code : recherche web, service, routes, et le bloc `<inspiration>` du prompt V3 avec ses deux champs de préparation. Ses données partent aussi, à la demande de l'utilisateur : la migration `0060_retrait_veille` supprime la table `inspirations` (80 fiches en dev), son type et la colonne de date des projets ; l'export du compte ne les lit plus. Photos de la modale prises sur la vraie app ; la base de dev n'ayant aucun événement (rien n'a été relu depuis le passage aux pointeurs), les comptes du banc tellovo ont été injectés dans le navigateur pour la capture. `docs/SPEC_COMPRENDRE_LE_PROJET.md`.

@@ -33,6 +33,10 @@ export const calendarEntryKindEnum = pgEnum("calendar_entry_kind", ["event", "na
 // le post était la fiche du sujet. Un vrai virage se raconte comme épisode — le 23 novembre de MyKiné
 // le prouve. Rien ne le remplace. La valeur reste dans l'enum : des posts en base la portent.
 export const narrativeKindEnum = pgEnum("narrative_kind", ["origin", "vision", "checkpoint", "promise"]);
+// REMOVED (2026-10-26): the assistant is gone, and with it every kind except "style_profile_update",
+// the only one still created (styleLearningService.ts). The other values stay: rows in base carry them.
+// The tables assistant_sessions and assistant_attachments are no longer written either; the RGPD export
+// still reads them for accounts that used the assistant.
 export const assistantProposalKindEnum = pgEnum("assistant_proposal_kind", [
   "product_create",
   "product_update",

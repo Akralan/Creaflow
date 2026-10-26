@@ -7,7 +7,6 @@ vi.mock("./provider", () => ({
 }));
 
 import { suggestContentSeries, seriesEntrySchema } from "./seriesLabels";
-import { seriesProposalSchema } from "./assistantChat";
 
 // docs/SPEC_SERIES_ET_ROLES.md §1 — une série porte exactement un rôle : le contrat LLM renvoie
 // un `categoryLabel` unique, jamais une liste.
@@ -69,11 +68,5 @@ describe("schémas d'entrée série (rôle unique)", () => {
   it("seriesEntrySchema exige categoryLabel", () => {
     expect(seriesEntrySchema.safeParse({ label: "A", description: "B", weight: 10 }).success).toBe(false);
     expect(seriesEntrySchema.safeParse({ label: "A", description: "B", weight: 10, categoryLabel: "Behind the scenes" }).success).toBe(true);
-  });
-
-  it("seriesProposalSchema (assistant) exige categoryLabel et refuse categoryLabels", () => {
-    const base = { action: "create", label: "A", description: "B", weight: 10, platforms: [] };
-    expect(seriesProposalSchema.safeParse({ ...base, categoryLabels: ["Behind the scenes"] }).success).toBe(false);
-    expect(seriesProposalSchema.safeParse({ ...base, categoryLabel: "Behind the scenes" }).success).toBe(true);
   });
 });
