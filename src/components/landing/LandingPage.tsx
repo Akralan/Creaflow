@@ -221,11 +221,95 @@ export default function LandingPage() {
                 <br />
                 It&apos;s to become known for the problems you solve.
               </p>
-              <div className="pw-cta">
-                <FocusHeroButton className="btn btn-ink btn-lg">
-                  Amplify my work
-                </FocusHeroButton>
+            </div>
+          </section>
+          {/* Copied from tellovo.ai on 2026-10-26: the three posts fanned out, and the call to action
+              that used to close the section above. */}
+          <section className="fc" aria-labelledby="fc-h">
+            <div className="wrap fc-in">
+              <div className="fc-stage" aria-hidden="true">
+                <div className="fc-card fc-a">
+                  <span className="fc-tag">LinkedIn · carousel</span>
+                  <div className="fc-code">
+                    <p>
+                      <span className="ln">41</span>
+                      <span className="k">async function</span> deliver(event) {"{"}
+                    </p>
+                    <p className="del">
+                      <span className="ln">42</span>
+                      {"  await send(event)"}
+                    </p>
+                    <p className="add">
+                      <span className="ln">43</span>
+                      {"  await retry(() => send(event), {"}
+                    </p>
+                    <p className="add">
+                      <span className="ln">44</span>
+                      {"    backoff: "}
+                      <span className="s">&quot;exponential&quot;</span>,
+                    </p>
+                    <p className="add">
+                      <span className="ln">45</span>
+                      {"    maxDelay: "}
+                      <span className="s">&quot;1h&quot;</span>,
+                    </p>
+                    <p className="add">
+                      <span className="ln">46</span>
+                      {"  })"}
+                    </p>
+                    <p>
+                      <span className="ln">47</span>
+                      {"  log.delivery(event.id)"}
+                    </p>
+                    <p>
+                      <span className="ln">48</span>
+                      {"}"}
+                    </p>
+                  </div>
+                  <div className="fc-a-foot">
+                    <p className="fc-a-t">6 months of webhooks: what I wish I&apos;d known</p>
+                    <span className="fc-pg">1 / 7</span>
+                  </div>
+                </div>
+                <div className="fc-card fc-b">
+                  <span className="fc-glow"></span>
+                  <span className="fc-tag dk">X · thread</span>
+                  <p className="fc-b-t">
+                    The bug that
+                    <br />
+                    cost us <em>a night.</em>
+                  </p>
+                  <div className="fc-b-foot">
+                    <span className="fc-bar">
+                      <i></i>
+                    </span>
+                    <span className="fc-pg">1 / 5</span>
+                  </div>
+                </div>
+                <div className="fc-card fc-c">
+                  <div className="fc-c-h">
+                    <span className="fc-av">Rk</span>
+                    <span>
+                      <b>You · Founder</b>
+                      <span>LinkedIn · text</span>
+                    </span>
+                  </div>
+                  <p className="fc-c-t">We turned down a €40k deal last week.</p>
+                  <p className="fc-c-p">
+                    The client wanted a custom build: six months for one account, while 200 teams were waiting for v2. Here&apos;s why we said no ↓
+                  </p>
+                  <p className="fc-c-f">31 comments</p>
+                </div>
               </div>
+              <h2 id="fc-h" className="h2 fc-h rv">
+                Your first week of stories is waiting
+              </h2>
+              <p className="fc-p rv">
+                Connect your repo, check what Tellovo understood, and get 3 posts written for your future customers. Your first week is free, no credit card.
+              </p>
+              <FocusHeroButton className="btn btn-ink btn-lg fc-btn">
+                Generate my first week <span className="arr">→</span>
+              </FocusHeroButton>
             </div>
           </section>
         </main>
