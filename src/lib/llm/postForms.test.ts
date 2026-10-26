@@ -33,9 +33,9 @@ describe("formText", () => {
     }
   });
 
-  it("promise_kept et looking_back partagent les mêmes rubriques", () => {
+  it("looking_back a sa propre forme depuis le 2026-10-26", () => {
     const strip = (s: string) => s.split("\n").filter((l) => !l.startsWith("Form:")).join("\n");
-    expect(strip(formText("promise_kept"))).toBe(strip(formText("looking_back")));
+    expect(strip(formText("promise_kept"))).not.toBe(strip(formText("looking_back")));
   });
 
   it("porte de vrais posts en modèles pour les formes qui en ont dans le relevé", () => {

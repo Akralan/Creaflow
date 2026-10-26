@@ -24,7 +24,7 @@ describe("describeRepoCard", () => {
   it("complète par des chaînes vides les champs que le modèle omet", async () => {
     callStructuredMock.mockResolvedValue({ name: "X" });
     const card = await describeRepoCard({ fullName: "a/x", repoDescription: null, language: null, excerpt: "" });
-    expect(card).toEqual({ name: "X", tagline: "", building: "", who: "", problem: "" });
+    expect(card).toEqual({ name: "X", tagline: "", building: "", who: "", problem: "", phase: "build", phaseReason: "" });
   });
 });
 

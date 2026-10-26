@@ -4,18 +4,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { clearNavHighlight, NAV_HIGHLIGHT_EVENT, readNavHighlight } from "@/lib/navHighlight";
-import { api, type ContentCategory, type ContentSeries, type CreatorProfile, type QuotaStatus, type User } from "@/lib/apiClient";
+import { api, type ContentCategory, type CreatorProfile, type QuotaStatus, type User } from "@/lib/apiClient";
 import AppIcon from "@/components/app/AppIcon";
 import { AppChromeContext, PaywallModal, type AppChrome } from "@/components/app/AppChrome";
 import { CategoryLabelsContext } from "@/contexts/CategoryLabelsContext";
-import { SeriesContext } from "@/contexts/SeriesContext";
 import "@/components/app/tellovo-app.css";
 import "@/components/app/app-extra.css";
 
 /**
  * The signed-in frame, in the design of the tellovo.ai app (docs/SPEC_APP_DESIGN_TELLOVO.md E4): three entries
- * plus Performance, the plan card, and an account menu that holds Direction, Settings and sign-out. The
- * assistant keeps its route but has no entry (E5).
+ * plus Performance, the plan card, and an account menu that holds Settings and sign-out (Direction removed
+ * on 2026-10-26: one series per project, nothing left to direct). The
+ * assistant, hidden since E5, was removed on 2026-10-26.
  */
 
 const navItems = [
@@ -26,7 +26,7 @@ const navItems = [
 ];
 
 /** Entries of the account menu that can carry the « new » dot (src/lib/navHighlight.ts). */
-const MENU_HREFS = ["/direction", "/settings"];
+const MENU_HREFS = ["/settings"];
 
 function initials(text: string): string {
   const letters = text.replace(/[^\p{L}\p{N} ]/gu, "").trim();
@@ -38,14 +38,10 @@ function initials(text: string): string {
 function AccountMenu({ onLogout, dot, placement }: { onLogout: () => void; dot: boolean; placement: "bottom" | "top" }) {
   return (
     <div className={placement === "top" ? "menu menu-top" : "menu"} role="menu">
-      <Link href="/direction" role="menuitem">
-        <AppIcon name="compass" />
-        Direction
-        {dot && MENU_HREFS.includes("/direction") && <span style={{ marginLeft: "auto", width: 7, height: 7, borderRadius: "50%", background: "var(--accent)" }} />}
-      </Link>
       <Link href="/settings" role="menuitem">
         <AppIcon name="settings" />
         Settings
+        {dot && <span style={{ marginLeft: "auto", width: 7, height: 7, borderRadius: "50%", background: "var(--accent)" }} />}
       </Link>
       <hr />
       <button type="button" role="menuitem" onClick={onLogout}>
@@ -62,7 +58,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
   const [categories, setCategories] = useState<ContentCategory[]>([]);
-  const [series, setSeries] = useState<ContentSeries[]>([]);
   const [productName, setProductName] = useState("");
   const [repoLabel, setRepoLabel] = useState("");
   const [quota, setQuota] = useState<QuotaStatus | null>(null);
@@ -115,15 +110,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         return;
       }
       setUser(user);
-      const [{ profile }, { categories }, { series }, { products }] = await Promise.all([
+      const [{ profile }, { categories }, { products }] = await Promise.all([
         api.getProfile(),
         api.getContentCategories(),
-        api.getContentSeries(),
         api.getProducts(),
       ]);
       setProfile(profile);
       setCategories(categories);
-      setSeries(series);
       setProductName(products[0]?.name ?? "");
       setChecked(true);
       refreshQuota();
@@ -164,7 +157,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <CategoryLabelsContext.Provider value={categories}>
-      <SeriesContext.Provider value={series}>
         <AppChromeContext.Provider value={chrome}>
           <div className="ap">
             <div className="shell">
@@ -253,7 +245,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             {paywall && <PaywallModal onClose={() => setPaywall(false)} />}
           </div>
         </AppChromeContext.Provider>
-      </SeriesContext.Provider>
     </CategoryLabelsContext.Provider>
   );
 }

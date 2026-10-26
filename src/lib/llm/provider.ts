@@ -40,7 +40,7 @@ function callProvider(provider: string, params: StructuredCallParams): Promise<u
 export async function callAgentic(params: AgenticCallParams): Promise<AgenticResult> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error(
-      "OPENAI_API_KEY is required for the assistant: the agentic loop only exists with OpenAI, regardless of LLM_PROVIDER."
+      "OPENAI_API_KEY is required for the post writer: the agentic loop only exists with OpenAI, regardless of LLM_PROVIDER."
     );
   }
   return callOpenAIAgentic(params);

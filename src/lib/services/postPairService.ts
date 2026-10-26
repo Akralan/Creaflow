@@ -2,6 +2,9 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { calendarEntries, scripts } from "@/db/schema";
 import { generateScript } from "@/lib/llm/generateScript";
+import { adaptToXThread } from "@/lib/llm/xThread";
+import { DEFAULT_POST_LANGUAGE } from "@/lib/language";
+import { joinThread } from "@/lib/xThreadFormat";
 import type { Form } from "@/lib/llm/postForms";
 import { defaultContentTypeForPlatform } from "@/lib/llm/prompts";
 import { enforceScriptQuota } from "@/lib/services/billingService";
@@ -44,7 +47,18 @@ export async function entriesOfPost(userId: string, entry: Pick<SlotEntry, "seri
  * `POST /api/scripts/generate`). `sameEventId` impose l'événement d'une version déjà écrite.
  * Ne vérifie pas le quota : l'appelant le fait une fois pour tout le post.
  */
-export async function writeSlotVersion(userId: string, entry: SlotEntry, samePointerIds: string[] = [], sameForm: Form | null = null) {
+/** Le texte d'une version déjà écrite, dont la version X est l'adaptation (docs/TODO.md, 2026-10-26). */
+export interface SourceVersion {
+  text: string;
+}
+
+export async function writeSlotVersion(
+  userId: string,
+  entry: SlotEntry,
+  samePointerIds: string[] = [],
+  sameForm: Form | null = null,
+  adaptFrom: SourceVersion | null = null
+) {
   const contentType = defaultContentTypeForPlatform(entry.platform);
   const context = await buildGenerationContext(
     userId,
@@ -61,7 +75,12 @@ export async function writeSlotVersion(userId: string, entry: SlotEntry, samePoi
     samePointerIds,
     sameForm
   );
-  const generated = await generateScript(context);
+  // La version X d'un post dont LinkedIn est écrit : le même post, adapté en thread — plus une seconde
+  // écriture qui relisait le document et y prenait un autre passage.
+  const generated =
+    entry.platform === "x" && adaptFrom
+      ? await adaptedXScript(adaptFrom.text, context.language ?? DEFAULT_POST_LANGUAGE, samePointerIds, sameForm)
+      : await generateScript(context);
   const script = await createScriptRecord(userId, entry.platform, context.contentCategory, context.resolvedProductId ?? null, generated, {
     angleId: context.angle?.id ?? null,
     seriesId: context.series?.id ?? null,
@@ -85,19 +104,48 @@ export async function writeSlotVersion(userId: string, entry: SlotEntry, samePoi
   return script;
 }
 
-/** Les pointeurs racontés par une version déjà écrite du post, et sa forme, s'il y en a une. */
-async function pointersOfWrittenVersion(userId: string, entries: SlotEntry[]): Promise<{ ids: string[]; form: Form | null }> {
+async function adaptedXScript(linkedinText: string, language: Parameters<typeof adaptToXThread>[0]["language"], eventIds: string[], form: Form | null) {
+  const { title, caption } = joinThread(await adaptToXThread({ linkedinText, language }));
+  return {
+    contentType: "text" as const,
+    concept: title,
+    title,
+    hookText: title,
+    caption,
+    hashtags: [],
+    usedExcerpts: [],
+    promisesMade: [],
+    eventIds,
+    form,
+  };
+}
+
+/** Le texte complet d'un script de post : accroche puis corps. */
+function postText(script: { hookText: string | null; caption: string | null }): string {
+  return [script.hookText, script.caption].filter((t) => t && t.trim()).join("\n\n");
+}
+
+/** Les pointeurs racontés par une version déjà écrite du post, sa forme, et le texte LinkedIn s'il est écrit. */
+async function pointersOfWrittenVersion(
+  userId: string,
+  entries: SlotEntry[]
+): Promise<{ ids: string[]; form: Form | null; linkedin: SourceVersion | null }> {
+  let found: { ids: string[]; form: Form | null } | null = null;
+  let linkedin: SourceVersion | null = null;
   for (const e of entries) {
     if (!e.scriptId) continue;
     const script = await db.query.scripts.findFirst({
       where: and(eq(scripts.id, e.scriptId), eq(scripts.userId, userId)),
-      columns: { eventId: true, eventIds: true, form: true },
+      columns: { eventId: true, eventIds: true, form: true, hookText: true, caption: true },
     });
-    const ids = Array.isArray(script?.eventIds) ? (script.eventIds as string[]) : [];
-    if (ids.length > 0) return { ids, form: script?.form ?? null };
-    if (script?.eventId) return { ids: [script.eventId], form: script.form ?? null };
+    if (!script) continue;
+    if (e.platform === "linkedin" && (script.hookText || script.caption)) linkedin = { text: postText(script) };
+    if (found) continue;
+    const ids = Array.isArray(script.eventIds) ? (script.eventIds as string[]) : [];
+    if (ids.length > 0) found = { ids, form: script.form ?? null };
+    else if (script.eventId) found = { ids: [script.eventId], form: script.form ?? null };
   }
-  return { ids: [], form: null };
+  return { ids: found?.ids ?? [], form: found?.form ?? null, linkedin };
 }
 
 /**
@@ -115,17 +163,18 @@ export async function writePost(
   if (missing.length === 0) return;
   if (missing.length === entries.length) await enforceScriptQuota(userId, { date: entry.scheduledDate });
 
-  let { ids: pointerIds, form } = await pointersOfWrittenVersion(userId, entries);
+  let { ids: pointerIds, form, linkedin } = await pointersOfWrittenVersion(userId, entries);
   let firstError: unknown = null;
   for (const slot of missing) {
     try {
       // Un essai de plus quand le rédacteur n'a rien soumis : il lui arrive de conclure en prose
       // au lieu d'appeler son outil, et un post ne doit pas se perdre pour un caprice de modèle.
-      const script = await writeSlotVersion(userId, slot, pointerIds, form).catch(async (error) => {
+      const script = await writeSlotVersion(userId, slot, pointerIds, form, linkedin).catch(async (error) => {
         if (!(error instanceof Error) || !error.message.includes("submitted no post")) throw error;
         logger.warn("Writer submitted nothing, one more try", { slotId: slot.id, reason: error.message.slice(0, 200) });
-        return writeSlotVersion(userId, slot, pointerIds, form);
+        return writeSlotVersion(userId, slot, pointerIds, form, linkedin);
       });
+      if (slot.platform === "linkedin") linkedin = { text: postText(script) };
       // La première version écrite fixe les pointeurs et la forme ; les suivantes les reprennent.
       if (pointerIds.length === 0) {
         const written = Array.isArray(script.eventIds) ? (script.eventIds as string[]) : [];

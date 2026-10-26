@@ -117,3 +117,11 @@ describe("buildCommitJournal", () => {
     expect(buildCommitJournal([commit("feat: un truc", "2026-08-29T09:00:00Z", null)])).toContain("— unknown author");
   });
 });
+
+describe("selectMarkdownFiles — les journaux d'abord", () => {
+  it("met un devlog juste après le README, avant les docs de référence", () => {
+    const blob = (path: string) => ({ path, type: "blob" as const, sha: path, size: 10 });
+    const out = selectMarkdownFiles([blob("docs/AAA.md"), blob("docs/DEVLOG.md"), blob("README.md"), blob("CHANGELOG.md")]).map((e) => e.path);
+    expect(out.slice(0, 3)).toEqual(["README.md", "CHANGELOG.md", "docs/DEVLOG.md"]);
+  });
+});

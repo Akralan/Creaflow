@@ -4,6 +4,51 @@
 
 ---
 
+## 2026-10-26 — Tellovo sur Tellovo : phases, X en thread, et la matière triée en amont
+
+**Le test.** L'app a tourné sur son propre dépôt, conduite par Claude avec une validation de l'auteur à chaque étape : carte de `/start`, 6 jours cochés, 6 posts. Huit séries de 6 posts ont suivi dans la journée, chacune après un changement validé. Les posts que l'auteur juge bons sont ceux écrits à la main par Claude ce jour-là : ils sont devenus **la barre** (`docs/tests/POSTS_OBJECTIFS.md`). On ne s'arrête pas avant de l'atteindre.
+
+**Ce qui a cassé en route.** Le serveur lisait GitHub sans jeton : le quota anonyme (60 requêtes/h) a sauté pendant l'inscription, et l'erreur s'affichait « The AI service is overloaded » (corrigé). Une version X parlait de patients en kinésithérapie : elle avait relu le document du pointeur et pris un exemple MyKiné d'une spec. Deux posts « Launch » étaient des épisodes : une livraison utilisable devenait un lancement à n'importe quel moment.
+
+**Décidé et fait**, dans l'ordre :
+- **Les phases du projet** (`src/lib/phases.ts`, migration `0061_phases`) : *Going public*, *Building*, *Opening up* (bêta puis lancement), *Growing*, après une recherche (aucun cadre reconnu, mais la même séquence partout). La phase décide des formes permises (`PHASE_FORMS`) ; `launch` n'existe qu'au lancement, avant une livraison utilisable est une **démo**. Deux formes nouvelles : `demo` et `beta_call`. La carte de `/start` devine la phase (avec sa raison), l'auteur la corrige ; Business context la garde. Elle n'est jamais nommée au rédacteur, seule la table genre → forme change.
+- **La version X est le post LinkedIn adapté, en thread** de longueur libre (`src/lib/llm/xThread.ts`, un appel sans outil ni matière) : plus de seconde écriture. L'écran l'affiche tweet par tweet ; « copier » emporte enfin l'accroche, oubliée jusque-là.
+- **Le lien de l'email écrit toute la semaine**, pas deux posts. Un post remis sans pointeur connu est refusé (sauf l'origine) : le jeudi sans pointeur avait laissé le samedi raconter la même chose.
+- **Le tri se fait à l'extraction, pas après.** Une fenêtre des 60 faits les plus récents a été essayée puis retirée : elle enfermait le rédacteur dans deux jours de ménage d'écrans. L'extracteur a reçu, une phrase à la fois et mesuré à chaque fois sur le dépôt : une définition d'événement « racontable à un inconnu » ; un seuil sans quota (« un document peut en porter douze ») ; la nature du document d'abord (le travail des autres et les index n'ont aucun événement — le catalogue des 274 posts d'autres auteurs donnait 184 pointeurs) ; la liste des faits déjà marqués, journaux lus en premier ; et **la taille d'un événement : une histoire, pas un détail**, qui a fait passer une décision racontée sur onze lignes d'une spec à zéro. **1 880 → 298 pointeurs.** Les dossiers de test et d'exemples sont exclus de la lecture.
+- **Le rédacteur** : la phrase qui l'autorisait à nommer les tables et fonctions est retirée ; sa règle devient « une histoire qu'on lit jusqu'au bout, pas un compte rendu », libre sur le récit, rien d'inventé sur les faits ; `episode`, `failure` et `looking_back` (qui a enfin sa propre forme) sont réécrites autour d'un moment et d'un enjeu — **l'ancienne `episode` était un patron de changelog et le rédacteur la suivait à la lettre** ; une règle de ton décontracté.
+- **Un vérificateur des sources** (`src/lib/llm/pointerVerifier.ts`, idée de l'auteur) : après chaque post, un second appel lit le post et dit quels faits il raconte vraiment. Le rédacteur lisait large et racontait l'entrée voisine en déclarant la sienne ; la veille d'inspiration est revenue trois fois dans une semaine. Il a corrigé les sources de chaque post contrôlé, en ajoutant les autres adresses de la même histoire : plus de répétition au test suivant.
+
+**Ce qu'on en a appris.**
+- **Ce que le rédacteur lit juste avant d'écrire (la forme) pèse plus que son prompt système.** Une phrase du système (« le moment, l'enjeu ») n'a rien changé ; trois formes réécrites ont changé la voix.
+- **Un pointeur est une adresse, pas un fait** : un fait écrit dans quatre fichiers donnait quatre pointeurs, et quatre posts possibles. Le dédoublonnage se fait à l'extraction, l'aveu de ce qui est raconté après l'écriture.
+- Chaque phrase ajoutée à l'extracteur a été mesurée seule : la plupart ont eu un effet faible (−5 % à −21 %), deux ont porté (la nature du document, la taille d'un événement).
+
+**Pas encore.** Les moments humains forts (la permission d'un ressenti n'a presque rien donné), la machinerie qui reste dans les posts, la voix du DEVLOG écrit par Claude. Le reste dans `docs/TODO.md`. Migration `0061` appliquée en dev seulement.
+
+---
+
+## 2026-10-26 — Le ménage : l'assistant et Direction partent, une série par projet
+
+**Retiré**, sur décision de l'utilisateur : l'**assistant éditorial** en entier (écran `/assistant`, caché depuis le 18, chat, pièces jointes, outils de lecture, prompt, routes `/api/assistant/*`), `/scripts/new` (plus aucun lien n'y menait) et le **rééquilibrage des rôles** (`categoryReweightService.ts`, suspendu, que plus aucun code n'appelait). Environ 3 000 lignes.
+
+**Ce qui reste, et pourquoi.** Les propositions à valider de l'assistant servaient aussi à l'apprentissage du style : la proposition « New analysis to approve » de Settings passait par `assistant_proposals`. Seul ce type survit. Lecture et résolution vivent maintenant dans `styleLearningService.ts` (`getPendingStyleProposal`, `resolveStyleProposal`), derrière `GET /api/profile/style/proposal` et `POST /api/profile/style/proposal/:id`, avec une carte dédiée (`StyleProposalCard`) à la place du panneau de 700 lignes qui savait afficher 19 types. Les tables `assistant_sessions`, `assistant_attachments` et les autres valeurs de l'enum restent en base (convention `REMOVED`) : des lignes les portent, et l'export RGPD les lit encore.
+
+**Les deux défauts du 21 octobre, relus dans le code d'aujourd'hui :**
+- *La paire LinkedIn / X qui ne racontait pas la même chose* est **réglée** depuis la chaîne pointeur du 24, sans que ce soit noté : `writePost` reprend les événements et la forme de la version déjà écrite (`postPairService.ts`).
+- *Le premier post qui recopie la fiche produit* est **toujours là, pour une autre raison**. Le journal de commits donne maintenant des événements (100 sur MyTwin). Mais le « pourquoi tu fais du build in public » demandé sur `/start` (`creator_profiles.expectations`) **n'arrive plus au rédacteur** : `seriesReaderService` ne lui passe que la description et le problème. Il arrivait à l'ancien rédacteur d'origine, supprimé le 24. Preuve : le post 1 du banc MyTwin (`docs/tests/pointeurs/mytwin/posts-gpt-6-luna.txt`), « That's why we're building MyTwin Leaderboard: a system for… ». C'est le post envoyé par email. Correction (une ligne de prompt) laissée à une décision séparée.
+
+**Une série par projet, Direction retiré** (même jour, décision de l'utilisateur : « un build in public représente un peu tout », et la cible est déjà dans Business context). La série reste dans le modèle de données (le calendrier et le rédacteur passent par `seriesId`), mais elle est créée par le code, une par projet (`ensureProjectSeries`), et ne s'affiche plus. Plus d'appel au modèle pour proposer des séries (`seriesLabels.ts` supprimé). Retirés : l'écran Direction, toutes les routes `/api/series/*`, la sélection de fin d'onboarding, `SeriesContext` (fourni, jamais lu), l'étiquette de série sur les cartes de la semaine et la ligne « Series » du brief.
+
+Deux défauts trouvés en préparant ce retrait, corrigés avec :
+- **Les jours de publication de Settings ne changeaient rien au calendrier.** Seul le rythme de chaque série posait les créneaux, et il ne se réglait que dans Direction. Les jours vivent maintenant dans la carte du projet de Business context (retirés de Settings), et la route du profil applique un changement de jours au rythme des séries actives puis recalcule le calendrier (`applyPublishingDaysToSeries`).
+- **Le lecteur se perdait en silence.** La série retient le *nom* d'un public ; un « Who it's for » modifié refait le portrait sous d'autres noms, `buildPointerBrief` ne trouvait plus le lecteur et la génération retombait sans rien dire sur le prompt V3. Elle prend maintenant le public principal.
+
+Pas de migration pour les comptes qui ont plusieurs séries actives : la base de dev va être vidée (décision de l'utilisateur).
+
+`PRODUCT.md` est réécrit pour décrire ce que fait le code : il décrivait encore le fil narratif, la veille, le rééquilibrage, Instagram et l'onglet Topics.
+
+---
+
 ## 2026-10-25 — « Understand it », et la veille d'inspiration disparaît
 
 Dans la carte du projet de Business context, un bouton **Understand it** ouvre une modale : les publics du portrait des lecteurs, et le nombre d'événements par genre trouvé dans la matière (`GET /api/events/summary`). Pas la ligne de temps. L'inventaire de ce que l'ancien onglet Topics montrait d'autre a été présenté ; l'utilisateur n'en garde rien d'autre. La **veille d'inspiration** est supprimée du code : recherche web, service, routes, et le bloc `<inspiration>` du prompt V3 avec ses deux champs de préparation. Ses données partent aussi, à la demande de l'utilisateur : la migration `0060_retrait_veille` supprime la table `inspirations` (80 fiches en dev), son type et la colonne de date des projets ; l'export du compte ne les lit plus. Photos de la modale prises sur la vraie app ; la base de dev n'ayant aucun événement (rien n'a été relu depuis le passage aux pointeurs), les comptes du banc tellovo ont été injectés dans le navigateur pour la capture. `docs/SPEC_COMPRENDRE_LE_PROJET.md`.

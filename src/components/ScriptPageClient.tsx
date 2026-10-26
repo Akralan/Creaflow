@@ -296,7 +296,6 @@ export default function ScriptPageClient() {
           <BriefInfo script={script} />
           <ActionsMenu
             canNewIdea={script.origin === "generated" && Boolean(script.concept)}
-            hasSeries={Boolean(script.series)}
             busy={applyingNewIdea}
             onNewIdea={() => {
               setNewIdeaDirective("");

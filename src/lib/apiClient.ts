@@ -1,6 +1,6 @@
 import type { PerformanceOverview } from "@/lib/performance/overview";
+import type { Phase } from "@/lib/phases";
 import type { Platform, ScriptStatus, CalendarStatus } from "@/lib/design/tokens";
-import type { SeriesRhythm } from "@/lib/seriesRhythm";
 import type { Form } from "@/lib/llm/postForms";
 
 export class ApiClientError extends Error {
@@ -272,6 +272,8 @@ export interface Product {
   problem?: string | null;
   /** Reader portrait (docs/SPEC_PROMPT_GENERATION_V3.md §2.2) — null until it is produced. */
   readerPortrait: ReaderPortrait | null;
+  /** Où en est le projet (src/lib/phases.ts). */
+  phase: Phase;
 }
 
 export interface PortraitReader {
@@ -305,54 +307,6 @@ export interface PostingGoal {
   userId: string;
   platform: Platform;
   targetCountPerWeek: number;
-}
-
-/** An episode of the editorial plan (docs/SPEC_REDACTEUR_EN_CHEF.md §2, Annexe B.5). */
-export interface ContentSeries {
-  id: string;
-  userId: string;
-  label: string;
-  description: string;
-  weight: number;
-  archived: boolean;
-  createdAt: string;
-  /** Unique role of the series (docs/SPEC_SERIES_ET_ROLES.md §1) — null only for data
-   *  predating the migration, such a series is ignored by the calendar. */
-  category: ContentCategorySummary | null;
-  /** Networks this series is restricted to; empty = visible on all networks. */
-  platforms: Platform[];
-  /** Topic this series draws its material from (topic selector, docs/SPEC_REDACTEUR_EN_CHEF.md) —
-   *  null if the series is attached to no specific topic (brand-level material). */
-  product: { id: string; name: string } | null;
-  /** Publishing days of the series (docs/SPEC_RYTHME_DES_SERIES.md) — null = no rhythm,
-   *  the series sets no slot. */
-  rhythm: SeriesRhythm | null;
-  /** The series' single reader (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4): a label from the topic's
-   *  portrait. Null until chosen. */
-  readerLabel: string | null;
-}
-/** An event as seen by a series plan. */
-export interface PlannedEvent {
-  id: string;
-  /** Le document du pointeur, tel qu'il est déposé dans la matière. */
-  file: string;
-  /** Le numéro de ligne, à partir de 1. */
-  line: number;
-  date: string | null;
-  /** Déjà servi par un post de la série. */
-  used: boolean;
-}
-
-export interface SeriesPlan {
-  readerLabel: string | null;
-  events: PlannedEvent[];
-}
-
-/** What saving changed in the calendar for a series (docs/SPEC_RYTHME_DES_SERIES.md §4). */
-export interface SeriesSlotChange {
-  created: number;
-  removed: number;
-  until: string;
 }
 
 export interface StoryboardStep {
@@ -584,37 +538,11 @@ export interface OnboardingDraft {
   failureReason: string | null;
 }
 
-/** File dropped into the assistant conversation, waiting to be filed as material
- *  (docs/SPEC_ASSISTANT_AGENTIQUE.md §5.1). The content never goes back to the client. */
-export interface AssistantAttachment {
-  id: string;
-  filename: string;
-  createdAt: string;
-}
-
-export interface AssistantProposal {
+/** A style learning pass waiting for approval (docs/SPEC_APPRENTISSAGE_STYLE.md §6.1). */
+export interface StyleProposal {
   id: string;
   userId: string;
-  kind:
-    | "product_create"
-    | "product_update"
-    | "series_create"
-    | "series_update"
-    | "category_create"
-    | "category_update"
-    | "angle_create"
-    | "angle_update"
-    | "posting_goal_update"
-    | "material_create"
-    | "material_update"
-    | "material_delete"
-    | "series_archive"
-    | "category_archive"
-    | "angle_archive"
-    | "category_reweight"
-    | "profile_update"
-    | "style_profile_update"
-    | "publishing_days_update";
+  kind: "style_profile_update";
   targetId: string | null;
   payload: Record<string, unknown>;
   status: "pending" | "accepted" | "rejected";
@@ -690,7 +618,7 @@ export interface PostAnimation {
 
 export interface StartAnalysis {
   repo: { fullName: string; name: string; description: string | null; defaultBranch: string; language: string | null };
-  card: { name: string; tagline: string; building: string; who: string; problem: string };
+  card: { name: string; tagline: string; building: string; who: string; problem: string; phase: Phase; phaseReason: string };
   extracted: boolean;
   failureReason: string | null;
 }
@@ -704,6 +632,8 @@ export interface StartCreateInput {
   /** Pourquoi la personne se met à publier — le sujet du post d'origine. */
   why?: string;
   days: number[];
+  /** Où en est le projet : devinée par la carte, corrigée par la personne. */
+  phase: Phase;
   email: string;
 }
 
@@ -818,7 +748,9 @@ export const api = {
     if (!res.ok) throw new ApiClientError(body?.error || `Error ${res.status}`);
     return body as { design: VisualDesign };
   },
-  listAssistantProposals: () => apiFetch<{ proposals: AssistantProposal[] }>("/api/assistant/proposals"),
+  getStyleProposal: () => apiFetch<{ proposal: StyleProposal | null }>("/api/profile/style/proposal"),
+  resolveStyleProposal: (id: string, action: "accept" | "reject", fields?: Record<string, unknown>) =>
+    post<{ proposal: StyleProposal | null }>(`/api/profile/style/proposal/${id}`, { action, fields }),
 
   getContentCategories: () => apiFetch<{ categories: ContentCategory[] }>("/api/profile/content-categories"),
   generateContentCategories: () => post<{ categories: ContentCategory[] }>("/api/profile/content-categories"),
@@ -833,38 +765,6 @@ export const api = {
     }>
   ) => post<{ categories: ContentCategory[] }>("/api/profile/content-categories", { categories }),
 
-  getContentSeries: () => apiFetch<{ series: ContentSeries[] }>("/api/series"),
-  // Reader, form and plan of a series (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4).
-  getSeriesReaders: (seriesId: string) => apiFetch<{ readers: PortraitReader[] }>(`/api/series/${seriesId}/reader`),
-  setSeriesReader: (seriesId: string, readerLabel: string) =>
-    apiFetch<{ series: ContentSeries | null }>(`/api/series/${seriesId}/reader`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ readerLabel }),
-    }),
-  getSeriesPlan: (seriesId: string) => apiFetch<{ plan: SeriesPlan }>(`/api/series/${seriesId}/plan`),
-  generateContentSeries: () => post<{ series: ContentSeries[] }>("/api/series"),
-  saveContentSeries: (
-    series: Array<{
-      id?: string;
-      label: string;
-      description: string;
-      weight?: number;
-      categoryId: string;
-      platforms: string[];
-      rhythm?: SeriesRhythm | null;
-    }>
-  ) => post<{ series: ContentSeries[]; slotChanges: Record<string, SeriesSlotChange> }>("/api/series", { series }),
-  /** Validation of the series after onboarding: keeps the checked ones, distributes the publishing
-   *  days among them, fills the calendar and schedules the main series. `planError`: the selection
-   *  is done, only the plan failed. */
-  confirmSeriesSelection: (keptIds: string[]) =>
-    post<{ plannedSeriesId: string | null; planError: string | null }>("/api/series/selection", { keptIds }),
-  /** Mode switch and/or linked topic (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — dedicated endpoint rather than
-   *  saveContentSeries: the latter archives any active series omitted from the submitted array, unsuited to
-   *  editing one or two fields from a library card. */
-  updateSeriesFields: (id: string, fields: { productId: string | null }) =>
-    patch<{ series: ContentSeries }>(`/api/series/${id}`, fields),
 
 
   getProducts: () => apiFetch<{ products: Product[] }>("/api/products"),
@@ -873,7 +773,7 @@ export const api = {
   ) => post<{ products: Product[] }>("/api/products", items),
   updateProduct: (
     id: string,
-    data: Partial<{ name: string; description: string; valueProposition: string; photoUrl: string; targetAudience: string | null; problem: string | null }>
+    data: Partial<{ name: string; description: string; valueProposition: string; photoUrl: string; targetAudience: string | null; problem: string | null; phase: Phase }>
   ) => put<{ product: Product }>(`/api/products/${id}`, data),
   deleteProduct: (id: string) => del<{ ok: true }>(`/api/products/${id}`),
   regenerateReaderPortrait: (id: string) => post<{ readerPortrait: ReaderPortrait }>(`/api/products/${id}/reader-portrait`, {}),
@@ -1038,30 +938,6 @@ export const api = {
     platforms: string[];
     subjects: Array<{ name: string; description?: string; targetAudience?: string; keys: string[] }>;
   }) => post<{ ok: true }>("/api/onboarding/complete", data),
-
-  getAssistantChat: () =>
-    apiFetch<{ messages: OnboardingMessage[]; proposals: AssistantProposal[]; attachments: AssistantAttachment[] }>(
-      "/api/assistant/chat"
-    ),
-  sendAssistantMessage: (message: string) =>
-    post<{ reply: string; proposals: AssistantProposal[]; attachments: AssistantAttachment[] }>("/api/assistant/chat", {
-      message,
-    }),
-  uploadAssistantAttachment: async (file: File) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    // No explicit Content-Type header: the browser must set the multipart boundary
-    // itself, which the `apiFetch` helper (JSON by default) does not allow.
-    const res = await fetch("/api/assistant/attachments", { method: "POST", body: formData });
-    const body = await res.json().catch(() => null);
-    if (!res.ok) {
-      throw new ApiClientError(body?.error || `Error ${res.status}`, res.status);
-    }
-    return body as { attachment: AssistantAttachment };
-  },
-  discardAssistantAttachment: (id: string) => del<{ ok: true }>(`/api/assistant/attachments/${id}`),
-  resolveAssistantProposal: (id: string, action: "accept" | "reject", fields?: Record<string, unknown>) =>
-    post<{ proposals: AssistantProposal[] }>(`/api/assistant/proposals/${id}/resolve`, { action, fields }),
 
   getAssets: () => apiFetch<{ assets: BrandAsset[]; cutoutAvailable: boolean }>("/api/assets"),
   cutoutAsset: (id: string) => post<{ asset: BrandAsset }>(`/api/assets/${id}/cutout`, {}),

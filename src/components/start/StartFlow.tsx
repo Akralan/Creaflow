@@ -7,6 +7,7 @@ import "@/components/start/start.css";
 import { CheckIcon, EditIcon, InfoIcon, RepoIcon } from "@/components/landing/tellovo/icons";
 import { prefersReducedMotion } from "@/components/landing/tellovo/util";
 import { api, ApiClientError, type StartAnalysis } from "@/lib/apiClient";
+import { DEFAULT_PHASE, PHASE_CHOICES, phaseChoice, phaseOfChoice, type Phase, type PhaseChoice } from "@/lib/phases";
 
 /**
  * Onboarding of the landing, wired to the real services (docs/SPEC_ENTREE_PAR_LE_REPO.md §2). The
@@ -57,6 +58,8 @@ type State = {
   editingBiz: boolean;
   draft: Fields;
   days: number[];
+  /** Où en est le projet (src/lib/phases.ts) — à ne pas confondre avec `phase`, l'écran affiché. */
+  projectPhase: Phase;
   failure: string;
 };
 
@@ -76,6 +79,7 @@ const initial: State = {
   editingBiz: false,
   draft: EMPTY,
   days: DEFAULT_DAYS,
+  projectPhase: DEFAULT_PHASE,
   failure: "",
 };
 
@@ -89,6 +93,7 @@ type Action =
   | { type: "cancelBiz" }
   | { type: "saveBiz" }
   | { type: "toggleDay"; day: number }
+  | { type: "projectPhase"; phase: Phase }
   | { type: "openEmail" }
   | { type: "email"; value: string }
   | { type: "emailError"; error: "empty" | "invalid" }
@@ -107,7 +112,7 @@ function reducer(state: State, action: Action): State {
       const { building, who, problem } = action.analysis.card;
       // `why` n'est jamais écrasé par l'analyse du dépôt : c'est la réponse de la personne.
       const biz = { building, who, problem, why: state.biz.why };
-      return { ...state, analysis: action.analysis, biz, draft: biz };
+      return { ...state, analysis: action.analysis, biz, draft: biz, projectPhase: action.analysis.card.phase ?? DEFAULT_PHASE };
     }
     case "failed":
       return { ...state, phase: "failed", failure: action.message };
@@ -126,6 +131,8 @@ function reducer(state: State, action: Action): State {
       const days = has ? state.days.filter((d) => d !== action.day) : [...state.days, action.day].sort((a, b) => a - b);
       return { ...state, days };
     }
+    case "projectPhase":
+      return { ...state, projectPhase: action.phase };
     case "openEmail":
       return { ...state, cta: "email", emailErr: "", sendError: "" };
     case "email":
@@ -293,6 +300,37 @@ function Business({ state, dispatch, onSend }: { state: State; dispatch: (a: Act
                   ))}
                 </div>
                 <p className="days-note">One post on each day you pick. You can change this later.</p>
+              </dd>
+            </div>
+            <div className="biz-row">
+              <dt>Where you are</dt>
+              <dd>
+                <div className="days" role="group" aria-label="Where your project is">
+                  {PHASE_CHOICES.map(({ choice, label }) => (
+                    <button
+                      key={choice}
+                      type="button"
+                      className="day"
+                      aria-pressed={phaseChoice(state.projectPhase) === choice}
+                      onClick={() => dispatch({ type: "projectPhase", phase: phaseOfChoice(choice as PhaseChoice, state.projectPhase) })}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {phaseChoice(state.projectPhase) === "open" && (
+                  <div className="days" role="group" aria-label="Beta or launch" style={{ marginTop: 8 }}>
+                    {(["beta", "launch"] as const).map((p) => (
+                      <button key={p} type="button" className="day" aria-pressed={state.projectPhase === p} onClick={() => dispatch({ type: "projectPhase", phase: p })}>
+                        {p === "beta" ? "Beta" : "Launch"}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <p className="days-note">
+                  {PHASE_CHOICES.find((c) => c.choice === phaseChoice(state.projectPhase))?.hint}
+                  {analysis.card.phaseReason && state.projectPhase === analysis.card.phase ? ` From your repo: ${analysis.card.phaseReason}` : ""}
+                </p>
               </dd>
             </div>
           </dl>
@@ -469,6 +507,7 @@ export default function StartFlow() {
         problem: state.biz.problem,
         why: state.biz.why,
         days: state.days,
+        phase: state.projectPhase,
         email,
       });
       dispatch({ type: "sent", email });

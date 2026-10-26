@@ -4,7 +4,9 @@ import type { GithubCommit, GithubTreeEntry } from "./client";
 /** Valeur réservée d'`externalRef` pour le journal de commits — un seul par source. */
 export const COMMITS_EXTERNAL_REF = "__commits__";
 
-const EXCLUDED_DIRECTORIES = ["node_modules", "dist", "build", "vendor", ".github"];
+// Les dossiers de test et d'exemples (2026-10-26) : ils portent des projets fictifs — le faux devlog d'un
+// kiné du dépôt tellovo est entré dans la matière quand les journaux sont passés en tête.
+const EXCLUDED_DIRECTORIES = ["node_modules", "dist", "build", "vendor", ".github", "test", "tests", "__tests__", "fixtures", "__fixtures__", "examples", "samples"];
 
 /** Boilerplate identique d'un projet à l'autre : ces textes ne disent rien sur CE projet et ne
  *  feraient que diluer le corpus. CHANGELOG.md est délibérément absent de cette liste — c'est de la
@@ -24,6 +26,8 @@ function isInExcludedDirectory(path: string): boolean {
     .some((segment) => EXCLUDED_DIRECTORIES.includes(segment));
 }
 
+const JOURNAL_FILE = /(^|\/)(devlog|dev-log|changelog|journal|history)[^/]*\.(md|markdown)$/i;
+
 export function selectMarkdownFiles(entries: GithubTreeEntry[]): GithubTreeEntry[] {
   const candidates = entries.filter((entry) => {
     if (entry.type !== "blob") return false;
@@ -40,6 +44,11 @@ export function selectMarkdownFiles(entries: GithubTreeEntry[]): GithubTreeEntry
     const aIsRootReadme = a.path.toLowerCase() === "readme.md";
     const bIsRootReadme = b.path.toLowerCase() === "readme.md";
     if (aIsRootReadme !== bIsRootReadme) return aIsRootReadme ? -1 : 1;
+    // Un journal (devlog, changelog) raconte ce qui s'est passé : il passe avant les docs de référence,
+    // pour la carte de /start (4 fichiers lus) comme pour le plafond de 50 (docs/TODO.md, 2026-10-26).
+    const aIsJournal = JOURNAL_FILE.test(a.path);
+    const bIsJournal = JOURNAL_FILE.test(b.path);
+    if (aIsJournal !== bIsJournal) return aIsJournal ? -1 : 1;
     const depthDiff = depth(a.path) - depth(b.path);
     if (depthDiff !== 0) return depthDiff;
     return a.path.localeCompare(b.path);

@@ -117,7 +117,7 @@ export default function ConfidentialitePage() {
           <tr>
             <td style={tdStyle}>OpenAI</td>
             <td style={tdStyle}>
-              AI text generation, editorial assistant, indexing of your images (your material, your
+              AI text generation, indexing of your images (your material, your
               profile and your instructions are sent to them to produce a response)
             </td>
             <td style={tdStyle}>United States</td>

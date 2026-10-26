@@ -6,7 +6,6 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { TextField, TextAreaField, SelectField, heading1Style } from "@/components/ui/TextField";
 import ConnectionRow from "@/components/ConnectionRow";
-import PublishingDaysPicker from "@/components/PublishingDaysPicker";
 import StyleAnalysisPanel from "@/components/StyleAnalysisPanel";
 import BrandAssetLibrary from "@/components/BrandAssetLibrary/BrandAssetLibrary";
 import BillingPanel from "@/components/BillingPanel";
@@ -14,7 +13,6 @@ import BrandKitPanel from "@/components/BrandKitPanel";
 import AccountPanel from "@/components/AccountPanel";
 import { api, ApiClientError, type Connection } from "@/lib/apiClient";
 import { color } from "@/lib/design/tokens";
-import { DEFAULT_PUBLISHING_DAYS } from "@/lib/validation";
 import { POST_LANGUAGES, isPostLanguage } from "@/lib/language";
 
 type Tab = "identity" | "assets" | "connexions" | "billing" | "account";
@@ -57,7 +55,6 @@ function IdentityTab() {
   const [expectations, setExpectations] = useState("");
   // "" = automatic: the language of the notes.
   const [language, setLanguage] = useState("");
-  const [publishingDays, setPublishingDays] = useState<number[]>(DEFAULT_PUBLISHING_DAYS);
   const [xHandle, setXHandle] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -73,7 +70,6 @@ function IdentityTab() {
         setExpectations(profile.expectations || "");
         setLanguage(isPostLanguage(profile.language) ? profile.language : "");
         setXHandle(profile.xHandle ? `@${profile.xHandle}` : "");
-        setPublishingDays(profile.publishingDays.length > 0 ? profile.publishingDays : DEFAULT_PUBLISHING_DAYS);
       }
       setLoaded(true);
     });
@@ -84,7 +80,7 @@ function IdentityTab() {
     setSaved(false);
     setError(null);
     try {
-      await api.saveProfile({ brandName, activityType, targetAudience, expectations, language: language || null, publishingDays, xHandle });
+      await api.saveProfile({ brandName, activityType, targetAudience, expectations, language: language || null, xHandle });
       setSaved(true);
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Something went wrong while saving.");
@@ -133,15 +129,6 @@ function IdentityTab() {
         placeholder="@yourname"
         helper="Used to read the numbers of your posts on X (views, likes, replies, reposts). Only public numbers are read."
       />
-      <div>
-        <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: color.textSecondary, marginBottom: 4 }}>
-          Days you can publish
-        </label>
-        <p style={{ margin: "0 0 12px", fontSize: 13, color: color.textMuted }}>
-          Suggested when you create a series. Each series then has its own rhythm, in Direction.
-        </p>
-        <PublishingDaysPicker value={publishingDays} onChange={setPublishingDays} />
-      </div>
       {error && <p style={{ color: color.danger, fontSize: 13, margin: 0 }}>{error}</p>}
       <div style={{ display: "flex", alignItems: "center", gap: 12, paddingTop: 8, borderTop: `1px solid ${color.dividerAlt}`, marginTop: 4 }}>
         <Button onClick={handleSave} disabled={saving} style={{ padding: "11px 22px", fontSize: 14 }}>

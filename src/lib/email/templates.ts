@@ -52,7 +52,7 @@ export function accountDeletedEmail(): EmailContent {
  */
 export function firstPostEmail(params: { productName: string; postText: string; loginUrl: string; expiresInHours: number }): EmailContent {
   const intro = `Here is the first post of your week for ${params.productName}, written from your repository.`;
-  const rest = "Your two other posts of the week are waiting in the app. The button below signs you in — no password needed.";
+  const rest = "The rest of your week is waiting in the app. The button below signs you in — no password needed.";
   const validity = `This link is valid for ${params.expiresInHours} hours.`;
   return {
     subject: "Your first week of content is ready",

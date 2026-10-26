@@ -15,12 +15,16 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { FORMS, GENRES } from "../lib/llm/postForms";
+import { DEFAULT_PHASE, PHASES } from "../lib/phases";
 
 export const scriptStatusEnum = pgEnum("script_status", ["draft", "planned", "shot", "published"]);
 // The genre of a pointer and the form of a post (docs/FORMES_ET_GENRES.md). The values live in
 // src/lib/llm/postForms.ts so that spec, prompt, database and bench use the same words.
 export const materialEventGenreEnum = pgEnum("material_event_genre", GENRES);
 export const postFormEnum = pgEnum("post_form", FORMS);
+// The phase of a project (src/lib/phases.ts, docs/TODO.md « Phases du projet »): set by the author,
+// it decides which post forms the writer may use.
+export const projectPhaseEnum = pgEnum("project_phase", PHASES);
 // "video" removed on 2026-10-16 (docs/SPEC_ONBOARDING_MVP.md §6): the product no longer makes video scripts.
 // The animation of a visual post is not one: it is a visualFormat.
 export const contentTypeEnum = pgEnum("content_type", ["visual", "text"]);
@@ -33,6 +37,10 @@ export const calendarEntryKindEnum = pgEnum("calendar_entry_kind", ["event", "na
 // le post était la fiche du sujet. Un vrai virage se raconte comme épisode — le 23 novembre de MyKiné
 // le prouve. Rien ne le remplace. La valeur reste dans l'enum : des posts en base la portent.
 export const narrativeKindEnum = pgEnum("narrative_kind", ["origin", "vision", "checkpoint", "promise"]);
+// REMOVED (2026-10-26): the assistant is gone, and with it every kind except "style_profile_update",
+// the only one still created (styleLearningService.ts). The other values stay: rows in base carry them.
+// The tables assistant_sessions and assistant_attachments are no longer written either; the RGPD export
+// still reads them for accounts that used the assistant.
 export const assistantProposalKindEnum = pgEnum("assistant_proposal_kind", [
   "product_create",
   "product_update",
@@ -369,6 +377,9 @@ export const products = pgTable("products", {
   // from targetAudience and the material by describeReaders, correctable by the author. Null as long
   // as no portrait has been produced: generation falls back on targetAudience.
   readerPortrait: jsonb("reader_portrait"),
+  // Where the project stands (src/lib/phases.ts): guessed from the repo on /start, then the author's
+  // choice in Business context. It restricts the post forms (postForms.ts, PHASE_FORMS).
+  phase: projectPhaseEnum("phase").notNull().default(DEFAULT_PHASE),
 });
 
 // Connected source feeding a topic's corpus (docs/superpowers/specs/2026-08-31-onboarding-dev-github-design.md

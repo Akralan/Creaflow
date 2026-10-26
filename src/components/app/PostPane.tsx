@@ -8,6 +8,7 @@ import { foreignNumbers } from "@/lib/animationHtml/numbers";
 import DesignEditor from "@/components/DesignEditor/DesignEditor";
 import { api, ApiClientError, type PostAnimation, type Script, type WeekEntry } from "@/lib/apiClient";
 import { FORM_LABELS } from "@/lib/llm/postForms";
+import { THREAD_SEPARATOR, threadTweets } from "@/lib/xThreadFormat";
 import { DEFAULT_DURATION_MS, DEFAULT_SLIDES, MAX_DURATION_MS, MAX_SLIDES, MIN_DURATION_MS, MIN_SLIDES } from "@/lib/visualDesign/visualFormat";
 import { longDay, NETWORKS, postState, scriptReadiness, type Network, type PostGroup } from "@/lib/weekPosts";
 
@@ -46,9 +47,19 @@ function errorText(error: unknown): string {
   return error instanceof ApiClientError ? error.message : "Something went wrong. Try again.";
 }
 
+/** Ce que « copier » met dans le presse-papiers : l'accroche (le titre) puis le corps — l'accroche était
+ *  oubliée jusqu'au 2026-10-26. Un thread X se copie tweet par tweet, séparés par `---`. */
 function fullText(script: Script): string {
   const tags = script.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ");
-  return tags ? `${script.caption.trim()}\n\n${tags}` : script.caption.trim();
+  const title = script.title?.trim() ?? "";
+  const caption = script.caption.trim();
+  const body =
+    script.platform === "x"
+      ? threadTweets(script.title, script.caption).join(THREAD_SEPARATOR)
+      : title && title !== caption
+        ? `${title}\n\n${caption}`
+        : caption;
+  return tags ? `${body}\n\n${tags}` : body;
 }
 
 export default function PostPane({ group, network, onNetwork, seriesLabel, authorName, productName, hasLogo, onChanged, onQuota, onWrite }: Props) {
@@ -537,9 +548,25 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
           </>
         ) : (
           <>
-            <p id="ap-post" className="post-text">
-              {script?.caption}
-            </p>
+            {network === "x" && script ? (
+              // Le thread : le premier tweet est le titre ci-dessus, les suivants viennent un par un.
+              <div id="ap-post" className="post-text">
+                {threadTweets(script.title, script.caption)
+                  .slice(1)
+                  .map((tweet, i) => (
+                    <p key={i} style={{ margin: "0 0 14px", paddingTop: 12, borderTop: "1px solid var(--line)" }}>
+                      {tweet}
+                      <span style={{ display: "block", marginTop: 4, fontSize: 12, color: tweet.length > X_LIMIT ? "#b3261e" : "var(--mute)" }}>
+                        {i + 2} · {tweet.length} / {X_LIMIT}
+                      </span>
+                    </p>
+                  ))}
+              </div>
+            ) : (
+              <p id="ap-post" className="post-text">
+                {script?.caption}
+              </p>
+            )}
             {script && script.hashtags.length > 0 && (
               <p className="pane-tags">
                 {script.hashtags.map((h) => (
@@ -547,9 +574,11 @@ export default function PostPane({ group, network, onNetwork, seriesLabel, autho
                 ))}
               </p>
             )}
-            {network === "x" && (
-              <p className="count" style={length > X_LIMIT ? { color: "#b3261e" } : undefined}>
-                {length} / {X_LIMIT}
+            {network === "x" && script && (
+              <p className="count" style={(script.title?.length ?? 0) > X_LIMIT ? { color: "#b3261e" } : undefined}>
+                {threadTweets(script.title, script.caption).length > 1
+                  ? `Thread · ${threadTweets(script.title, script.caption).length} tweets · first ${script.title?.length ?? 0} / ${X_LIMIT}`
+                  : `${script.title?.length ?? 0} / ${X_LIMIT}`}
               </p>
             )}
           </>

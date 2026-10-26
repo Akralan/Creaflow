@@ -140,7 +140,6 @@ export default function WeekScreen() {
     (wantedPost ? weekGroups.find((g) => Object.values(g.versions).some((v) => v?.script?.id === wantedPost || v?.id === wantedPost)) : undefined) ??
     weekGroups[0] ??
     null;
-  const seriesIds = new Set(weekGroups.map((g) => Object.values(g.versions)[0]?.series?.id));
 
   async function prepareNext() {
     setPreparing(true);
@@ -237,9 +236,9 @@ export default function WeekScreen() {
             {weekRange(monday)}
           </p>
           <b>Nothing is planned this week</b>
-          <p>Give a series publishing days and its posts will land here.</p>
-          <a className="link" href="/direction">
-            Open Direction <span aria-hidden="true">→</span>
+          <p>Pick your publishing days and the posts will land here.</p>
+          <a className="link" href="/context">
+            Open Business context <span aria-hidden="true">→</span>
           </a>
         </div>
       ) : (
@@ -247,7 +246,6 @@ export default function WeekScreen() {
           <div className="list" role="group" aria-label="This week's posts">
             {weekGroups.map((g) => {
               const state = postState(g);
-              const series = Object.values(g.versions)[0]?.series?.label;
               return (
                 <button
                   key={g.key}
@@ -265,7 +263,6 @@ export default function WeekScreen() {
                     </span>
                   </span>
                   <b>{cardTitle(g)}</b>
-                  {seriesIds.size > 1 && series && <span className="series-tag">{series}</span>}
                   <span className="snip">{cardSnippet(g, state)}</span>
                 </button>
               );

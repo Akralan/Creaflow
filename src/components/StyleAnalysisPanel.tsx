@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
-import { api, ApiClientError, type AssistantProposal, type StyleLearningStatus, type StyleProfile, type StyleRule } from "@/lib/apiClient";
+import { api, ApiClientError, type StyleLearningStatus, type StyleProfile, type StyleProposal, type StyleRule } from "@/lib/apiClient";
 import { accentAlpha, color } from "@/lib/design/tokens";
 import { KNOWN_PLATFORMS, platformLabel } from "@/lib/social/types";
-import AssistantProposalsPanel from "@/components/AssistantProposalsPanel";
+import StyleProposalCard from "@/components/StyleProposalCard";
 import { GenerationOrb } from "@/components/GenerationAnimation";
 
 /** Threshold for showing the suggestion — same value as STYLE_LEARNING_SUGGESTION_THRESHOLD on the server. */
@@ -60,7 +60,7 @@ function formatDate(iso: string | null) {
 export default function StyleAnalysisPanel() {
   const [profile, setProfile] = useState<StyleProfile | null>(null);
   const [status, setStatus] = useState<StyleLearningStatus | null>(null);
-  const [pendingProposal, setPendingProposal] = useState<AssistantProposal | null>(null);
+  const [pendingProposal, setPendingProposal] = useState<StyleProposal | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -71,11 +71,11 @@ export default function StyleAnalysisPanel() {
 
   const refresh = useCallback(
     () =>
-      Promise.all([api.getProfile(), api.listAssistantProposals()])
-        .then(([{ profile: p, styleLearning }, { proposals }]) => {
+      Promise.all([api.getProfile(), api.getStyleProposal()])
+        .then(([{ profile: p, styleLearning }, { proposal }]) => {
           setProfile(p?.styleProfile ?? null);
           setStatus(styleLearning);
-          setPendingProposal(proposals.find((x) => x.kind === "style_profile_update") ?? null);
+          setPendingProposal(proposal);
         })
         .catch(() => {}),
     []
@@ -154,9 +154,10 @@ export default function StyleAnalysisPanel() {
       {pendingProposal && (
         <div>
           <div style={{ fontSize: 12, fontWeight: 600, color: color.textMuted, marginBottom: 6 }}>New analysis to approve</div>
-          <AssistantProposalsPanel
-            proposals={[pendingProposal]}
-            onProposalsChange={() => {
+          <StyleProposalCard
+            key={pendingProposal.id}
+            proposal={pendingProposal}
+            onResolved={() => {
               void refresh();
             }}
           />

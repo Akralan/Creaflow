@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { ChevronDown, Info, MoreHorizontal, RotateCcw } from "lucide-react";
 import PlatformLogo from "@/components/calendar/PlatformLogo";
 import type { Script } from "@/lib/apiClient";
-import { accent, color, fontHeading, platformMeta, scriptStatusOptions, statusMeta, type ScriptStatus } from "@/lib/design/tokens";
+import { color, fontHeading, platformMeta, scriptStatusOptions, statusMeta, type ScriptStatus } from "@/lib/design/tokens";
 
 const panel: React.CSSProperties = {
   position: "absolute",
@@ -128,7 +127,6 @@ export function BriefInfo({ script }: { script: Script }) {
       </span>,
     ],
     ["Format", formatLabel(script)],
-    ["Series", script.series?.label ?? "Free post"],
     ["Role", script.contentCategory.label],
   ];
   if (script.angle) rows.push(["Angle", script.angle.label]);
@@ -151,11 +149,6 @@ export function BriefInfo({ script }: { script: Script }) {
               </div>
             ))}
           </dl>
-          {script.series && (
-            <Link href="/direction" style={{ display: "inline-block", marginTop: 14, fontSize: 13, fontWeight: 600, color: accent, textDecoration: "none" }}>
-              View the series plan →
-            </Link>
-          )}
         </div>
       )}
     </div>
@@ -165,13 +158,11 @@ export function BriefInfo({ script }: { script: Script }) {
 /** Rare actions, tucked away: another idea, plan, deletion. */
 export function ActionsMenu({
   canNewIdea,
-  hasSeries,
   busy,
   onNewIdea,
   onDelete,
 }: {
   canNewIdea: boolean;
-  hasSeries: boolean;
   busy: boolean;
   onNewIdea: () => void;
   onDelete: () => void;
@@ -197,11 +188,6 @@ export function ActionsMenu({
             >
               ✦ Another idea, same brief
             </button>
-          )}
-          {hasSeries && (
-            <Link href="/direction" role="menuitem" style={menuItem}>
-              ◈ View the series plan
-            </Link>
           )}
           <button
             type="button"

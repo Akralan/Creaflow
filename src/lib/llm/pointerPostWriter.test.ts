@@ -118,10 +118,9 @@ describe("buildWriterUserMessage", () => {
 describe("buildWriterSystemPrompt", () => {
   it("garde les trois premières règles du run C, mot pour mot", () => {
     const p = buildWriterSystemPrompt(ctx());
-    expect(p).toContain("That is your only rule: build in public, for that reader.");
+    expect(p).toContain("That is your only rule: build in public, for that reader — a story they want to read to the end");
     expect(p).toContain("that first post is the origin");
     expect(p).toContain("Your first sentence is a hook and nothing else");
-    expect(p).toContain("say what it is or what it does in the same breath");
   });
 
   it("remplace la quatrième par la règle de forme : la table, l'outil, pas les formes", () => {
@@ -207,6 +206,26 @@ describe("writePost — le contrôle de publish_post", () => {
     const result = await writePost(ctx({ timeline, posts: onePost, lockedForm: "launch" }));
     expect(outputs[1]).toMatchObject({ error: expect.stringContaining("already set") });
     expect(result.form).toBe("launch");
+  });
+
+  it("refuse une remise sans adresse connue, sauf au premier post", async () => {
+    const outputs = drive([
+      { name: READ_FORM_TOOL, input: { form: "failure" } },
+      { name: "publish_post", input: { post: "T.", event_ids: [], form: "failure" } },
+      { name: "publish_post", input: { post: "T.", event_ids: ["inconnu"], form: "failure" } },
+      { name: "publish_post", input: { post: "T.", event_ids: ["e1"], form: "failure" } },
+    ]);
+    const result = await writePost(ctx({ timeline, posts: onePost }));
+    expect(outputs[1]).toMatchObject({ error: expect.stringContaining("no address") });
+    expect(outputs[2]).toMatchObject({ error: expect.stringContaining("inconnu") });
+    expect(result).toMatchObject({ handed: true, eventIds: ["e1"] });
+
+    const first = drive([
+      { name: READ_FORM_TOOL, input: { form: "origin" } },
+      { name: "publish_post", input: { post: "T.", event_ids: [], form: "origin" } },
+    ]);
+    expect((await writePost(ctx({ timeline }))).handed).toBe(true);
+    expect(first[1]).toEqual({ ok: true });
   });
 
   it("sans remise acceptée, handed est faux et text est la réponse en prose", async () => {

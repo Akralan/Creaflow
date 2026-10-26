@@ -274,8 +274,8 @@ function OnboardingContent() {
       try {
         localStorage.removeItem(NAME_KEY);
       } catch {}
-      // On choisit ses séries sur Direction ; la validation y planifie et remplit le calendrier.
-      router.push("/direction?selection=1");
+      // La série de chaque projet et son calendrier sont posés par la fin d'onboarding (2026-10-26).
+      router.push("/calendar");
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Couldn't finish. Please try again.");
       setBusy(false);
