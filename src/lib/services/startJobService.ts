@@ -1,6 +1,6 @@
 import { and, asc, eq, gte, isNotNull, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { calendarEntries, contentSeries, creatorProfiles, materialSources, products, scripts, sourceMaterials, startJobs, users } from "@/db/schema";
+import { calendarEntries, materialSources, products, scripts, sourceMaterials, startJobs, users } from "@/db/schema";
 import { sendEmail } from "@/lib/email";
 import { firstPostEmail, loginLinkEmail } from "@/lib/email/templates";
 import { llmFailureMessage } from "@/lib/llm/errors";
@@ -13,8 +13,7 @@ import { LOGIN_LINK_TTL_HOURS, issueLoginLink } from "@/lib/services/loginLinkSe
 import { readEventsInBackground } from "@/lib/services/materialEventService";
 import { refreshStaleReaderPortraits } from "@/lib/services/readerPortraitService";
 import { ensureReaderForSeries } from "@/lib/services/seriesReaderService";
-import { generateSeriesForUser, listActiveSeriesForUser } from "@/lib/services/seriesService";
-import { syncSeriesSlots } from "@/lib/services/seriesSlotSync";
+import { ensureProjectSeries, listActiveSeriesForUser } from "@/lib/services/seriesService";
 import { syncSource } from "@/lib/services/sourceConnectorService";
 import { START_POST_PLATFORM } from "@/lib/services/startService";
 import { ApiError } from "@/lib/api/errors";
@@ -71,29 +70,15 @@ async function prepareMaterial(userId: string) {
   await readEventsInBackground(userId, source.productId);
 }
 
-/** Rôles, angles, séries — la première est le devlog, qui porte les trois jours. */
+/** Rôles, angles, puis la série du projet, qui porte les jours de publication (2026-10-26 : une seule,
+ *  créée par le code). */
 async function prepareSeries(userId: string): Promise<string> {
   if ((await listActiveCategoriesForUser(userId)).length === 0) await generateCategoriesForUser(userId);
   if ((await listActiveAnglesForUser(userId)).length === 0) await generateAnglesForUser(userId);
-  if ((await listActiveSeriesForUser(userId)).length === 0) await generateSeriesForUser(userId, { leadWithDevlog: true });
-
-  const series = await listActiveSeriesForUser(userId);
-  const devlog = series[0];
-  if (!devlog) throw new ApiError(502, "No series could be created from this repository.");
-
-  // Trois jours, trois posts : la série devlog les prend tous ; les autres séries proposées existent
-  // mais sans rythme, la personne les allume dans Direction.
-  const profile = await db.query.creatorProfiles.findFirst({ where: eq(creatorProfiles.userId, userId), columns: { publishingDays: true } });
-  await db
-    .update(contentSeries)
-    .set({ rhythm: { days: profile?.publishingDays ?? [3, 5, 6], every: 1, anchor: null } })
-    .where(eq(contentSeries.id, devlog.id));
-  for (const other of series.slice(1)) {
-    await db.update(contentSeries).set({ rhythm: null }).where(eq(contentSeries.id, other.id));
-  }
-  await syncSeriesSlots(userId);
-  await ensureReaderForSeries(userId, devlog.id);
-  return devlog.id;
+  const [seriesId] = await ensureProjectSeries(userId);
+  if (!seriesId) throw new ApiError(502, "No series could be created from this repository.");
+  await ensureReaderForSeries(userId, seriesId);
+  return seriesId;
 }
 
 function postText(script: { caption: string | null; hookText: string | null; hashtags: string[] | null }): string {

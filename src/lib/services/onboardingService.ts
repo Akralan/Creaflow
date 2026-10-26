@@ -5,7 +5,7 @@ import { creatorProfiles, materialSources, oauthAccounts, postingGoals, products
 import { extractProfileFromMaterial, normalizeSubjects, type ExtractedProfile } from "@/lib/llm/profileExtraction";
 import { generateCategoriesForUser, listActiveCategoriesForUser } from "@/lib/services/categoryLabelsService";
 import { generateAnglesForUser, listActiveAnglesForUser } from "@/lib/services/angleService";
-import { generateSeriesForUser, listActiveSeriesForUser } from "@/lib/services/seriesService";
+import { ensureProjectSeries, listActiveSeriesForUser } from "@/lib/services/seriesService";
 import { createPastedMaterial } from "@/lib/services/sourceMaterialService";
 import { scheduleEventReading } from "@/lib/services/materialEventService";
 import { refreshStaleReaderPortraits } from "@/lib/services/readerPortraitService";
@@ -324,8 +324,8 @@ export async function completeOnboarding(userId: string, input: CompleteOnboardi
   try {
     if ((await listActiveCategoriesForUser(userId)).length === 0) await generateCategoriesForUser(userId);
     if ((await listActiveAnglesForUser(userId)).length === 0) await generateAnglesForUser(userId);
-  // Dépend des rôles générés juste au-dessus.
-    if ((await listActiveSeriesForUser(userId)).length === 0) await generateSeriesForUser(userId);
+    // Une série par projet, créée par le code (2026-10-26) ; dépend des rôles générés juste au-dessus.
+    await ensureProjectSeries(userId);
     // Les notes et les sources viennent d'être rangées dans leurs sujets : la ligne de temps de chaque
     // sujet se lit maintenant, en arrière-plan (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §3).
     const subjects = await db.query.products.findMany({ where: eq(products.userId, userId), columns: { id: true } });

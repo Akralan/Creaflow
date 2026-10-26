@@ -5,8 +5,11 @@ import { useSearchParams } from "next/navigation";
 import AppIcon from "@/components/app/AppIcon";
 import SourcePanel from "@/components/app/SourcePanel";
 import UnderstandModal from "@/components/app/UnderstandModal";
+import PublishingDaysPicker from "@/components/PublishingDaysPicker";
 import { api, ApiClientError, type CreatorProfile, type MaterialSource, type Product } from "@/lib/apiClient";
+import { publishingDaysLabel } from "@/lib/services/calendarService";
 import { syncBadge } from "@/lib/syncBadge";
+import { DEFAULT_PUBLISHING_DAYS } from "@/lib/validation";
 
 /** « Business context » (docs/SPEC_APP_DESIGN_TELLOVO.md §2): what Tellovo knows about the project, and its sources. */
 
@@ -46,7 +49,7 @@ export default function ContextScreen() {
   // « Understand it » : ce que Tellovo a compris du projet, en modale (docs/SPEC_COMPRENDRE_LE_PROJET.md).
   const [understanding, setUnderstanding] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState({ building: "", who: "", problem: "" });
+  const [draft, setDraft] = useState({ building: "", who: "", problem: "", days: [] as number[] });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,12 +95,14 @@ export default function ContextScreen() {
   const building = product?.description ?? profile?.activityType ?? "";
   const who = product?.targetAudience ?? profile?.targetAudience ?? "";
   const problem = product?.problem ?? "";
+  // The days are the rhythm of the project's single series: saving them moves the calendar (2026-10-26).
+  const days = profile?.publishingDays.length ? profile.publishingDays : DEFAULT_PUBLISHING_DAYS;
   const repo = sources.find((s) => s.type === "github_repo")?.label ?? "";
   // La fraîcheur de la matière, d'après les sources du projet (docs/SPEC_SYNCHRO_QUOTIDIENNE.md).
   const badge = useMemo(() => syncBadge(sources), [sources]);
 
   function startEdit() {
-    setDraft({ building, who, problem });
+    setDraft({ building, who, problem, days });
     setSaved(false);
     setEditing(true);
   }
@@ -119,10 +124,10 @@ export default function ContextScreen() {
         targetAudience: draft.who.trim() || undefined,
         expectations: profile.expectations ?? undefined,
         language: profile.language,
-        publishingDays: profile.publishingDays,
+        publishingDays: draft.days,
       });
       setProduct(updated);
-      setProfile({ ...profile, activityType: draft.building.trim() || profile.activityType, targetAudience: draft.who.trim() || null });
+      setProfile({ ...profile, activityType: draft.building.trim() || profile.activityType, targetAudience: draft.who.trim() || null, publishingDays: draft.days });
       setEditing(false);
       setSaved(true);
     } catch (e) {
@@ -212,6 +217,10 @@ export default function ContextScreen() {
                   </dd>
                 </div>
               ))}
+              <div className="biz-row">
+                <dt>Publishing days</dt>
+                <dd>{editing ? <PublishingDaysPicker value={draft.days} onChange={(d) => setDraft({ ...draft, days: d })} /> : publishingDaysLabel(days)}</dd>
+              </div>
             </dl>
             <div className="biz-foot">
               {editing ? (

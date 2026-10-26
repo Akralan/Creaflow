@@ -1,6 +1,5 @@
 import type { PerformanceOverview } from "@/lib/performance/overview";
 import type { Platform, ScriptStatus, CalendarStatus } from "@/lib/design/tokens";
-import type { SeriesRhythm } from "@/lib/seriesRhythm";
 import type { Form } from "@/lib/llm/postForms";
 
 export class ApiClientError extends Error {
@@ -305,54 +304,6 @@ export interface PostingGoal {
   userId: string;
   platform: Platform;
   targetCountPerWeek: number;
-}
-
-/** An episode of the editorial plan (docs/SPEC_REDACTEUR_EN_CHEF.md §2, Annexe B.5). */
-export interface ContentSeries {
-  id: string;
-  userId: string;
-  label: string;
-  description: string;
-  weight: number;
-  archived: boolean;
-  createdAt: string;
-  /** Unique role of the series (docs/SPEC_SERIES_ET_ROLES.md §1) — null only for data
-   *  predating the migration, such a series is ignored by the calendar. */
-  category: ContentCategorySummary | null;
-  /** Networks this series is restricted to; empty = visible on all networks. */
-  platforms: Platform[];
-  /** Topic this series draws its material from (topic selector, docs/SPEC_REDACTEUR_EN_CHEF.md) —
-   *  null if the series is attached to no specific topic (brand-level material). */
-  product: { id: string; name: string } | null;
-  /** Publishing days of the series (docs/SPEC_RYTHME_DES_SERIES.md) — null = no rhythm,
-   *  the series sets no slot. */
-  rhythm: SeriesRhythm | null;
-  /** The series' single reader (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4): a label from the topic's
-   *  portrait. Null until chosen. */
-  readerLabel: string | null;
-}
-/** An event as seen by a series plan. */
-export interface PlannedEvent {
-  id: string;
-  /** Le document du pointeur, tel qu'il est déposé dans la matière. */
-  file: string;
-  /** Le numéro de ligne, à partir de 1. */
-  line: number;
-  date: string | null;
-  /** Déjà servi par un post de la série. */
-  used: boolean;
-}
-
-export interface SeriesPlan {
-  readerLabel: string | null;
-  events: PlannedEvent[];
-}
-
-/** What saving changed in the calendar for a series (docs/SPEC_RYTHME_DES_SERIES.md §4). */
-export interface SeriesSlotChange {
-  created: number;
-  removed: number;
-  until: string;
 }
 
 export interface StoryboardStep {
@@ -809,38 +760,6 @@ export const api = {
     }>
   ) => post<{ categories: ContentCategory[] }>("/api/profile/content-categories", { categories }),
 
-  getContentSeries: () => apiFetch<{ series: ContentSeries[] }>("/api/series"),
-  // Reader, form and plan of a series (docs/SPEC_REDACTEUR_PAR_EVENEMENTS.md §4).
-  getSeriesReaders: (seriesId: string) => apiFetch<{ readers: PortraitReader[] }>(`/api/series/${seriesId}/reader`),
-  setSeriesReader: (seriesId: string, readerLabel: string) =>
-    apiFetch<{ series: ContentSeries | null }>(`/api/series/${seriesId}/reader`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ readerLabel }),
-    }),
-  getSeriesPlan: (seriesId: string) => apiFetch<{ plan: SeriesPlan }>(`/api/series/${seriesId}/plan`),
-  generateContentSeries: () => post<{ series: ContentSeries[] }>("/api/series"),
-  saveContentSeries: (
-    series: Array<{
-      id?: string;
-      label: string;
-      description: string;
-      weight?: number;
-      categoryId: string;
-      platforms: string[];
-      rhythm?: SeriesRhythm | null;
-    }>
-  ) => post<{ series: ContentSeries[]; slotChanges: Record<string, SeriesSlotChange> }>("/api/series", { series }),
-  /** Validation of the series after onboarding: keeps the checked ones, distributes the publishing
-   *  days among them, fills the calendar and schedules the main series. `planError`: the selection
-   *  is done, only the plan failed. */
-  confirmSeriesSelection: (keptIds: string[]) =>
-    post<{ plannedSeriesId: string | null; planError: string | null }>("/api/series/selection", { keptIds }),
-  /** Mode switch and/or linked topic (docs/SPEC_REDACTEUR_EN_CHEF.md §7) — dedicated endpoint rather than
-   *  saveContentSeries: the latter archives any active series omitted from the submitted array, unsuited to
-   *  editing one or two fields from a library card. */
-  updateSeriesFields: (id: string, fields: { productId: string | null }) =>
-    patch<{ series: ContentSeries }>(`/api/series/${id}`, fields),
 
 
   getProducts: () => apiFetch<{ products: Product[] }>("/api/products"),

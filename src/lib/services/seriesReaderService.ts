@@ -1,10 +1,9 @@
 import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { contentSeries, materialEvents, products, scripts, sourceMaterials } from "@/db/schema";
+import { contentSeries, materialEvents, scripts, sourceMaterials } from "@/db/schema";
 import { parseStoredReaderPortrait, type Reader } from "@/lib/llm/readerPortrait";
 import type { TimelineEntry, WrittenPost } from "@/lib/llm/pointerPostWriter";
 import type { Form, Genre } from "@/lib/llm/postForms";
-import { listActiveSeriesForUser } from "@/lib/services/seriesService";
 import { ApiError } from "@/lib/api/errors";
 
 /**
@@ -14,8 +13,8 @@ import { ApiError } from "@/lib/api/errors";
  * lecteur ne sert plus qu'à dire au rédacteur pour qui il écrit — c'est le seul usage qu'il avait
  * au banc, et c'est lui qui décide du registre du post.
  *
- * Il n'y a plus non plus de choix côté code : `planForSeries` ne désigne plus « le prochain
- * événement », c'est le rédacteur qui choisit dans la ligne de temps qu'on lui donne.
+ * Il n'y a plus non plus de choix côté code : c'est le rédacteur qui choisit dans la ligne de temps
+ * qu'on lui donne.
  */
 
 async function loadSeriesWithProduct(userId: string, seriesId: string) {
@@ -33,21 +32,8 @@ export function readersOfProduct(product: { readerPortrait: unknown } | null | u
 }
 
 /**
- * L'auteur choisit le lecteur de la série parmi le portrait de son sujet. C'est tout ce que la série
- * dit au rédacteur : pour qui il écrit.
- */
-export async function setSeriesReader(userId: string, seriesId: string, readerLabel: string) {
-  const series = await loadSeriesWithProduct(userId, seriesId);
-  if (!series.productId) throw new ApiError(400, "Attach the series to a subject first: the reader is chosen among the subject's audiences.");
-  const reader = readersOfProduct(series.product).find((r) => r.label === readerLabel);
-  if (!reader) throw new ApiError(400, "This audience is not in the subject's reader portrait.");
-  await db.update(contentSeries).set({ readerLabel: reader.label }).where(eq(contentSeries.id, seriesId));
-  return (await listActiveSeriesForUser(userId)).find((s) => s.id === seriesId) ?? null;
-}
-
-/**
- * Pour une série sans lecteur, prend le public principal du sujet. Appelé à la validation des séries
- * en fin d'onboarding ; jamais bloquant, une série peut rester sans lecteur.
+ * Pour une série sans lecteur, prend le public principal du sujet. Appelé à la création de la série
+ * du projet par /start ; jamais bloquant, une série peut rester sans lecteur.
  */
 export async function ensureReaderForSeries(userId: string, seriesId: string): Promise<void> {
   const series = await loadSeriesWithProduct(userId, seriesId);
@@ -127,20 +113,6 @@ export function restrictToLocked(timeline: TimelineEntry[], lockedIds: string[])
   return kept.length > 0 ? kept : timeline;
 }
 
-export interface SeriesPlan {
-  readerLabel: string | null;
-  /** La ligne de temps du sujet vue par cette série, dans l'ordre. Pour les écrans. */
-  events: TimelineEntry[];
-}
-
-/** La ligne de temps d'une série, pour l'affichage. Elle ne désigne plus de « prochain » événement. */
-export async function planForSeries(userId: string, seriesId: string): Promise<SeriesPlan> {
-  const series = await loadSeriesWithProduct(userId, seriesId);
-  if (!series.productId) return { readerLabel: series.readerLabel, events: [] };
-  const { timeline } = await loadTimeline(userId, series.productId, seriesId);
-  return { readerLabel: series.readerLabel, events: timeline };
-}
-
 async function loadTimeline(userId: string, productId: string, seriesId: string) {
   const [rows, posts, docs] = await Promise.all([
     db.query.materialEvents.findMany({
@@ -201,8 +173,12 @@ export async function buildPointerBrief(
   lockedForm: Form | null = null
 ): Promise<PointerBrief | null> {
   const series = await loadSeriesWithProduct(userId, seriesId);
-  if (!series.readerLabel || !series.productId) return null;
-  const reader = readersOfProduct(series.product).find((r) => r.label === series.readerLabel);
+  if (!series.productId) return null;
+  // Le lecteur suit Business context : un « Who it's for » modifié refait le portrait sous d'autres
+  // noms, et le nom retenu par la série peut ne plus exister. On prend alors le public principal
+  // plutôt que de retomber en silence sur le prompt V3, comme c'était le cas jusqu'au 2026-10-26.
+  const readers = readersOfProduct(series.product);
+  const reader = readers.find((r) => r.label === series.readerLabel) ?? readers[0];
   if (!reader) return null;
 
   const { timeline: all, posts, docs } = await loadTimeline(userId, series.productId, seriesId);
@@ -235,12 +211,4 @@ export async function buildPointerBrief(
     // Sans pointeur verrouillé, la forme ne peut pas être imposée : le rédacteur la prend du genre.
     lockedForm: lockedIds.length > 0 ? lockedForm : null,
   };
-}
-
-/** Le portrait du sujet d'une série, pour le sélecteur de lecteur. */
-export async function readersForSeries(userId: string, seriesId: string): Promise<Reader[]> {
-  const series = await loadSeriesWithProduct(userId, seriesId);
-  if (!series.productId) return [];
-  const product = await db.query.products.findFirst({ where: and(eq(products.id, series.productId), eq(products.userId, userId)) });
-  return readersOfProduct(product);
 }

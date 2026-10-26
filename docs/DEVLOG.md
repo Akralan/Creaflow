@@ -4,7 +4,7 @@
 
 ---
 
-## 2026-10-26 — Le ménage : l'assistant part, et deux défauts relus
+## 2026-10-26 — Le ménage : l'assistant et Direction partent, une série par projet
 
 **Retiré**, sur décision de l'utilisateur : l'**assistant éditorial** en entier (écran `/assistant`, caché depuis le 18, chat, pièces jointes, outils de lecture, prompt, routes `/api/assistant/*`), `/scripts/new` (plus aucun lien n'y menait) et le **rééquilibrage des rôles** (`categoryReweightService.ts`, suspendu, que plus aucun code n'appelait). Environ 3 000 lignes.
 
@@ -14,7 +14,13 @@
 - *La paire LinkedIn / X qui ne racontait pas la même chose* est **réglée** depuis la chaîne pointeur du 24, sans que ce soit noté : `writePost` reprend les événements et la forme de la version déjà écrite (`postPairService.ts`).
 - *Le premier post qui recopie la fiche produit* est **toujours là, pour une autre raison**. Le journal de commits donne maintenant des événements (100 sur MyTwin). Mais le « pourquoi tu fais du build in public » demandé sur `/start` (`creator_profiles.expectations`) **n'arrive plus au rédacteur** : `seriesReaderService` ne lui passe que la description et le problème. Il arrivait à l'ancien rédacteur d'origine, supprimé le 24. Preuve : le post 1 du banc MyTwin (`docs/tests/pointeurs/mytwin/posts-gpt-6-luna.txt`), « That's why we're building MyTwin Leaderboard: a system for… ». C'est le post envoyé par email. Correction (une ligne de prompt) laissée à une décision séparée.
 
-**Question ouverte**, posée par l'utilisateur : plusieurs séries ne servent à rien, puisqu'on fait du build in public global. À trancher.
+**Une série par projet, Direction retiré** (même jour, décision de l'utilisateur : « un build in public représente un peu tout », et la cible est déjà dans Business context). La série reste dans le modèle de données (le calendrier et le rédacteur passent par `seriesId`), mais elle est créée par le code, une par projet (`ensureProjectSeries`), et ne s'affiche plus. Plus d'appel au modèle pour proposer des séries (`seriesLabels.ts` supprimé). Retirés : l'écran Direction, toutes les routes `/api/series/*`, la sélection de fin d'onboarding, `SeriesContext` (fourni, jamais lu), l'étiquette de série sur les cartes de la semaine et la ligne « Series » du brief.
+
+Deux défauts trouvés en préparant ce retrait, corrigés avec :
+- **Les jours de publication de Settings ne changeaient rien au calendrier.** Seul le rythme de chaque série posait les créneaux, et il ne se réglait que dans Direction. Les jours vivent maintenant dans la carte du projet de Business context (retirés de Settings), et la route du profil applique un changement de jours au rythme des séries actives puis recalcule le calendrier (`applyPublishingDaysToSeries`).
+- **Le lecteur se perdait en silence.** La série retient le *nom* d'un public ; un « Who it's for » modifié refait le portrait sous d'autres noms, `buildPointerBrief` ne trouvait plus le lecteur et la génération retombait sans rien dire sur le prompt V3. Elle prend maintenant le public principal.
+
+Pas de migration pour les comptes qui ont plusieurs séries actives : la base de dev va être vidée (décision de l'utilisateur).
 
 `PRODUCT.md` est réécrit pour décrire ce que fait le code : il décrivait encore le fil narratif, la veille, le rééquilibrage, Instagram et l'onglet Topics.
 

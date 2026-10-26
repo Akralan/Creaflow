@@ -9,6 +9,7 @@ import { getStyleLearningStatus } from "@/lib/services/styleLearningService";
 import { handleApiError } from "@/lib/api/errors";
 import { expectationsSchema, postLanguageSchema, publishingDaysSchema, xHandleSchema } from "@/lib/validation";
 import { syncGoalCountsToPublishingDays } from "@/lib/services/postingGoalsService";
+import { applyPublishingDaysToSeries } from "@/lib/services/seriesService";
 
 const profileSchema = z.object({
   brandName: z.string().min(1),
@@ -78,7 +79,12 @@ export async function POST(request: NextRequest) {
           .values({ userId, ...body })
           .returning();
 
-    if (body.publishingDays) await syncGoalCountsToPublishingDays(userId, body.publishingDays);
+    if (body.publishingDays) {
+      await syncGoalCountsToPublishingDays(userId, body.publishingDays);
+      // The days are the rhythm of the project's series: changed, the calendar follows (2026-10-26).
+      const before = [...(existing?.publishingDays ?? [])].sort().join(",");
+      if ([...body.publishingDays].sort().join(",") !== before) await applyPublishingDaysToSeries(userId, body.publishingDays);
+    }
 
     return NextResponse.json({ profile }, { status: existing ? 200 : 201 });
   } catch (error) {

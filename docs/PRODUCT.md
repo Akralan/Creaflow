@@ -33,9 +33,9 @@ Le parcours en six écrans de `/onboarding` (`docs/SPEC_ONBOARDING_MVP.md` : Git
 
 - **Your content week** (`/calendar`) : les posts de la semaine à gauche, le post ouvert à droite, avec un onglet LinkedIn et un onglet X. On y retouche par l'IA (trois puces et un champ libre), on copie, on voit la source, on marque le post « Ready ». On y choisit aussi le visuel (image, carrousel, animation). **Prepare next week** écrit la semaine suivante.
 - **Content plan** (`/plan`) : les quatre semaines à venir.
-- **Business context** (`/context`) : les trois champs du projet, les sources connectées (brancher Notion, Linear ou un autre dépôt sur le projet existant, `docs/SPEC_RATTACHEMENT_SOURCES.md`), un badge de fraîcheur, et **Understand it**, qui montre les publics du projet et ses événements comptés par genre (`docs/SPEC_COMPRENDRE_LE_PROJET.md`).
+- **Business context** (`/context`) : les trois champs du projet et les **jours de publication**, les sources connectées (brancher Notion, Linear ou un autre dépôt sur le projet existant, `docs/SPEC_RATTACHEMENT_SOURCES.md`), un badge de fraîcheur, et **Understand it**, qui montre les publics du projet et ses événements comptés par genre (`docs/SPEC_COMPRENDRE_LE_PROJET.md`).
 - **Performance** (`/performance`) : un mois de posts LinkedIn et X, semaine par semaine (`docs/SPEC_PERFORMANCE.md`). X est lu par Apify depuis le pseudo, LinkedIn par l'API officielle (accès pas encore obtenu). Un post reconnu passe en **Posted**. L'écran affiche les chiffres, **mais le rédacteur ne les lit pas encore**.
-- Dans le menu du compte : **Direction** (les séries) et **Settings** (profil, style, réseaux, facturation, compte).
+- Dans le menu du compte : **Settings** (profil, style, réseaux, facturation, compte). Direction est retiré le 2026-10-26.
 
 **Statuts d'un post** : Draft, Ready, Posted (posé par le back-end seulement).
 
@@ -69,11 +69,13 @@ Chaque post finalisé après retouche nourrit, sur demande, une passe d'apprenti
 
 Le visuel d'un post se choisit post par post : une maquette HTML composée à partir des vraies photos (montage, détourage Photoroom optionnel, éléments d'interface), un carrousel, ou une **animation** écrite par le modèle sous forme de page HTML animée, exportée en MP4 (`docs/SPEC_COMPOSITION_VISUELLE.md`, `docs/SPEC_ANIMATION_HTML_LIBRE.md`). Aucune image n'est générée par IA.
 
-## 5. Séries et calendrier
+## 5. Calendrier : une série par projet, invisible
 
-Le calendrier se tient seul sur 28 jours : chaque série a son rythme (`docs/SPEC_RYTHME_DES_SERIES.md`), et chaque jour de ce rythme donne un post par réseau actif. À l'entrée par `/start`, une série **devlog** prend tous les jours de publication ; les autres séries proposées restent sans rythme jusqu'à ce qu'on les allume dans Direction.
+**Décidé le 2026-10-26** : un build in public raconte tout le projet, plusieurs séries ne servaient à rien. Chaque projet a **une seule série**, créée par le code à l'inscription (`ensureProjectSeries`, plus d'appel au modèle pour proposer des séries), que l'auteur ne voit nulle part. Elle reste la mécanique du calendrier et du rédacteur :
+- son **rythme** est celui des jours de publication réglés dans Business context ; les changer recalcule le calendrier (`applyPublishingDaysToSeries`) ;
+- son **lecteur** est le public principal du portrait du projet, construit à partir de « Who it's for » ; si le portrait change de noms, le rédacteur reprend le public principal au lieu de retomber sur V3.
 
-> **Question ouverte (2026-10-26)** : le fondateur constate que plusieurs séries ne servent à rien, puisqu'on fait du build in public global sur le projet. À trancher : une seule série par projet, ou plus de série du tout.
+Le calendrier se tient seul sur 28 jours : chaque jour de publication donne un post par réseau actif (`docs/SPEC_RYTHME_DES_SERIES.md`).
 
 ## 6. Compte, offre et conformité
 
@@ -94,12 +96,12 @@ Le calendrier se tient seul sur 28 jours : chaque série a son rythme (`docs/SPE
 | Mot de passe | 2026-10-25 | `SPEC_CONNEXION_PAR_LIEN.md` |
 | Veille d'inspiration | 2026-10-25 | `SPEC_MEMOIRE_ET_VEILLE.md` |
 | Assistant éditorial (chat, pièces jointes, propositions), rééquilibrage des rôles, `/scripts/new` | 2026-10-26 | `DEVLOG.md` du 2026-10-26 |
+| Séries multiples, écran Direction, suggestion de séries par le modèle | 2026-10-26 | `DEVLOG.md` du 2026-10-26 |
 
 ## 8. Prochaines étapes
 
 1. **Faire tester par 5 à 10 développeurs extérieurs** et mesurer l'écart entre le brouillon et ce qui est publié. Rien d'autre ne dit si le produit tient sa promesse.
 2. Mettre en ligne la version actuelle : `URGENT.md` (`EMAIL_LOG_LINKS`), Brevo, `publisher.ts`, migrations `0047`-`0060` sur le VPS, sauvegardes planifiées.
 3. Rebrancher le « pourquoi » de l'auteur dans le rédacteur : il est demandé sur `/start` mais ne lui parvient plus depuis le 2026-10-24, et le premier post retombe en plaquette produit (`DEVLOG.md` du 2026-10-26).
-4. Trancher la question des séries (§5).
-5. Faire lire les performances au rédacteur.
-6. Rendre une porte à la matière non connectée (notes collées) si la cible sans dépôt revient.
+4. Faire lire les performances au rédacteur.
+5. Rendre une porte à la matière non connectée (notes collées) si la cible sans dépôt revient.
