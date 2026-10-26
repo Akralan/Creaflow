@@ -1,4 +1,5 @@
 import type { PerformanceOverview } from "@/lib/performance/overview";
+import type { Phase } from "@/lib/phases";
 import type { Platform, ScriptStatus, CalendarStatus } from "@/lib/design/tokens";
 import type { Form } from "@/lib/llm/postForms";
 
@@ -271,6 +272,8 @@ export interface Product {
   problem?: string | null;
   /** Reader portrait (docs/SPEC_PROMPT_GENERATION_V3.md §2.2) — null until it is produced. */
   readerPortrait: ReaderPortrait | null;
+  /** Où en est le projet (src/lib/phases.ts). */
+  phase: Phase;
 }
 
 export interface PortraitReader {
@@ -615,7 +618,7 @@ export interface PostAnimation {
 
 export interface StartAnalysis {
   repo: { fullName: string; name: string; description: string | null; defaultBranch: string; language: string | null };
-  card: { name: string; tagline: string; building: string; who: string; problem: string };
+  card: { name: string; tagline: string; building: string; who: string; problem: string; phase: Phase; phaseReason: string };
   extracted: boolean;
   failureReason: string | null;
 }
@@ -629,6 +632,8 @@ export interface StartCreateInput {
   /** Pourquoi la personne se met à publier — le sujet du post d'origine. */
   why?: string;
   days: number[];
+  /** Où en est le projet : devinée par la carte, corrigée par la personne. */
+  phase: Phase;
   email: string;
 }
 
@@ -768,7 +773,7 @@ export const api = {
   ) => post<{ products: Product[] }>("/api/products", items),
   updateProduct: (
     id: string,
-    data: Partial<{ name: string; description: string; valueProposition: string; photoUrl: string; targetAudience: string | null; problem: string | null }>
+    data: Partial<{ name: string; description: string; valueProposition: string; photoUrl: string; targetAudience: string | null; problem: string | null; phase: Phase }>
   ) => put<{ product: Product }>(`/api/products/${id}`, data),
   deleteProduct: (id: string) => del<{ ok: true }>(`/api/products/${id}`),
   regenerateReaderPortrait: (id: string) => post<{ readerPortrait: ReaderPortrait }>(`/api/products/${id}/reader-portrait`, {}),

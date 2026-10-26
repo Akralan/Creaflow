@@ -17,6 +17,7 @@ import { ensureProjectSeries, listActiveSeriesForUser } from "@/lib/services/ser
 import { syncSource } from "@/lib/services/sourceConnectorService";
 import { START_POST_PLATFORM } from "@/lib/services/startService";
 import { ApiError } from "@/lib/api/errors";
+import { GithubRateLimitError } from "@/lib/github/client";
 
 /**
  * Génération en fond derrière /start (docs/SPEC_ENTREE_PAR_LE_REPO.md §5-§6). Chaque étape est
@@ -145,7 +146,14 @@ export async function runStartJob(userId: string): Promise<void> {
         scriptId = (await writeSlotVersion(userId, slot)).id;
       }
     } catch (error) {
-      const reason = error instanceof ApiError ? error.message : llmFailureMessage(error);
+      // Une limite GitHub n'est pas une panne de l'IA : `llmFailureMessage` la lisait comme un 429 d'OpenAI
+      // et affichait « The AI service is overloaded » (test du 2026-10-26).
+      const reason =
+        error instanceof ApiError
+          ? error.message
+          : error instanceof GithubRateLimitError
+            ? "GitHub is limiting how much of your repository we can read right now. Try again in a few minutes."
+            : llmFailureMessage(error);
       logger.error("Start generation failed", error, { userId });
       await setStage(userId, "failed", reason).catch(() => undefined);
     }
@@ -171,7 +179,10 @@ export async function requestOtherPosts(userId: string): Promise<boolean> {
 
   const series = (await listActiveSeriesForUser(userId))[0];
   if (!series) return false;
-  const slots = (await openDevlogSlots(userId, series.id)).slice(0, 2);
+  // Tous les jours cochés de la semaine, pas deux : avec six jours, quatre restaient vides (test du
+  // 2026-10-26). La semaine court sur sept jours à partir d'aujourd'hui, comme l'essai.
+  const weekEnd = new Date(todayUtc().getTime() + 7 * 24 * 60 * 60 * 1000);
+  const slots = (await openDevlogSlots(userId, series.id)).filter((slot) => slot.scheduledDate < weekEnd);
   if (slots.length === 0) return false;
   // Les deux réseaux de chaque post chargent ensemble.
   for (const slot of slots) {

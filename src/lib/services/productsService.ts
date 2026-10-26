@@ -1,4 +1,5 @@
 import { and, count, eq } from "drizzle-orm";
+import type { Phase } from "@/lib/phases";
 import { db } from "@/db";
 import { products } from "@/db/schema";
 import { ApiError } from "@/lib/api/errors";
@@ -22,6 +23,8 @@ interface ProductUpdateInput {
   targetAudience?: string | null;
   /** The problem the project solves (docs/SPEC_ENTREE_PAR_LE_REPO.md D14), nullable like the audience. */
   problem?: string | null;
+  /** Où en est le projet (src/lib/phases.ts) : décide des formes de post permises. */
+  phase?: Phase;
 }
 
 export async function createProductsForUser(userId: string, items: ProductCreateInput[]) {

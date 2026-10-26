@@ -13,6 +13,7 @@
  * Les identifiants de genre sont ceux de la spec, en français, pour que spec, prompt, base et banc
  * parlent le même mot. Les formes et les étiquettes sont en anglais, comme l'app.
  */
+import type { Phase } from "@/lib/phases";
 import { POST_EXAMPLES } from "./postExamples.generated";
 
 export const GENRES = [
@@ -56,6 +57,10 @@ export const FORMS = [
   "backstage",
   "curation",
   "origin",
+  // Ajoutées le 2026-10-26 avec les phases (docs/TODO.md) : montrer le produit marcher pendant la
+  // construction, et appeler des testeurs en bêta. Sans modèle dans le relevé LinkedIn.
+  "demo",
+  "beta_call",
 ] as const;
 export type Form = (typeof FORMS)[number];
 
@@ -80,6 +85,8 @@ export const FORM_LABELS: Record<Form, string | null> = {
   backstage: "Behind the scenes",
   curation: "Reading",
   origin: "Origin",
+  demo: "Demo",
+  beta_call: "Beta call",
 };
 
 const GENRE_FORM: Record<Genre, Form> = {
@@ -99,27 +106,80 @@ const GENRE_FORM: Record<Genre, Form> = {
 };
 
 /**
+ * Les formes que chaque phase permet (docs/TODO.md, « Phases du projet », répartition validée le
+ * 2026-10-26). `launch` n'existe qu'au lancement : avant, une livraison utilisable est une démo.
+ */
+export const PHASE_FORMS: Record<Phase, readonly Form[]> = {
+  engage: ["origin", "backstage", "lesson", "question", "promise", "curation"],
+  build: ["episode", "demo", "backstage", "lesson", "failure", "number", "question", "promise", "promise_kept", "looking_back", "teaser", "curation"],
+  beta: ["beta_call", "demo", "episode", "failure", "question", "teaser", "promise_kept", "backstage"],
+  launch: ["launch", "offer", "demo", "proof"],
+  grow: ["number", "proof", "lesson", "failure", "looking_back", "promise_kept", "offer", "episode", "curation", "backstage"],
+};
+
+/** La forme d'un événement dont la forme naturelle n'est pas permise dans la phase. */
+const PHASE_FALLBACK: Record<Phase, Form> = {
+  engage: "backstage",
+  build: "episode",
+  beta: "episode",
+  launch: "demo",
+  grow: "episode",
+};
+
+export function isFormAllowed(form: Form, phase: Phase | null | undefined): boolean {
+  return !phase || PHASE_FORMS[phase].includes(form);
+}
+
+/** Ce qu'une livraison utilisable par d'autres devient, selon la phase. Sans phase : un lancement. */
+function availableDeliveryForm(phase: Phase | null | undefined): Form {
+  if (!phase || phase === "launch") return "launch";
+  if (phase === "build" || phase === "beta") return "demo";
+  return "episode";
+}
+
+/**
  * La table genre → forme de la spec. `tient` gagne sur le genre : un événement qui réalise un
  * engagement est une promesse tenue, qui revient sur une décision est un « looking back », qui
  * réalise une annonce est un lancement. Puis la disponibilité fait d'une livraison un lancement.
+ *
+ * Avec une phase, le lancement et l'offre prennent la forme de la phase (démo, appel à bêta), et une
+ * forme que la phase ne permet pas retombe sur celle de la phase (`PHASE_FALLBACK`).
  */
-export function formFor(entry: { genre: Genre; disponible: boolean; tientGenre: Genre | null }): Form {
+export function formFor(entry: { genre: Genre; disponible: boolean; tientGenre: Genre | null }, phase?: Phase | null): Form {
+  const natural = naturalForm(entry, phase);
+  return isFormAllowed(natural, phase) ? natural : PHASE_FALLBACK[phase as Phase];
+}
+
+function naturalForm(entry: { genre: Genre; disponible: boolean; tientGenre: Genre | null }, phase: Phase | null | undefined): Form {
   if (entry.tientGenre === "engagement") return "promise_kept";
   if (entry.tientGenre === "décision") return "looking_back";
-  if (entry.tientGenre === "annonce") return "launch";
-  if (entry.genre === "livraison" && entry.disponible) return "launch";
+  if (entry.tientGenre === "annonce") return availableDeliveryForm(phase);
+  if (entry.genre === "livraison" && entry.disponible) return availableDeliveryForm(phase);
+  if (entry.genre === "offre" && phase === "beta") return "beta_call";
   return GENRE_FORM[entry.genre];
 }
 
 /** La table en une ligne par genre, pour le prompt du rédacteur. Rien d'autre : pas de rubrique de forme. */
-export function genreToFormTable(): string {
-  const rows = GENRES.map((g) => `${g} → ${GENRE_FORM[g]}`);
-  rows.splice(1, 0, "livraison, marked (available) → launch");
+export function genreToFormTable(phase?: Phase | null): string {
+  if (!phase) {
+    const rows = GENRES.map((g) => `${g} → ${GENRE_FORM[g]}`);
+    rows.splice(1, 0, "livraison, marked (available) → launch");
+    return [
+      ...rows,
+      "an event that fulfills an earlier engagement → promise_kept",
+      "an event that fulfills an earlier annonce → launch",
+      "an event that looks back on an earlier décision → looking_back",
+    ].join("\n");
+  }
+  const at = (genre: Genre, extra: Partial<{ disponible: boolean; tientGenre: Genre }> = {}) =>
+    formFor({ genre, disponible: extra.disponible ?? false, tientGenre: extra.tientGenre ?? null }, phase);
+  const rows = GENRES.map((g) => `${g} → ${at(g)}`);
+  rows.splice(1, 0, `livraison, marked (available) → ${at("livraison", { disponible: true })}`);
   return [
     ...rows,
-    "an event that fulfills an earlier engagement → promise_kept",
-    "an event that fulfills an earlier annonce → launch",
-    "an event that looks back on an earlier décision → looking_back",
+    `an event that fulfills an earlier engagement → ${at("livraison", { tientGenre: "engagement" })}`,
+    `an event that fulfills an earlier annonce → ${at("livraison", { tientGenre: "annonce" })}`,
+    `an event that looks back on an earlier décision → ${at("livraison", { tientGenre: "décision" })}`,
   ].join("\n");
 }
 
@@ -137,15 +197,17 @@ interface FormSpec {
   never: string;
 }
 
-const FORM_SPECS: Record<Exclude<Form, "looking_back">, FormSpec> = {
+const FORM_SPECS: Record<Form, FormSpec> = {
+  // Réécrite le 2026-10-26 (docs/tests/POSTS_OBJECTIFS.md) : l'ancienne forme était un patron de
+  // changelog — le fait, l'avant, la raison, « ce que ça change pour l'utilisateur » — et le rédacteur
+  // la suivait à la lettre.
   episode: {
-    reads: "one event.",
-    opens:
-      "on the fact, in the past tense, with no preamble. If the material holds a before, the before comes right after the fact (\"it used to be a Chrome tab, now it is an icon\").",
+    reads: "one event — and around it, enough to find what it meant to the author.",
+    opens: "on the moment, not on the change: where the author was, what they saw, what went wrong or surprised them.",
     body:
-      "the reason, when there is one, comes second and comes from someone (\"the doctors told me they work with gloves on\"). One fact only; technical details are visible consequences, not library names.",
-    ends: "on what it changes for the person who uses it, or on the next fact already under way. Never on a moral.",
-    never: "a feature list, a promise, a question to the reader.",
+      "what was at stake for them, then what they did. The change itself comes as part of the story, said the way the author would say it to a friend — never the way it reads in the code.",
+    ends: "on where it leaves them: what they understood, what still bothers them, what comes next. Never on a summary of the change.",
+    never: "a changelog, a before/after list of features, the names of the machinery.",
   },
   launch: {
     reads: "one event, plus the announcement it fulfills if there is one.",
@@ -172,13 +234,13 @@ const FORM_SPECS: Record<Exclude<Form, "looking_back">, FormSpec> = {
     ends: "on one short sentence saying what this number makes possible, or not yet. No projected number.",
     never: "several unrelated numbers, a percentage without its base, a market number.",
   },
+  // Réécrite le 2026-10-26 (docs/tests/POSTS_OBJECTIFS.md) : elle rendait trois phrases sèches.
   failure: {
-    reads: "one event.",
-    opens:
-      "on what was expected, then the gap, in two dry sentences (\"AI was supposed to make us work less. I have never been this tired.\"; \"Sending everyone to self-serve. That was a mistake.\").",
-    body: "the facts of what happened, in order, with the numbers if there are any. No single cause assigned, no culprit.",
-    ends: "on the current state, unresolved if it is. No \"but we learned that\", no promise to do better.",
-    never: "a lesson, an excuse, a positive turn in the last sentence.",
+    reads: "one event — and around it, what the author expected.",
+    opens: "on what was expected, then the gap, in two short sentences.",
+    body: "how the author lived it: the moment they saw it, what they tried, what it cost them — time, confidence, plans. The facts in order, nothing softened.",
+    ends: "on where it leaves them: unresolved if it is, or what they now understand. Never on a forced happy turn.",
+    never: "an excuse, a culprit, a lesson tacked on at the end, the names of the machinery.",
   },
   lesson: {
     reads: "one event.",
@@ -205,6 +267,16 @@ const FORM_SPECS: Record<Exclude<Form, "looking_back">, FormSpec> = {
     body: "what triggered the commitment (a recent fact), then the path in two or three steps, then today's starting point, as a number.",
     ends: "on the starting point. It is what lets the follow-up post say \"I said X, I started from Y\".",
     never: "the conditional, \"I hope\", a commitment without a date.",
+  },
+  // Sa propre forme depuis le 2026-10-26 (elle prenait celle de promise_kept, qui rendait une liste
+  // de changements « dans l'ordre, avec les chiffres »).
+  looking_back: {
+    reads: "two events: the original decision (open it at the address the timeline gives you) and the one that comes back to it.",
+    opens: "on the decision as the author made it, with its moment and what they were betting on (\"Two weeks ago, I bet that…\").",
+    body:
+      "what made it a bet — what they feared, what they hoped; then what actually happened since, told as what the author lived, not as a list of changes; the verdict, in their own words.",
+    ends: "on what the author thinks now: kept, regretted, or still unsure.",
+    never: "a list of what was changed, a justification of the original decision, the names of the machinery.",
   },
   promise_kept: {
     reads:
@@ -246,6 +318,23 @@ const FORM_SPECS: Record<Exclude<Form, "looking_back">, FormSpec> = {
     ends: "on the credit or the link.",
     never: "a summary of the article, a copy, \"a must-read\" without a personal sentence.",
   },
+  demo: {
+    reads: "one event: something the author built that already works.",
+    opens:
+      "on what you see when you use it, in the present tense, one concrete moment (\"I paste a repo link; 40 seconds later, the first post is on screen\").",
+    body:
+      "one use, walked through step by step, as the person using it would live it; then what it replaces, in one sentence. It is shown working, not announced: it can still be rough, and saying what is rough is allowed.",
+    ends: "on what comes next for it, or on what is still missing. Never on access, a price or a link.",
+    never: "\"now available\", a launch tone, a feature list, a superlative.",
+  },
+  beta_call: {
+    reads: "one event: the author opening the product to a few testers.",
+    opens:
+      "on who the author is looking for and what for, in the first sentence (\"I'm looking for 10 devs who ship a tool and never post about it\").",
+    body: "what the testers get, what it costs them (time, feedback), and what is still rough, said honestly. Numbers when the material has them.",
+    ends: "on the precise action (reply, message, a link) and the number of places when the material gives one.",
+    never: "manufactured scarcity, a superlative, a launch tone, several asks.",
+  },
   origin: {
     reads:
       "the triggering event if there is one, and the problem the project solves; otherwise the material and the author's own words.",
@@ -270,10 +359,10 @@ export function formExamples(form: Form): string {
 
 /** Le texte que `read_form` rend : qui parle, la forme en cinq rubriques, puis ses modèles. */
 export function formText(form: Form): string {
-  const spec = FORM_SPECS[form === "looking_back" ? "promise_kept" : form];
+  const spec = FORM_SPECS[form];
   return `${WHO_SPEAKS}
 
-Form: ${form === "looking_back" ? "promise_kept (looking back on a decision)" : form}
+Form: ${form}
 Reads: ${spec.reads}
 Opens: ${spec.opens}
 Body: ${spec.body}

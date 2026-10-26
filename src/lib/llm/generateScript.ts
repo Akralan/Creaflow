@@ -11,6 +11,8 @@ import {
 import { SCRIPT_SYSTEM_PROMPT, buildScriptUserMessage, type ScriptGenerationContext } from "./prompts";
 import { buildRefusalBlock, checkGeneratedPost, type CheckContext } from "./scriptChecks";
 import { splitHookAndCaption, writePost } from "./pointerPostWriter";
+import { verifyPostSources } from "./pointerVerifier";
+import { logger } from "@/lib/logger";
 import { DEFAULT_POST_LANGUAGE } from "@/lib/language";
 import { enforceStoryboardCount } from "@/lib/visualDesign/visualFormat";
 
@@ -59,6 +61,7 @@ export async function generateScript(context: ScriptGenerationContext): Promise<
       // La forme de la version déjà écrite (X après LinkedIn) ou du post remplacé (« another idea,
       // same story ») : la forme suit les pointeurs (docs/FORMES_ET_GENRES.md, plan).
       lockedForm: brief.lockedForm ?? null,
+      phase: brief.phase,
     });
     // Sans publish_post, le rédacteur a conclu en prose : `written.text` est sa réponse
     // conversationnelle, pas un post, et l'enregistrer publierait « Voici le post que je propose… ».
@@ -66,6 +69,19 @@ export async function generateScript(context: ScriptGenerationContext): Promise<
     // armer son second essai.
     if (!written.handed) {
       throw new Error(`The writer submitted no post: ${written.text.slice(0, 200)}`);
+    }
+    // Ce que le post raconte vraiment, vérifié par un second appel : c'est ce qui sera marqué comme
+    // raconté. Pas quand les pointeurs sont imposés (l'autre réseau, « another idea, same story »).
+    let eventIds = written.eventIds;
+    if (!brief.lockedForm) {
+      try {
+        const facts = brief.allTimeline.map((e) => ({ id: e.id, address: `${e.file}:${e.line}`, text: brief.files.get(e.file)?.[e.line - 1] ?? "" }));
+        const verified = await verifyPostSources(written.text, facts);
+        logger.info("Post sources verified", { declared: written.eventIds, verified, changed: verified.join() !== written.eventIds.join() });
+        if (verified.length > 0) eventIds = verified;
+      } catch (error) {
+        logger.warn("Post source verification failed, keeping the declared sources", { error: error instanceof Error ? error.message : String(error) });
+      }
     }
     const { hookText, caption } = splitHookAndCaption(written.text);
     return {
@@ -83,7 +99,7 @@ export async function generateScript(context: ScriptGenerationContext): Promise<
       // Les promesses faites étaient lues par le fil narratif pour écrire la « promesse tenue ».
       // Le fil est parti : plus personne ne les relit.
       promisesMade: [],
-      eventIds: written.eventIds,
+      eventIds,
       form: written.form,
     };
   }

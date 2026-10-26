@@ -18,6 +18,7 @@ import { llmFailureMessage } from "@/lib/llm/errors";
 import { ApiError } from "@/lib/api/errors";
 import { logger } from "@/lib/logger";
 import { publishingDaysSchema } from "@/lib/validation";
+import { DEFAULT_PHASE, PHASES } from "@/lib/phases";
 
 /**
  * Entrée par le repo (docs/SPEC_ENTREE_PAR_LE_REPO.md §4-§5) : lire un dépôt public sans compte,
@@ -127,7 +128,7 @@ export async function analyzeRepo(rawUrl: string): Promise<StartAnalysis> {
     logger.warn("Repo card extraction failed", { error: error instanceof Error ? error.message : String(error) });
     return {
       repo,
-      card: { name: repo.name, tagline: repo.description ?? "", building: "", who: "", problem: "" },
+      card: { name: repo.name, tagline: repo.description ?? "", building: "", who: "", problem: "", phase: DEFAULT_PHASE, phaseReason: "" },
       extracted: false,
       failureReason: llmFailureMessage(error),
     };
@@ -144,6 +145,8 @@ export const startSchema = z.object({
   // c'est le sujet du post d'origine : sans lui, l'origine recopie la fiche produit.
   why: z.string().trim().max(600).optional(),
   days: publishingDaysSchema.default(START_DEFAULT_DAYS),
+  // Devinée par la carte, corrigée par la personne (src/lib/phases.ts).
+  phase: z.enum(PHASES).default(DEFAULT_PHASE),
   email: z.email(),
 });
 export type StartInput = z.infer<typeof startSchema>;
@@ -207,7 +210,7 @@ export async function createStartAccount(input: StartInput): Promise<StartResult
       });
       const [product] = await tx
         .insert(products)
-        .values({ userId: user.id, name: productName, description: input.building, targetAudience: input.who || null, problem: input.problem || null })
+        .values({ userId: user.id, name: productName, description: input.building, targetAudience: input.who || null, problem: input.problem || null, phase: input.phase })
         .returning({ id: products.id });
       await tx.insert(materialSources).values({
         userId: user.id,

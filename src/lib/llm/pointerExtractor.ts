@@ -112,7 +112,25 @@ export function buildExtractorTool(): LlmToolDefinition {
  * LA seule phrase de définition du prompt. Elle est isolée ici exprès : c'est le seul endroit où
  * l'extracteur apprend ce qu'est un événement, donc le seul levier si le relevé est mauvais.
  */
-export const EVENT_DEFINITION = "An event is a line of this document where something happened.";
+// 2026-10-26 : « where something happened » donnait 1 880 événements sur le dépôt tellovo, dont des
+// renommages et des « tests verts ». Le choix du fait se fait ici, en amont (docs/tests/POSTS_OBJECTIFS.md).
+export const EVENT_DEFINITION =
+  "An event is a line of this document where something happened that the author could tell as a story to someone outside the project: something was hoped, risked, lost, found, decided against the odds, or surprised them. A change in the machinery alone is not an event: renaming, refactoring, moving a file, tests passing, a migration applied, a detail of a screen.";
+
+/** Le seuil (2026-10-26) : aucun quota par document — un document peut en porter douze — mais un tri
+ *  sur l'intérêt de la ligne. La définition seule n'avait retiré qu'un pointeur sur cinq (1 880 → 1 484). */
+export const EVENT_THRESHOLD =
+  "Most lines of a working document are not events, and many documents hold none: plans, specifications and reference pages mostly describe how things will work, not what happened. Mark a line only if a stranger would want to hear about it — and mark every such line, however many there are.";
+
+/** La nature du document d'abord (2026-10-26) : 184 pointeurs venaient du catalogue des posts d'autres
+ *  auteurs, pris pour des faits du projet, et les specs donnaient leurs règles comme des décisions. */
+/** La taille d'un événement (2026-10-26) : une décision racontée sur onze lignes d'une spec donnait
+ *  onze pointeurs, dont les routes et la colonne qui ressortaient ensuite dans les posts. */
+export const EVENT_SIZE =
+  "An event is a story, not a detail of one. When several lines — here or in the list of facts already marked — tell the same story, it is one event: mark only the line that tells it best, or nothing if it is already marked.";
+
+export const DOCUMENT_NATURE =
+  "First decide what this document is. If it is about other people's work — a catalogue, research, collected posts — it holds no event of this project: mark nothing. If it describes how something works — a specification, a guide — mark only what the author lived while making it, not the rules it states: in a specification, the lived moments are where the author's own words or a dated decision with its reason appear. If it summarises other documents of this project — an index, a table of contents, a list of the docs and what each one says — it holds no event: the facts are in those documents. Mark nothing.";
 
 /**
  * Les treize genres et leurs règles (docs/FORMES_ET_GENRES.md Partie 1), première version pour le
@@ -149,7 +167,9 @@ Rules:
 export function buildExtractorSystemPrompt(): string {
   return `You read one document and you mark where its events are, and what kind of fact each one is.
 
-${EVENT_DEFINITION}
+${EVENT_DEFINITION} ${EVENT_THRESHOLD} ${EVENT_SIZE}
+
+${DOCUMENT_NATURE}
 
 You record nothing about an event — no title, no summary, no consequence, no audience — except its line number, the date if the line carries one, and its genre: what kind of fact it is, one of thirteen, defined below. Whoever uses it later opens the document at that line and reads it themselves.
 
@@ -176,6 +196,27 @@ export function numberAndSplit(text: string, partChars = PART_CHARS): string[] {
   }
   if (current.length > 0) parts.push(current.join("\n"));
   return parts;
+}
+
+/** Un fait déjà marqué dans un autre document du projet, avec le texte de sa ligne. */
+export interface KnownFact {
+  file: string;
+  line: number;
+  text: string;
+}
+
+/** Longueur gardée de chaque fait connu : assez pour reconnaître le fait, pas pour le raconter. */
+export const KNOWN_FACT_CHARS = 160;
+
+/**
+ * Le bloc <already_marked> (2026-10-26) : un même fait écrit dans le devlog, l'index et un commit
+ * donnait trois pointeurs, et le rédacteur racontait trois fois la même histoire. Les journaux sont
+ * lus d'abord (materialEventService), donc c'est leur version, vécue et détaillée, qui reste.
+ */
+export function knownBlock(known: KnownFact[]): string {
+  if (known.length === 0) return "";
+  const rows = known.map((k) => `${k.file}:${k.line} · ${k.text.trim().slice(0, KNOWN_FACT_CHARS)}`);
+  return `\n\n<already_marked>\nA fact already in this list is not a new event, even told in other words or with more detail: do not mark it again.\n${rows.join("\n")}\n</already_marked>`;
 }
 
 /** Le bloc <open> du message utilisateur : rien quand la liste est vide. */
@@ -210,7 +251,8 @@ export function normalizePointer(
 /** Les pointeurs d'un document. `file` est le nom du document, il n'est jamais demandé au modèle. */
 export async function extractPointers(
   doc: { file: string; text: string },
-  open: OpenEvent[] = []
+  open: OpenEvent[] = [],
+  known: KnownFact[] = []
 ): Promise<{ pointers: Pointer[]; calls: number }> {
   const parts = numberAndSplit(doc.text);
   const tool = buildExtractorTool();
@@ -222,7 +264,7 @@ export async function extractPointers(
   for (const [i, part] of parts.entries()) {
     const raw = await callStructured({
       system,
-      userMessage: `Document: ${doc.file}\nPart ${i + 1} of ${parts.length}. Line numbers are those of the whole document.${openBlock(open)}\n\n${part}`,
+      userMessage: `Document: ${doc.file}\nPart ${i + 1} of ${parts.length}. Line numbers are those of the whole document.${openBlock(open)}${knownBlock(known)}\n\n${part}`,
       tool,
       maxTokens: MAX_OUTPUT_TOKENS,
       strict: true,

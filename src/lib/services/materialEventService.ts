@@ -2,7 +2,7 @@ import { after } from "next/server";
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { materialEvents, materialSources, products, sourceMaterials } from "@/db/schema";
-import { extractPointers, type OpenEvent } from "@/lib/llm/pointerExtractor";
+import { extractPointers, type KnownFact, type OpenEvent } from "@/lib/llm/pointerExtractor";
 import { HOLDABLE_GENRES } from "@/lib/llm/postForms";
 import { keepOldestTrigger, openEventsFor } from "@/lib/services/eventGenres";
 import { ApiError } from "@/lib/api/errors";
@@ -90,6 +90,31 @@ async function loadOpenEvents(userId: string, productId: string): Promise<OpenEv
   );
 }
 
+const JOURNAL_DOCUMENT = /commit log|devlog|dev-log|changelog|journal|history/i;
+
+export function isJournalDocument(title: string | null): boolean {
+  return title !== null && JOURNAL_DOCUMENT.test(title);
+}
+
+/** Les faits déjà marqués dans le sujet, avec le texte de leur ligne : l'extracteur ne les remarque pas. */
+async function loadKnownFacts(userId: string, productId: string): Promise<KnownFact[]> {
+  const rows = await db.query.materialEvents.findMany({
+    where: and(eq(materialEvents.userId, userId), eq(materialEvents.productId, productId)),
+    columns: { line: true, sourceMaterialId: true },
+  });
+  if (rows.length === 0) return [];
+  const docs = await db.query.sourceMaterials.findMany({
+    where: inArray(sourceMaterials.id, [...new Set(rows.map((r) => r.sourceMaterialId))]),
+    columns: { id: true, title: true, rawText: true },
+  });
+  const byId = new Map(docs.map((d) => [d.id, { title: d.title ?? d.id, lines: d.rawText.split("\n") }]));
+  return rows.flatMap((r) => {
+    const doc = byId.get(r.sourceMaterialId);
+    const text = doc?.lines[r.line - 1]?.trim();
+    return doc && text ? [{ file: doc.title, line: r.line, text }] : [];
+  });
+}
+
 /** Règle 13 : un seul `déclencheur` par sujet, le plus ancien ; les autres redeviennent des livraisons. */
 async function keepOneTrigger(userId: string, productId: string): Promise<void> {
   const triggers = await db.query.materialEvents.findMany({
@@ -125,10 +150,15 @@ export async function readEventsForSubject(userId: string, productId: string): P
   let pointers = 0;
   let failed = 0;
 
+  // Les journaux d'abord (2026-10-26) : un fait écrit à la fois dans le devlog, un index et un commit
+  // ne doit être marqué qu'une fois, et c'est sa version vécue, celle du journal, qu'on garde.
+  docs.sort((a, b) => Number(!isJournalDocument(a.title)) - Number(!isJournalDocument(b.title)));
+
   for (const doc of docs) {
     try {
       const open = await loadOpenEvents(userId, productId);
-      const { pointers: found, calls: n } = await extractPointers({ file: doc.title ?? doc.id, text: doc.rawText }, open);
+      const known = await loadKnownFacts(userId, productId);
+      const { pointers: found, calls: n } = await extractPointers({ file: doc.title ?? doc.id, text: doc.rawText }, open, known);
       calls += n;
       if (found.length > 0) {
         await db.insert(materialEvents).values(

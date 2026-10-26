@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-10-26 — Tellovo sur Tellovo : phases, X en thread, et la matière triée en amont
+
+**Le test.** L'app a tourné sur son propre dépôt, conduite par Claude avec une validation de l'auteur à chaque étape : carte de `/start`, 6 jours cochés, 6 posts. Huit séries de 6 posts ont suivi dans la journée, chacune après un changement validé. Les posts que l'auteur juge bons sont ceux écrits à la main par Claude ce jour-là : ils sont devenus **la barre** (`docs/tests/POSTS_OBJECTIFS.md`). On ne s'arrête pas avant de l'atteindre.
+
+**Ce qui a cassé en route.** Le serveur lisait GitHub sans jeton : le quota anonyme (60 requêtes/h) a sauté pendant l'inscription, et l'erreur s'affichait « The AI service is overloaded » (corrigé). Une version X parlait de patients en kinésithérapie : elle avait relu le document du pointeur et pris un exemple MyKiné d'une spec. Deux posts « Launch » étaient des épisodes : une livraison utilisable devenait un lancement à n'importe quel moment.
+
+**Décidé et fait**, dans l'ordre :
+- **Les phases du projet** (`src/lib/phases.ts`, migration `0061_phases`) : *Going public*, *Building*, *Opening up* (bêta puis lancement), *Growing*, après une recherche (aucun cadre reconnu, mais la même séquence partout). La phase décide des formes permises (`PHASE_FORMS`) ; `launch` n'existe qu'au lancement, avant une livraison utilisable est une **démo**. Deux formes nouvelles : `demo` et `beta_call`. La carte de `/start` devine la phase (avec sa raison), l'auteur la corrige ; Business context la garde. Elle n'est jamais nommée au rédacteur, seule la table genre → forme change.
+- **La version X est le post LinkedIn adapté, en thread** de longueur libre (`src/lib/llm/xThread.ts`, un appel sans outil ni matière) : plus de seconde écriture. L'écran l'affiche tweet par tweet ; « copier » emporte enfin l'accroche, oubliée jusque-là.
+- **Le lien de l'email écrit toute la semaine**, pas deux posts. Un post remis sans pointeur connu est refusé (sauf l'origine) : le jeudi sans pointeur avait laissé le samedi raconter la même chose.
+- **Le tri se fait à l'extraction, pas après.** Une fenêtre des 60 faits les plus récents a été essayée puis retirée : elle enfermait le rédacteur dans deux jours de ménage d'écrans. L'extracteur a reçu, une phrase à la fois et mesuré à chaque fois sur le dépôt : une définition d'événement « racontable à un inconnu » ; un seuil sans quota (« un document peut en porter douze ») ; la nature du document d'abord (le travail des autres et les index n'ont aucun événement — le catalogue des 274 posts d'autres auteurs donnait 184 pointeurs) ; la liste des faits déjà marqués, journaux lus en premier ; et **la taille d'un événement : une histoire, pas un détail**, qui a fait passer une décision racontée sur onze lignes d'une spec à zéro. **1 880 → 298 pointeurs.** Les dossiers de test et d'exemples sont exclus de la lecture.
+- **Le rédacteur** : la phrase qui l'autorisait à nommer les tables et fonctions est retirée ; sa règle devient « une histoire qu'on lit jusqu'au bout, pas un compte rendu », libre sur le récit, rien d'inventé sur les faits ; `episode`, `failure` et `looking_back` (qui a enfin sa propre forme) sont réécrites autour d'un moment et d'un enjeu — **l'ancienne `episode` était un patron de changelog et le rédacteur la suivait à la lettre** ; une règle de ton décontracté.
+- **Un vérificateur des sources** (`src/lib/llm/pointerVerifier.ts`, idée de l'auteur) : après chaque post, un second appel lit le post et dit quels faits il raconte vraiment. Le rédacteur lisait large et racontait l'entrée voisine en déclarant la sienne ; la veille d'inspiration est revenue trois fois dans une semaine. Il a corrigé les sources de chaque post contrôlé, en ajoutant les autres adresses de la même histoire : plus de répétition au test suivant.
+
+**Ce qu'on en a appris.**
+- **Ce que le rédacteur lit juste avant d'écrire (la forme) pèse plus que son prompt système.** Une phrase du système (« le moment, l'enjeu ») n'a rien changé ; trois formes réécrites ont changé la voix.
+- **Un pointeur est une adresse, pas un fait** : un fait écrit dans quatre fichiers donnait quatre pointeurs, et quatre posts possibles. Le dédoublonnage se fait à l'extraction, l'aveu de ce qui est raconté après l'écriture.
+- Chaque phrase ajoutée à l'extracteur a été mesurée seule : la plupart ont eu un effet faible (−5 % à −21 %), deux ont porté (la nature du document, la taille d'un événement).
+
+**Pas encore.** Les moments humains forts (la permission d'un ressenti n'a presque rien donné), la machinerie qui reste dans les posts, la voix du DEVLOG écrit par Claude. Le reste dans `docs/TODO.md`. Migration `0061` appliquée en dev seulement.
+
+---
+
 ## 2026-10-26 — Le ménage : l'assistant et Direction partent, une série par projet
 
 **Retiré**, sur décision de l'utilisateur : l'**assistant éditorial** en entier (écran `/assistant`, caché depuis le 18, chat, pièces jointes, outils de lecture, prompt, routes `/api/assistant/*`), `/scripts/new` (plus aucun lien n'y menait) et le **rééquilibrage des rôles** (`categoryReweightService.ts`, suspendu, que plus aucun code n'appelait). Environ 3 000 lignes.

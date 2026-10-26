@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { LlmToolDefinition } from "./types";
 import { callStructured } from "./provider";
+import { DEFAULT_PHASE, PHASES } from "@/lib/phases";
 
 /**
  * The card of the /start flow (docs/SPEC_ENTREE_PAR_LE_REPO.md §4): from one public repository,
@@ -22,6 +23,10 @@ export const repoCardSchema = z.object({
   building: z.string().default(""),
   who: z.string().default(""),
   problem: z.string().default(""),
+  // Où en est le projet (src/lib/phases.ts), deviné ici et présélectionné sur la carte : l'auteur
+  // corrige d'un clic. Une valeur inconnue retombe sur la phase par défaut plutôt que de faire échouer la carte.
+  phase: z.enum(PHASES).catch(DEFAULT_PHASE).default(DEFAULT_PHASE),
+  phaseReason: z.string().default(""),
 });
 
 export type RepoCard = z.infer<typeof repoCardSchema>;
@@ -37,8 +42,15 @@ const TOOL: LlmToolDefinition = {
       building: { type: "string", description: "What is being built, in one sentence, in the third person (\"A tool to…\"). Only what the material shows." },
       who: { type: "string", description: "Who it is for, in one sentence: the concrete people it serves. Empty if the material doesn't allow saying." },
       problem: { type: "string", description: "The problem it solves for them, in one sentence, as they would feel it. Empty if the material doesn't allow saying." },
+      phase: {
+        type: "string",
+        enum: [...PHASES],
+        description:
+          "Where the project stands. engage: an idea or a first prototype being announced, little code, nothing usable yet. build: the product is being built, features keep landing, no sign of outside users. beta: a few people are let in — waitlist, beta, early access, invitations. launch: it is opening to everyone right now — public sign-up, pricing, launch announcement. grow: it has been out for a while — tagged releases, a public changelog, user feedback, issues from users, usage numbers.",
+      },
+      phaseReason: { type: "string", description: "Why, in one short line (max 12 words), naming the signals seen in the material." },
     },
-    required: ["name", "tagline", "building", "who", "problem"],
+    required: ["name", "tagline", "building", "who", "problem", "phase", "phaseReason"],
   },
 };
 
@@ -49,7 +61,8 @@ Rules:
 - Write in English, plain words, no marketing jargon.
 - Be concrete: "backend developers maintaining webhook integrations", not "developers".
 - "Who it's for" is the buyer or user of the product, not the person who writes the code.
-- The problem is the pain the product removes, not a feature list.`;
+- The problem is the pain the product removes, not a feature list.
+- For the phase, trust the recent commits and the journal over old planning documents. Code that is deployed but used by nobody outside is still "build".`;
 
 export function buildRepoCardMessage(input: RepoCardInput): string {
   return [
@@ -78,5 +91,7 @@ export async function describeRepoCard(input: RepoCardInput): Promise<RepoCard> 
     building: parsed.building.trim(),
     who: parsed.who.trim(),
     problem: parsed.problem.trim(),
+    phase: parsed.phase,
+    phaseReason: parsed.phaseReason.trim(),
   };
 }

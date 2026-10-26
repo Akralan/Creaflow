@@ -6,6 +6,7 @@ import { products } from "@/db/schema";
 import { requireUserId } from "@/lib/auth/session";
 import { ApiError, handleApiError } from "@/lib/api/errors";
 import { MIN_PRODUCTS } from "@/lib/validation";
+import { PHASES } from "@/lib/phases";
 import { updateProductForUser } from "@/lib/services/productsService";
 import { refreshStaleReaderPortraits } from "@/lib/services/readerPortraitService";
 import { logger } from "@/lib/logger";
@@ -20,6 +21,7 @@ const updateProductSchema = z.object({
   // the others stay "omitted = unchanged" for consistency with the rest of the product form.
   targetAudience: z.string().nullable().optional(),
   problem: z.string().nullable().optional(),
+  phase: z.enum(PHASES).optional(),
 });
 
 export async function PUT(

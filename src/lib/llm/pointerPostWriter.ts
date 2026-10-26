@@ -20,7 +20,8 @@ import { callAgentic } from "@/lib/llm/provider";
 import type { AgenticToolCall, LlmToolDefinition } from "@/lib/llm/types";
 import { buildLanguageBlock, type PostLanguage } from "@/lib/language";
 import { platformRuleText } from "./platformRules";
-import { FORMS, formFor, formText, genreToFormTable, isForm, type Form, type Genre } from "./postForms";
+import type { Phase } from "@/lib/phases";
+import { FORMS, PHASE_FORMS, formFor, formText, genreToFormTable, isForm, type Form, type Genre } from "./postForms";
 import type { Platform } from "./prompts";
 
 export const READ_FILE_TOOL = "read_file";
@@ -72,6 +73,9 @@ export interface WriterContext {
   /** La forme imposée : celle de la version déjà écrite du même post (X après LinkedIn) ou du post
    *  remplacé (« another idea, same story »). Null : le rédacteur la prend du genre de son événement. */
   lockedForm?: Form | null;
+  /** La phase du projet (src/lib/phases.ts) : elle décide des formes permises. Jamais nommée dans le
+   *  prompt — seule la table genre → forme change. Absente : toutes les formes. */
+  phase?: Phase | null;
 }
 
 export interface WrittenResult {
@@ -93,7 +97,17 @@ const publishSchema = z.object({
   form: z.string(),
 });
 
-export function buildWriterTools(): LlmToolDefinition[] {
+/** Les formes que le rédacteur peut lire et remettre : celles de la phase, plus l'origine (le premier
+ *  post l'est toujours) et la forme imposée. Toutes sans phase. */
+export function writerForms(phase?: Phase | null, lockedForm?: Form | null): Form[] {
+  if (!phase) return [...FORMS];
+  const forms = new Set<Form>([...PHASE_FORMS[phase], "origin"]);
+  if (lockedForm) forms.add(lockedForm);
+  return FORMS.filter((f) => forms.has(f));
+}
+
+export function buildWriterTools(phase?: Phase | null, lockedForm?: Form | null): LlmToolDefinition[] {
+  const forms = writerForms(phase, lockedForm);
   return [
     {
       name: READ_FILE_TOOL,
@@ -125,7 +139,7 @@ export function buildWriterTools(): LlmToolDefinition[] {
       description: "Reads the form of a post: how it opens, what its body carries, where it stops, what it never does. Read the form of your event's genre before writing.",
       input_schema: {
         type: "object",
-        properties: { form: { type: "string", enum: [...FORMS], description: "The form, as the genre → form table names it." } },
+        properties: { form: { type: "string", enum: forms, description: "The form, as the genre → form table names it." } },
         required: ["form"],
         additionalProperties: false,
       },
@@ -138,7 +152,7 @@ export function buildWriterTools(): LlmToolDefinition[] {
         properties: {
           post: { type: "string", description: "The post itself, as it will be published. Nothing else: no title, no comment, no explanation." },
           event_ids: { type: "array", description: "The timeline ids this post was built from.", items: { type: "string" } },
-          form: { type: "string", enum: [...FORMS], description: "The form you read and wrote in." },
+          form: { type: "string", enum: forms, description: "The form you read and wrote in." },
         },
         required: ["post", "event_ids", "form"],
         additionalProperties: false,
@@ -157,14 +171,16 @@ Your reader is ${c.readerLabel}: ${c.readerWho}
 
 ${c.projectContext}
 
-That is your only rule: build in public, for that reader. There is no other one, except this: if no post has been published yet, that first post is the origin. On a young project it presents the project and why it exists; on one that already has a long trail of material behind it, it can instead be the reason its author is starting to build in public, when the material or the author's own words say it. That reason is the one they give, never one chosen to fit the reader — and your reader must understand at once that it is for them.
+That is your only rule: build in public, for that reader — a story they want to read to the end, not a report of what changed. Tell it the way the author would tell it to a friend: the moment, what was at stake, what it did to them. You are free in how you tell it. You may give the author a moment and a feeling the material does not spell out — what they did that evening, what they felt, what they almost did — as long as it fits the facts. You never invent a fact: a feature, a number, a date, a user, a client, a demo or a result that the material does not hold. There is no other one, except this: if no post has been published yet, that first post is the origin. On a young project it presents the project and why it exists; on one that already has a long trail of material behind it, it can instead be the reason its author is starting to build in public, when the material or the author's own words say it. That reason is the one they give, never one chosen to fit the reader — and your reader must understand at once that it is for them.
 
 Your first sentence is a hook and nothing else: it has to stop the scroll and make someone want the next line. Put something in it — a number, an hour, an admission, a line with some nerve in it, even a touch of madness. Never a summary of the post, never a question you answer yourself.
 
-The timeline below is a list of addresses — a document and a line — and the genre of what happened there: what kind of fact it is. An address does not tell you what is at it: open it with ${READ_FILE_TOOL}, and read around it as widely as you want. The form of your post is decided by the genre of the event you build it from, and by nothing else: the table below gives it. Once you have chosen your event, read its form with ${READ_FORM_TOOL} and write inside it. If an address says it fulfills an earlier one, open that earlier address too: your post is about both. An address marked (already used) is one a published post was built from; you can read any published post in full with ${READ_POST_TOOL}. You read them to find out what has already been said, so you do not write it again. And if you name a table, a function, a library, a tool or any piece of the machinery, say what it is or what it does in the same breath — never leave your reader in front of a word that means nothing to them.
+Write the way the author talks, not the way a report reads: casual, direct, everyday words, short sentences — a dev telling a friend about their week. Never formal, never polished, never a lofty turn of phrase.
+
+The timeline below is a list of addresses — a document and a line — and the genre of what happened there: what kind of fact it is. An address does not tell you what is at it: open it with ${READ_FILE_TOOL}, and read around it as widely as you want. The form of your post is decided by the genre of the event you build it from, and by nothing else: the table below gives it. Once you have chosen your event, read its form with ${READ_FORM_TOOL} and write inside it. If an address says it fulfills an earlier one, open that earlier address too: your post is about both. An address marked (already used) is one a published post was built from; you can read any published post in full with ${READ_POST_TOOL}. You read them to find out what has already been said, so you do not write it again.
 
 <forms>
-${genreToFormTable()}
+${genreToFormTable(c.phase)}
 </forms>${locked}
 
 ${buildLanguageBlock(c.language)}
@@ -229,7 +245,7 @@ export function expectedForm(c: WriterContext, eventIds: string[]): Form | null 
   // Un événement qui en tient un autre décide de la forme, où qu'il soit dans la liste déclarée.
   const main = chosen.find((e) => e.tient && byId.has(e.tient)) ?? chosen[0];
   const tientGenre = main.tient ? (byId.get(main.tient)?.genre ?? null) : null;
-  return formFor({ genre: main.genre, disponible: main.disponible, tientGenre });
+  return formFor({ genre: main.genre, disponible: main.disponible, tientGenre }, c.phase);
 }
 
 /** Exécute un appel d'outil du rédacteur sur le corpus en mémoire. */
@@ -255,7 +271,9 @@ export function runWriterTool(c: WriterContext, call: { name: string; input: unk
   }
   if (call.name === READ_FORM_TOOL) {
     const { form } = call.input as { form: unknown };
-    if (!isForm(form)) return { error: `No form named "${String(form)}". Use a name from the genre → form table.` };
+    if (!isForm(form) || !writerForms(c.phase, c.lockedForm).includes(form)) {
+      return { error: `No form named "${String(form)}". Use a name from the genre → form table.` };
+    }
     return { form, text: formText(form) };
   }
   return { error: `Unknown tool "${call.name}".` };
@@ -268,7 +286,7 @@ export async function writePost(c: WriterContext, maxTurns = 40): Promise<Writte
   const result = await callAgentic({
     system: buildWriterSystemPrompt(c),
     messages: [{ role: "user", content: buildWriterUserMessage(c) }],
-    tools: buildWriterTools(),
+    tools: buildWriterTools(c.phase, c.lockedForm),
     maxTokens: 4096,
     maxTurns,
     effort: "medium",
@@ -281,13 +299,26 @@ export async function writePost(c: WriterContext, maxTurns = 40): Promise<Writte
       if (call.name === PUBLISH_TOOL) {
         const parsed = publishSchema.safeParse(call.input);
         if (!parsed.success) return { error: "post must be a non-empty string, event_ids an array of ids, and form one of the forms." };
-        if (!isForm(parsed.data.form)) return { error: `"${parsed.data.form}" is not a form. Use a name from the genre → form table.` };
+        if (!isForm(parsed.data.form) || !writerForms(c.phase, c.lockedForm).includes(parsed.data.form)) {
+          return { error: `"${parsed.data.form}" is not a form. Use a name from the genre → form table.` };
+        }
         const form = parsed.data.form;
         if (!formsRead.has(form)) {
           return { error: `Read the form "${form}" with ${READ_FORM_TOOL} before handing in, and write inside it.` };
         }
         const known = new Set(c.timeline.map((e) => e.id));
         const eventIds = parsed.data.event_ids.filter((id) => known.has(id));
+        // Un post sans adresse ne marque rien comme raconté : le test du 2026-10-26 a donné un jeudi
+        // remis sans pointeur, et le samedi a raconté le même fait. Seule l'origine peut partir des
+        // mots de l'auteur plutôt que d'une adresse.
+        if (eventIds.length === 0 && c.posts.length > 0) {
+          return {
+            error:
+              parsed.data.event_ids.length > 0
+                ? `None of these ids is in the timeline (${parsed.data.event_ids.join(", ")}). Give the ids of the addresses your post was built from, exactly as the timeline shows them.`
+                : "Give the timeline ids of the addresses your post was built from: a post with no address cannot be handed in.",
+          };
+        }
         const expected = expectedForm(c, eventIds);
         if (expected && expected !== form) {
           return {

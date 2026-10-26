@@ -5,6 +5,7 @@ import { parseStoredReaderPortrait, type Reader } from "@/lib/llm/readerPortrait
 import type { TimelineEntry, WrittenPost } from "@/lib/llm/pointerPostWriter";
 import type { Form, Genre } from "@/lib/llm/postForms";
 import { ApiError } from "@/lib/api/errors";
+import { DEFAULT_PHASE, type Phase } from "@/lib/phases";
 
 /**
  * Le lecteur d'une série et la ligne de temps qu'elle raconte (docs/SPEC_EVENEMENT_POINTEUR.md §4).
@@ -113,6 +114,74 @@ export function restrictToLocked(timeline: TimelineEntry[], lockedIds: string[])
   return kept.length > 0 ? kept : timeline;
 }
 
+/** Un document qui raconte ce qui s'est passé (journal, commits, changelog), par opposition à ce qui
+ *  est prévu ou décrit (spec, doc de référence). */
+const LIVED_SOURCE = /commit log|devlog|dev-log|changelog|journal|history|retro|updates?\b|log\.md/i;
+const PLANNED_SOURCE = /spec|rfc|design|plan|roadmap|architecture/i;
+
+/** L'ordre de la réserve : ce qui fait une histoire avant ce qui fait un compte rendu. */
+const BACKGROUND_GENRE_ORDER: Genre[] = [
+  "déclencheur",
+  "retour_utilisateur",
+  "chiffre",
+  "échec",
+  "leçon",
+  "engagement",
+  "coulisse",
+  "question",
+  "réaction",
+  "offre",
+  "annonce",
+  "décision",
+  "livraison",
+];
+
+function sourceRank(file: string): number {
+  if (LIVED_SOURCE.test(file)) return 0;
+  if (PLANNED_SOURCE.test(file)) return 2;
+  return 1;
+}
+
+/**
+ * L'ordre de la ligne de temps (docs/TODO.md, « Pointeurs sans intérêt ») : les faits datés du plus
+ * récent au plus ancien, puis ceux sans date, où les sources vécues passent avant les specs et les
+ * genres qui font une histoire avant les décisions et livraisons de conception. Rien n'est coupé :
+ * le 2026-10-26, une fenêtre des 60 faits les plus récents enfermait le rédacteur dans deux jours de
+ * ménage d'écrans, et laissait hors de sa vue les moments forts plus anciens. Le tri se fait à
+ * l'extraction, pas ici.
+ *
+ * Les pointeurs déjà racontés sont retirés (la liste des posts publiés dit ce qui est dit), sauf
+ * ceux qu'un pointeur gardé « tient » : son post parle des deux. Une date future est un plan, pas un
+ * fait : elle va dans la réserve. Pur, pour être testable sans base.
+ */
+export function focusTimeline(timeline: TimelineEntry[], today: string): TimelineEntry[] {
+  const fresh = timeline.filter((e) => !e.used);
+  const recent = fresh
+    .filter((e) => e.date !== null && e.date.slice(0, 10) <= today)
+    .sort((a, b) => (b.date as string).localeCompare(a.date as string) || sourceRank(a.file) - sourceRank(b.file));
+  const taken = new Set(recent.map((e) => e.id));
+  const background = fresh
+    .filter((e) => !taken.has(e.id) && (e.date === null || e.date.slice(0, 10) > today))
+    .sort(
+      (a, b) =>
+        sourceRank(a.file) - sourceRank(b.file) ||
+        BACKGROUND_GENRE_ORDER.indexOf(a.genre) - BACKGROUND_GENRE_ORDER.indexOf(b.genre) ||
+        a.file.localeCompare(b.file) ||
+        a.line - b.line
+    );
+  const kept = [...recent, ...background];
+  const keptIds = new Set(kept.map((e) => e.id));
+  const byId = new Map(timeline.map((e) => [e.id, e]));
+  for (const e of [...kept]) {
+    const held = e.tient ? byId.get(e.tient) : undefined;
+    if (held && !keptIds.has(held.id)) {
+      kept.push(held);
+      keptIds.add(held.id);
+    }
+  }
+  return kept;
+}
+
 async function loadTimeline(userId: string, productId: string, seriesId: string) {
   const [rows, posts, docs] = await Promise.all([
     db.query.materialEvents.findMany({
@@ -159,6 +228,11 @@ export interface PointerBrief {
   /** La forme imposée avec les pointeurs verrouillés (docs/FORMES_ET_GENRES.md, plan) : la forme
    *  suit les pointeurs, donc l'autre réseau et « another idea, same story » la reprennent. */
   lockedForm: Form | null;
+  /** La phase du projet : elle décide des formes permises (src/lib/phases.ts). */
+  phase: Phase;
+  /** Tous les pointeurs du sujet, déjà racontés compris : le vérificateur des sources y cherche ce
+   *  que le post raconte vraiment (src/lib/llm/pointerVerifier.ts). */
+  allTimeline: TimelineEntry[];
 }
 
 /**
@@ -183,7 +257,7 @@ export async function buildPointerBrief(
 
   const { timeline: all, posts, docs } = await loadTimeline(userId, series.productId, seriesId);
   if (all.length === 0) return null;
-  const timeline = restrictToLocked(all, lockedIds);
+  const timeline = lockedIds.length > 0 ? restrictToLocked(all, lockedIds) : focusTimeline(all, new Date().toISOString().slice(0, 10));
 
   const files = new Map<string, string[]>();
   for (const d of docs) if (d.title) files.set(d.title, d.rawText.split("\n"));
@@ -210,5 +284,7 @@ export async function buildPointerBrief(
     projectContext,
     // Sans pointeur verrouillé, la forme ne peut pas être imposée : le rédacteur la prend du genre.
     lockedForm: lockedIds.length > 0 ? lockedForm : null,
+    phase: product?.phase ?? DEFAULT_PHASE,
+    allTimeline: all,
   };
 }
