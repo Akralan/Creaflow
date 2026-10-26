@@ -103,7 +103,7 @@ Le calendrier se tient seul sur 28 jours : chaque jour de publication donne un p
 0. **Atteindre la barre de `docs/tests/POSTS_OBJECTIFS.md`** : six posts écrits à la main à partir du dépôt tellovo (décidé le 2026-10-26). Ce qui reste : `docs/TODO.md`.
 
 1. **Faire tester par 5 à 10 développeurs extérieurs** et mesurer l'écart entre le brouillon et ce qui est publié. Rien d'autre ne dit si le produit tient sa promesse.
-2. Mettre en ligne la version actuelle : `URGENT.md` (`EMAIL_LOG_LINKS`), Brevo, `publisher.ts`, migrations `0047`-`0060` sur le VPS, sauvegardes planifiées.
+2. Mettre en ligne la version actuelle : **déployée sur le VPS le 2026-10-26** (migrations jusqu'à `0061`), mais sans `OPENAI_API_KEY` ni `GITHUB_TOKEN` dans son `.env` — la génération n'y marche pas encore. Restent `URGENT.md` (`EMAIL_LOG_LINKS`), Brevo, `publisher.ts`, sauvegardes planifiées.
 3. Rebrancher le « pourquoi » de l'auteur dans le rédacteur : il est demandé sur `/start` mais ne lui parvient plus depuis le 2026-10-24, et le premier post retombe en plaquette produit (`DEVLOG.md` du 2026-10-26).
 4. Faire lire les performances au rédacteur.
 5. Rendre une porte à la matière non connectée (notes collées) si la cible sans dépôt revient.

@@ -325,6 +325,8 @@ appel pour valider la session), et le réveil de Neon après inactivité sur le 
 
 ## Statut
 
+**Mis à jour le 2026-10-26** : `main` (`8b6f612`) déployé par `./deploy/update.sh`, migrations `0047` à `0061` appliquées (62 au total), sauvegarde prise juste avant dans `~/backups/avant-deploiement-20261026-1946.sql.gz`. Le premier essai a échoué à `npm ci` (lock désynchronisé sur des dépendances wasm optionnelles, corrigé). Le `.env` du VPS n'a toujours ni `OPENAI_API_KEY` ni `GITHUB_TOKEN` : landing et connexion marchent, la génération non.
+
 Écrit et **déployé pour de vrai le 2026-10-16** sur un VPS OVH (Ubuntu 26.04, 2 vCPU, 4 Go) :
 `https://vps-a004fa72.vps.ovh.ca`. Certificat obtenu du premier coup, 35 tables créées par les
 migrations, création de compte et session vérifiées de bout en bout depuis l'extérieur. Écarts
