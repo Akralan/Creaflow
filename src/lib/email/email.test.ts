@@ -115,8 +115,8 @@ describe("emails of the /start flow", () => {
   });
 });
 
-describe("consoleSender in production (EMAIL_LOG_LINKS, temporary — see URGENT.md)", () => {
-  const message = { to: "a@b.c", subject: "s", html: "h", text: "Open: https://app.test/connexion/lien?token=abc123 — bye\nReset: https://app.test/reinitialiser-mot-de-passe?token=zzz" };
+describe("consoleSender in production", () => {
+  const message = { to: "a@b.c", subject: "s", html: "h", text: "Open: https://app.test/connexion/lien?token=abc123 — bye" };
 
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -128,15 +128,5 @@ describe("consoleSender in production (EMAIL_LOG_LINKS, temporary — see URGENT
     const info = vi.spyOn(logger, "info").mockImplementation(() => undefined);
     await consoleSender.send(message);
     expect(JSON.stringify(info.mock.calls)).not.toContain("abc123");
-  });
-
-  it("logs only the sign-in link when EMAIL_LOG_LINKS=1, never the reset link", async () => {
-    vi.stubEnv("NODE_ENV", "production");
-    vi.stubEnv("EMAIL_LOG_LINKS", "1");
-    const info = vi.spyOn(logger, "info").mockImplementation(() => undefined);
-    await consoleSender.send(message);
-    const logged = JSON.stringify(info.mock.calls);
-    expect(logged).toContain("https://app.test/connexion/lien?token=abc123");
-    expect(logged).not.toContain("zzz");
   });
 });

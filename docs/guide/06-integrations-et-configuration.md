@@ -37,7 +37,6 @@ Principe : **tout est optionnel sauf la base et une clé OpenAI**. Sans un servi
 | `ADMIN_EMAILS` | Emails (séparés par des virgules, lus au **démarrage**) qui accèdent à `/admin/quotas`. Vide = personne |
 | `START_DAILY_CAP` | Plafond de nouveaux comptes par jour via `/start` |
 | `SEO_INDEXABLE` | Forcer/empêcher l'indexation. `APP_URL` et cette variable sont lues **au build** ; jamais d'indexation sur un hôte de démo ni en local |
-| `EMAIL_LOG_LINKS` | **Essais seulement** : écrit le lien de connexion dans les logs. **À retirer avant Brevo** (voir `URGENT.md`) |
 
 ## Ce que chaque service coûte ou exige (à ne pas oublier)
 

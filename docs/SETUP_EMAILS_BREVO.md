@@ -121,9 +121,9 @@ passe modifié » (« si ce n'est pas vous, écrivez-nous à … »).
 
 ## 5 bis. Avant de brancher Brevo : retirer le lien journalisé
 
-Le parcours `/start` (docs/SPEC_ENTREE_PAR_LE_REPO.md) envoie un email avec un lien de connexion. En attendant
-Brevo, `EMAIL_LOG_LINKS=1` écrit ce lien dans les logs du serveur pour pouvoir essayer le parcours.
-**À retirer avant la clé** : voir `URGENT.md` à la racine du dépôt.
+Fait le 2026-10-28 : `EMAIL_LOG_LINKS` (qui écrivait le lien de connexion du parcours `/start` dans
+les logs, pour l'essayer sans service d'envoi) et le code qui la lisait sont supprimés. En production,
+le mode console ne journalise plus que le destinataire et le sujet.
 
 ---
 
