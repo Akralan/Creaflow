@@ -325,6 +325,8 @@ appel pour valider la session), et le réveil de Neon après inactivité sur le 
 
 ## Statut
 
+**Domaine le 2026-10-28** : l'app est servie sur `https://tellovo.ai` (DNS chez Hostinger : `A`/`AAAA` sur `@` vers l'IP du VPS, `CNAME www` vers `vps-a004fa72.vps.ovh.ca`, TTL 300). `www.tellovo.ai` redirige en 301 vers le domaine nu (`Caddyfile`). `APP_DOMAIN`/`APP_URL` changés dans `/opt/creaflow/.env` (ancien dans `.env.bak-20261028`), rebuild par `update.sh` : le site est désormais indexable (`robots.txt`, `sitemap.xml` sur `tellovo.ai`). Le domaine pointait avant sur une app Scalingo (`tellovo-webapp`). Pas de `MX` : rien ne peut être reçu sur `@tellovo.ai`.
+
 **Mis à jour le 2026-10-26** : `main` (`8b6f612`) déployé par `./deploy/update.sh`, migrations `0047` à `0061` appliquées (62 au total), sauvegarde prise juste avant dans `~/backups/avant-deploiement-20261026-1946.sql.gz`. Le premier essai a échoué à `npm ci` (lock désynchronisé sur des dépendances wasm optionnelles, corrigé). Le `.env` du VPS n'a toujours ni `OPENAI_API_KEY` ni `GITHUB_TOKEN` : landing et connexion marchent, la génération non.
 
 Écrit et **déployé pour de vrai le 2026-10-16** sur un VPS OVH (Ubuntu 26.04, 2 vCPU, 4 Go) :
